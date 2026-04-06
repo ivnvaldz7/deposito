@@ -19,9 +19,11 @@ model User {
   role         Role     @default(observador)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  actas             Acta[]
-  movimientos       Movimiento[]
-  insumoPendientes  InsumoPendiente[]
+  actas                  Acta[]
+  movimientos            Movimiento[]
+  insumoPendientes       InsumoPendiente[]
+  ordenesComoSolicitante OrdenProduccion[] @relation("OrdenesComoSolicitante")
+  ordenesComoAprobador   OrdenProduccion[] @relation("OrdenesComoAprobador")
 
   @@map("users")
 }
@@ -199,4 +201,40 @@ model InsumoPendiente {
 enum EstadoPendiente {
   en_esterilizacion
   recibido
+}
+
+// ============================================================
+// ÓRDENES DE PRODUCCIÓN
+// ============================================================
+model OrdenProduccion {
+  id             String      @id @default(uuid())
+  solicitanteId  String      @map("solicitante_id")
+  aprobadoPor    String?     @map("aprobado_por")
+  categoria      Categoria
+  productoNombre String      @map("producto_nombre")
+  mercado        Mercado?
+  cantidad       Int
+  urgencia       Urgencia    @default(normal)
+  estado         EstadoOrden @default(solicitada)
+  motivoRechazo  String?     @map("motivo_rechazo")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  solicitante User  @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
+  aprobador   User? @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
+
+  @@map("ordenes_produccion")
+}
+
+enum Urgencia {
+  normal
+  urgente
+}
+
+enum EstadoOrden {
+  solicitada
+  aprobada
+  ejecutada
+  completada
+  rechazada
 }

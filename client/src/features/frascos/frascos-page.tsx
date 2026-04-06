@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import { InlineNumberEditor } from '@/features/inventory/shared/inline-number-editor'
 import { EmptyState, ErrorState, LoadingState } from '@/features/inventory/shared/inventory-states'
 import { sortByArticulo } from '@/lib/sort-utils'
@@ -42,6 +43,8 @@ interface Frasco {
 function sortFrascos(list: Frasco[]): Frasco[] {
   return [...list].sort((a, b) => sortByArticulo(a.articulo, b.articulo))
 }
+
+const STOCK_BAJO_THRESHOLD = 5
 
 // ─── Agregar frasco modal ─────────────────────────────────────────────────────
 
@@ -92,6 +95,11 @@ function AgregarFrascoModal({ onCreated }: { onCreated: (f: Frasco) => void }) {
         token
       )
       onCreated(frasco)
+      if (frasco.cantidadCajas < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${frasco.articulo}" quedó con stock bajo (${frasco.cantidadCajas} cajas).`)
+      } else {
+        toast.success(`Frasco "${frasco.articulo}" agregado.`)
+      }
       reset()
       setOpen(false)
     } catch (err) {
@@ -267,6 +275,11 @@ function EditarFrascoModal({
         token
       )
       onUpdated(updated)
+      if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
+      } else {
+        toast.info(`Frasco "${updated.articulo}" actualizado.`)
+      }
       onClose()
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
@@ -344,6 +357,11 @@ function CajasCell({
           token
         )
         onUpdated(updated)
+        if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) {
+          toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
+        } else {
+          toast.info(`Stock de cajas para "${updated.articulo}" actualizado.`)
+        }
       }}
     />
   )
@@ -382,9 +400,11 @@ export function FrascosPage() {
     setDeletingId(id)
     try {
       await apiClient.del<void>(`/frascos/${id}`, token)
+      const frasco = frascos.find((f) => f.id === id)
       setFrascos((prev) => prev.filter((f) => f.id !== id))
+      toast.success(frasco ? `Frasco "${frasco.articulo}" eliminado.` : 'Frasco eliminado.')
     } catch {
-      // noop
+      toast.error('No se pudo eliminar el frasco.')
     } finally {
       setDeletingId(null)
     }

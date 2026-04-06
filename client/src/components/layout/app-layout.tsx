@@ -2,8 +2,11 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { CommandPalette } from '@/components/command-palette/command-palette'
+import { useSSE } from '@/hooks/use-sse'
 
 export function AppLayout() {
+  useSSE()
+
   return (
     <div className="flex min-h-screen bg-surface">
       <Sidebar />

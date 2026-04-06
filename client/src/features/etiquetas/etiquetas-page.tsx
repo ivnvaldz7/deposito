@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import { sortByArticulo } from '@/lib/sort-utils'
 import { InlineNumberEditor } from '@/features/inventory/shared/inline-number-editor'
 import { MercadoChip } from '@/features/inventory/shared/mercado-chip'
@@ -94,6 +95,11 @@ function AgregarEtiquetaModal({ onCreated }: { onCreated: (e: Etiqueta) => void 
         token
       )
       onCreated(etiqueta)
+      if (etiqueta.cantidad < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${etiqueta.articulo}" quedó con stock bajo (${etiqueta.cantidad}).`)
+      } else {
+        toast.success(`Etiqueta "${etiqueta.articulo}" agregada.`)
+      }
       reset()
       setOpen(false)
     } catch (err) {
@@ -256,6 +262,11 @@ function EditarEtiquetaModal({
         token
       )
       onUpdated(updated)
+      if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+      } else {
+        toast.info(`Etiqueta "${updated.articulo}" actualizada.`)
+      }
       onClose()
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
@@ -341,6 +352,11 @@ function CantidadCell({
           token
         )
         onUpdated(updated)
+        if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
+          toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+        } else {
+          toast.info(`Stock de "${updated.articulo}" actualizado.`)
+        }
       }}
     />
   )
@@ -385,9 +401,11 @@ export function EtiquetasPage() {
     setDeletingId(id)
     try {
       await apiClient.del<void>(`/etiquetas/${id}`, token)
+      const etiqueta = allEtiquetas.find((e) => e.id === id)
       setAllEtiquetas((prev) => prev.filter((e) => e.id !== id))
+      toast.success(etiqueta ? `Etiqueta "${etiqueta.articulo}" eliminada.` : 'Etiqueta eliminada.')
     } catch {
-      // noop
+      toast.error('No se pudo eliminar la etiqueta.')
     } finally {
       setDeletingId(null)
     }

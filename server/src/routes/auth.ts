@@ -12,6 +12,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().min(2),
+  role: z.enum(['encargado', 'observador', 'solicitante']).optional().default('observador'),
 })
 
 const loginSchema = z.object({
@@ -27,7 +28,7 @@ router.post('/register', authenticate, requireRole('encargado'), async (req: Req
     return
   }
 
-  const { email, password, name } = result.data
+  const { email, password, name, role } = result.data
 
   try {
     const existing = await prisma.user.findUnique({ where: { email } })
@@ -38,7 +39,7 @@ router.post('/register', authenticate, requireRole('encargado'), async (req: Req
 
     const passwordHash = await bcrypt.hash(password, 12)
     const user = await prisma.user.create({
-      data: { email, passwordHash, name, role: 'encargado' },
+      data: { email, passwordHash, name, role },
       select: { id: true, email: true, name: true, role: true },
     })
 

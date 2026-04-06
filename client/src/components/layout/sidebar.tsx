@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FlaskConical, Package, Tag, Box, PackagePlus, BookOpen, ArrowLeftRight, Clock } from 'lucide-react'
+import { LayoutDashboard, FlaskConical, Package, Tag, Box, PackagePlus, BookOpen, ArrowLeftRight, Clock, Users, ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 
 const navItems = [
   { path: '/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
@@ -12,9 +13,13 @@ const navItems = [
   { path: '/actas',       label: 'Actas',        icon: BookOpen },
   { path: '/movimientos', label: 'Movimientos',  icon: ArrowLeftRight },
   { path: '/pendientes',  label: 'Pendientes',   icon: Clock },
+  { path: '/ordenes',     label: 'Órdenes',      icon: ClipboardList },
 ]
 
 export function Sidebar() {
+  const user = useAuthStore((s) => s.user)
+  const isEncargado = user?.role === 'encargado'
+
   return (
     <aside className="hidden md:flex flex-col w-56 min-h-screen bg-surface-lowest shrink-0">
       {/* Logo */}
@@ -43,6 +48,22 @@ export function Sidebar() {
             {label}
           </NavLink>
         ))}
+        {isEncargado && (
+          <NavLink
+            to="/usuarios"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded font-heading font-semibold text-sm transition-colors',
+                isActive
+                  ? 'bg-surface-high text-on-surface'
+                  : 'text-on-surface-variant hover:bg-surface-bright hover:text-on-surface'
+              )
+            }
+          >
+            <Users size={16} strokeWidth={1.5} />
+            Usuarios
+          </NavLink>
+        )}
       </nav>
     </aside>
   )

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import { sortByArticulo } from '@/lib/sort-utils'
 import { InlineNumberEditor } from '@/features/inventory/shared/inline-number-editor'
 import { MercadoChip } from '@/features/inventory/shared/mercado-chip'
@@ -94,6 +95,11 @@ function AgregarEstucheModal({ onCreated }: { onCreated: (e: Estuche) => void })
         token
       )
       onCreated(estuche)
+      if (estuche.cantidad < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${estuche.articulo}" quedó con stock bajo (${estuche.cantidad}).`)
+      } else {
+        toast.success(`Estuche "${estuche.articulo}" agregado.`)
+      }
       reset()
       setOpen(false)
     } catch (err) {
@@ -256,6 +262,11 @@ function EditarEstucheModal({
         token
       )
       onUpdated(updated)
+      if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+      } else {
+        toast.info(`Estuche "${updated.articulo}" actualizado.`)
+      }
       onClose()
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
@@ -341,6 +352,11 @@ function CantidadCell({
           token
         )
         onUpdated(updated)
+        if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
+          toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+        } else {
+          toast.info(`Stock de "${updated.articulo}" actualizado.`)
+        }
       }}
     />
   )
@@ -385,9 +401,11 @@ export function EstuchesPage() {
     setDeletingId(id)
     try {
       await apiClient.del<void>(`/estuches/${id}`, token)
+      const estuche = allEstuches.find((e) => e.id === id)
       setAllEstuches((prev) => prev.filter((e) => e.id !== id))
+      toast.success(estuche ? `Estuche "${estuche.articulo}" eliminado.` : 'Estuche eliminado.')
     } catch {
-      // noop
+      toast.error('No se pudo eliminar el estuche.')
     } finally {
       setDeletingId(null)
     }

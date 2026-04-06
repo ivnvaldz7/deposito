@@ -4,6 +4,7 @@ import { Mercado } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
+import { sseManager } from '../lib/sse-manager'
 
 const router = Router()
 
@@ -72,6 +73,14 @@ router.post(
           createdBy: req.user!.id,
         },
       })
+
+      sseManager.broadcastGlobal({
+        tipo: 'ingreso_creado',
+        mensaje: `Nuevo acta de ingreso creada por ${req.user!.name}`,
+        datos: { actaId: acta.id, fecha, createdBy: req.user!.name },
+        timestamp: new Date().toISOString(),
+      })
+
       res.status(201).json(acta)
     } catch {
       res.status(500).json({ message: 'Error interno del servidor' })
@@ -267,6 +276,19 @@ router.post(
         })
 
         return { item: item2, acta: acta2 }
+      })
+
+      // Emitir stock_actualizado globalmente
+      sseManager.broadcastGlobal({
+        tipo: 'stock_actualizado',
+        mensaje: `Stock de ${updatedItem.productoNombre} actualizado (+${cantidad})`,
+        datos: {
+          producto: updatedItem.productoNombre,
+          categoria: updatedItem.categoria,
+          cantidad,
+          tipo: 'ingreso',
+        },
+        timestamp: new Date().toISOString(),
       })
 
       res.json({ item: updatedItem, acta: updatedActa })

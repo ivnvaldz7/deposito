@@ -29,6 +29,10 @@ const editarPendienteSchema = z
     message: 'Al menos un campo requerido',
   })
 
+const recibirPendienteSchema = z.object({
+  cantidadRecibida: z.number().int().positive(),
+})
+
 const include = { user: { select: { name: true } } } as const
 
 // ─── GET /api/pendientes ──────────────────────────────────────────────────────
@@ -149,6 +153,14 @@ router.put(
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
+    const result = recibirPendienteSchema.safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() })
+      return
+    }
+
+    const { cantidadRecibida } = result.data
+
     try {
       const existing = await prisma.insumoPendiente.findUnique({ where: { id } })
       if (!existing) {
@@ -160,15 +172,47 @@ router.put(
         return
       }
 
-      const pendiente = await prisma.insumoPendiente.update({
-        where: { id },
-        data: {
-          estado: 'recibido',
-          fechaRecibido: new Date(),
-        },
-        include,
+      if (cantidadRecibida > existing.cantidad) {
+        res.status(400).json({ message: 'La cantidad recibida no puede superar la cantidad enviada' })
+        return
+      }
+
+      const fechaRecibido = new Date()
+
+      const response = await prisma.$transaction(async (tx) => {
+        const recibido = await tx.insumoPendiente.update({
+          where: { id },
+          data: {
+            cantidad: cantidadRecibida,
+            estado: 'recibido',
+            fechaRecibido,
+          },
+          include,
+        })
+
+        let pendienteRestante = null
+
+        if (cantidadRecibida < existing.cantidad) {
+          pendienteRestante = await tx.insumoPendiente.create({
+            data: {
+              categoria: existing.categoria,
+              articulo: existing.articulo,
+              cantidad: existing.cantidad - cantidadRecibida,
+              destino: existing.destino,
+              estado: 'en_esterilizacion',
+              fechaEnvio: existing.fechaEnvio,
+              fechaRetornoEstimada: existing.fechaRetornoEstimada,
+              notas: existing.notas,
+              createdBy: existing.createdBy,
+            },
+            include,
+          })
+        }
+
+        return { recibido, pendienteRestante }
       })
-      res.json(pendiente)
+
+      res.json(response)
     } catch {
       res.status(500).json({ message: 'Error interno del servidor' })
     }

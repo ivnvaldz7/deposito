@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import { EstadoChip } from './estado-chip'
 import type { Acta, ActaItem } from './types'
 
@@ -86,6 +87,7 @@ function ItemRow({
         token
       )
       onDistribuido(res.item)
+      toast.success(`Distribución registrada para "${item.productoNombre}".`)
       setDistributing(false)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Error al distribuir')

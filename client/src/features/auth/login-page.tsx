@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import type { AuthUser } from '@/stores/auth-store'
 
 const loginSchema = z.object({
@@ -41,8 +42,10 @@ export function LoginPage() {
     } catch (err) {
       if (err instanceof ApiError) {
         setServerError(err.message)
+        toast.error(err.message)
       } else {
         setServerError('Error de conexión. Intentá de nuevo.')
+        toast.error('Error de conexión. Intentá de nuevo.')
       }
     }
   }

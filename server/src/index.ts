@@ -10,6 +10,9 @@ import estuchesRoutes from './routes/estuches'
 import etiquetasRoutes from './routes/etiquetas'
 import frascosRoutes from './routes/frascos'
 import pendientesRoutes from './routes/pendientes'
+import usersRoutes from './routes/users'
+import ordenesRoutes from './routes/ordenes'
+import eventsRoutes from './routes/events'
 
 const app = express()
 const PORT = process.env.PORT ?? 3001
@@ -33,6 +36,9 @@ app.use('/api/estuches', estuchesRoutes)
 app.use('/api/etiquetas', etiquetasRoutes)
 app.use('/api/frascos', frascosRoutes)
 app.use('/api/pendientes', pendientesRoutes)
+app.use('/api/users', usersRoutes)
+app.use('/api/ordenes', ordenesRoutes)
+app.use('/api/events', eventsRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

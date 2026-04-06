@@ -26,6 +26,9 @@ const editarPendienteSchema = zod_1.z
     .refine((d) => Object.values(d).some((v) => v !== undefined), {
     message: 'Al menos un campo requerido',
 });
+const recibirPendienteSchema = zod_1.z.object({
+    cantidadRecibida: zod_1.z.number().int().positive(),
+});
 const include = { user: { select: { name: true } } };
 // ─── GET /api/pendientes ──────────────────────────────────────────────────────
 router.get('/', auth_1.authenticate, async (req, res) => {
@@ -119,6 +122,12 @@ router.put('/:id', auth_1.authenticate, (0, require_role_1.requireRole)('encarga
 // ─── PUT /api/pendientes/:id/recibir ─────────────────────────────────────────
 router.put('/:id/recibir', auth_1.authenticate, (0, require_role_1.requireRole)('encargado'), async (req, res) => {
     const id = req.params['id'];
+    const result = recibirPendienteSchema.safeParse(req.body);
+    if (!result.success) {
+        res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() });
+        return;
+    }
+    const { cantidadRecibida } = result.data;
     try {
         const existing = await prisma_1.prisma.insumoPendiente.findUnique({ where: { id } });
         if (!existing) {
@@ -129,15 +138,41 @@ router.put('/:id/recibir', auth_1.authenticate, (0, require_role_1.requireRole)(
             res.status(409).json({ message: 'El pendiente ya está marcado como recibido' });
             return;
         }
-        const pendiente = await prisma_1.prisma.insumoPendiente.update({
-            where: { id },
-            data: {
-                estado: 'recibido',
-                fechaRecibido: new Date(),
-            },
-            include,
+        if (cantidadRecibida > existing.cantidad) {
+            res.status(400).json({ message: 'La cantidad recibida no puede superar la cantidad enviada' });
+            return;
+        }
+        const fechaRecibido = new Date();
+        const response = await prisma_1.prisma.$transaction(async (tx) => {
+            const recibido = await tx.insumoPendiente.update({
+                where: { id },
+                data: {
+                    cantidad: cantidadRecibida,
+                    estado: 'recibido',
+                    fechaRecibido,
+                },
+                include,
+            });
+            let pendienteRestante = null;
+            if (cantidadRecibida < existing.cantidad) {
+                pendienteRestante = await tx.insumoPendiente.create({
+                    data: {
+                        categoria: existing.categoria,
+                        articulo: existing.articulo,
+                        cantidad: existing.cantidad - cantidadRecibida,
+                        destino: existing.destino,
+                        estado: 'en_esterilizacion',
+                        fechaEnvio: existing.fechaEnvio,
+                        fechaRetornoEstimada: existing.fechaRetornoEstimada,
+                        notas: existing.notas,
+                        createdBy: existing.createdBy,
+                    },
+                    include,
+                });
+            }
+            return { recibido, pendienteRestante };
         });
-        res.json(pendiente);
+        res.json(response);
     }
     catch {
         res.status(500).json({ message: 'Error interno del servidor' });

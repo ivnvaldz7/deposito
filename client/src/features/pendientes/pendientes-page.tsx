@@ -1,13 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, PackagePlus, Check } from 'lucide-react'
+import Fuse from 'fuse.js'
+import { Check, ChevronDown, PackagePlus, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient } from '@/lib/api-client'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 type EstadoPendiente = 'en_esterilizacion' | 'recibido'
 
@@ -26,20 +34,29 @@ interface InsumoPendiente {
   user: { name: string }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+interface Frasco {
+  id: string
+  articulo: string
+  unidadesPorCaja: number
+  cantidadCajas: number
+  total: number
+}
+
+interface RecibirPendienteResponse {
+  recibido: InsumoPendiente
+  pendienteRestante: InsumoPendiente | null
+}
 
 function formatFecha(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-// ─── Chips ────────────────────────────────────────────────────────────────────
-
 function EstadoChip({ estado }: { estado: EstadoPendiente }) {
   const en = estado === 'en_esterilizacion'
   return (
     <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+      className="inline-block shrink-0 rounded px-2 py-0.5 font-body text-xs font-medium"
       style={
         en
           ? { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }
@@ -50,8 +67,6 @@ function EstadoChip({ estado }: { estado: EstadoPendiente }) {
     </span>
   )
 }
-
-// ─── Form schema ──────────────────────────────────────────────────────────────
 
 const enviarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
@@ -70,20 +85,142 @@ const enviarSchema = z.object({
 
 type EnviarFormData = z.infer<typeof enviarSchema>
 
-// ─── Modal "Enviar a esterilización" ─────────────────────────────────────────
+const recibirSchema = z.object({
+  cantidadRecibida: z
+    .string()
+    .min(1, 'Requerido')
+    .refine((v) => Number.isInteger(Number(v)) && Number(v) > 0, 'Debe ser un entero positivo'),
+})
+
+type RecibirFormData = z.infer<typeof recibirSchema>
+
+function FrascoCombobox({
+  frascos,
+  loading,
+  value,
+  onChange,
+  onSelect,
+}: {
+  frascos: Frasco[]
+  loading: boolean
+  value: string
+  onChange: (next: string) => void
+  onSelect: (frasco: Frasco | null) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const fuse = useMemo(
+    () =>
+      frascos.length
+        ? new Fuse(frascos, {
+            keys: ['articulo'],
+            threshold: 0.42,
+            includeScore: true,
+          })
+        : null,
+    [frascos]
+  )
+
+  const results = useMemo(() => {
+    if (!fuse || !value.trim()) return frascos.slice(0, 8)
+    return fuse.search(value).slice(0, 8).map((result) => result.item)
+  }, [frascos, fuse, value])
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  function handleSelect(frasco: Frasco) {
+    onChange(frasco.articulo)
+    onSelect(frasco)
+    setOpen(false)
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <input
+          id="pendiente-articulo"
+          type="text"
+          value={value}
+          onChange={(event) => {
+            onChange(event.target.value)
+            onSelect(null)
+            setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={loading ? 'Cargando frascos...' : 'Buscá un frasco del inventario...'}
+          className="input-field w-full pr-9 text-sm"
+          autoComplete="off"
+          disabled={loading}
+        />
+        <ChevronDown
+          size={14}
+          strokeWidth={1.5}
+          className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant"
+        />
+      </div>
+
+      {open && !loading && (
+        <div
+          className="absolute z-20 mt-1 max-h-56 w-full overflow-hidden rounded bg-surface-highest/90 shadow-float"
+          style={{ backdropFilter: 'blur(12px)' }}
+        >
+          {results.length > 0 ? (
+            <ul className="max-h-56 overflow-y-auto py-1">
+              {results.map((frasco) => (
+                <li key={frasco.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(event) => {
+                      event.preventDefault()
+                      handleSelect(frasco)
+                    }}
+                    className="w-full px-4 py-2.5 text-left transition-colors hover:bg-surface-bright"
+                  >
+                    <span className="block font-body text-sm text-on-surface">{frasco.articulo}</span>
+                    <span className="block font-body text-xs text-on-surface-variant">
+                      {frasco.unidadesPorCaja} uds/caja · {frasco.cantidadCajas} cajas en inventario
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="px-4 py-3 font-body text-sm text-on-surface-variant">
+              No se encontraron frascos para esa búsqueda.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void }) {
   const token = useAuthStore((s) => s.token)
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [frascos, setFrascos] = useState<Frasco[]>([])
+  const [loadingFrascos, setLoadingFrascos] = useState(false)
+  const [selectedFrasco, setSelectedFrasco] = useState<Frasco | null>(null)
 
   const today = new Date().toISOString().slice(0, 10)
 
   const {
     register,
     handleSubmit,
-    control,
     reset,
+    setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<EnviarFormData>({
     resolver: zodResolver(enviarSchema),
@@ -97,11 +234,65 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
     },
   })
 
-  // watch fechaRetornoEstimada for display only (no useMemo needed)
+  const articulo = useWatch({ control, name: 'articulo' })
   const fechaRetorno = useWatch({ control, name: 'fechaRetornoEstimada' })
+
+  useEffect(() => {
+    if (!open) return
+
+    let cancelled = false
+
+    async function loadFrascos() {
+      setLoadingFrascos(true)
+      try {
+        const data = await apiClient.get<Frasco[]>('/frascos', token)
+        if (!cancelled) {
+          setFrascos(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setFrascos([])
+          setServerError('No se pudo cargar el inventario de frascos.')
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingFrascos(false)
+        }
+      }
+    }
+
+    loadFrascos()
+
+    return () => {
+      cancelled = true
+    }
+  }, [open, token])
+
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      reset({
+        articulo: '',
+        cantidad: '',
+        destino: 'Planta de esterilización',
+        fechaEnvio: today,
+        fechaRetornoEstimada: '',
+        notas: '',
+      })
+      setSelectedFrasco(null)
+      setServerError(null)
+    }
+    setOpen(next)
+  }
 
   async function onSubmit(data: EnviarFormData) {
     setServerError(null)
+
+    if (!selectedFrasco || selectedFrasco.articulo !== data.articulo) {
+      setServerError('Seleccioná un frasco existente del inventario.')
+      toast.error('Seleccioná un frasco existente del inventario.')
+      return
+    }
+
     try {
       const body: Record<string, unknown> = {
         articulo: data.articulo,
@@ -114,62 +305,73 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
 
       const pendiente = await apiClient.post<InsumoPendiente>('/pendientes', body, token)
       onCreated(pendiente)
-      reset()
-      setOpen(false)
-    } catch {
-      setServerError('No se pudo crear el pendiente. Intentá de nuevo.')
+      toast.info(`Pendiente creado para "${pendiente.articulo}".`)
+      handleOpenChange(false)
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'No se pudo crear el pendiente. Intentá de nuevo.'
+      setServerError(message)
+      toast.error(message)
     }
   }
 
-  if (!open) {
-    return (
+  return (
+    <>
       <button
-        onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2 rounded font-heading font-semibold text-sm transition-colors"
+        type="button"
+        onClick={() => handleOpenChange(true)}
+        className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-colors"
         style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
       >
         <Plus size={14} strokeWidth={2} />
         Enviar a esterilización
       </button>
-    )
-  }
 
-  return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
-        onClick={() => { reset(); setOpen(false) }}
-      />
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar a esterilización</DialogTitle>
+            <DialogDescription>
+              Seleccioná un frasco existente del inventario y registrá cuántas cajas salieron.
+            </DialogDescription>
+          </DialogHeader>
 
-      {/* Modal */}
-      <div className="fixed inset-x-4 top-[10vh] z-50 mx-auto max-w-md rounded overflow-hidden"
-        style={{ background: 'rgba(49,54,49,0.95)', backdropFilter: 'blur(12px)' }}
-      >
-        <div className="px-6 py-5">
-          <h2 className="font-heading text-on-surface font-semibold text-base mb-4">
-            Enviar a esterilización
-          </h2>
-
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {/* Artículo */}
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
             <div className="space-y-1">
               <label htmlFor="pendiente-articulo" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
                 Artículo
               </label>
-              <input
-                id="pendiente-articulo"
-                {...register('articulo')}
-                type="text"
-                placeholder="Ej: Dorado 500 ML"
-                className="input-field w-full py-2 text-sm"
+              <FrascoCombobox
+                frascos={frascos}
+                loading={loadingFrascos}
+                value={articulo}
+                onChange={(next) => {
+                  setValue('articulo', next, { shouldValidate: true })
+                  setServerError(null)
+                }}
+                onSelect={(frasco) => {
+                  setSelectedFrasco(frasco)
+                  if (frasco) {
+                    setValue('articulo', frasco.articulo, { shouldValidate: true })
+                    setServerError(null)
+                  }
+                }}
               />
               {errors.articulo && (
                 <p className="font-body text-xs" style={{ color: '#FF9800' }}>{errors.articulo.message}</p>
               )}
             </div>
 
-            {/* Cantidad */}
+            {selectedFrasco && (
+              <div className="rounded bg-surface-low px-4 py-3">
+                <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">
+                  Referencia del inventario
+                </p>
+                <p className="mt-1 font-body text-sm text-on-surface">
+                  {selectedFrasco.unidadesPorCaja} unidades por caja
+                </p>
+              </div>
+            )}
+
             <div className="space-y-1">
               <label htmlFor="pendiente-cantidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
                 Cantidad (cajas)
@@ -187,7 +389,6 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
               )}
             </div>
 
-            {/* Destino */}
             <div className="space-y-1">
               <label htmlFor="pendiente-destino" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
                 Destino
@@ -203,7 +404,6 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
               )}
             </div>
 
-            {/* Fechas — row */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label htmlFor="pendiente-fecha-envio" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
@@ -219,6 +419,7 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
                   <p className="font-body text-xs" style={{ color: '#FF9800' }}>{errors.fechaEnvio.message}</p>
                 )}
               </div>
+
               <div className="space-y-1">
                 <label htmlFor="pendiente-retorno" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
                   Retorno estimado
@@ -229,12 +430,10 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
                   type="date"
                   className="input-field w-full py-2 text-sm"
                 />
-                {/* suppress unused warning */}
                 {fechaRetorno === '__never__' && null}
               </div>
             </div>
 
-            {/* Notas */}
             <div className="space-y-1">
               <label htmlFor="pendiente-notas" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
                 Notas <span className="normal-case opacity-60">(opcional)</span>
@@ -243,7 +442,7 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
                 id="pendiente-notas"
                 {...register('notas')}
                 rows={2}
-                className="input-field w-full py-2 text-sm resize-none"
+                className="input-field w-full resize-none py-2 text-sm"
               />
             </div>
 
@@ -251,19 +450,19 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
               <p className="font-body text-xs" style={{ color: '#FF9800' }}>{serverError}</p>
             )}
 
-            {/* Actions */}
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => { reset(); setOpen(false) }}
-                className="font-heading font-semibold text-sm text-on-surface-variant hover:text-on-surface transition-colors px-3 py-2"
-              >
-                Cancelar
-              </button>
+              <DialogClose asChild>
+                <button
+                  type="button"
+                  className="px-3 py-2 font-heading text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+                >
+                  Cancelar
+                </button>
+              </DialogClose>
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-2 px-4 py-2 rounded font-heading font-semibold text-sm disabled:opacity-50 transition-opacity"
+                disabled={isSubmitting || !selectedFrasco}
+                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity disabled:opacity-50"
                 style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
               >
                 <Plus size={13} strokeWidth={2} />
@@ -271,95 +470,229 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
               </button>
             </div>
           </form>
-        </div>
-      </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
 
-// ─── Card de pendiente ────────────────────────────────────────────────────────
-
-function PendienteCard({
+function RecibirModal({
   pendiente,
-  onRecibir,
-  onCrearIngreso,
+  onRecibido,
 }: {
   pendiente: InsumoPendiente
-  onRecibir?: (id: string) => void
-  onCrearIngreso?: (p: InsumoPendiente) => void
+  onRecibido: (response: RecibirPendienteResponse) => void
 }) {
-  const [loading, setLoading] = useState(false)
+  const token = useAuthStore((s) => s.token)
+  const [open, setOpen] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
-  async function handleRecibir() {
-    if (!onRecibir) return
-    setLoading(true)
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<RecibirFormData>({
+    resolver: zodResolver(recibirSchema),
+    defaultValues: { cantidadRecibida: String(pendiente.cantidad) },
+  })
+
+  const cantidadRecibidaValue = useWatch({ control, name: 'cantidadRecibida' })
+  const cantidadRecibida = Number(cantidadRecibidaValue || 0)
+  const cantidadRestante = Number.isFinite(cantidadRecibida)
+    ? Math.max(pendiente.cantidad - cantidadRecibida, 0)
+    : pendiente.cantidad
+
+  function handleOpenChange(next: boolean) {
+    if (!next) {
+      reset({ cantidadRecibida: String(pendiente.cantidad) })
+      setServerError(null)
+    }
+    setOpen(next)
+  }
+
+  async function onSubmit(data: RecibirFormData) {
+    setServerError(null)
+
+    const cantidad = Number(data.cantidadRecibida)
+    if (cantidad > pendiente.cantidad) {
+      const message = 'La cantidad recibida no puede superar la cantidad enviada.'
+      setServerError(message)
+      return
+    }
+
     try {
-      await onRecibir(pendiente.id)
-    } finally {
-      setLoading(false)
+      const response = await apiClient.put<RecibirPendienteResponse>(
+        `/pendientes/${pendiente.id}/recibir`,
+        { cantidadRecibida: cantidad },
+        token
+      )
+
+      onRecibido(response)
+
+      if (response.pendienteRestante) {
+        toast.warning(
+          `Se recibieron ${response.recibido.cantidad} cajas y ${response.pendienteRestante.cantidad} siguen en esterilización.`
+        )
+      } else {
+        toast.success(`"${response.recibido.articulo}" marcado como recibido.`)
+      }
+
+      handleOpenChange(false)
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : 'No se pudo registrar la recepción.'
+      setServerError(message)
+      toast.error(message)
     }
   }
 
   return (
-    <div className="bg-surface-low rounded px-4 py-4 space-y-3">
-      {/* Header row */}
+    <>
+      <button
+        type="button"
+        onClick={() => handleOpenChange(true)}
+        className="flex items-center gap-1.5 rounded px-3 py-1.5 font-heading text-xs font-semibold transition-opacity"
+        style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+      >
+        <Check size={12} strokeWidth={2} />
+        Marcar como recibido
+      </button>
+
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar recepción</DialogTitle>
+            <DialogDescription>
+              Indicá cuántas cajas volvieron realmente de esterilización.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded bg-surface-low px-3 py-3">
+                <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Enviadas</p>
+                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                  {pendiente.cantidad}
+                </p>
+              </div>
+              <div className="rounded bg-surface-low px-3 py-3">
+                <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Recibidas</p>
+                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                  {Number.isFinite(cantidadRecibida) ? cantidadRecibida : 0}
+                </p>
+              </div>
+              <div className="rounded bg-surface-low px-3 py-3">
+                <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Siguen afuera</p>
+                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                  {cantidadRestante}
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor={`recibir-pendiente-${pendiente.id}`} className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                Cantidad recibida
+              </label>
+              <input
+                id={`recibir-pendiente-${pendiente.id}`}
+                {...register('cantidadRecibida')}
+                type="number"
+                min="1"
+                max={pendiente.cantidad}
+                className="input-field w-full py-2 text-sm"
+                autoFocus
+              />
+              {errors.cantidadRecibida && (
+                <p className="font-body text-xs" style={{ color: '#FF9800' }}>
+                  {errors.cantidadRecibida.message}
+                </p>
+              )}
+            </div>
+
+            {serverError && (
+              <p className="font-body text-xs" style={{ color: '#FF9800' }}>{serverError}</p>
+            )}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <DialogClose asChild>
+                <button
+                  type="button"
+                  className="px-3 py-2 font-heading text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+                >
+                  Cancelar
+                </button>
+              </DialogClose>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity disabled:opacity-50"
+                style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+              >
+                <Check size={13} strokeWidth={2} />
+                {isSubmitting ? 'Guardando...' : 'Confirmar recepción'}
+              </button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+function PendienteCard({
+  pendiente,
+  onRecibido,
+  onCrearIngreso,
+}: {
+  pendiente: InsumoPendiente
+  onRecibido?: (response: RecibirPendienteResponse) => void
+  onCrearIngreso?: (p: InsumoPendiente) => void
+}) {
+  return (
+    <div className="space-y-3 rounded bg-surface-low px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-body text-on-surface text-sm font-medium truncate">
-            {pendiente.articulo}
-          </p>
-          <p className="font-body text-on-surface-variant text-xs mt-0.5">
-            {pendiente.destino}
-          </p>
+          <p className="truncate font-body text-sm font-medium text-on-surface">{pendiente.articulo}</p>
+          <p className="mt-0.5 font-body text-xs text-on-surface-variant">{pendiente.destino}</p>
         </div>
         <EstadoChip estado={pendiente.estado} />
       </div>
 
-      {/* Data row */}
       <div className="flex flex-wrap gap-x-6 gap-y-1">
         <div>
-          <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">Cajas</p>
-          <p className="font-body text-on-surface text-sm tabular-nums font-medium">{pendiente.cantidad}</p>
+          <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Cajas</p>
+          <p className="font-body text-sm font-medium tabular-nums text-on-surface">{pendiente.cantidad}</p>
         </div>
         <div>
-          <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">Enviado</p>
-          <p className="font-body text-on-surface text-sm tabular-nums">{formatFecha(pendiente.fechaEnvio)}</p>
+          <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Enviado</p>
+          <p className="font-body text-sm tabular-nums text-on-surface">{formatFecha(pendiente.fechaEnvio)}</p>
         </div>
         {pendiente.fechaRetornoEstimada && (
           <div>
-            <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">Retorno est.</p>
-            <p className="font-body text-on-surface text-sm tabular-nums">{formatFecha(pendiente.fechaRetornoEstimada)}</p>
+            <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Retorno est.</p>
+            <p className="font-body text-sm tabular-nums text-on-surface">{formatFecha(pendiente.fechaRetornoEstimada)}</p>
           </div>
         )}
         {pendiente.fechaRecibido && (
           <div>
-            <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">Recibido</p>
-            <p className="font-body text-on-surface text-sm tabular-nums">{formatFecha(pendiente.fechaRecibido)}</p>
+            <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Recibido</p>
+            <p className="font-body text-sm tabular-nums text-on-surface">{formatFecha(pendiente.fechaRecibido)}</p>
           </div>
         )}
       </div>
 
-      {pendiente.notas && (
-        <p className="font-body text-on-surface-variant text-xs italic">{pendiente.notas}</p>
-      )}
+      {pendiente.notas && <p className="font-body text-xs italic text-on-surface-variant">{pendiente.notas}</p>}
 
-      {/* Actions */}
       <div className="flex items-center gap-2 pt-1">
-        {pendiente.estado === 'en_esterilizacion' && onRecibir && (
-          <button
-            onClick={handleRecibir}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
-            style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
-          >
-            <Check size={12} strokeWidth={2} />
-            {loading ? 'Marcando...' : 'Marcar como recibido'}
-          </button>
+        {pendiente.estado === 'en_esterilizacion' && onRecibido && (
+          <RecibirModal pendiente={pendiente} onRecibido={onRecibido} />
         )}
         {pendiente.estado === 'recibido' && onCrearIngreso && (
           <button
+            type="button"
             onClick={() => onCrearIngreso(pendiente)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-high hover:bg-surface-bright transition-colors text-on-surface"
+            className="flex items-center gap-1.5 rounded bg-surface-high px-3 py-1.5 font-heading text-xs font-semibold text-on-surface transition-colors hover:bg-surface-bright"
           >
             <PackagePlus size={12} strokeWidth={1.5} />
             Crear ingreso
@@ -370,10 +703,10 @@ function PendienteCard({
   )
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
 export function PendientesPage() {
   const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
+  const isEncargado = user?.role === 'encargado'
   const navigate = useNavigate()
 
   const [pendientes, setPendientes] = useState<InsumoPendiente[]>([])
@@ -391,28 +724,36 @@ export function PendientesPage() {
   const enEsterilizacion = pendientes.filter((p) => p.estado === 'en_esterilizacion')
   const recibidos = pendientes.filter((p) => p.estado === 'recibido')
 
-  function handleCreated(p: InsumoPendiente) {
-    setPendientes((prev) => [p, ...prev])
+  function handleCreated(pendiente: InsumoPendiente) {
+    setPendientes((prev) => [pendiente, ...prev])
   }
 
-  async function handleRecibir(id: string) {
-    const updated = await apiClient.put<InsumoPendiente>(`/pendientes/${id}/recibir`, {}, token)
-    setPendientes((prev) => prev.map((p) => (p.id === id ? updated : p)))
+  function handleRecibido(response: RecibirPendienteResponse) {
+    setPendientes((prev) => {
+      const withoutCurrent = prev.filter((pendiente) => pendiente.id !== response.recibido.id)
+      return response.pendienteRestante
+        ? [response.pendienteRestante, response.recibido, ...withoutCurrent]
+        : [response.recibido, ...withoutCurrent]
+    })
   }
 
-  function handleCrearIngreso(p: InsumoPendiente) {
+  function handleCrearIngreso(pendiente: InsumoPendiente) {
+    toast.info(`Abriendo ingreso para "${pendiente.articulo}".`)
     navigate('/ingresos', {
-      state: { productoNombre: p.articulo, categoria: 'frasco' },
+      state: {
+        productoNombre: pendiente.articulo,
+        categoria: 'frasco',
+        cantidadIngresada: String(pendiente.cantidad),
+      },
     })
   }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Insumos Pendientes</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
+          <h1 className="font-heading text-xl font-semibold text-on-surface">Insumos Pendientes</h1>
+          <p className="mt-0.5 font-body text-sm text-on-surface-variant">
             Frascos enviados a esterilización
             {!loading && !error && (
               <span className="ml-1">
@@ -421,78 +762,77 @@ export function PendientesPage() {
             )}
           </p>
         </div>
-        <EnviarModal onCreated={handleCreated} />
+        {isEncargado && <EnviarModal onCreated={handleCreated} />}
       </div>
 
-      {/* Content */}
       {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
+        <div className="flex h-48 items-center justify-center">
+          <p className="font-body text-sm text-on-surface-variant">Cargando...</p>
         </div>
       ) : error ? (
-        <div className="flex items-center justify-center h-48">
+        <div className="flex h-48 items-center justify-center">
           <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error}</p>
         </div>
       ) : (
         <div className="space-y-8">
-          {/* En esterilización */}
           <section className="space-y-3">
-            <h2 className="font-heading text-on-surface-variant text-xs uppercase tracking-widest font-semibold">
+            <h2 className="font-heading text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               En esterilización
               {enEsterilizacion.length > 0 && (
                 <span
-                  className="ml-2 inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
+                  className="ml-2 inline-block rounded px-2 py-0.5 font-body text-xs font-medium"
                   style={{ color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }}
                 >
                   {enEsterilizacion.length}
                 </span>
               )}
             </h2>
+
             {enEsterilizacion.length === 0 ? (
-              <div className="bg-surface-low rounded px-4 py-8 text-center">
-                <p className="font-body text-on-surface-variant text-sm">
+              <div className="rounded bg-surface-low px-4 py-8 text-center">
+                <p className="font-body text-sm text-on-surface-variant">
                   No hay frascos en esterilización.
                 </p>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {enEsterilizacion.map((p) => (
+                {enEsterilizacion.map((pendiente) => (
                   <PendienteCard
-                    key={p.id}
-                    pendiente={p}
-                    onRecibir={handleRecibir}
+                    key={pendiente.id}
+                    pendiente={pendiente}
+                    onRecibido={isEncargado ? handleRecibido : undefined}
                   />
                 ))}
               </div>
             )}
           </section>
 
-          {/* Recibidos */}
           <section className="space-y-3">
-            <h2 className="font-heading text-on-surface-variant text-xs uppercase tracking-widest font-semibold">
+            <h2 className="font-heading text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               Recibidos
               {recibidos.length > 0 && (
                 <span
-                  className="ml-2 inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
+                  className="ml-2 inline-block rounded px-2 py-0.5 font-body text-xs font-medium"
                   style={{ color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }}
                 >
                   {recibidos.length}
                 </span>
               )}
             </h2>
+
             {recibidos.length === 0 ? (
-              <div className="bg-surface-low rounded px-4 py-8 text-center">
-                <p className="font-body text-on-surface-variant text-sm">
+              <div className="rounded bg-surface-low px-4 py-8 text-center">
+                <p className="font-body text-sm text-on-surface-variant">
                   No hay insumos recibidos todavía.
                 </p>
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {recibidos.map((p) => (
+                {recibidos.map((pendiente) => (
                   <PendienteCard
-                    key={p.id}
-                    pendiente={p}
-                    onCrearIngreso={handleCrearIngreso}
+                    key={pendiente.id}
+                    pendiente={pendiente}
+                    onCrearIngreso={isEncargado ? handleCrearIngreso : undefined}
                   />
                 ))}
               </div>

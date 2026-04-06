@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import { InlineNumberEditor } from '@/features/inventory/shared/inline-number-editor'
 import { EmptyState, ErrorState, LoadingState } from '@/features/inventory/shared/inventory-states'
 import { StockChip } from '@/features/inventory/shared/stock-chip'
@@ -77,6 +78,11 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: Droga) => void }) {
         token
       )
       onCreated(droga)
+      if (droga.cantidad < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${droga.nombre}" quedó con stock bajo (${droga.cantidad}).`)
+      } else {
+        toast.success(`Droga "${droga.nombre}" agregada.`)
+      }
       reset()
       setOpen(false)
     } catch (err) {
@@ -205,6 +211,11 @@ function EditarDrogaModal({
         token
       )
       onUpdated(updated)
+      if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
+        toast.warning(`"${updated.nombre}" quedó con stock bajo (${updated.cantidad}).`)
+      } else {
+        toast.info(`Droga "${updated.nombre}" actualizada.`)
+      }
       onClose()
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
@@ -273,6 +284,11 @@ function CantidadCell({ droga, onUpdated }: { droga: Droga; onUpdated: (d: Droga
           token
         )
         onUpdated(updated)
+        if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
+          toast.warning(`"${updated.nombre}" quedó con stock bajo (${updated.cantidad}).`)
+        } else {
+          toast.info(`Stock de "${updated.nombre}" actualizado.`)
+        }
       }}
     />
   )
@@ -311,9 +327,11 @@ export function DrogasPage() {
     setDeletingId(id)
     try {
       await apiClient.del<void>(`/drogas/${id}`, token)
+      const droga = drogas.find((d) => d.id === id)
       setDrogas((prev) => prev.filter((d) => d.id !== id))
+      toast.success(droga ? `Droga "${droga.nombre}" eliminada.` : 'Droga eliminada.')
     } catch {
-      // noop
+      toast.error('No se pudo eliminar la droga.')
     } finally {
       setDeletingId(null)
     }

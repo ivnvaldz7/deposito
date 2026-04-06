@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,6 +7,7 @@ import Fuse from 'fuse.js'
 import { ChevronRight, Plus, Check, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
 import type { Acta, ActaItem, Categoria, Mercado } from './types'
 
 // ─── Tipos locales para autocompletes ────────────────────────────────────────
@@ -119,6 +120,7 @@ function Paso1({
         token
       )
       onCreated(acta)
+      toast.info('Acta creada. Ya podés cargar los items.')
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al crear el acta')
     }
@@ -527,6 +529,7 @@ function Paso2({
   items,
   onItemAdded,
   onNext,
+  prefillItem,
 }: {
   actaId: string
   drogas: string[]
@@ -536,10 +539,12 @@ function Paso2({
   items: ActaItem[]
   onItemAdded: (item: ActaItem) => void
   onNext: () => void
+  prefillItem?: { categoria: Categoria; productoNombre: string; cantidadIngresada: string } | null
 }) {
   const token = useAuthStore((s) => s.token)
   const [serverError, setServerError] = useState<string | null>(null)
-  const [frascoInfo, setFrascoInfo] = useState<Frasco | null>(null)
+  const [, setFrascoInfo] = useState<Frasco | null>(null)
+  const prefillAppliedRef = useRef(false)
 
   const {
     register,
@@ -557,6 +562,23 @@ function Paso2({
   const productoNombre = useWatch({ control, name: 'productoNombre' })
   const mercado = useWatch({ control, name: 'mercado' })
   const cantidadVal = useWatch({ control, name: 'cantidadIngresada' })
+  const displayedFrascoInfo =
+    categoria === 'frasco' && productoNombre
+      ? frascos.find((frasco) => frasco.articulo === productoNombre) ?? null
+      : null
+
+  useEffect(() => {
+    if (!prefillItem || prefillAppliedRef.current) return
+
+    reset({
+      categoria: prefillItem.categoria,
+      productoNombre: prefillItem.productoNombre,
+      lote: '',
+      cantidadIngresada: prefillItem.cantidadIngresada,
+      mercado: undefined,
+    })
+    prefillAppliedRef.current = true
+  }, [prefillItem, reset])
 
   async function onSubmit(data: ItemFormData) {
     setServerError(null)
@@ -573,7 +595,7 @@ function Paso2({
         token
       )
       onItemAdded(item)
-      setFrascoInfo(null)
+      toast.info(`Item "${item.productoNombre}" agregado al acta.`)
       reset({ categoria: data.categoria, productoNombre: '', lote: '', cantidadIngresada: '', mercado: undefined })
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al agregar item')
@@ -598,7 +620,9 @@ function Paso2({
                   setValue('categoria', value)
                   setValue('productoNombre', '')
                   setValue('mercado', undefined)
-                  setFrascoInfo(null)
+                  if (value !== 'frasco') {
+                    setFrascoInfo(null)
+                  }
                 }}
                 className="px-3 py-1.5 rounded font-body text-sm transition-colors"
                 style={
@@ -664,14 +688,14 @@ function Paso2({
         </div>
 
         {/* Info frasco — solo para frascos */}
-        {categoria === 'frasco' && frascoInfo && (
+        {categoria === 'frasco' && displayedFrascoInfo && (
           <div className="bg-surface-low rounded px-3 py-2 font-body text-xs text-on-surface-variant space-y-0.5">
-            <p>{frascoInfo.unidadesPorCaja} uds/caja</p>
+            <p>{displayedFrascoInfo.unidadesPorCaja} uds/caja</p>
             {Number(cantidadVal) > 0 && (
               <p>
                 Total:{' '}
                 <span className="text-on-surface font-medium tabular-nums">
-                  {(frascoInfo.unidadesPorCaja * Number(cantidadVal)).toLocaleString()} unidades
+                  {(displayedFrascoInfo.unidadesPorCaja * Number(cantidadVal)).toLocaleString()} unidades
                 </span>
               </p>
             )}
@@ -872,6 +896,7 @@ function Paso3({
         token
       )
       onItemDistribuido(res.item)
+      toast.success(`Distribución registrada para "${item.productoNombre}".`)
       setDistributingId(null)
     } catch (err) {
       setErrors((prev) => ({
@@ -1000,8 +1025,14 @@ function Paso3({
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export function ActaNuevaPage() {
+  const location = useLocation()
   const navigate = useNavigate()
   const token = useAuthStore((s) => s.token)
+  const pendingPrefill = (location.state as {
+    productoNombre?: string
+    categoria?: Categoria
+    cantidadIngresada?: string
+  } | null) ?? null
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [acta, setActa] = useState<Acta | null>(null)
@@ -1035,6 +1066,7 @@ export function ActaNuevaPage() {
   }
 
   function handleFinalizar() {
+    toast.info('Acta finalizada. Abriendo el detalle.')
     navigate(`/actas/${acta!.id}`)
   }
 
@@ -1066,6 +1098,15 @@ export function ActaNuevaPage() {
           items={items}
           onItemAdded={handleItemAdded}
           onNext={() => setStep(3)}
+          prefillItem={
+            pendingPrefill?.categoria && pendingPrefill?.productoNombre && pendingPrefill?.cantidadIngresada
+              ? {
+                  categoria: pendingPrefill.categoria,
+                  productoNombre: pendingPrefill.productoNombre,
+                  cantidadIngresada: pendingPrefill.cantidadIngresada,
+                }
+              : null
+          }
         />
       )}
       {step === 3 && acta && (

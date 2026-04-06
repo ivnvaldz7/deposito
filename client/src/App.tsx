@@ -12,6 +12,9 @@ import { ActaNuevaPage } from '@/features/actas/acta-nueva-page'
 import { ActaDetallePage } from '@/features/actas/acta-detalle-page'
 import { MovimientosPage } from '@/features/movimientos/movimientos-page'
 import { PendientesPage } from '@/features/pendientes/pendientes-page'
+import { UsuariosPage } from '@/features/usuarios/usuarios-page'
+import { OrdenesPage } from '@/features/ordenes/ordenes-page'
+import { AppToaster } from '@/components/ui/toaster'
 
 function ProtectedRoute() {
   const token = useAuthStore((s) => s.token)
@@ -22,6 +25,12 @@ function ProtectedRoute() {
 function PublicRoute() {
   const token = useAuthStore((s) => s.token)
   if (token) return <Navigate to="/dashboard" replace />
+  return <Outlet />
+}
+
+function EncargadoRoute() {
+  const user = useAuthStore((s) => s.user)
+  if (user?.role !== 'encargado') return <Navigate to="/dashboard" replace />
   return <Outlet />
 }
 
@@ -41,16 +50,22 @@ function App() {
             <Route path="/estuches" element={<EstuchesPage />} />
             <Route path="/etiquetas" element={<EtiquetasPage />} />
             <Route path="/frascos" element={<FrascosPage />} />
-            <Route path="/ingresos" element={<ActaNuevaPage />} />
             <Route path="/actas" element={<ActasPage />} />
             <Route path="/actas/:id" element={<ActaDetallePage />} />
             <Route path="/movimientos" element={<MovimientosPage />} />
             <Route path="/pendientes" element={<PendientesPage />} />
+            <Route path="/ordenes" element={<OrdenesPage />} />
+            <Route element={<EncargadoRoute />}>
+              <Route path="/ingresos" element={<ActaNuevaPage />} />
+              <Route path="/ingresos/nueva" element={<ActaNuevaPage />} />
+              <Route path="/usuarios" element={<UsuariosPage />} />
+            </Route>
           </Route>
         </Route>
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      <AppToaster />
     </BrowserRouter>
   )
 }

@@ -15,6 +15,7 @@ const registerSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
     password: zod_1.z.string().min(8),
     name: zod_1.z.string().min(2),
+    role: zod_1.z.enum(['encargado', 'observador', 'solicitante']).optional().default('observador'),
 });
 const loginSchema = zod_1.z.object({
     email: zod_1.z.string().email(),
@@ -27,7 +28,7 @@ router.post('/register', auth_1.authenticate, (0, require_role_1.requireRole)('e
         res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() });
         return;
     }
-    const { email, password, name } = result.data;
+    const { email, password, name, role } = result.data;
     try {
         const existing = await prisma_1.prisma.user.findUnique({ where: { email } });
         if (existing) {
@@ -36,7 +37,7 @@ router.post('/register', auth_1.authenticate, (0, require_role_1.requireRole)('e
         }
         const passwordHash = await bcryptjs_1.default.hash(password, 12);
         const user = await prisma_1.prisma.user.create({
-            data: { email, passwordHash, name, role: 'encargado' },
+            data: { email, passwordHash, name, role },
             select: { id: true, email: true, name: true, role: true },
         });
         const token = (0, jwt_1.signToken)({ sub: user.id, role: user.role, name: user.name });
