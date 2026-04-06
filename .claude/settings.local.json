@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(npx prisma:*)",
+      "Bash(ls C:/Users/Usuario/Desktop/deposito/server/.env*)",
+      "Bash(ls C:/Users/Usuario/Desktop/deposito/client/.env*)",
+      "Bash(npm list:*)",
+      "Bash(npm run:*)",
+      "Bash(grep -o 'COMPLEFOSEL[^\"\\\\\\\\]*' \"C:/Users/Usuario/.claude/projects/C--Users-Usuario-Desktop-deposito/01b61d3e-5af1-4a6b-b3fb-ec4d3f3ccfcc.jsonl\")",
+      "Bash(python3:*)",
+      "Bash(node:*)"
+    ]
+  }
+}

@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+  /* === TIPOGRAFÍAS === */
+  --font-heading: "Montserrat", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* === PALETA OBSIDIAN & EMERALD === */
+  /* Superficies */
+  --color-surface: #101510;
+  --color-surface-lowest: #0a0f0b;
+  --color-surface-low: #181d18;
+  --color-surface-container: #1e231e;
+  --color-surface-high: #262b27;
+  --color-surface-highest: #313631;
+  --color-surface-bright: #353b35;
+
+  /* Primario (Emerald) */
+  --color-primary: #54e16d;
+  --color-primary-container: #00ae42;
+  --color-on-primary: #003918;
+  --color-on-primary-container: #00380f;
+
+  /* Secundario */
+  --color-secondary-container: #195424;
+
+  /* Texto */
+  --color-on-surface: #e2ece0;
+  --color-on-surface-variant: #bccbb8;
+  --color-outline-variant: #3d4a3c;
+
+  /* Semánticos */
+  --color-success: #00ae42;
+  --color-warning: #FF9800;
+  --color-error: #CF6679;
+
+  /* === RADIOS (max 4px según DESIGN.md) === */
+  --radius: 0.25rem;
+
+  /* === SOMBRAS === */
+  --shadow-float: 0 0 24px 0 rgba(0,0,0,0.15);
+}
+
+@layer utilities {
+  .input-field {
+    background-color: var(--color-surface-highest);
+    color: var(--color-on-surface);
+    width: 100%;
+    padding: 0.75rem 1rem;
+    outline: none;
+    border-radius: var(--radius);
+    border: none;
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.15s ease;
+    font-family: var(--font-body);
+  }
+
+  .input-field::placeholder {
+    color: var(--color-on-surface-variant);
+    opacity: 0.6;
+  }
+
+  .input-field:focus {
+    border-bottom-color: var(--color-primary);
+  }
+
+  .btn-primary {
+    background: linear-gradient(180deg, #54e16d 0%, #00AE42 100%);
+    color: var(--color-on-primary);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity 0.15s ease;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@layer base {
+  html {
+    @apply bg-surface text-on-surface;
+    color-scheme: dark;
+  }
+
+  body {
+    font-family: var(--font-body);
+    @apply bg-surface text-on-surface antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}

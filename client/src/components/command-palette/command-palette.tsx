@@ -1,0 +1,660 @@
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
+import Fuse from 'fuse.js'
+import { Command } from 'cmdk'
+import { Search, Clock, Eye, FilePlus, History, FlaskConical, Package, Tag, Box } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
+import { useCommandPaletteStore } from '@/stores/command-palette-store'
+import { apiClient } from '@/lib/api-client'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Droga {
+  id: string
+  nombre: string
+  cantidad: number
+}
+
+type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
+
+interface Estuche {
+  id: string
+  articulo: string
+  mercado: Mercado
+  cantidad: number
+}
+
+const MERCADO_COLORS: Record<Mercado, string> = {
+  argentina:    '#00AE42',
+  colombia:     '#FF9800',
+  mexico:       '#2196F3',
+  ecuador:      '#9C27B0',
+  bolivia:      '#F44336',
+  paraguay:     '#00BCD4',
+  no_exportable: '#757575',
+}
+
+const MERCADO_LABELS: Record<Mercado, string> = {
+  argentina:    'ARG',
+  colombia:     'COL',
+  mexico:       'MEX',
+  ecuador:      'ECU',
+  bolivia:      'BOL',
+  paraguay:     'PAR',
+  no_exportable: 'N/E',
+}
+
+interface Etiqueta {
+  id: string
+  articulo: string
+  mercado: Mercado
+  cantidad: number
+}
+
+interface Frasco {
+  id: string
+  articulo: string
+  unidadesPorCaja: number
+  cantidadCajas: number
+  total: number
+}
+
+function MercadoChip({ mercado }: { mercado: Mercado }) {
+  const color = MERCADO_COLORS[mercado]
+  return (
+    <span
+      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+      style={{ color, backgroundColor: `${color}1a` }}
+    >
+      {MERCADO_LABELS[mercado]}
+    </span>
+  )
+}
+
+// ─── localStorage helpers ─────────────────────────────────────────────────────
+
+const HISTORY_KEY = 'deposito-cmd-history'
+const FREQ_KEY = 'deposito-cmd-freq'
+
+function getHistory(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]') as string[]
+  } catch {
+    return []
+  }
+}
+
+function saveToHistory(query: string): void {
+  const trimmed = query.trim()
+  if (!trimmed) return
+  const h = getHistory().filter((q) => q !== trimmed)
+  h.unshift(trimmed)
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 10)))
+}
+
+function getFrequency(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(FREQ_KEY) ?? '{}') as Record<string, number>
+  } catch {
+    return {}
+  }
+}
+
+function incrementFreq(nombre: string): void {
+  const freq = getFrequency()
+  freq[nombre] = (freq[nombre] ?? 0) + 1
+  localStorage.setItem(FREQ_KEY, JSON.stringify(freq))
+}
+
+// ─── Stock chip ───────────────────────────────────────────────────────────────
+
+function StockChip({ cantidad }: { cantidad: number }) {
+  const bajo = cantidad < 10
+  return (
+    <span
+      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+      style={
+        bajo
+          ? { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }
+          : { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
+      }
+    >
+      {bajo ? 'Stock bajo' : 'Normal'}
+    </span>
+  )
+}
+
+// ─── Action button ────────────────────────────────────────────────────────────
+
+function ActionBtn({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: React.ElementType
+  label: string
+  onClick: (e: React.MouseEvent) => void
+}) {
+  return (
+    <button
+      type="button"
+      title={label}
+      aria-label={label}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick(e)
+      }}
+      className="flex items-center gap-1 px-2 py-1 rounded font-body text-xs text-on-surface-variant hover:text-on-surface hover:bg-surface-bright transition-colors"
+    >
+      <Icon size={12} strokeWidth={1.5} />
+      <span className="hidden sm:block">{label}</span>
+    </button>
+  )
+}
+
+// ─── Command Palette ──────────────────────────────────────────────────────────
+
+export function CommandPalette() {
+  const { isOpen, openPalette, closePalette, togglePalette } = useCommandPaletteStore()
+  const token = useAuthStore((s) => s.token)
+  const navigate = useNavigate()
+
+  const [query, setQuery] = useState('')
+  const [drogas, setDrogas] = useState<Droga[]>([])
+  const [estuches, setEstuches] = useState<Estuche[]>([])
+  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([])
+  const [frascos, setFrascos] = useState<Frasco[]>([])
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Derivado: se recalcula desde localStorage cada vez que la paleta abre
+  const history = useMemo(() => (isOpen ? getHistory() : []), [isOpen])
+
+  const fuseDrogas = useMemo(
+    () => drogas.length ? new Fuse(drogas, { keys: ['nombre'], threshold: 0.45, includeScore: true }) : null,
+    [drogas]
+  )
+  const fuseEstuches = useMemo(
+    () => estuches.length ? new Fuse(estuches, { keys: ['articulo'], threshold: 0.45, includeScore: true }) : null,
+    [estuches]
+  )
+  const fuseEtiquetas = useMemo(
+    () => etiquetas.length ? new Fuse(etiquetas, { keys: ['articulo'], threshold: 0.45, includeScore: true }) : null,
+    [etiquetas]
+  )
+  const fuseFrascos = useMemo(
+    () => frascos.length ? new Fuse(frascos, { keys: ['articulo'], threshold: 0.45, includeScore: true }) : null,
+    [frascos]
+  )
+
+  // ── Keyboard shortcut ───────────────────────────────────────────────────────
+  useEffect(() => {
+    const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
+
+    function handler(e: KeyboardEvent) {
+      // Mac: ⌘K  |  Windows/Linux: Ctrl+Shift+K
+      const triggered = isMac
+        ? e.metaKey && !e.shiftKey && e.key === 'k'
+        : e.ctrlKey && e.shiftKey && e.key === 'K'
+
+      if (triggered) {
+        e.preventDefault()
+        e.stopPropagation()
+        togglePalette()
+      }
+      if (e.key === 'Escape' && isOpen) {
+        closePalette()
+      }
+    }
+    window.addEventListener('keydown', handler, { capture: true })
+    return () => window.removeEventListener('keydown', handler, { capture: true })
+  }, [isOpen, togglePalette, closePalette])
+
+  // ── Focus input on open ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 10)
+    }
+  }, [isOpen])
+
+  // ── Load drogas + estuches on first open ────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return
+    if (drogas.length === 0) {
+      apiClient.get<Droga[]>('/drogas', token).then(setDrogas).catch(() => {})
+    }
+    if (estuches.length === 0) {
+      apiClient.get<Estuche[]>('/estuches', token).then(setEstuches).catch(() => {})
+    }
+    if (etiquetas.length === 0) {
+      apiClient.get<Etiqueta[]>('/etiquetas', token).then(setEtiquetas).catch(() => {})
+    }
+    if (frascos.length === 0) {
+      apiClient.get<Frasco[]>('/frascos', token).then(setFrascos).catch(() => {})
+    }
+  }, [isOpen, drogas.length, estuches.length, etiquetas.length, frascos.length, token])
+
+  // ── Reset query on close ────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isOpen) return
+    const id = setTimeout(() => setQuery(''), 0)
+    return () => clearTimeout(id)
+  }, [isOpen])
+
+  // ── Fuzzy results with frequency sorting ────────────────────────────────────
+  const results = useMemo<Droga[]>(() => {
+    if (!query.trim() || !fuseDrogas) return []
+    const freq = getFrequency()
+    return fuseDrogas
+      .search(query)
+      .sort((a, b) => {
+        const sa = a.score ?? 1
+        const sb = b.score ?? 1
+        if (Math.abs(sa - sb) < 0.1) {
+          return (freq[b.item.nombre] ?? 0) - (freq[a.item.nombre] ?? 0)
+        }
+        return sa - sb
+      })
+      .slice(0, 10)
+      .map((r) => r.item)
+  }, [query, fuseDrogas])
+
+  // ── Estuche fuzzy results ────────────────────────────────────────────────────
+  const resultsEstuches = useMemo<Estuche[]>(() => {
+    if (!query.trim() || !fuseEstuches) return []
+    const freq = getFrequency()
+    return fuseEstuches
+      .search(query)
+      .sort((a, b) => {
+        const sa = a.score ?? 1
+        const sb = b.score ?? 1
+        if (Math.abs(sa - sb) < 0.1) {
+          return (freq[b.item.articulo] ?? 0) - (freq[a.item.articulo] ?? 0)
+        }
+        return sa - sb
+      })
+      .slice(0, 5)
+      .map((r) => r.item)
+  }, [query, fuseEstuches])
+
+  // ── Navigation with tracking ────────────────────────────────────────────────
+  function goTo(droga: Droga, action: 'ver' | 'ingresar' | 'historial') {
+    if (query.trim()) saveToHistory(query.trim())
+    if (action !== 'historial') incrementFreq(droga.nombre)
+    closePalette()
+    if (action === 'ver') navigate('/drogas')
+    else if (action === 'ingresar')
+      navigate('/ingresos', { state: { productoNombre: droga.nombre } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(droga.nombre)}`)
+  }
+
+  // ── Etiqueta fuzzy results ───────────────────────────────────────────────────
+  const resultsEtiquetas = useMemo<Etiqueta[]>(() => {
+    if (!query.trim() || !fuseEtiquetas) return []
+    const freq = getFrequency()
+    return fuseEtiquetas
+      .search(query)
+      .sort((a, b) => {
+        const sa = a.score ?? 1
+        const sb = b.score ?? 1
+        if (Math.abs(sa - sb) < 0.1) return (freq[b.item.articulo] ?? 0) - (freq[a.item.articulo] ?? 0)
+        return sa - sb
+      })
+      .slice(0, 5)
+      .map((r) => r.item)
+  }, [query, fuseEtiquetas])
+
+  // ── Frasco fuzzy results ─────────────────────────────────────────────────────
+  const resultsFrascos = useMemo<Frasco[]>(() => {
+    if (!query.trim() || !fuseFrascos) return []
+    const freq = getFrequency()
+    return fuseFrascos
+      .search(query)
+      .sort((a, b) => {
+        const sa = a.score ?? 1
+        const sb = b.score ?? 1
+        if (Math.abs(sa - sb) < 0.1) return (freq[b.item.articulo] ?? 0) - (freq[a.item.articulo] ?? 0)
+        return sa - sb
+      })
+      .slice(0, 5)
+      .map((r) => r.item)
+  }, [query, fuseFrascos])
+
+  function goToEstuche(estuche: Estuche, action: 'ver' | 'ingresar' | 'historial') {
+    if (query.trim()) saveToHistory(query.trim())
+    if (action !== 'historial') incrementFreq(estuche.articulo)
+    closePalette()
+    if (action === 'ver') navigate('/estuches')
+    else if (action === 'ingresar')
+      navigate('/ingresos', { state: { productoNombre: estuche.articulo, mercado: estuche.mercado, categoria: 'estuche' } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(estuche.articulo)}`)
+  }
+
+  function goToEtiqueta(etiqueta: Etiqueta, action: 'ver' | 'ingresar' | 'historial') {
+    if (query.trim()) saveToHistory(query.trim())
+    if (action !== 'historial') incrementFreq(etiqueta.articulo)
+    closePalette()
+    if (action === 'ver') navigate('/etiquetas')
+    else if (action === 'ingresar')
+      navigate('/ingresos', { state: { productoNombre: etiqueta.articulo, mercado: etiqueta.mercado, categoria: 'etiqueta' } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(etiqueta.articulo)}`)
+  }
+
+  function goToFrasco(frasco: Frasco, action: 'ver' | 'ingresar' | 'historial') {
+    if (query.trim()) saveToHistory(query.trim())
+    if (action !== 'historial') incrementFreq(frasco.articulo)
+    closePalette()
+    if (action === 'ver') navigate('/frascos')
+    else if (action === 'ingresar')
+      navigate('/ingresos', { state: { productoNombre: frasco.articulo, categoria: 'frasco' } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(frasco.articulo)}`)
+  }
+
+  // ── Floating button (mobile) — always rendered ──────────────────────────────
+  const floatingBtn = !isOpen
+    ? createPortal(
+        <button
+          onClick={openPalette}
+          aria-label="Abrir búsqueda"
+          className="fixed bottom-5 right-5 z-30 md:hidden flex items-center justify-center w-12 h-12 rounded shadow-float transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)' }}
+        >
+          <Search size={20} strokeWidth={1.5} style={{ color: '#003918' }} />
+        </button>,
+        document.body
+      )
+    : null
+
+  // ── Palette overlay ─────────────────────────────────────────────────────────
+  const palette = isOpen
+    ? createPortal(
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            onClick={closePalette}
+          />
+
+          {/* Container */}
+          <div className="fixed inset-x-4 top-[12vh] z-50 mx-auto max-w-2xl">
+            <Command
+              shouldFilter={false}
+              className="overflow-hidden rounded shadow-float"
+              style={{
+                background: 'rgba(49,54,49,0.88)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+              }}
+            >
+              {/* Input row */}
+              <div className="flex items-center gap-3 px-4 py-3.5">
+                <label htmlFor="command-palette-search" className="sr-only">
+                  Buscar en el inventario
+                </label>
+                <Search
+                  size={16}
+                  strokeWidth={1.5}
+                  className="text-on-surface-variant shrink-0"
+                />
+                <Command.Input
+                  id="command-palette-search"
+                  ref={inputRef}
+                  value={query}
+                  onValueChange={setQuery}
+                  placeholder="Buscar drogas, estuches, etiquetas, frascos..."
+                  className="flex-1 bg-transparent font-body text-base text-on-surface placeholder:text-on-surface-variant/60 outline-none border-none"
+                />
+                <kbd className="hidden sm:flex items-center gap-1 font-body text-xs text-on-surface-variant bg-surface-high px-1.5 py-0.5 rounded">
+                  Esc
+                </kbd>
+              </div>
+
+              {/* Divider */}
+              <div className="h-px bg-outline-variant/15" />
+
+              {/* List */}
+              <Command.List className="max-h-[60vh] overflow-y-auto py-2">
+
+                {/* ── No query: history ──────────────────────────────── */}
+                {!query.trim() && history.length > 0 && (
+                  <>
+                    <div className="px-4 pt-2 pb-1 font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+                      Búsquedas recientes
+                    </div>
+                    {history.map((h) => (
+                      <Command.Item
+                        key={`hist-${h}`}
+                        value={`hist:${h}`}
+                        onSelect={() => setQuery(h)}
+                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors data-[selected=true]:bg-surface-bright"
+                      >
+                        <Clock
+                          size={13}
+                          strokeWidth={1.5}
+                          className="text-on-surface-variant shrink-0"
+                        />
+                        <span className="font-body text-sm text-on-surface-variant">
+                          {h}
+                        </span>
+                      </Command.Item>
+                    ))}
+                  </>
+                )}
+
+                {!query.trim() && history.length === 0 && (
+                  <div className="px-4 py-8 text-center font-body text-sm text-on-surface-variant/60">
+                    Escribí para buscar en el inventario
+                  </div>
+                )}
+
+                {/* ── With query: fuzzy results ──────────────────────── */}
+                {query.trim() && results.length > 0 && (
+                  <>
+                    <div className="px-4 pt-2 pb-1 font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+                      Drogas
+                    </div>
+                    {results.map((droga) => (
+                      <Command.Item
+                        key={droga.id}
+                        value={droga.id}
+                        onSelect={() => goTo(droga, 'ver')}
+                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors data-[selected=true]:bg-surface-bright group"
+                      >
+                        {/* Icon */}
+                        <FlaskConical
+                          size={14}
+                          strokeWidth={1.5}
+                          className="text-on-surface-variant shrink-0"
+                        />
+
+                        {/* Name + stock */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-body text-sm text-on-surface truncate">
+                            {droga.nombre}
+                          </p>
+                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
+                            {droga.cantidad} uds
+                          </p>
+                        </div>
+
+                        {/* Chip */}
+                        <StockChip cantidad={droga.cantidad} />
+
+                        {/* Actions */}
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
+                          <ActionBtn
+                            icon={Eye}
+                            label="Ver"
+                            onClick={() => goTo(droga, 'ver')}
+                          />
+                          <ActionBtn
+                            icon={FilePlus}
+                            label="Ingresar"
+                            onClick={() => goTo(droga, 'ingresar')}
+                          />
+                          <ActionBtn
+                            icon={History}
+                            label="Historial"
+                            onClick={() => goTo(droga, 'historial')}
+                          />
+                        </div>
+                      </Command.Item>
+                    ))}
+                  </>
+                )}
+
+                {/* ── With query: estuches results ──────────────────── */}
+                {query.trim() && resultsEstuches.length > 0 && (
+                  <>
+                    <div className="px-4 pt-2 pb-1 font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+                      Estuches
+                    </div>
+                    {resultsEstuches.map((estuche) => (
+                      <Command.Item
+                        key={estuche.id}
+                        value={`estuche-${estuche.id}`}
+                        onSelect={() => goToEstuche(estuche, 'ver')}
+                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors data-[selected=true]:bg-surface-bright group"
+                      >
+                        <Package
+                          size={14}
+                          strokeWidth={1.5}
+                          className="text-on-surface-variant shrink-0"
+                        />
+
+                        <div className="flex-1 min-w-0">
+                          <p className="font-body text-sm text-on-surface truncate">
+                            {estuche.articulo}
+                          </p>
+                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
+                            {estuche.cantidad} uds
+                          </p>
+                        </div>
+
+                        <MercadoChip mercado={estuche.mercado} />
+
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
+                          <ActionBtn
+                            icon={Eye}
+                            label="Ver"
+                            onClick={() => goToEstuche(estuche, 'ver')}
+                          />
+                          <ActionBtn
+                            icon={FilePlus}
+                            label="Ingresar"
+                            onClick={() => goToEstuche(estuche, 'ingresar')}
+                          />
+                          <ActionBtn
+                            icon={History}
+                            label="Historial"
+                            onClick={() => goToEstuche(estuche, 'historial')}
+                          />
+                        </div>
+                      </Command.Item>
+                    ))}
+                  </>
+                )}
+
+                {/* ── With query: etiquetas results ─────────────────── */}
+                {query.trim() && resultsEtiquetas.length > 0 && (
+                  <>
+                    <div className="px-4 pt-2 pb-1 font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+                      Etiquetas
+                    </div>
+                    {resultsEtiquetas.map((etiqueta) => (
+                      <Command.Item
+                        key={etiqueta.id}
+                        value={`etiqueta-${etiqueta.id}`}
+                        onSelect={() => goToEtiqueta(etiqueta, 'ver')}
+                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors data-[selected=true]:bg-surface-bright group"
+                      >
+                        <Tag size={14} strokeWidth={1.5} className="text-on-surface-variant shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-body text-sm text-on-surface truncate">{etiqueta.articulo}</p>
+                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
+                            {etiqueta.cantidad} uds
+                          </p>
+                        </div>
+                        <MercadoChip mercado={etiqueta.mercado} />
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
+                          <ActionBtn icon={Eye} label="Ver" onClick={() => goToEtiqueta(etiqueta, 'ver')} />
+                          <ActionBtn icon={FilePlus} label="Ingresar" onClick={() => goToEtiqueta(etiqueta, 'ingresar')} />
+                          <ActionBtn icon={History} label="Historial" onClick={() => goToEtiqueta(etiqueta, 'historial')} />
+                        </div>
+                      </Command.Item>
+                    ))}
+                  </>
+                )}
+
+                {/* ── With query: frascos results ────────────────────── */}
+                {query.trim() && resultsFrascos.length > 0 && (
+                  <>
+                    <div className="px-4 pt-2 pb-1 font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+                      Frascos
+                    </div>
+                    {resultsFrascos.map((frasco) => (
+                      <Command.Item
+                        key={frasco.id}
+                        value={`frasco-${frasco.id}`}
+                        onSelect={() => goToFrasco(frasco, 'ver')}
+                        className="flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors data-[selected=true]:bg-surface-bright group"
+                      >
+                        <Box size={14} strokeWidth={1.5} className="text-on-surface-variant shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-body text-sm text-on-surface truncate">{frasco.articulo}</p>
+                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
+                            {frasco.cantidadCajas} cajas · {frasco.total.toLocaleString()} uds
+                          </p>
+                        </div>
+                        <span
+                          className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+                          style={{ color: '#bccbb8', backgroundColor: 'rgba(188,203,184,0.10)' }}
+                        >
+                          {frasco.unidadesPorCaja}/caja
+                        </span>
+                        <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
+                          <ActionBtn icon={Eye} label="Ver" onClick={() => goToFrasco(frasco, 'ver')} />
+                          <ActionBtn icon={FilePlus} label="Ingresar" onClick={() => goToFrasco(frasco, 'ingresar')} />
+                          <ActionBtn icon={History} label="Historial" onClick={() => goToFrasco(frasco, 'historial')} />
+                        </div>
+                      </Command.Item>
+                    ))}
+                  </>
+                )}
+
+                {query.trim() && results.length === 0 && resultsEstuches.length === 0 && resultsEtiquetas.length === 0 && resultsFrascos.length === 0 && (
+                  <div className="px-4 py-8 text-center font-body text-sm text-on-surface-variant/60">
+                    Sin resultados para{' '}
+                    <span className="text-on-surface">"{query}"</span>
+                  </div>
+                )}
+              </Command.List>
+
+              {/* Footer */}
+              <div className="h-px bg-outline-variant/15" />
+              <div className="flex items-center gap-4 px-4 py-2">
+                <span className="font-body text-xs text-on-surface-variant/60">
+                  <kbd className="font-body">↑↓</kbd> navegar
+                </span>
+                <span className="font-body text-xs text-on-surface-variant/60">
+                  <kbd className="font-body">↵</kbd> ver
+                </span>
+                <span className="font-body text-xs text-on-surface-variant/60">
+                  <kbd className="font-body">Esc</kbd> cerrar
+                </span>
+              </div>
+            </Command>
+          </div>
+        </>,
+        document.body
+      )
+    : null
+
+  return (
+    <>
+      {floatingBtn}
+      {palette}
+    </>
+  )
+}
