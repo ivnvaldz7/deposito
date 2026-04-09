@@ -8,7 +8,7 @@ import { ChevronRight, Plus, Check, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
-import type { Acta, ActaItem, Categoria, Mercado } from './types'
+import type { Acta, ActaItem, Categoria, CondicionEmbalaje, Mercado } from './types'
 
 // ─── Tipos locales para autocompletes ────────────────────────────────────────
 
@@ -192,6 +192,16 @@ const MERCADOS_CONFIG: { value: Mercado; label: string; color: string }[] = [
 ]
 
 // ─── Droga autocomplete ───────────────────────────────────────────────────────
+
+const CONDICION_EMBALAJE_OPTIONS: {
+  value: CondicionEmbalaje
+  label: string
+  color: string
+}[] = [
+  { value: 'bueno', label: 'Bueno', color: '#00AE42' },
+  { value: 'regular', label: 'Regular', color: '#FF9800' },
+  { value: 'malo', label: 'Malo', color: '#F44336' },
+]
 
 function DrogaAutocomplete({
   id,
@@ -502,6 +512,11 @@ const itemSchema = z
     categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
     productoNombre: z.string().min(2, 'Mínimo 2 caracteres').max(100),
     lote: z.string().min(1, 'Requerido').max(50),
+    vencimiento: z.string().optional(),
+    temperaturaTransporte: z.string().max(50, 'MÃ¡ximo 50 caracteres').optional(),
+    condicionEmbalaje: z.enum(['bueno', 'regular', 'malo']).optional(),
+    observacionesCalidad: z.string().max(1000, 'MÃ¡ximo 1000 caracteres').optional(),
+    aprobadoCalidad: z.boolean(),
     cantidadIngresada: z
       .string()
       .min(1, 'Requerido')
@@ -514,6 +529,13 @@ const itemSchema = z
         code: z.ZodIssueCode.custom,
         message: `El mercado es requerido para ${data.categoria}s`,
         path: ['mercado'],
+      })
+    }
+    if (data.categoria === 'droga' && !data.vencimiento) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El vencimiento es obligatorio para drogas',
+        path: ['vencimiento'],
       })
     }
   })
@@ -544,6 +566,7 @@ function Paso2({
   const token = useAuthStore((s) => s.token)
   const [serverError, setServerError] = useState<string | null>(null)
   const [, setFrascoInfo] = useState<Frasco | null>(null)
+  const [qualityOpen, setQualityOpen] = useState(false)
   const prefillAppliedRef = useRef(false)
 
   const {
@@ -555,13 +578,26 @@ function Paso2({
     formState: { errors, isSubmitting },
   } = useForm<ItemFormData>({
     resolver: zodResolver(itemSchema),
-    defaultValues: { categoria: 'droga', productoNombre: '', lote: '', cantidadIngresada: '', mercado: undefined },
+    defaultValues: {
+      categoria: 'droga',
+      productoNombre: '',
+      lote: '',
+      vencimiento: '',
+      temperaturaTransporte: '',
+      condicionEmbalaje: undefined,
+      observacionesCalidad: '',
+      aprobadoCalidad: false,
+      cantidadIngresada: '',
+      mercado: undefined,
+    },
   })
 
   const categoria = useWatch({ control, name: 'categoria' })
   const productoNombre = useWatch({ control, name: 'productoNombre' })
   const mercado = useWatch({ control, name: 'mercado' })
   const cantidadVal = useWatch({ control, name: 'cantidadIngresada' })
+  const condicionEmbalaje = useWatch({ control, name: 'condicionEmbalaje' })
+  const aprobadoCalidad = useWatch({ control, name: 'aprobadoCalidad' })
   const displayedFrascoInfo =
     categoria === 'frasco' && productoNombre
       ? frascos.find((frasco) => frasco.articulo === productoNombre) ?? null
@@ -574,6 +610,11 @@ function Paso2({
       categoria: prefillItem.categoria,
       productoNombre: prefillItem.productoNombre,
       lote: '',
+      vencimiento: '',
+      temperaturaTransporte: '',
+      condicionEmbalaje: undefined,
+      observacionesCalidad: '',
+      aprobadoCalidad: false,
       cantidadIngresada: prefillItem.cantidadIngresada,
       mercado: undefined,
     })
@@ -590,13 +631,34 @@ function Paso2({
           productoNombre: data.productoNombre,
           lote: data.lote,
           cantidadIngresada: Number(data.cantidadIngresada),
+          ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
+          ...(data.temperaturaTransporte?.trim()
+            ? { temperaturaTransporte: data.temperaturaTransporte.trim() }
+            : {}),
+          ...(data.condicionEmbalaje ? { condicionEmbalaje: data.condicionEmbalaje } : {}),
+          ...(data.observacionesCalidad?.trim()
+            ? { observacionesCalidad: data.observacionesCalidad.trim() }
+            : {}),
+          aprobadoCalidad: data.aprobadoCalidad,
           ...((data.categoria === 'estuche' || data.categoria === 'etiqueta') && data.mercado ? { mercado: data.mercado } : {}),
         },
         token
       )
       onItemAdded(item)
       toast.info(`Item "${item.productoNombre}" agregado al acta.`)
-      reset({ categoria: data.categoria, productoNombre: '', lote: '', cantidadIngresada: '', mercado: undefined })
+      reset({
+        categoria: data.categoria,
+        productoNombre: '',
+        lote: '',
+        vencimiento: '',
+        temperaturaTransporte: '',
+        condicionEmbalaje: undefined,
+        observacionesCalidad: '',
+        aprobadoCalidad: false,
+        cantidadIngresada: '',
+        mercado: undefined,
+      })
+      setQualityOpen(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al agregar item')
     }
@@ -731,8 +793,8 @@ function Paso2({
           </div>
         )}
 
-        {/* Lote + Cantidad */}
-        <div className="grid grid-cols-2 gap-3">
+        {/* Lote + Vencimiento (drogas) + Cantidad */}
+        <div className={`grid gap-3 ${categoria === 'droga' ? 'grid-cols-2' : 'grid-cols-2'}`}>
           <div className="space-y-1">
             <label htmlFor="acta-item-lote" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
               Lote
@@ -764,6 +826,140 @@ function Paso2({
               <p className="font-body text-error text-xs">{errors.cantidadIngresada.message}</p>
             )}
           </div>
+        </div>
+
+        {/* Vencimiento — solo para drogas */}
+        {categoria === 'droga' && (
+          <div className="space-y-1">
+            <label htmlFor="acta-item-vencimiento" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+              Vencimiento
+            </label>
+            <input
+              id="acta-item-vencimiento"
+              {...register('vencimiento')}
+              type="date"
+              className="input-field"
+            />
+            {errors.vencimiento && (
+              <p className="font-body text-error text-xs">{errors.vencimiento.message}</p>
+            )}
+          </div>
+        )}
+
+        <div className="bg-surface-low rounded overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setQualityOpen((current) => !current)}
+            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-high"
+          >
+            <div>
+              <p className="font-heading text-on-surface text-sm font-semibold">
+                Control de Calidad
+              </p>
+              <p className="font-body text-on-surface-variant text-xs mt-0.5">
+                Transporte, embalaje, observaciones y aprobación
+              </p>
+            </div>
+            <ChevronRight
+              size={16}
+              strokeWidth={1.5}
+              className={`text-on-surface-variant transition-transform ${qualityOpen ? 'rotate-90' : ''}`}
+            />
+          </button>
+
+          {qualityOpen && (
+            <div className="px-4 pb-4 space-y-4 bg-surface-high/40">
+              <div className="space-y-1 pt-1">
+                <label htmlFor="acta-item-temperatura" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                  Temperatura de transporte
+                </label>
+                <input
+                  id="acta-item-temperatura"
+                  {...register('temperaturaTransporte')}
+                  type="text"
+                  placeholder="Ej: 2-8°C"
+                  className="input-field"
+                />
+                {errors.temperaturaTransporte && (
+                  <p className="font-body text-error text-xs">{errors.temperaturaTransporte.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                  Condición de embalaje
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {CONDICION_EMBALAJE_OPTIONS.map(({ value, label, color }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setValue('condicionEmbalaje', value, { shouldValidate: true })}
+                      className="px-3 py-1.5 rounded font-body text-xs transition-colors"
+                      style={
+                        condicionEmbalaje === value
+                          ? { background: `${color}1A`, color, boxShadow: `inset 0 0 0 1px ${color}40` }
+                          : { background: 'rgba(49,54,49,0.8)', color: '#bccbb8', boxShadow: 'inset 0 0 0 1px rgba(61,74,60,0.15)' }
+                      }
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {errors.condicionEmbalaje && (
+                  <p className="font-body text-error text-xs">{errors.condicionEmbalaje.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="acta-item-observaciones-calidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                  Observaciones
+                </label>
+                <textarea
+                  id="acta-item-observaciones-calidad"
+                  {...register('observacionesCalidad')}
+                  rows={3}
+                  placeholder="Notas de recepción, embalaje o desvíos detectados..."
+                  className="input-field resize-none"
+                />
+                {errors.observacionesCalidad && (
+                  <p className="font-body text-error text-xs">{errors.observacionesCalidad.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                  Estado de calidad
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setValue('aprobadoCalidad', true, { shouldValidate: true })}
+                    className="px-3 py-2 rounded font-body text-sm transition-colors"
+                    style={
+                      aprobadoCalidad
+                        ? { background: 'rgba(0,174,66,0.10)', color: '#00AE42', boxShadow: 'inset 0 0 0 1px rgba(0,174,66,0.15)' }
+                        : { background: 'rgba(49,54,49,0.8)', color: '#bccbb8', boxShadow: 'inset 0 0 0 1px rgba(61,74,60,0.15)' }
+                    }
+                  >
+                    Aprobado
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setValue('aprobadoCalidad', false, { shouldValidate: true })}
+                    className="px-3 py-2 rounded font-body text-sm transition-colors"
+                    style={
+                      !aprobadoCalidad
+                        ? { background: 'rgba(244,67,54,0.10)', color: '#f44336', boxShadow: 'inset 0 0 0 1px rgba(244,67,54,0.15)' }
+                        : { background: 'rgba(49,54,49,0.8)', color: '#bccbb8', boxShadow: 'inset 0 0 0 1px rgba(61,74,60,0.15)' }
+                    }
+                  >
+                    No aprobado
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {serverError && (
@@ -1045,7 +1241,7 @@ export function ActaNuevaPage() {
   useEffect(() => {
     apiClient
       .get<{ id: string; nombre: string }[]>('/drogas', token)
-      .then((list) => setDrogas(list.map((d) => d.nombre)))
+      .then((list) => setDrogas([...new Set(list.map((d) => d.nombre))]))
       .catch(() => {})
     apiClient.get<Estuche[]>('/estuches', token).then(setEstuches).catch(() => {})
     apiClient.get<Etiqueta[]>('/etiquetas', token).then(setEtiquetas).catch(() => {})

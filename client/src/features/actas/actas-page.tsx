@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
+import { AlertTriangle, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient } from '@/lib/api-client'
 import {
@@ -21,6 +21,22 @@ function formatFecha(iso: string): string {
 
 function uniqueJoined(values: string[]): string {
   return [...new Set(values)].join(', ')
+}
+
+function hasQualityNoAprobada(acta: ActaListItem): boolean {
+  return acta.items?.some((item) => item.aprobadoCalidad === false) ?? false
+}
+
+function CalidadWarningChip() {
+  return (
+    <span
+      className="inline-flex items-center gap-1 font-body text-xs font-medium px-2 py-0.5 rounded"
+      style={{ color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }}
+    >
+      <AlertTriangle size={12} strokeWidth={1.5} />
+      Calidad pendiente
+    </span>
+  )
 }
 
 export function ActasPage() {
@@ -59,7 +75,6 @@ export function ActasPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="font-heading text-on-surface font-semibold text-xl">Actas</h1>
@@ -91,7 +106,6 @@ export function ActasPage() {
         </div>
       ) : (
         <>
-          {/* Desktop table */}
           <div className="hidden md:block bg-surface-low rounded overflow-hidden">
             <Table>
               <TableHeader>
@@ -107,6 +121,8 @@ export function ActasPage() {
                 {actas.map((acta) => {
                   const lotes = uniqueJoined(acta.items?.map((i) => i.lote) ?? [])
                   const productos = uniqueJoined(acta.items?.map((i) => i.productoNombre) ?? [])
+                  const hasQualityIssue = hasQualityNoAprobada(acta)
+
                   return (
                     <TableRow
                       key={acta.id}
@@ -129,7 +145,10 @@ export function ActasPage() {
                         {productos || '—'}
                       </TableCell>
                       <TableCell>
-                        <EstadoChip estado={acta.estado} />
+                        <div className="flex flex-col items-start gap-1">
+                          <EstadoChip estado={acta.estado} />
+                          {hasQualityIssue && <CalidadWarningChip />}
+                        </div>
                       </TableCell>
                       <TableCell className="font-body text-on-surface-variant tabular-nums">
                         {acta._count?.items ?? acta.items?.length ?? 0}
@@ -141,16 +160,17 @@ export function ActasPage() {
             </Table>
           </div>
 
-          {/* Mobile cards */}
           <div className="md:hidden space-y-2">
             {actas.map((acta) => {
               const lotes = uniqueJoined(acta.items?.map((i) => i.lote) ?? [])
               const productos = uniqueJoined(acta.items?.map((i) => i.productoNombre) ?? [])
+              const hasQualityIssue = hasQualityNoAprobada(acta)
+
               return (
                 <div
                   key={acta.id}
                   onClick={() => navigate(`/actas/${acta.id}`)}
-                  className="bg-surface-low rounded px-4 py-3 cursor-pointer hover:bg-surface-bright transition-colors space-y-1.5"
+                  className="bg-surface-low rounded px-4 py-3 cursor-pointer hover:bg-surface-bright transition-colors space-y-2"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-body text-on-surface text-sm tabular-nums">
@@ -159,11 +179,9 @@ export function ActasPage() {
                     <EstadoChip estado={acta.estado} />
                   </div>
                   {productos && (
-                    <p className="font-body text-on-surface text-sm truncate">
-                      {productos}
-                    </p>
+                    <p className="font-body text-on-surface text-sm truncate">{productos}</p>
                   )}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     {lotes && (
                       <span className="font-body text-on-surface-variant text-xs truncate">
                         Lote: {lotes}
@@ -172,6 +190,7 @@ export function ActasPage() {
                     <span className="font-body text-on-surface-variant text-xs shrink-0">
                       {acta._count?.items ?? acta.items?.length ?? 0} items
                     </span>
+                    {hasQualityIssue && <CalidadWarningChip />}
                   </div>
                 </div>
               )

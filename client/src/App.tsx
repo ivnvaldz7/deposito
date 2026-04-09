@@ -14,6 +14,7 @@ import { MovimientosPage } from '@/features/movimientos/movimientos-page'
 import { PendientesPage } from '@/features/pendientes/pendientes-page'
 import { UsuariosPage } from '@/features/usuarios/usuarios-page'
 import { OrdenesPage } from '@/features/ordenes/ordenes-page'
+import { MetricasPage } from '@/features/metricas/metricas-page'
 import { AppToaster } from '@/components/ui/toaster'
 
 function ProtectedRoute() {
@@ -55,6 +56,7 @@ function App() {
             <Route path="/movimientos" element={<MovimientosPage />} />
             <Route path="/pendientes" element={<PendientesPage />} />
             <Route path="/ordenes" element={<OrdenesPage />} />
+            <Route path="/metricas" element={<MetricasPage />} />
             <Route element={<EncargadoRoute />}>
               <Route path="/ingresos" element={<ActaNuevaPage />} />
               <Route path="/ingresos/nueva" element={<ActaNuevaPage />} />

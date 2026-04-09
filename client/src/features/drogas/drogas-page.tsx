@@ -1,23 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Trash2, CalendarClock } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
-import { InlineNumberEditor } from '@/features/inventory/shared/inline-number-editor'
 import { EmptyState, ErrorState, LoadingState } from '@/features/inventory/shared/inventory-states'
-import { StockChip } from '@/features/inventory/shared/stock-chip'
-import { sortByArticulo } from '@/lib/sort-utils'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table'
 import {
   Dialog,
   DialogTrigger,
@@ -30,25 +19,105 @@ import {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Droga {
+interface DrogaRecord {
   id: string
   nombre: string
+  lote: string | null
+  vencimiento: string | null
   cantidad: number
   updatedAt: string
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+interface DrogaGroup {
+  nombre: string
+  totalCantidad: number
+  lotes: DrogaRecord[]
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const STOCK_BAJO_THRESHOLD = 10
+const VENCE_PRONTO_DIAS = 30
+const VENCE_MEDIO_DIAS = 60
 
-function sortDrogas(list: Droga[]): Droga[] {
-  return [...list].sort((a, b) => sortByArticulo(a.nombre, b.nombre))
+function diasHastaVencimiento(vencimiento: string): number {
+  return Math.floor((new Date(vencimiento).getTime() - Date.now()) / 86_400_000)
+}
+
+function groupDrogas(records: DrogaRecord[]): DrogaGroup[] {
+  const map = new Map<string, DrogaRecord[]>()
+  for (const r of records) {
+    if (!map.has(r.nombre)) map.set(r.nombre, [])
+    map.get(r.nombre)!.push(r)
+  }
+
+  return Array.from(map.entries())
+    .map(([nombre, lotes]) => ({
+      nombre,
+      totalCantidad: lotes.reduce((s, l) => s + l.cantidad, 0),
+      lotes: [...lotes].sort((a, b) => {
+        if (!a.vencimiento && !b.vencimiento) return 0
+        if (!a.vencimiento) return 1
+        if (!b.vencimiento) return -1
+        return new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime()
+      }),
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+}
+
+// ─── Vencimiento chip ─────────────────────────────────────────────────────────
+
+function VencimientoChip({ vencimiento }: { vencimiento: string | null }) {
+  if (!vencimiento) return null
+  const dias = diasHastaVencimiento(vencimiento)
+  const fecha = new Date(vencimiento).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+
+  let color = '#00AE42'
+  let bg = 'rgba(0,174,66,0.10)'
+  if (dias < 0) {
+    color = '#ef4444'; bg = 'rgba(239,68,68,0.10)'
+  } else if (dias <= VENCE_PRONTO_DIAS) {
+    color = '#ef4444'; bg = 'rgba(239,68,68,0.10)'
+  } else if (dias <= VENCE_MEDIO_DIAS) {
+    color = '#FF9800'; bg = 'rgba(255,152,0,0.10)'
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+      style={{ color, backgroundColor: bg }}
+      title={dias < 0 ? 'VENCIDO' : `Vence en ${dias} días`}
+    >
+      <CalendarClock size={10} strokeWidth={1.5} />
+      {fecha}
+    </span>
+  )
+}
+
+// ─── Stock chip ───────────────────────────────────────────────────────────────
+
+function StockStatusChip({ cantidad }: { cantidad: number }) {
+  const bajo = cantidad < STOCK_BAJO_THRESHOLD
+  return (
+    <span
+      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+      style={
+        bajo
+          ? { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }
+          : { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
+      }
+    >
+      {bajo ? 'Stock bajo' : 'Normal'}
+    </span>
+  )
 }
 
 // ─── Agregar droga modal ──────────────────────────────────────────────────────
 
 const agregarSchema = z.object({
   nombre: z.string().min(2, 'Mínimo 2 caracteres').max(100),
+  lote: z.string().max(50).optional(),
+  vencimiento: z.string().optional(),
   cantidad: z
     .string()
     .min(1, 'Requerido')
@@ -57,7 +126,7 @@ const agregarSchema = z.object({
 
 type AgregarFormData = z.infer<typeof agregarSchema>
 
-function AgregarDrogaModal({ onCreated }: { onCreated: (d: Droga) => void }) {
+function AgregarDrogaModal({ onCreated }: { onCreated: (d: DrogaRecord) => void }) {
   const token = useAuthStore((s) => s.token)
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -72,17 +141,18 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: Droga) => void }) {
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const droga = await apiClient.post<Droga>(
+      const droga = await apiClient.post<DrogaRecord>(
         '/drogas',
-        { nombre: data.nombre, cantidad: Number(data.cantidad) },
+        {
+          nombre: data.nombre,
+          cantidad: Number(data.cantidad),
+          ...(data.lote ? { lote: data.lote } : {}),
+          ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
+        },
         token
       )
       onCreated(droga)
-      if (droga.cantidad < STOCK_BAJO_THRESHOLD) {
-        toast.warning(`"${droga.nombre}" quedó con stock bajo (${droga.cantidad}).`)
-      } else {
-        toast.success(`Droga "${droga.nombre}" agregada.`)
-      }
+      toast.success(`Droga "${droga.nombre}" agregada.`)
       reset()
       setOpen(false)
     } catch (err) {
@@ -108,7 +178,7 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: Droga) => void }) {
         <DialogHeader>
           <DialogTitle>Agregar droga</DialogTitle>
           <DialogDescription>
-            Ingresá el nombre del principio activo y la cantidad inicial en stock.
+            Ingresá el nombre del principio activo. El lote y vencimiento son opcionales para registros heredados.
           </DialogDescription>
         </DialogHeader>
 
@@ -125,9 +195,34 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: Droga) => void }) {
               className="input-field"
               autoFocus
             />
-            {errors.nombre && (
-              <p className="font-body text-error text-xs">{errors.nombre.message}</p>
-            )}
+            {errors.nombre && <p className="font-body text-error text-xs">{errors.nombre.message}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label htmlFor="agregar-droga-lote" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                Lote <span className="normal-case tracking-normal opacity-60">(opcional)</span>
+              </label>
+              <input
+                id="agregar-droga-lote"
+                {...register('lote')}
+                type="text"
+                placeholder="Ej: L240901"
+                className="input-field"
+              />
+              {errors.lote && <p className="font-body text-error text-xs">{errors.lote.message}</p>}
+            </div>
+            <div className="space-y-1">
+              <label htmlFor="agregar-droga-vencimiento" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                Vencimiento <span className="normal-case tracking-normal opacity-60">(opcional)</span>
+              </label>
+              <input
+                id="agregar-droga-vencimiento"
+                {...register('vencimiento')}
+                type="date"
+                className="input-field"
+              />
+            </div>
           </div>
 
           <div className="space-y-1">
@@ -142,15 +237,11 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: Droga) => void }) {
               placeholder="0"
               className="input-field"
             />
-            {errors.cantidad && (
-              <p className="font-body text-error text-xs">{errors.cantidad.message}</p>
-            )}
+            {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
           </div>
 
           {serverError && (
-            <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">
-              {serverError}
-            </div>
+            <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>
           )}
 
           <div className="flex gap-3 pt-1">
@@ -169,131 +260,6 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: Droga) => void }) {
   )
 }
 
-// ─── Editar droga modal ───────────────────────────────────────────────────────
-
-const editarSchema = z.object({
-  nombre: z.string().min(2, 'Mínimo 2 caracteres').max(100),
-  cantidad: z
-    .string()
-    .min(1, 'Requerido')
-    .refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Debe ser un número positivo'),
-})
-
-type EditarFormData = z.infer<typeof editarSchema>
-
-function EditarDrogaModal({
-  droga,
-  onUpdated,
-  onClose,
-}: {
-  droga: Droga
-  onUpdated: (d: Droga) => void
-  onClose: () => void
-}) {
-  const token = useAuthStore((s) => s.token)
-  const [serverError, setServerError] = useState<string | null>(null)
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-  } = useForm<EditarFormData>({
-    resolver: zodResolver(editarSchema),
-    defaultValues: { nombre: droga.nombre, cantidad: String(droga.cantidad) },
-  })
-
-  async function onSubmit(data: EditarFormData) {
-    setServerError(null)
-    try {
-      const updated = await apiClient.put<Droga>(
-        `/drogas/${droga.id}`,
-        { nombre: data.nombre, cantidad: Number(data.cantidad) },
-        token
-      )
-      onUpdated(updated)
-      if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
-        toast.warning(`"${updated.nombre}" quedó con stock bajo (${updated.cantidad}).`)
-      } else {
-        toast.info(`Droga "${updated.nombre}" actualizada.`)
-      }
-      onClose()
-    } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
-    }
-  }
-
-  return (
-    <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Editar droga</DialogTitle>
-          <DialogDescription>Modificá el nombre y/o la cantidad en stock.</DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <div className="space-y-1">
-            <label htmlFor="editar-droga-nombre" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Nombre
-            </label>
-            <input id="editar-droga-nombre" {...register('nombre')} type="text" className="input-field" autoFocus />
-            {errors.nombre && <p className="font-body text-error text-xs">{errors.nombre.message}</p>}
-          </div>
-
-          <div className="space-y-1">
-            <label htmlFor="editar-droga-cantidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Cantidad
-            </label>
-            <input id="editar-droga-cantidad" {...register('cantidad')} type="number" min="0" className="input-field" />
-            {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
-          </div>
-
-          {serverError && (
-            <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>
-          )}
-
-          <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-// ─── Inline cantidad editor ────────────────────────────────────────────────────
-
-function CantidadCell({ droga, onUpdated }: { droga: Droga; onUpdated: (d: Droga) => void }) {
-  const token = useAuthStore((s) => s.token)
-  return (
-    <InlineNumberEditor
-      value={droga.cantidad}
-      label="cantidad"
-      onSave={async (nextValue) => {
-        const updated = await apiClient.put<Droga>(
-          `/drogas/${droga.id}`,
-          { cantidad: nextValue },
-          token
-        )
-        onUpdated(updated)
-        if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
-          toast.warning(`"${updated.nombre}" quedó con stock bajo (${updated.cantidad}).`)
-        } else {
-          toast.info(`Stock de "${updated.nombre}" actualizado.`)
-        }
-      }}
-    />
-  )
-}
-
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export function DrogasPage() {
@@ -301,35 +267,31 @@ export function DrogasPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.role === 'encargado'
 
-  const [drogas, setDrogas] = useState<Droga[]>([])
+  const [records, setRecords] = useState<DrogaRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [editingDroga, setEditingDroga] = useState<Droga | null>(null)
 
   useEffect(() => {
     apiClient
-      .get<Droga[]>('/drogas', token)
-      .then((list) => setDrogas(sortDrogas(list)))
+      .get<DrogaRecord[]>('/drogas', token)
+      .then(setRecords)
       .catch(() => setError('No se pudo cargar el inventario'))
       .finally(() => setLoading(false))
   }, [token])
 
-  function handleCreated(droga: Droga) {
-    setDrogas((prev) => sortDrogas([...prev, droga]))
+  const groups = useMemo(() => groupDrogas(records), [records])
+
+  function handleCreated(droga: DrogaRecord) {
+    setRecords((prev) => [...prev, droga])
   }
 
-  function handleUpdated(updated: Droga) {
-    setDrogas((prev) => sortDrogas(prev.map((d) => (d.id === updated.id ? updated : d))))
-  }
-
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, nombre: string) {
     setDeletingId(id)
     try {
       await apiClient.del<void>(`/drogas/${id}`, token)
-      const droga = drogas.find((d) => d.id === id)
-      setDrogas((prev) => prev.filter((d) => d.id !== id))
-      toast.success(droga ? `Droga "${droga.nombre}" eliminada.` : 'Droga eliminada.')
+      setRecords((prev) => prev.filter((r) => r.id !== id))
+      toast.success(`Droga "${nombre}" eliminada.`)
     } catch {
       toast.error('No se pudo eliminar la droga.')
     } finally {
@@ -337,15 +299,13 @@ export function DrogasPage() {
     }
   }
 
-  if (loading) {
-    return <LoadingState />
-  }
+  if (loading) return <LoadingState />
+  if (error) return <ErrorState message={error} />
 
-  if (error) {
-    return <ErrorState message={error} />
-  }
-
-  const stockBajoCount = drogas.filter((d) => d.cantidad < STOCK_BAJO_THRESHOLD).length
+  const stockBajoCount = groups.filter((g) => g.totalCantidad < STOCK_BAJO_THRESHOLD).length
+  const porVencerCount = records.filter(
+    (r) => r.vencimiento && diasHastaVencimiento(r.vencimiento) <= VENCE_PRONTO_DIAS
+  ).length
 
   return (
     <div className="space-y-6">
@@ -354,117 +314,80 @@ export function DrogasPage() {
         <div>
           <h1 className="font-heading text-on-surface font-semibold text-xl">Drogas</h1>
           <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {drogas.length} productos
+            {groups.length} productos · {records.length} lotes
             {stockBajoCount > 0 && (
               <span className="ml-2" style={{ color: '#FF9800' }}>· {stockBajoCount} con stock bajo</span>
+            )}
+            {porVencerCount > 0 && (
+              <span className="ml-2" style={{ color: '#ef4444' }}>· {porVencerCount} vencen pronto</span>
             )}
           </p>
         </div>
         {isEncargado && <AgregarDrogaModal onCreated={handleCreated} />}
       </div>
 
-      {editingDroga && (
-        <EditarDrogaModal
-          droga={editingDroga}
-          onUpdated={handleUpdated}
-          onClose={() => setEditingDroga(null)}
-        />
-      )}
-
-      {drogas.length === 0 ? (
+      {groups.length === 0 ? (
         <EmptyState message="No hay drogas cargadas todavía." />
       ) : (
-        <>
-          {/* Desktop table */}
-          <div className="hidden md:block bg-surface-low rounded overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead className="w-32">Cantidad</TableHead>
-                  <TableHead className="w-28">Estado</TableHead>
-                  {isEncargado && <TableHead className="w-24 text-right">Acciones</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {drogas.map((droga) => (
-                  <TableRow key={droga.id}>
-                    <TableCell className="font-body text-on-surface">{droga.nombre}</TableCell>
-                    <TableCell>
-                      {isEncargado ? (
-                        <CantidadCell droga={droga} onUpdated={handleUpdated} />
-                      ) : (
-                        <span className="font-body text-on-surface tabular-nums">{droga.cantidad}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <StockChip cantidad={droga.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
-                    </TableCell>
-                    {isEncargado && (
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditingDroga(droga)}
-                            className="text-on-surface-variant hover:text-on-surface transition-colors"
-                            title="Editar"
-                            aria-label={`Editar ${droga.nombre}`}
-                          >
-                            <Pencil size={14} strokeWidth={1.5} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(droga.id)}
-                            disabled={deletingId === droga.id}
-                            className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
-                            title="Eliminar"
-                            aria-label={`Eliminar ${droga.nombre}`}
-                          >
-                            <Trash2 size={14} strokeWidth={1.5} />
-                          </button>
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile cards */}
-          <div className="md:hidden space-y-2">
-            {drogas.map((droga) => (
-              <div key={droga.id} className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface text-sm truncate">{droga.nombre}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="font-body text-on-surface-variant text-xs tabular-nums">{droga.cantidad} uds</span>
-                    <StockChip cantidad={droga.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
-                  </div>
+        <div className="space-y-2">
+          {groups.map((group) => (
+            <div key={group.nombre} className="bg-surface-low rounded overflow-hidden">
+              {/* Group header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/10">
+                <div className="flex items-center gap-3">
+                  <p className="font-heading font-semibold text-sm text-on-surface">{group.nombre}</p>
+                  <StockStatusChip cantidad={group.totalCantidad} />
                 </div>
-                {isEncargado && (
-                  <div className="flex items-center gap-3 shrink-0">
-                    <CantidadCell droga={droga} onUpdated={handleUpdated} />
-                    <button type="button" onClick={() => setEditingDroga(droga)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar" aria-label={`Editar ${droga.nombre}`}>
-                      <Pencil size={14} strokeWidth={1.5} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(droga.id)}
-                      disabled={deletingId === droga.id}
-                      className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
-                      title="Eliminar"
-                      aria-label={`Eliminar ${droga.nombre}`}
-                    >
-                      <Trash2 size={14} strokeWidth={1.5} />
-                    </button>
-                  </div>
-                )}
+                <span className="font-body text-xs text-on-surface-variant tabular-nums">
+                  Total: <strong className="text-on-surface">{group.totalCantidad}</strong> uds
+                </span>
               </div>
-            ))}
-          </div>
-        </>
+
+              {/* Lotes */}
+              {group.lotes.map((lote, idx) => (
+                <div
+                  key={lote.id}
+                  className={`flex items-center gap-3 px-4 py-2.5 ${
+                    idx < group.lotes.length - 1 ? 'border-b border-outline-variant/10' : ''
+                  }`}
+                >
+                  {/* Lote info */}
+                  <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
+                    <span className="font-body text-xs text-on-surface-variant">
+                      {lote.lote ? (
+                        <>Lote <strong className="text-on-surface">{lote.lote}</strong></>
+                      ) : (
+                        <span className="italic">Sin lote</span>
+                      )}
+                    </span>
+                    <VencimientoChip vencimiento={lote.vencimiento} />
+                    <span className="font-body text-xs tabular-nums text-on-surface-variant">
+                      <strong className="text-on-surface">{lote.cantidad}</strong> uds
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  {isEncargado && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(lote.id, `${lote.nombre} (lote ${lote.lote ?? 'sin lote'})`)}
+                        disabled={deletingId === lote.id}
+                        className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
+                        title="Eliminar lote"
+                        aria-label={`Eliminar lote ${lote.lote ?? 'sin lote'} de ${lote.nombre}`}
+                      >
+                        <Trash2 size={13} strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )
 }
+

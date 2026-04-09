@@ -7,8 +7,6 @@ import { toast } from '@/lib/toast'
 import { EstadoChip } from './estado-chip'
 import type { Acta, ActaItem } from './types'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatFecha(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -21,12 +19,23 @@ const CATEGORIA_LABEL: Record<string, string> = {
   frasco: 'Frasco',
 }
 
-// ─── Progress bar ─────────────────────────────────────────────────────────────
+const CONDICION_LABEL: Record<string, string> = {
+  bueno: 'Bueno',
+  regular: 'Regular',
+  malo: 'Malo',
+}
+
+interface DrogaLote {
+  id: string
+  lote: string | null
+  vencimiento: string | null
+  cantidad: number
+}
 
 function ProgressBar({ distribuida, ingresada }: { distribuida: number; ingresada: number }) {
   const pct = ingresada === 0 ? 0 : Math.round((distribuida / ingresada) * 100)
-  const color =
-    pct === 100 ? '#00AE42' : pct > 0 ? '#2196F3' : '#FF9800'
+  const color = pct === 100 ? '#00AE42' : pct > 0 ? '#2196F3' : '#FF9800'
+
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 h-1 bg-surface-high rounded-full overflow-hidden">
@@ -41,8 +50,6 @@ function ProgressBar({ distribuida, ingresada }: { distribuida: number; ingresad
     </div>
   )
 }
-
-// ─── Item row ─────────────────────────────────────────────────────────────────
 
 function ItemRow({
   item,
@@ -62,10 +69,44 @@ function ItemRow({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Reset value when remaining changes
+  const [lotes, setLotes] = useState<DrogaLote[]>([])
+  const [loadingLotes, setLoadingLotes] = useState(false)
+  const [selectedLoteId, setSelectedLoteId] = useState('')
+  const [justificacion, setJustificacion] = useState('')
+
+  const defaultLoteId = lotes[0]?.id ?? ''
+  const isOverride = selectedLoteId !== '' && selectedLoteId !== defaultLoteId
+
   useEffect(() => {
     setValue(String(item.cantidadIngresada - item.cantidadDistribuida))
   }, [item.cantidadDistribuida, item.cantidadIngresada])
+
+  useEffect(() => {
+    if (!distributing || item.categoria !== 'droga') return
+    setLoadingLotes(true)
+    apiClient
+      .get<DrogaLote[]>(`/drogas?nombre=${encodeURIComponent(item.productoNombre)}`, token)
+      .then((data) => {
+        const sorted = [...data].sort((a, b) => {
+          if (!a.vencimiento && !b.vencimiento) return 0
+          if (!a.vencimiento) return 1
+          if (!b.vencimiento) return -1
+          return new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime()
+        })
+        setLotes(sorted)
+        setSelectedLoteId(sorted[0]?.id ?? '')
+      })
+      .catch(() => {})
+      .finally(() => setLoadingLotes(false))
+  }, [distributing, item.categoria, item.productoNombre, token])
+
+  function handleCancelDistribuir() {
+    setDistributing(false)
+    setError(null)
+    setLotes([])
+    setSelectedLoteId('')
+    setJustificacion('')
+  }
 
   async function confirm() {
     const num = Number(value)
@@ -78,17 +119,32 @@ function ItemRow({
       setError(`Máximo disponible: ${rem}`)
       return
     }
+    if (item.categoria === 'droga' && isOverride && !justificacion.trim()) {
+      setError('Justificación requerida al cambiar el lote FIFO')
+      return
+    }
+
     setSaving(true)
     setError(null)
     try {
+      const payload: Record<string, unknown> = { cantidad: num }
+      if (item.categoria === 'droga' && selectedLoteId) {
+        payload.loteId = selectedLoteId
+        if (isOverride && justificacion.trim()) {
+          payload.justificacion = justificacion.trim()
+        }
+      }
       const res = await apiClient.post<{ item: ActaItem }>(
         `/actas/${actaId}/items/${item.id}/distribuir`,
-        { cantidad: num },
+        payload,
         token
       )
       onDistribuido(res.item)
       toast.success(`Distribución registrada para "${item.productoNombre}".`)
       setDistributing(false)
+      setLotes([])
+      setSelectedLoteId('')
+      setJustificacion('')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Error al distribuir')
     } finally {
@@ -98,18 +154,17 @@ function ItemRow({
 
   return (
     <div className="bg-surface-low rounded px-4 py-4 space-y-3">
-      {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="font-body text-on-surface text-sm truncate">
-            {item.productoNombre}
-          </p>
+          <p className="font-body text-on-surface text-sm truncate">{item.productoNombre}</p>
           <p className="font-body text-on-surface-variant text-xs mt-0.5">
             {CATEGORIA_LABEL[item.categoria] ?? item.categoria} · Lote: {item.lote}
+            {item.vencimiento && (
+              <> · Vence: {new Date(item.vencimiento).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })}</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {/* Estado del item */}
           {remaining === 0 && (
             <span
               className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
@@ -135,11 +190,13 @@ function ItemRow({
               Pendiente
             </span>
           )}
-          {/* Botón distribuir */}
           {isEncargado && remaining > 0 && !distributing && (
             <button
               type="button"
-              onClick={() => { setDistributing(true); setError(null) }}
+              onClick={() => {
+                setDistributing(true)
+                setError(null)
+              }}
               className="px-3 py-1 rounded font-heading font-semibold text-xs transition-colors"
               style={{ background: 'rgba(84,225,109,0.15)', color: '#54e16d' }}
             >
@@ -149,15 +206,57 @@ function ItemRow({
         </div>
       </div>
 
-      {/* Progress */}
-      <ProgressBar
-        distribuida={item.cantidadDistribuida}
-        ingresada={item.cantidadIngresada}
-      />
+      <ProgressBar distribuida={item.cantidadDistribuida} ingresada={item.cantidadIngresada} />
 
-      {/* Inline distribute form */}
+      <div className="bg-surface-high/40 rounded px-3 py-3 space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <p className="font-heading text-on-surface text-xs uppercase tracking-widest font-semibold">
+            Control de Calidad
+          </p>
+          <span
+            className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
+            style={
+              item.aprobadoCalidad
+                ? { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
+                : { color: '#f44336', backgroundColor: 'rgba(244,67,54,0.10)' }
+            }
+          >
+            {item.aprobadoCalidad ? 'Aprobado' : 'No aprobado'}
+          </span>
+        </div>
+
+        {item.temperaturaTransporte && (
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-body text-on-surface-variant text-xs uppercase tracking-widest">
+              Transporte
+            </span>
+            <span className="font-body text-on-surface text-sm">{item.temperaturaTransporte}</span>
+          </div>
+        )}
+
+        {item.condicionEmbalaje && (
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-body text-on-surface-variant text-xs uppercase tracking-widest">
+              Embalaje
+            </span>
+            <span className="font-body text-on-surface text-sm">
+              {CONDICION_LABEL[item.condicionEmbalaje] ?? item.condicionEmbalaje}
+            </span>
+          </div>
+        )}
+
+        {item.observacionesCalidad && (
+          <div className="space-y-1">
+            <span className="font-body text-on-surface-variant text-xs uppercase tracking-widest block">
+              Observaciones
+            </span>
+            <p className="font-body text-on-surface text-sm">{item.observacionesCalidad}</p>
+          </div>
+        )}
+      </div>
+
       {distributing && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
             <label htmlFor={`acta-detalle-distribuir-${item.id}`} className="sr-only">
               Cantidad a distribuir para {item.productoNombre}
@@ -171,7 +270,7 @@ function ItemRow({
               onChange={(e) => setValue(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') confirm()
-                if (e.key === 'Escape') setDistributing(false)
+                if (e.key === 'Escape') handleCancelDistribuir()
               }}
               className="input-field w-28 py-1.5 text-sm"
               autoFocus
@@ -182,27 +281,87 @@ function ItemRow({
               onClick={confirm}
               disabled={saving}
               className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
-              style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+              style={{
+                background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)',
+                color: '#003918',
+              }}
             >
               {saving ? '...' : 'Confirmar'}
             </button>
             <button
               type="button"
-              onClick={() => { setDistributing(false); setError(null) }}
+              onClick={handleCancelDistribuir}
               disabled={saving}
               className="font-body text-on-surface-variant text-xs hover:text-on-surface transition-colors"
             >
               Cancelar
             </button>
           </div>
+
+          {item.categoria === 'droga' && (
+            <div className="space-y-2 pl-1">
+              {loadingLotes ? (
+                <p className="font-body text-xs text-on-surface-variant">Cargando lotes...</p>
+              ) : lotes.length > 0 ? (
+                <div className="space-y-1">
+                  <label
+                    htmlFor={`acta-lote-select-${item.id}`}
+                    className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium"
+                  >
+                    Lote destino
+                  </label>
+                  <select
+                    id={`acta-lote-select-${item.id}`}
+                    value={selectedLoteId}
+                    onChange={(e) => {
+                      setSelectedLoteId(e.target.value)
+                      setJustificacion('')
+                    }}
+                    className="input-field text-sm"
+                    disabled={saving}
+                  >
+                    {lotes.map((l, idx) => (
+                      <option key={l.id} value={l.id}>
+                        {l.lote ?? 'Sin lote'}
+                        {l.vencimiento
+                          ? ` · ${new Date(l.vencimiento).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`
+                          : ''}
+                        {' '}· {l.cantidad} uds
+                        {idx === 0 ? ' — FIFO' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+
+              {isOverride && (
+                <div className="space-y-1">
+                  <label
+                    htmlFor={`acta-justificacion-${item.id}`}
+                    className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium"
+                  >
+                    Justificación <span className="normal-case tracking-normal opacity-60">(requerida)</span>
+                  </label>
+                  <textarea
+                    id={`acta-justificacion-${item.id}`}
+                    value={justificacion}
+                    onChange={(e) => setJustificacion(e.target.value)}
+                    rows={2}
+                    placeholder="Explicá por qué se cambia el lote FIFO..."
+                    className="input-field text-sm resize-none"
+                    disabled={saving}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
           {error && <p className="font-body text-error text-xs">{error}</p>}
         </div>
       )}
     </div>
   )
 }
-
-// ─── Main page ─────────────────────────────────────────────────────────────────
 
 export function ActaDetallePage() {
   const { id } = useParams<{ id: string }>()
@@ -228,16 +387,17 @@ export function ActaDetallePage() {
       .finally(() => setLoading(false))
   }, [id, token])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+  }, [load])
 
   function handleDistribuido(updated: ActaItem) {
     setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
-    // Recalcular estado del acta localmente
     const updatedItems = items.map((i) => (i.id === updated.id ? updated : i))
     const todosCompletos = updatedItems.every((i) => i.cantidadDistribuida >= i.cantidadIngresada)
     const hayDistribucion = updatedItems.some((i) => i.cantidadDistribuida > 0)
     const nuevoEstado = todosCompletos ? 'completada' : hayDistribucion ? 'parcial' : 'pendiente'
-    setActa((prev) => prev ? { ...prev, estado: nuevoEstado } : prev)
+    setActa((prev) => (prev ? { ...prev, estado: nuevoEstado } : prev))
   }
 
   if (loading) {
@@ -258,7 +418,6 @@ export function ActaDetallePage() {
 
   return (
     <div className="space-y-6">
-      {/* Back */}
       <button
         onClick={() => navigate('/actas')}
         className="flex items-center gap-2 font-body text-on-surface-variant text-sm hover:text-on-surface transition-colors"
@@ -267,7 +426,6 @@ export function ActaDetallePage() {
         Volver a actas
       </button>
 
-      {/* Header del acta */}
       <div className="bg-surface-low rounded px-5 py-4 space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -280,15 +438,12 @@ export function ActaDetallePage() {
           </div>
           <EstadoChip estado={acta.estado} />
         </div>
-        {acta.notas && (
-          <p className="font-body text-on-surface-variant text-sm">{acta.notas}</p>
-        )}
+        {acta.notas && <p className="font-body text-on-surface-variant text-sm">{acta.notas}</p>}
         <p className="font-body text-on-surface-variant text-xs">
           {items.length} {items.length === 1 ? 'item' : 'items'}
         </p>
       </div>
 
-      {/* Items */}
       {items.length === 0 ? (
         <div className="flex items-center justify-center h-24 bg-surface-low rounded">
           <p className="font-body text-on-surface-variant text-sm">Sin items registrados.</p>

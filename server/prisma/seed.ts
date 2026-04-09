@@ -1,4 +1,4 @@
-import { PrismaClient, Mercado } from '@prisma/client'
+﻿import { PrismaClient, Mercado } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -11,7 +11,7 @@ const drogas = [
   'ASPARTATO DE MAGNESIO',
   'ASPARTATO DE POTASIO',
   'CITRATO DE SODIO',
-  'CLORURO CÚPRICO',
+  'CLORURO CÃšPRICO',
   'CLORURO DE BENZALCONIO',
   'CLORURO DE CALCIO',
   'CLORURO DE MAGNESIO',
@@ -62,12 +62,12 @@ const estuches: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   { articulo: 'AMANTINA PREMIUM 250 ML',       mercado: 'argentina',     cantidad: 1800  },
   { articulo: 'AMANTINA PREMIUM 500 ML NR',    mercado: 'argentina',     cantidad: 6800  },
   { articulo: 'AMANTINA 500 ML',               mercado: 'argentina',     cantidad: 1500  },
-  { articulo: 'AMINOÁCIDOS 20ML',              mercado: 'argentina',     cantidad: 500   },
-  { articulo: 'AMINOÁCIDO 100ML',              mercado: 'argentina',     cantidad: 1000  },
-  { articulo: 'AMINOÁCIDO 250ML',              mercado: 'argentina',     cantidad: 640   },
-  { articulo: 'AMINOÁCIDOS 50 ML AVES',        mercado: 'argentina',     cantidad: 2500  },
-  { articulo: 'AMINOÁCIDOS 50 ML MASCOTA',     mercado: 'argentina',     cantidad: 2800  },
-  { articulo: 'AMINOÁCIDOS 250 ML',            mercado: 'argentina',     cantidad: 1000  },
+  { articulo: 'AMINOÃCIDOS 20ML',              mercado: 'argentina',     cantidad: 500   },
+  { articulo: 'AMINOÃCIDO 100ML',              mercado: 'argentina',     cantidad: 1000  },
+  { articulo: 'AMINOÃCIDO 250ML',              mercado: 'argentina',     cantidad: 640   },
+  { articulo: 'AMINOÃCIDOS 50 ML AVES',        mercado: 'argentina',     cantidad: 2500  },
+  { articulo: 'AMINOÃCIDOS 50 ML MASCOTA',     mercado: 'argentina',     cantidad: 2800  },
+  { articulo: 'AMINOÃCIDOS 250 ML',            mercado: 'argentina',     cantidad: 1000  },
   { articulo: 'CALCITROVIT 500 ML',            mercado: 'argentina',     cantidad: 0     },
   { articulo: 'COMPLEJO B B12 B15 20 ML X12',  mercado: 'argentina',     cantidad: 250   },
   { articulo: 'COMPLEJO B B12 B15 100 ML',     mercado: 'argentina',     cantidad: 3200  },
@@ -101,7 +101,7 @@ const estuches: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   // Colombia (10)
   { articulo: 'AMINOACIDOS 50 ML AVES',        mercado: 'colombia',      cantidad: 3500  },
   { articulo: 'AMINOACIDOS VIT ORAL 50 ML',    mercado: 'colombia',      cantidad: 500   },
-  { articulo: 'ATP ENERGÍA 35 GR',             mercado: 'colombia',      cantidad: 100   },
+  { articulo: 'ATP ENERGÃA 35 GR',             mercado: 'colombia',      cantidad: 100   },
   { articulo: 'COMPLEFOSEL 100 ML',            mercado: 'colombia',      cantidad: 2400  },
   { articulo: 'COMPLEFOSEL 500 ML',            mercado: 'colombia',      cantidad: 800   },
   { articulo: 'OLIVITASAN 25 ML',              mercado: 'colombia',      cantidad: 400   },
@@ -109,7 +109,7 @@ const estuches: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   { articulo: 'OLIVITASAN 500 ML',             mercado: 'colombia',      cantidad: 4920  },
   { articulo: 'OLIVITASAN PREMIUM 50 ML',      mercado: 'colombia',      cantidad: 300   },
   { articulo: 'OLIVITASAN PREMIUM 500 ML',     mercado: 'colombia',      cantidad: 2200  },
-  // México (12)
+  // MÃ©xico (12)
   { articulo: 'AMANTINA PREMIUM 250ML',        mercado: 'mexico',        cantidad: 0     },
   { articulo: 'AMANTINA PREMIUM 500 ML',       mercado: 'mexico',        cantidad: 1000  },
   { articulo: 'COMPLEJO B B12 B15 100 ML',     mercado: 'mexico',        cantidad: 0     },
@@ -132,7 +132,7 @@ const estuches: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   { articulo: 'COMPLEFOSEL 500ML',             mercado: 'paraguay',      cantidad: 800   },
   { articulo: 'SUPEROLI 500ML',                mercado: 'paraguay',      cantidad: 250   },
   // No exportable (3)
-  { articulo: 'AMINOÁCIDOS 50 ML MASCOTA',     mercado: 'no_exportable', cantidad: 2000  },
+  { articulo: 'AMINOÃCIDOS 50 ML MASCOTA',     mercado: 'no_exportable', cantidad: 2000  },
   { articulo: 'ENERGIZANTE 25 ML',             mercado: 'no_exportable', cantidad: 1500  },
   { articulo: 'OLIVITASAN 100 ML',             mercado: 'no_exportable', cantidad: 3200  },
 ]
@@ -144,12 +144,12 @@ const etiquetas: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   { articulo: 'AMANTINA PREMIUM 100ML',          mercado: 'argentina', cantidad: 210   },
   { articulo: 'AMANTINA PREMIUM 250ML',          mercado: 'argentina', cantidad: 1200  },
   { articulo: 'AMANTINA PREMIUM 500ML',          mercado: 'argentina', cantidad: 2200  },
-  { articulo: 'AMINOÁCIDO 20ML',                 mercado: 'argentina', cantidad: 200   },
-  { articulo: 'AMINOÁCIDO 50 ML AVES',           mercado: 'argentina', cantidad: 3300  },
-  { articulo: 'AMINOÁCIDO 50 ML MASCOTA',        mercado: 'argentina', cantidad: 6875  },
-  { articulo: 'AMINOÁCIDO 1L',                   mercado: 'argentina', cantidad: 1500  },
-  { articulo: 'AMINOÁCIDO 1L AVES',              mercado: 'argentina', cantidad: 500   },
-  { articulo: 'AMINOÁCIDO 5L',                   mercado: 'argentina', cantidad: 500   },
+  { articulo: 'AMINOÃCIDO 20ML',                 mercado: 'argentina', cantidad: 200   },
+  { articulo: 'AMINOÃCIDO 50 ML AVES',           mercado: 'argentina', cantidad: 3300  },
+  { articulo: 'AMINOÃCIDO 50 ML MASCOTA',        mercado: 'argentina', cantidad: 6875  },
+  { articulo: 'AMINOÃCIDO 1L',                   mercado: 'argentina', cantidad: 1500  },
+  { articulo: 'AMINOÃCIDO 1L AVES',              mercado: 'argentina', cantidad: 500   },
+  { articulo: 'AMINOÃCIDO 5L',                   mercado: 'argentina', cantidad: 500   },
   { articulo: 'ANTITERMICO 1L',                  mercado: 'argentina', cantidad: 2100  },
   { articulo: 'CALCITROVIT 500 ML',              mercado: 'argentina', cantidad: 1000  },
   { articulo: 'CETRI-AMON 50ML',                 mercado: 'argentina', cantidad: 1000  },
@@ -188,11 +188,11 @@ const etiquetas: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   { articulo: 'VITAMINA B12 50ML',               mercado: 'argentina', cantidad: 1000  },
   { articulo: 'VITAMINA B12 100ML',              mercado: 'argentina', cantidad: 0     },
   // Colombia (15)
-  { articulo: 'AMINOÁCIDOS 20ML',                mercado: 'colombia',  cantidad: 1400  },
-  { articulo: 'AMINOÁCIDOS VIT 50ML MANUAL',     mercado: 'colombia',  cantidad: 600   },
-  { articulo: 'AMINOÁCIDOS 50ML',                mercado: 'colombia',  cantidad: 4200  },
-  { articulo: 'AMINOÁCIDOS 1L',                  mercado: 'colombia',  cantidad: 120   },
-  { articulo: 'AMINOÁCIDOS 5L',                  mercado: 'colombia',  cantidad: 150   },
+  { articulo: 'AMINOÃCIDOS 20ML',                mercado: 'colombia',  cantidad: 1400  },
+  { articulo: 'AMINOÃCIDOS VIT 50ML MANUAL',     mercado: 'colombia',  cantidad: 600   },
+  { articulo: 'AMINOÃCIDOS 50ML',                mercado: 'colombia',  cantidad: 4200  },
+  { articulo: 'AMINOÃCIDOS 1L',                  mercado: 'colombia',  cantidad: 120   },
+  { articulo: 'AMINOÃCIDOS 5L',                  mercado: 'colombia',  cantidad: 150   },
   { articulo: 'ATP 35GR',                        mercado: 'colombia',  cantidad: 500   },
   { articulo: 'COMPLEFOSEL 25ML',                mercado: 'colombia',  cantidad: 0     },
   { articulo: 'COMPLEFOSEL 100ML',               mercado: 'colombia',  cantidad: 1600  },
@@ -203,7 +203,7 @@ const etiquetas: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   { articulo: 'OLIVITASAN 500ML MANUAL',         mercado: 'colombia',  cantidad: 800   },
   { articulo: 'OLIVITASAN PREMIUM 50ML',         mercado: 'colombia',  cantidad: 1000  },
   { articulo: 'OLIVITASAN PREMIUM 500ML',        mercado: 'colombia',  cantidad: 14500 },
-  // México (16)
+  // MÃ©xico (16)
   { articulo: 'AMANTINA PREMIUM 100ML',          mercado: 'mexico',    cantidad: 440   },
   { articulo: 'AMANTINA PREMIUM 250ML',          mercado: 'mexico',    cantidad: 200   },
   { articulo: 'AMANTINA PREMIUM 500ML',          mercado: 'mexico',    cantidad: 1000  },
@@ -228,7 +228,7 @@ const etiquetas: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   // Ecuador (5)
   { articulo: 'AMANTINA PREMIUM 100ML',          mercado: 'ecuador',   cantidad: 0     },
   { articulo: 'AMANTINA PREMIUM 250ML',          mercado: 'ecuador',   cantidad: 0     },
-  { articulo: 'AMINOÁCIDOS 1L AVES',             mercado: 'ecuador',   cantidad: 50    },
+  { articulo: 'AMINOÃCIDOS 1L AVES',             mercado: 'ecuador',   cantidad: 50    },
   { articulo: 'OLIVITASAN PREMIUM 50ML',         mercado: 'ecuador',   cantidad: 450   },
   { articulo: 'OLIVITASAN PREMIUM 250ML',        mercado: 'ecuador',   cantidad: 2800  },
   // Paraguay (4)
@@ -243,9 +243,9 @@ const frascos: { articulo: string; unidadesPorCaja: number; cantidadCajas: numbe
   { articulo: 'AGROPECUARIO 100 ML',  unidadesPorCaja:  42, cantidadCajas: 180, total:  7560 },
   { articulo: 'AGROPECUARIO 500 ML',  unidadesPorCaja:  20, cantidadCajas: 130, total:  2600 },
   { articulo: 'AMBAR 100 ML',         unidadesPorCaja:  72, cantidadCajas:   2, total:   144 },
-  { articulo: 'BIDÓN 500 ML',         unidadesPorCaja: 115, cantidadCajas:   6, total:   690 },
-  { articulo: 'BIDÓN BLANCO 1L',      unidadesPorCaja:  60, cantidadCajas:  19, total:  1140 },
-  { articulo: 'BIDÓN BLANCO 5L',      unidadesPorCaja:  20, cantidadCajas:   8, total:   160 },
+  { articulo: 'BIDÃ“N 500 ML',         unidadesPorCaja: 115, cantidadCajas:   6, total:   690 },
+  { articulo: 'BIDÃ“N BLANCO 1L',      unidadesPorCaja:  60, cantidadCajas:  19, total:  1140 },
+  { articulo: 'BIDÃ“N BLANCO 5L',      unidadesPorCaja:  20, cantidadCajas:   8, total:   160 },
   { articulo: 'BLANCO 500 ML',        unidadesPorCaja:  80, cantidadCajas:   5, total:   400 },
   { articulo: 'DORADO 50 ML',         unidadesPorCaja: 484, cantidadCajas:  16, total:  7744 },
   { articulo: 'DORADO 250 ML',        unidadesPorCaja: 240, cantidadCajas:  31, total:  7440 },
@@ -254,8 +254,8 @@ const frascos: { articulo: string; unidadesPorCaja: number; cantidadCajas: numbe
   { articulo: 'IVERSAN 50 ML',        unidadesPorCaja: 484, cantidadCajas:   8, total:  3872 },
   { articulo: 'TRANSPARENTE 500 ML',  unidadesPorCaja:  80, cantidadCajas:  11, total:   880 },
   { articulo: 'JERINGA 35GR',         unidadesPorCaja: 700, cantidadCajas:   7, total:  4900 },
-  { articulo: 'MARRÓN 300 ML',        unidadesPorCaja: 130, cantidadCajas:  29, total:  3770 },
-  { articulo: 'MARRÓN 500 ML',        unidadesPorCaja:  80, cantidadCajas: 118, total:  9440 },
+  { articulo: 'MARRÃ“N 300 ML',        unidadesPorCaja: 130, cantidadCajas:  29, total:  3770 },
+  { articulo: 'MARRÃ“N 500 ML',        unidadesPorCaja:  80, cantidadCajas: 118, total:  9440 },
   { articulo: 'PVC 100 ML',           unidadesPorCaja: 384, cantidadCajas:   4, total:  1536 },
   { articulo: 'PVC 200',              unidadesPorCaja: 234, cantidadCajas:   8, total:  1872 },
   { articulo: 'PVC 500 ML',           unidadesPorCaja:  80, cantidadCajas:  15, total:  1200 },
@@ -266,12 +266,12 @@ async function main() {
   console.log('Seeding drogas...')
   for (const nombre of drogas) {
     await prisma.inventarioDroga.upsert({
-      where: { nombre },
+      where: { nombre_lote: { nombre, lote: null } },
       update: {},
-      create: { nombre, cantidad: 0 },
+      create: { nombre, lote: null, vencimiento: null, cantidad: 0 },
     })
   }
-  console.log(`✅ ${drogas.length} drogas cargadas`)
+  console.log(`âœ… ${drogas.length} drogas cargadas`)
 
   console.log('Seeding estuches...')
   for (const e of estuches) {
@@ -281,7 +281,7 @@ async function main() {
       create: e,
     })
   }
-  console.log(`✅ ${estuches.length} estuches cargados`)
+  console.log(`âœ… ${estuches.length} estuches cargados`)
 
   console.log('Seeding etiquetas...')
   for (const e of etiquetas) {
@@ -291,7 +291,7 @@ async function main() {
       create: e,
     })
   }
-  console.log(`✅ ${etiquetas.length} etiquetas cargadas`)
+  console.log(`âœ… ${etiquetas.length} etiquetas cargadas`)
 
   console.log('Seeding frascos...')
   for (const f of frascos) {
@@ -301,7 +301,7 @@ async function main() {
       create: f,
     })
   }
-  console.log(`✅ ${frascos.length} frascos cargados`)
+  console.log(`âœ… ${frascos.length} frascos cargados`)
 }
 
 main()
@@ -310,3 +310,5 @@ main()
     process.exit(1)
   })
   .finally(() => prisma.$disconnect())
+
+

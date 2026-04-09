@@ -1,5 +1,6 @@
 export type EstadoActa = 'pendiente' | 'parcial' | 'completada'
 export type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type CondicionEmbalaje = 'bueno' | 'regular' | 'malo'
 
 export type Mercado =
   | 'argentina'
@@ -16,6 +17,11 @@ export interface ActaItem {
   categoria: Categoria
   productoNombre: string
   lote: string
+  vencimiento: string | null
+  temperaturaTransporte: string | null
+  condicionEmbalaje: CondicionEmbalaje | null
+  observacionesCalidad: string | null
+  aprobadoCalidad: boolean
   cantidadIngresada: number
   cantidadDistribuida: number
   mercado: Mercado | null
@@ -26,6 +32,10 @@ export interface ActaItem {
 export interface ActaItemSummary {
   lote: string
   productoNombre: string
+  temperaturaTransporte: string | null
+  condicionEmbalaje: CondicionEmbalaje | null
+  observacionesCalidad: string | null
+  aprobadoCalidad: boolean
 }
 
 // Acta tal como la devuelve GET /api/actas (lista)

@@ -567,7 +567,7 @@ function OrdenCard({
 
   const canAprobar = isEncargado && orden.estado === 'solicitada'
   const canEjecutar = isEncargado && orden.estado === 'aprobada'
-  const canRechazar = isEncargado && orden.estado !== 'completada' && orden.estado !== 'rechazada'
+  const canRechazar = isEncargado && (orden.estado === 'solicitada' || orden.estado === 'aprobada')
   const canCompletar = isEncargado && orden.estado === 'ejecutada'
 
   return (

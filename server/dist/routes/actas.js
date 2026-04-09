@@ -6,6 +6,7 @@ const client_1 = require("@prisma/client");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const require_role_1 = require("../middleware/require-role");
+const sse_manager_1 = require("../lib/sse-manager");
 const router = (0, express_1.Router)();
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 const crearActaSchema = zod_1.z.object({
@@ -13,15 +14,23 @@ const crearActaSchema = zod_1.z.object({
     notas: zod_1.z.string().max(500).optional(),
 });
 const MERCADOS = Object.values(client_1.Mercado);
+const CONDICIONES_EMBALAJE = Object.values(client_1.CondicionEmbalaje);
 const agregarItemSchema = zod_1.z.object({
     categoria: zod_1.z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
     productoNombre: zod_1.z.string().min(2).max(100),
     lote: zod_1.z.string().min(1).max(50),
+    vencimiento: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    temperaturaTransporte: zod_1.z.string().trim().max(50).optional(),
+    condicionEmbalaje: zod_1.z.enum(CONDICIONES_EMBALAJE).optional(),
+    observacionesCalidad: zod_1.z.string().trim().max(1000).optional(),
+    aprobadoCalidad: zod_1.z.boolean().optional(),
     cantidadIngresada: zod_1.z.number().int().positive(),
     mercado: zod_1.z.enum(MERCADOS).optional(),
 });
 const distribuirSchema = zod_1.z.object({
     cantidad: zod_1.z.number().int().positive(),
+    loteId: zod_1.z.string().uuid().optional(), // override FIFO manual — id of InventarioDroga record
+    justificacion: zod_1.z.string().max(300).optional(), // requerido cuando se usa override
 });
 // ─── GET /api/actas — listar (auth) ──────────────────────────────────────────
 router.get('/', auth_1.authenticate, async (_req, res) => {
@@ -32,7 +41,14 @@ router.get('/', auth_1.authenticate, async (_req, res) => {
                 user: { select: { name: true } },
                 _count: { select: { items: true } },
                 items: {
-                    select: { lote: true, productoNombre: true },
+                    select: {
+                        lote: true,
+                        productoNombre: true,
+                        temperaturaTransporte: true,
+                        condicionEmbalaje: true,
+                        observacionesCalidad: true,
+                        aprobadoCalidad: true,
+                    },
                     orderBy: { createdAt: 'asc' },
                 },
             },
@@ -58,6 +74,12 @@ router.post('/', auth_1.authenticate, (0, require_role_1.requireRole)('encargado
                 notas: notas ?? null,
                 createdBy: req.user.id,
             },
+        });
+        sse_manager_1.sseManager.broadcastGlobal({
+            tipo: 'ingreso_creado',
+            mensaje: `Nuevo acta de ingreso creada por ${req.user.name}`,
+            datos: { actaId: acta.id, fecha, createdBy: req.user.name },
+            timestamp: new Date().toISOString(),
         });
         res.status(201).json(acta);
     }
@@ -111,6 +133,13 @@ router.post('/:id/items', auth_1.authenticate, (0, require_role_1.requireRole)('
                 categoria: result.data.categoria,
                 productoNombre: result.data.productoNombre,
                 lote: result.data.lote,
+                vencimiento: result.data.vencimiento
+                    ? new Date(result.data.vencimiento + 'T00:00:00.000Z')
+                    : null,
+                temperaturaTransporte: result.data.temperaturaTransporte?.trim() || null,
+                condicionEmbalaje: result.data.condicionEmbalaje ?? null,
+                observacionesCalidad: result.data.observacionesCalidad?.trim() || null,
+                aprobadoCalidad: result.data.aprobadoCalidad ?? false,
                 cantidadIngresada: result.data.cantidadIngresada,
                 mercado: result.data.mercado ?? null,
             },
@@ -144,10 +173,20 @@ router.post('/:id/items/:itemId/distribuir', auth_1.authenticate, (0, require_ro
             }
             // 2. Actualizar inventario según categoría
             if (item.categoria === 'droga') {
+                // Upsert en inventario usando (nombre, lote) como clave
                 await tx.inventarioDroga.upsert({
-                    where: { nombre: item.productoNombre },
-                    update: { cantidad: { increment: cantidad } },
-                    create: { nombre: item.productoNombre, cantidad },
+                    where: { nombre_lote: { nombre: item.productoNombre, lote: item.lote } },
+                    update: {
+                        cantidad: { increment: cantidad },
+                        // Actualizar vencimiento si aún no tenía uno
+                        ...(item.vencimiento ? { vencimiento: item.vencimiento } : {}),
+                    },
+                    create: {
+                        nombre: item.productoNombre,
+                        lote: item.lote,
+                        vencimiento: item.vencimiento,
+                        cantidad,
+                    },
                 });
             }
             else if (item.categoria === 'estuche') {
@@ -199,8 +238,10 @@ router.post('/:id/items/:itemId/distribuir', auth_1.authenticate, (0, require_ro
                     tipo: 'ingreso_acta',
                     categoria: item.categoria,
                     productoNombre: item.productoNombre,
+                    lote: item.categoria === 'droga' ? item.lote : null,
                     cantidad,
                     referenciaId: itemId,
+                    referenciaTipo: 'acta_item',
                     createdBy: req.user.id,
                 },
             });
@@ -224,6 +265,35 @@ router.post('/:id/items/:itemId/distribuir', auth_1.authenticate, (0, require_ro
             });
             return { item: item2, acta: acta2 };
         });
+        // Emitir stock_actualizado globalmente
+        sse_manager_1.sseManager.broadcastGlobal({
+            tipo: 'stock_actualizado',
+            mensaje: `Stock de ${updatedItem.productoNombre} actualizado (+${cantidad})`,
+            datos: {
+                producto: updatedItem.productoNombre,
+                categoria: updatedItem.categoria,
+                cantidad,
+                tipo: 'ingreso',
+            },
+            timestamp: new Date().toISOString(),
+        });
+        // Emitir vencimiento_proximo si droga con vencimiento en <30 días
+        if (updatedItem.categoria === 'droga' && updatedItem.vencimiento) {
+            const diasRestantes = Math.floor((new Date(updatedItem.vencimiento).getTime() - Date.now()) / 86400000);
+            if (diasRestantes <= 30) {
+                sse_manager_1.sseManager.broadcastGlobal({
+                    tipo: 'vencimiento_proximo',
+                    mensaje: `"${updatedItem.productoNombre}" (lote ${updatedItem.lote}) vence en ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}`,
+                    datos: {
+                        producto: updatedItem.productoNombre,
+                        lote: updatedItem.lote,
+                        vencimiento: updatedItem.vencimiento,
+                        diasRestantes,
+                    },
+                    timestamp: new Date().toISOString(),
+                });
+            }
+        }
         res.json({ item: updatedItem, acta: updatedActa });
     }
     catch (err) {

@@ -6,25 +6,40 @@ import { requireRole } from '../middleware/require-role'
 
 const router = Router()
 
+// ─── Schemas ──────────────────────────────────────────────────────────────────
+
 const crearDrogaSchema = z.object({
   nombre: z.string().min(2).max(100),
-  cantidad: z.number().int().min(0),
+  lote: z.string().min(1).max(50).optional(),
+  vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)').optional(),
+  cantidad: z.number().int().min(0).default(0),
 })
 
 const editarDrogaSchema = z
   .object({
     nombre: z.string().min(2).max(100).optional(),
+    lote: z.string().min(1).max(50).optional().nullable(),
+    vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
     cantidad: z.number().int().min(0).optional(),
   })
-  .refine((d) => d.nombre !== undefined || d.cantidad !== undefined, {
-    message: 'Al menos un campo requerido',
-  })
+  .refine(
+    (d) =>
+      d.nombre !== undefined ||
+      d.lote !== undefined ||
+      d.vencimiento !== undefined ||
+      d.cantidad !== undefined,
+    { message: 'Al menos un campo requerido' }
+  )
 
-// GET /api/drogas — listar todas (auth required)
-router.get('/', authenticate, async (_req: Request, res: Response): Promise<void> => {
+// ─── GET /api/drogas — listar (con filtro opcional por nombre) ─────────────────
+
+router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
+  const nombreFilter = typeof req.query['nombre'] === 'string' ? req.query['nombre'] : undefined
+
   try {
     const drogas = await prisma.inventarioDroga.findMany({
-      orderBy: { nombre: 'asc' },
+      where: nombreFilter ? { nombre: nombreFilter } : undefined,
+      orderBy: [{ nombre: 'asc' }, { vencimiento: 'asc' }],
     })
     res.json(drogas)
   } catch {
@@ -32,7 +47,32 @@ router.get('/', authenticate, async (_req: Request, res: Response): Promise<void
   }
 })
 
-// POST /api/drogas — crear nueva (encargado)
+// ─── GET /api/drogas/por-vencer?dias=30 ───────────────────────────────────────
+
+router.get('/por-vencer', authenticate, async (req: Request, res: Response): Promise<void> => {
+  const dias = typeof req.query['dias'] === 'string' ? parseInt(req.query['dias'], 10) : 30
+  const validDias = isNaN(dias) || dias <= 0 ? 30 : Math.min(dias, 365)
+
+  const limitDate = new Date()
+  limitDate.setDate(limitDate.getDate() + validDias)
+  limitDate.setUTCHours(23, 59, 59, 999)
+
+  try {
+    const drogas = await prisma.inventarioDroga.findMany({
+      where: {
+        vencimiento: { lte: limitDate },
+        cantidad: { gt: 0 },
+      },
+      orderBy: { vencimiento: 'asc' },
+    })
+    res.json(drogas)
+  } catch {
+    res.status(500).json({ message: 'Error interno del servidor' })
+  }
+})
+
+// ─── POST /api/drogas — crear nueva (encargado) ───────────────────────────────
+
 router.post(
   '/',
   authenticate,
@@ -44,26 +84,43 @@ router.post(
       return
     }
 
-    const { nombre, cantidad } = result.data
+    const { nombre, lote, vencimiento, cantidad } = result.data
+    const loteValue = lote ?? null
+    const vencimientoValue = vencimiento ? new Date(vencimiento + 'T00:00:00.000Z') : null
 
     try {
-      const existing = await prisma.inventarioDroga.findUnique({ where: { nombre } })
-      if (existing) {
-        res.status(409).json({ message: 'Ya existe una droga con ese nombre' })
-        return
+      // For null lote: enforce app-level uniqueness (PG unique doesn't catch NULL+NULL)
+      if (!loteValue) {
+        const existing = await prisma.inventarioDroga.findFirst({
+          where: { nombre, lote: null },
+        })
+        if (existing) {
+          res.status(409).json({ message: 'Ya existe una droga con ese nombre sin lote específico' })
+          return
+        }
       }
 
       const droga = await prisma.inventarioDroga.create({
-        data: { nombre, cantidad },
+        data: { nombre, lote: loteValue, vencimiento: vencimientoValue, cantidad },
       })
       res.status(201).json(droga)
-    } catch {
+    } catch (err: unknown) {
+      if (
+        typeof err === 'object' &&
+        err !== null &&
+        'code' in err &&
+        (err as { code: string }).code === 'P2002'
+      ) {
+        res.status(409).json({ message: `Ya existe una droga "${nombre}" con lote "${loteValue}"` })
+        return
+      }
       res.status(500).json({ message: 'Error interno del servidor' })
     }
   }
 )
 
-// PUT /api/drogas/:id — editar nombre y/o cantidad (encargado)
+// ─── PUT /api/drogas/:id — editar registro (encargado) ────────────────────────
+
 router.put(
   '/:id',
   authenticate,
@@ -77,23 +134,17 @@ router.put(
       return
     }
 
-    const { nombre, cantidad } = result.data
+    const { nombre, lote, vencimiento, cantidad } = result.data
 
     try {
-      if (nombre) {
-        const conflict = await prisma.inventarioDroga.findFirst({
-          where: { nombre, NOT: { id } },
-        })
-        if (conflict) {
-          res.status(409).json({ message: 'Ya existe una droga con ese nombre' })
-          return
-        }
-      }
-
       const droga = await prisma.inventarioDroga.update({
         where: { id },
         data: {
           ...(nombre !== undefined ? { nombre } : {}),
+          ...(lote !== undefined ? { lote: lote ?? null } : {}),
+          ...(vencimiento !== undefined
+            ? { vencimiento: vencimiento ? new Date(vencimiento + 'T00:00:00.000Z') : null }
+            : {}),
           ...(cantidad !== undefined ? { cantidad } : {}),
         },
       })
@@ -104,7 +155,8 @@ router.put(
   }
 )
 
-// DELETE /api/drogas/:id — eliminar (encargado)
+// ─── DELETE /api/drogas/:id — eliminar (encargado) ───────────────────────────
+
 router.delete(
   '/:id',
   authenticate,

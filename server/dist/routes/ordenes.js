@@ -6,6 +6,7 @@ const client_1 = require("@prisma/client");
 const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const require_role_1 = require("../middleware/require-role");
+const sse_manager_1 = require("../lib/sse-manager");
 const router = (0, express_1.Router)();
 const MERCADOS = Object.values(client_1.Mercado);
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -21,6 +22,42 @@ const rechazarSchema = zod_1.z.object({
 });
 // Estados finales que no permiten más transiciones
 const ESTADOS_FINALES = ['completada', 'rechazada'];
+// Helper: verifica si el stock bajó del threshold después de un egreso
+async function checkStockBajo(categoria, productoNombre, mercado) {
+    try {
+        if (categoria === 'droga') {
+            // Sumar total de todos los lotes del producto
+            const agg = await prisma_1.prisma.inventarioDroga.aggregate({
+                where: { nombre: productoNombre },
+                _sum: { cantidad: true },
+            });
+            const total = agg._sum.cantidad ?? 0;
+            if (total < sse_manager_1.STOCK_BAJO_THRESHOLD)
+                return total;
+        }
+        else if (categoria === 'estuche' && mercado) {
+            const e = await prisma_1.prisma.inventarioEstuche.findUnique({
+                where: { articulo_mercado: { articulo: productoNombre, mercado } },
+            });
+            if (e && e.cantidad < sse_manager_1.STOCK_BAJO_THRESHOLD)
+                return e.cantidad;
+        }
+        else if (categoria === 'etiqueta' && mercado) {
+            const e = await prisma_1.prisma.inventarioEtiqueta.findUnique({
+                where: { articulo_mercado: { articulo: productoNombre, mercado } },
+            });
+            if (e && e.cantidad < sse_manager_1.STOCK_BAJO_THRESHOLD)
+                return e.cantidad;
+        }
+        else if (categoria === 'frasco') {
+            const f = await prisma_1.prisma.inventarioFrasco.findUnique({ where: { articulo: productoNombre } });
+            if (f && f.cantidadCajas < sse_manager_1.STOCK_BAJO_FRASCOS_THRESHOLD)
+                return f.cantidadCajas;
+        }
+    }
+    catch { /* no crítico */ }
+    return null;
+}
 // ─── POST /api/ordenes — crear (solicitante o encargado) ─────────────────────
 router.post('/', auth_1.authenticate, (0, require_role_1.requireRole)('solicitante', 'encargado'), async (req, res) => {
     const result = crearOrdenSchema.safeParse(req.body);
@@ -48,6 +85,18 @@ router.post('/', auth_1.authenticate, (0, require_role_1.requireRole)('solicitan
                 aprobador: { select: { id: true, name: true } },
             },
         });
+        sse_manager_1.sseManager.broadcastToRoles({
+            tipo: 'orden_creada',
+            mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad}) — ${req.user.name}`,
+            datos: {
+                ordenId: orden.id,
+                producto: productoNombre,
+                cantidad,
+                urgencia,
+                solicitante: req.user.name,
+            },
+            timestamp: new Date().toISOString(),
+        }, ['encargado']);
         res.status(201).json(orden);
     }
     catch {
@@ -129,6 +178,12 @@ router.put('/:id/aprobar', auth_1.authenticate, (0, require_role_1.requireRole)(
                 aprobador: { select: { id: true, name: true } },
             },
         });
+        sse_manager_1.sseManager.broadcastToUser({
+            tipo: 'orden_actualizada',
+            mensaje: `Tu orden de ${updated.productoNombre} fue aprobada`,
+            datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'aprobada', aprobadoPor: req.user.name },
+            timestamp: new Date().toISOString(),
+        }, updated.solicitanteId);
         res.json(updated);
     }
     catch {
@@ -155,15 +210,52 @@ router.put('/:id/ejecutar', auth_1.authenticate, (0, require_role_1.requireRole)
         const updated = await prisma_1.prisma.$transaction(async (tx) => {
             const { categoria, productoNombre, mercado, cantidad } = orden;
             if (categoria === 'droga') {
-                const droga = await tx.inventarioDroga.findUnique({ where: { nombre: productoNombre } });
-                if (!droga)
-                    throw new Error('Producto no encontrado en inventario de drogas');
-                if (droga.cantidad < cantidad)
-                    throw new Error(`Stock insuficiente (disponible: ${droga.cantidad})`);
-                await tx.inventarioDroga.update({
-                    where: { nombre: productoNombre },
-                    data: { cantidad: { decrement: cantidad } },
+                // FIFO: descontar empezando por el lote con vencimiento más próximo
+                const lotes = await tx.inventarioDroga.findMany({
+                    where: { nombre: productoNombre, cantidad: { gt: 0 } },
                 });
+                // Ordenar en app: vencimiento no-null ASC primero, luego null (sin vencimiento)
+                const sorted = [...lotes].sort((a, b) => {
+                    if (!a.vencimiento && !b.vencimiento)
+                        return 0;
+                    if (!a.vencimiento)
+                        return 1;
+                    if (!b.vencimiento)
+                        return -1;
+                    return new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime();
+                });
+                const totalDisponible = sorted.reduce((s, l) => s + l.cantidad, 0);
+                if (totalDisponible < cantidad) {
+                    throw new Error(`Stock insuficiente de "${productoNombre}" (disponible: ${totalDisponible})`);
+                }
+                let restante = cantidad;
+                const lotesMov = [];
+                for (const lote of sorted) {
+                    if (restante <= 0)
+                        break;
+                    const tomar = Math.min(lote.cantidad, restante);
+                    await tx.inventarioDroga.update({
+                        where: { id: lote.id },
+                        data: { cantidad: { decrement: tomar } },
+                    });
+                    lotesMov.push({ lote: lote.lote, decrementado: tomar });
+                    restante -= tomar;
+                }
+                // Crear un movimiento por lote usado
+                for (const { lote: loteUsado, decrementado } of lotesMov) {
+                    await tx.movimiento.create({
+                        data: {
+                            tipo: 'egreso_orden',
+                            categoria,
+                            productoNombre,
+                            lote: loteUsado,
+                            cantidad: -decrementado,
+                            referenciaId: orden.id,
+                            referenciaTipo: 'orden',
+                            createdBy: req.user.id,
+                        },
+                    });
+                }
             }
             else if (categoria === 'estuche') {
                 if (!mercado)
@@ -207,17 +299,20 @@ router.put('/:id/ejecutar', auth_1.authenticate, (0, require_role_1.requireRole)
                     data: { cantidadCajas: nuevasCajas, total: nuevasCajas * frasco.unidadesPorCaja },
                 });
             }
-            // Movimiento de auditoría (negativo = egreso)
-            await tx.movimiento.create({
-                data: {
-                    tipo: 'egreso_orden',
-                    categoria,
-                    productoNombre,
-                    cantidad: -cantidad,
-                    referenciaId: orden.id,
-                    createdBy: req.user.id,
-                },
-            });
+            // Movimiento de auditoría para categorías no-droga (drogas crean movimientos en el loop FIFO)
+            if (categoria !== 'droga') {
+                await tx.movimiento.create({
+                    data: {
+                        tipo: 'egreso_orden',
+                        categoria,
+                        productoNombre,
+                        cantidad: -cantidad,
+                        referenciaId: orden.id,
+                        referenciaTipo: 'orden',
+                        createdBy: req.user.id,
+                    },
+                });
+            }
             return tx.ordenProduccion.update({
                 where: { id },
                 data: { estado: 'ejecutada' },
@@ -227,6 +322,28 @@ router.put('/:id/ejecutar', auth_1.authenticate, (0, require_role_1.requireRole)
                 },
             });
         });
+        const ts = new Date().toISOString();
+        sse_manager_1.sseManager.broadcastGlobal({
+            tipo: 'stock_actualizado',
+            mensaje: `Stock de ${orden.productoNombre} actualizado (−${orden.cantidad})`,
+            datos: { producto: orden.productoNombre, categoria: orden.categoria, cantidad: orden.cantidad, tipo: 'egreso' },
+            timestamp: ts,
+        });
+        sse_manager_1.sseManager.broadcastToUser({
+            tipo: 'orden_actualizada',
+            mensaje: `Tu orden de ${orden.productoNombre} fue ejecutada`,
+            datos: { ordenId: updated.id, producto: orden.productoNombre, estado: 'ejecutada' },
+            timestamp: ts,
+        }, updated.solicitanteId);
+        const nuevoStock = await checkStockBajo(orden.categoria, orden.productoNombre, orden.mercado);
+        if (nuevoStock !== null) {
+            sse_manager_1.sseManager.broadcastGlobal({
+                tipo: 'stock_bajo',
+                mensaje: `Stock bajo: ${orden.productoNombre} (${nuevoStock} restantes)`,
+                datos: { producto: orden.productoNombre, categoria: orden.categoria, cantidad: nuevoStock },
+                timestamp: ts,
+            });
+        }
         res.json(updated);
     }
     catch (err) {
@@ -248,8 +365,8 @@ router.put('/:id/rechazar', auth_1.authenticate, (0, require_role_1.requireRole)
             res.status(404).json({ message: 'Orden no encontrada' });
             return;
         }
-        if (ESTADOS_FINALES.includes(orden.estado)) {
-            res.status(409).json({ message: `No se puede rechazar una orden en estado "${orden.estado}"` });
+        if (orden.estado !== 'solicitada' && orden.estado !== 'aprobada') {
+            res.status(400).json({ message: 'No se puede rechazar una orden ya ejecutada' });
             return;
         }
         const updated = await prisma_1.prisma.ordenProduccion.update({
@@ -264,6 +381,12 @@ router.put('/:id/rechazar', auth_1.authenticate, (0, require_role_1.requireRole)
                 aprobador: { select: { id: true, name: true } },
             },
         });
+        sse_manager_1.sseManager.broadcastToUser({
+            tipo: 'orden_actualizada',
+            mensaje: `Tu orden de ${updated.productoNombre} fue rechazada`,
+            datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'rechazada', motivo: updated.motivoRechazo },
+            timestamp: new Date().toISOString(),
+        }, updated.solicitanteId);
         res.json(updated);
     }
     catch {
@@ -291,6 +414,12 @@ router.put('/:id/completar', auth_1.authenticate, (0, require_role_1.requireRole
                 aprobador: { select: { id: true, name: true } },
             },
         });
+        sse_manager_1.sseManager.broadcastToUser({
+            tipo: 'orden_actualizada',
+            mensaje: `Tu orden de ${updated.productoNombre} fue marcada como completada`,
+            datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'completada' },
+            timestamp: new Date().toISOString(),
+        }, updated.solicitanteId);
         res.json(updated);
     }
     catch {

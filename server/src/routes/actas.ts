@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
-import { Mercado } from '@prisma/client'
+import { CondicionEmbalaje, Mercado } from '@prisma/client'
 import { prisma } from '../lib/prisma'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
@@ -16,17 +16,28 @@ const crearActaSchema = z.object({
 })
 
 const MERCADOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
+const CONDICIONES_EMBALAJE = Object.values(CondicionEmbalaje) as [
+  CondicionEmbalaje,
+  ...CondicionEmbalaje[],
+]
 
 const agregarItemSchema = z.object({
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
   productoNombre: z.string().min(2).max(100),
   lote: z.string().min(1).max(50),
+  vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  temperaturaTransporte: z.string().trim().max(50).optional(),
+  condicionEmbalaje: z.enum(CONDICIONES_EMBALAJE).optional(),
+  observacionesCalidad: z.string().trim().max(1000).optional(),
+  aprobadoCalidad: z.boolean().optional(),
   cantidadIngresada: z.number().int().positive(),
   mercado: z.enum(MERCADOS).optional(),
 })
 
 const distribuirSchema = z.object({
   cantidad: z.number().int().positive(),
+  loteId: z.string().uuid().optional(),       // override FIFO manual — id of InventarioDroga record
+  justificacion: z.string().max(300).optional(), // requerido cuando se usa override
 })
 
 // ─── GET /api/actas — listar (auth) ──────────────────────────────────────────
@@ -39,7 +50,14 @@ router.get('/', authenticate, async (_req: Request, res: Response): Promise<void
         user: { select: { name: true } },
         _count: { select: { items: true } },
         items: {
-          select: { lote: true, productoNombre: true },
+          select: {
+            lote: true,
+            productoNombre: true,
+            temperaturaTransporte: true,
+            condicionEmbalaje: true,
+            observacionesCalidad: true,
+            aprobadoCalidad: true,
+          },
           orderBy: { createdAt: 'asc' as const },
         },
       },
@@ -147,6 +165,13 @@ router.post(
           categoria: result.data.categoria,
           productoNombre: result.data.productoNombre,
           lote: result.data.lote,
+          vencimiento: result.data.vencimiento
+            ? new Date(result.data.vencimiento + 'T00:00:00.000Z')
+            : null,
+          temperaturaTransporte: result.data.temperaturaTransporte?.trim() || null,
+          condicionEmbalaje: result.data.condicionEmbalaje ?? null,
+          observacionesCalidad: result.data.observacionesCalidad?.trim() || null,
+          aprobadoCalidad: result.data.aprobadoCalidad ?? false,
           cantidadIngresada: result.data.cantidadIngresada,
           mercado: result.data.mercado ?? null,
         },
@@ -191,10 +216,20 @@ router.post(
 
         // 2. Actualizar inventario según categoría
         if (item.categoria === 'droga') {
+          // Upsert en inventario usando (nombre, lote) como clave
           await tx.inventarioDroga.upsert({
-            where: { nombre: item.productoNombre },
-            update: { cantidad: { increment: cantidad } },
-            create: { nombre: item.productoNombre, cantidad },
+            where: { nombre_lote: { nombre: item.productoNombre, lote: item.lote } },
+            update: {
+              cantidad: { increment: cantidad },
+              // Actualizar vencimiento si aún no tenía uno
+              ...(item.vencimiento ? { vencimiento: item.vencimiento } : {}),
+            },
+            create: {
+              nombre: item.productoNombre,
+              lote: item.lote,
+              vencimiento: item.vencimiento,
+              cantidad,
+            },
           })
         } else if (item.categoria === 'estuche') {
           if (!item.mercado) {
@@ -244,8 +279,10 @@ router.post(
             tipo: 'ingreso_acta',
             categoria: item.categoria,
             productoNombre: item.productoNombre,
+            lote: item.categoria === 'droga' ? item.lote : null,
             cantidad,
             referenciaId: itemId,
+            referenciaTipo: 'acta_item',
             createdBy: req.user!.id,
           },
         })
@@ -290,6 +327,26 @@ router.post(
         },
         timestamp: new Date().toISOString(),
       })
+
+      // Emitir vencimiento_proximo si droga con vencimiento en <30 días
+      if (updatedItem.categoria === 'droga' && updatedItem.vencimiento) {
+        const diasRestantes = Math.floor(
+          (new Date(updatedItem.vencimiento).getTime() - Date.now()) / 86_400_000
+        )
+        if (diasRestantes <= 30) {
+          sseManager.broadcastGlobal({
+            tipo: 'vencimiento_proximo',
+            mensaje: `"${updatedItem.productoNombre}" (lote ${updatedItem.lote}) vence en ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}`,
+            datos: {
+              producto: updatedItem.productoNombre,
+              lote: updatedItem.lote,
+              vencimiento: updatedItem.vencimiento,
+              diasRestantes,
+            },
+            timestamp: new Date().toISOString(),
+          })
+        }
+      }
 
       res.json({ item: updatedItem, acta: updatedActa })
     } catch (err) {

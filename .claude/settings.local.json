@@ -14,7 +14,8 @@
       "Bash(grep -o 'COMPLEFOSEL[^\"\\\\\\\\]*' \"C:/Users/Usuario/.claude/projects/C--Users-Usuario-Desktop-deposito/01b61d3e-5af1-4a6b-b3fb-ec4d3f3ccfcc.jsonl\")",
       "Bash(python3:*)",
       "Bash(node:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "Bash(cmd /c \"npx prisma migrate dev --name add_lote_vencimiento_drogas --create-only < nul\")"
     ]
   }
 }

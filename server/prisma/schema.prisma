@@ -67,13 +67,17 @@ model ActaItem {
   categoria           Categoria
   productoNombre      String    @map("producto_nombre")
   lote                String
+  vencimiento         DateTime? @db.Date @map("vencimiento")
+  temperaturaTransporte String? @map("temperatura_transporte")
+  condicionEmbalaje   CondicionEmbalaje? @map("condicion_embalaje")
+  observacionesCalidad String? @map("observaciones_calidad")
+  aprobadoCalidad     Boolean   @default(false) @map("aprobado_calidad")
   cantidadIngresada   Int       @map("cantidad_ingresada")
   cantidadDistribuida Int       @default(0) @map("cantidad_distribuida")
   mercado             Mercado?  // solo para categoría estuche/etiqueta
   createdAt           DateTime  @default(now()) @map("created_at")
 
-  acta        Acta         @relation(fields: [actaId], references: [id], onDelete: Cascade)
-  movimientos Movimiento[]
+  acta Acta @relation(fields: [actaId], references: [id], onDelete: Cascade)
 
   @@map("acta_items")
 }
@@ -95,15 +99,24 @@ enum Mercado {
   no_exportable
 }
 
+enum CondicionEmbalaje {
+  bueno
+  regular
+  malo
+}
+
 // ============================================================
 // INVENTARIO DROGAS
 // ============================================================
 model InventarioDroga {
-  id        String   @id @default(uuid())
-  nombre    String   @unique
-  cantidad  Int      @default(0)
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String    @id @default(uuid())
+  nombre      String
+  lote        String?
+  vencimiento DateTime? @db.Date @map("vencimiento")
+  cantidad    Int       @default(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  @@unique([nombre, lote])
   @@map("inventario_drogas")
 }
 
@@ -157,16 +170,22 @@ model Movimiento {
   tipo           TipoMovimiento
   categoria      Categoria
   productoNombre String         @map("producto_nombre")
+  lote           String?
   cantidad       Int // positivo = ingreso, negativo = egreso
   referenciaId   String?        @map("referencia_id")
+  referenciaTipo RefTipo?       @map("referencia_tipo")
   justificacion  String?
   createdBy      String         @map("created_by")
   createdAt      DateTime       @default(now()) @map("created_at")
 
-  user     User      @relation(fields: [createdBy], references: [id])
-  actaItem ActaItem? @relation(fields: [referenciaId], references: [id])
+  user User @relation(fields: [createdBy], references: [id])
 
   @@map("movimientos")
+}
+
+enum RefTipo {
+  acta_item
+  orden
 }
 
 enum TipoMovimiento {

@@ -10,6 +10,10 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
     const todayStart = new Date()
     todayStart.setUTCHours(0, 0, 0, 0)
 
+    const porVencerLimit = new Date()
+    porVencerLimit.setDate(porVencerLimit.getDate() + 30)
+    porVencerLimit.setUTCHours(23, 59, 59, 999)
+
     const [
       totalDrogas,
       drogasEnStock,
@@ -26,6 +30,7 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
       stockBajoEstuches,
       stockBajoEtiquetas,
       stockBajoFrascos,
+      porVencer,
     ] = await Promise.all([
       prisma.inventarioDroga.count(),
       prisma.inventarioDroga.count({ where: { cantidad: { gt: 0 } } }),
@@ -43,9 +48,9 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
         include: { user: { select: { name: true } } },
       }),
       prisma.inventarioDroga.findMany({
-        where: { cantidad: { lt: 10 } },
-        orderBy: { cantidad: 'asc' },
-        select: { id: true, nombre: true, cantidad: true },
+        where: { cantidad: { lt: 10, gt: 0 } },
+        orderBy: [{ cantidad: 'asc' }, { nombre: 'asc' }],
+        select: { id: true, nombre: true, lote: true, cantidad: true },
       }),
       prisma.inventarioEstuche.findMany({
         where: { cantidad: { lt: 100 } },
@@ -68,6 +73,14 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
           total: true,
         },
       }),
+      prisma.inventarioDroga.findMany({
+        where: {
+          vencimiento: { lte: porVencerLimit },
+          cantidad: { gt: 0 },
+        },
+        orderBy: { vencimiento: 'asc' },
+        select: { id: true, nombre: true, lote: true, vencimiento: true, cantidad: true },
+      }),
     ])
 
     res.json({
@@ -86,6 +99,7 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
       stockBajoEstuches,
       stockBajoEtiquetas,
       stockBajoFrascos,
+      porVencer,
     })
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })

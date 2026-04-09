@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, FlaskConical, Package, Tag, Box, PackagePlus, BookOpen, ArrowLeftRight, Clock, Users, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, FlaskConical, Package, Tag, Box, PackagePlus, BookOpen, ArrowLeftRight, Clock, Users, ClipboardList, BarChart2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -48,6 +48,22 @@ export function Sidebar() {
             {label}
           </NavLink>
         ))}
+        {(isEncargado || user?.role === 'observador') && (
+          <NavLink
+            to="/metricas"
+            className={({ isActive }) =>
+              cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded font-heading font-semibold text-sm transition-colors',
+                isActive
+                  ? 'bg-surface-high text-on-surface'
+                  : 'text-on-surface-variant hover:bg-surface-bright hover:text-on-surface'
+              )
+            }
+          >
+            <BarChart2 size={16} strokeWidth={1.5} />
+            Métricas
+          </NavLink>
+        )}
         {isEncargado && (
           <NavLink
             to="/usuarios"

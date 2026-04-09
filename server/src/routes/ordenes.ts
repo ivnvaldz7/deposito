@@ -35,8 +35,13 @@ async function checkStockBajo(
 ): Promise<number | null> {
   try {
     if (categoria === 'droga') {
-      const d = await prisma.inventarioDroga.findUnique({ where: { nombre: productoNombre } })
-      if (d && d.cantidad < STOCK_BAJO_THRESHOLD) return d.cantidad
+      // Sumar total de todos los lotes del producto
+      const agg = await prisma.inventarioDroga.aggregate({
+        where: { nombre: productoNombre },
+        _sum: { cantidad: true },
+      })
+      const total = agg._sum.cantidad ?? 0
+      if (total < STOCK_BAJO_THRESHOLD) return total
     } else if (categoria === 'estuche' && mercado) {
       const e = await prisma.inventarioEstuche.findUnique({
         where: { articulo_mercado: { articulo: productoNombre, mercado } },
@@ -261,13 +266,52 @@ router.put(
         const { categoria, productoNombre, mercado, cantidad } = orden
 
         if (categoria === 'droga') {
-          const droga = await tx.inventarioDroga.findUnique({ where: { nombre: productoNombre } })
-          if (!droga) throw new Error('Producto no encontrado en inventario de drogas')
-          if (droga.cantidad < cantidad) throw new Error(`Stock insuficiente (disponible: ${droga.cantidad})`)
-          await tx.inventarioDroga.update({
-            where: { nombre: productoNombre },
-            data: { cantidad: { decrement: cantidad } },
+          // FIFO: descontar empezando por el lote con vencimiento más próximo
+          const lotes = await tx.inventarioDroga.findMany({
+            where: { nombre: productoNombre, cantidad: { gt: 0 } },
           })
+
+          // Ordenar en app: vencimiento no-null ASC primero, luego null (sin vencimiento)
+          const sorted = [...lotes].sort((a, b) => {
+            if (!a.vencimiento && !b.vencimiento) return 0
+            if (!a.vencimiento) return 1
+            if (!b.vencimiento) return -1
+            return new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime()
+          })
+
+          const totalDisponible = sorted.reduce((s, l) => s + l.cantidad, 0)
+          if (totalDisponible < cantidad) {
+            throw new Error(`Stock insuficiente de "${productoNombre}" (disponible: ${totalDisponible})`)
+          }
+
+          let restante = cantidad
+          const lotesMov: { lote: string | null; decrementado: number }[] = []
+          for (const lote of sorted) {
+            if (restante <= 0) break
+            const tomar = Math.min(lote.cantidad, restante)
+            await tx.inventarioDroga.update({
+              where: { id: lote.id },
+              data: { cantidad: { decrement: tomar } },
+            })
+            lotesMov.push({ lote: lote.lote, decrementado: tomar })
+            restante -= tomar
+          }
+
+          // Crear un movimiento por lote usado
+          for (const { lote: loteUsado, decrementado } of lotesMov) {
+            await tx.movimiento.create({
+              data: {
+                tipo: 'egreso_orden',
+                categoria,
+                productoNombre,
+                lote: loteUsado,
+                cantidad: -decrementado,
+                referenciaId: orden.id,
+                referenciaTipo: 'orden',
+                createdBy: req.user!.id,
+              },
+            })
+          }
         } else if (categoria === 'estuche') {
           if (!mercado) throw new Error('El campo mercado es obligatorio para estuches')
           const estuche = await tx.inventarioEstuche.findUnique({
@@ -301,17 +345,20 @@ router.put(
           })
         }
 
-        // Movimiento de auditoría (negativo = egreso)
-        await tx.movimiento.create({
-          data: {
-            tipo: 'egreso_orden',
-            categoria,
-            productoNombre,
-            cantidad: -cantidad,
-            referenciaId: orden.id,
-            createdBy: req.user!.id,
-          },
-        })
+        // Movimiento de auditoría para categorías no-droga (drogas crean movimientos en el loop FIFO)
+        if (categoria !== 'droga') {
+          await tx.movimiento.create({
+            data: {
+              tipo: 'egreso_orden',
+              categoria,
+              productoNombre,
+              cantidad: -cantidad,
+              referenciaId: orden.id,
+              referenciaTipo: 'orden',
+              createdBy: req.user!.id,
+            },
+          })
+        }
 
         return tx.ordenProduccion.update({
           where: { id },
@@ -381,8 +428,8 @@ router.put(
         res.status(404).json({ message: 'Orden no encontrada' })
         return
       }
-      if ((ESTADOS_FINALES as readonly string[]).includes(orden.estado)) {
-        res.status(409).json({ message: `No se puede rechazar una orden en estado "${orden.estado}"` })
+      if (orden.estado !== 'solicitada' && orden.estado !== 'aprobada') {
+        res.status(400).json({ message: 'No se puede rechazar una orden ya ejecutada' })
         return
       }
 

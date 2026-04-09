@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import Fuse from 'fuse.js'
 import { Command } from 'cmdk'
-import { Search, Clock, Eye, FilePlus, History, FlaskConical, Package, Tag, Box } from 'lucide-react'
+import { Search, Clock, Eye, FilePlus, History, FlaskConical, Package, Tag, Box, BarChart2, FileDown, ExternalLink } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCommandPaletteStore } from '@/stores/command-palette-store'
 import { apiClient } from '@/lib/api-client'
@@ -70,6 +70,103 @@ function MercadoChip({ mercado }: { mercado: Mercado }) {
       {MERCADO_LABELS[mercado]}
     </span>
   )
+}
+
+// ─── Metrics query parser ─────────────────────────────────────────────────────
+
+const MONTH_MAP: Record<string, number> = {
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+  julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
+}
+
+const CATEGORIA_MAP: Record<string, string> = {
+  droga: 'droga', drogas: 'droga',
+  estuche: 'estuche', estuches: 'estuche',
+  etiqueta: 'etiqueta', etiquetas: 'etiqueta',
+  frasco: 'frasco', frascos: 'frasco',
+}
+
+interface MetricQueryParams {
+  tipo: 'ingresos' | 'egresos' | 'movimientos'
+  desde: string
+  hasta: string
+  categoria?: string
+  label: string
+}
+
+interface MetricQueryResult {
+  params: MetricQueryParams
+  totalIngresos: number
+  totalEgresos: number
+  balance: number
+  movimientosPeriodo: number
+}
+
+function parseMetricQuery(q: string): MetricQueryParams | null {
+  const lower = q.toLowerCase().trim()
+  const words = lower.split(/\s+/)
+
+  // Must start with a metric keyword
+  const tipoMap: Record<string, MetricQueryParams['tipo']> = {
+    ingresos: 'ingresos',
+    ingreso: 'ingresos',
+    egresos: 'egresos',
+    egreso: 'egresos',
+    movimientos: 'movimientos',
+    movimiento: 'movimientos',
+  }
+  const tipo = tipoMap[words[0] ?? '']
+  if (!tipo) return null
+
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  let desde = ''
+  let hasta = ''
+  let periodLabel = 'este período'
+  let categoria: string | undefined
+
+  for (const word of words.slice(1)) {
+    // Month detection
+    if (word in MONTH_MAP) {
+      const month = MONTH_MAP[word]!
+      const year = month > now.getMonth() ? currentYear - 1 : currentYear
+      const firstDay = new Date(year, month, 1)
+      const lastDay  = new Date(year, month + 1, 0)
+      desde = firstDay.toISOString().slice(0, 10)
+      hasta = lastDay.toISOString().slice(0, 10)
+      periodLabel = `${word} ${year}`
+      continue
+    }
+    // Relative periods
+    if (word === 'semana') {
+      const d = new Date(now)
+      d.setDate(now.getDate() - 6)
+      desde = d.toISOString().slice(0, 10)
+      hasta = now.toISOString().slice(0, 10)
+      periodLabel = 'última semana'
+      continue
+    }
+    if (word === 'mes') {
+      const d = new Date(now.getFullYear(), now.getMonth(), 1)
+      desde = d.toISOString().slice(0, 10)
+      hasta = now.toISOString().slice(0, 10)
+      periodLabel = 'este mes'
+      continue
+    }
+    if (word === 'año' || word === 'anio') {
+      desde = `${currentYear}-01-01`
+      hasta = now.toISOString().slice(0, 10)
+      periodLabel = `año ${currentYear}`
+      continue
+    }
+    // Category detection
+    if (word in CATEGORIA_MAP) {
+      categoria = CATEGORIA_MAP[word]
+    }
+  }
+
+  const label = `${tipo} ${periodLabel}${categoria ? ` · ${categoria}` : ''}`
+  return { tipo, desde, hasta, categoria, label }
 }
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -166,6 +263,8 @@ export function CommandPalette() {
   const [estuches, setEstuches] = useState<Estuche[]>([])
   const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([])
   const [frascos, setFrascos] = useState<Frasco[]>([])
+  const [metricResult, setMetricResult] = useState<MetricQueryResult | null>(null)
+  const [metricLoading, setMetricLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Derivado: se recalcula desde localStorage cada vez que la paleta abre
@@ -238,9 +337,40 @@ export function CommandPalette() {
   // ── Reset query on close ────────────────────────────────────────────────────
   useEffect(() => {
     if (isOpen) return
-    const id = setTimeout(() => setQuery(''), 0)
+    const id = setTimeout(() => { setQuery(''); setMetricResult(null) }, 0)
     return () => clearTimeout(id)
   }, [isOpen])
+
+  // ── Metric query mode ────────────────────────────────────────────────────────
+  const metricParams = useMemo(() => parseMetricQuery(query), [query])
+
+  const fetchMetricResult = useCallback(async (params: MetricQueryParams) => {
+    setMetricLoading(true)
+    setMetricResult(null)
+    try {
+      const qs = new URLSearchParams()
+      if (params.desde) qs.set('desde', params.desde)
+      if (params.hasta) qs.set('hasta', params.hasta)
+      if (params.categoria) qs.set('categoria', params.categoria)
+      const data = await apiClient.get<{
+        totalIngresos: number
+        totalEgresos: number
+        balance: number
+        movimientosPeriodo: number
+      }>(`/metricas${qs.toString() ? `?${qs.toString()}` : ''}`, token)
+      setMetricResult({ params, ...data })
+    } catch {
+      // ignore — metric mode is best-effort
+    } finally {
+      setMetricLoading(false)
+    }
+  }, [token])
+
+  useEffect(() => {
+    if (!metricParams) { setMetricResult(null); return }
+    const id = setTimeout(() => { fetchMetricResult(metricParams) }, 400)
+    return () => clearTimeout(id)
+  }, [metricParams, fetchMetricResult])
 
   // ── Fuzzy results with frequency sorting ────────────────────────────────────
   const results = useMemo<Droga[]>(() => {
@@ -339,6 +469,36 @@ export function CommandPalette() {
     else if (action === 'ingresar')
       navigate('/ingresos', { state: { productoNombre: etiqueta.articulo, mercado: etiqueta.mercado, categoria: 'etiqueta' } })
     else navigate(`/movimientos?producto=${encodeURIComponent(etiqueta.articulo)}`)
+  }
+
+  function goToMetricas(params: MetricQueryParams) {
+    if (query.trim()) saveToHistory(query.trim())
+    closePalette()
+    const qs = new URLSearchParams()
+    if (params.desde) qs.set('desde', params.desde)
+    if (params.hasta) qs.set('hasta', params.hasta)
+    if (params.categoria) qs.set('categoria', params.categoria)
+    navigate(`/metricas${qs.toString() ? `?${qs.toString()}` : ''}`)
+  }
+
+  function exportMetricPdf(params: MetricQueryParams) {
+    const qs = new URLSearchParams()
+    if (params.desde) qs.set('desde', params.desde)
+    if (params.hasta) qs.set('hasta', params.hasta)
+    if (params.categoria) qs.set('categoria', params.categoria)
+    const url = `/api/metricas/exportar-pdf${qs.toString() ? `?${qs.toString()}` : ''}`
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.blob())
+      .then((blob) => {
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `metricas-${params.desde || 'inicio'}-${params.hasta || 'hoy'}.pdf`
+        link.click()
+        URL.revokeObjectURL(link.href)
+      })
+      .catch(() => {})
+    if (query.trim()) saveToHistory(query.trim())
+    closePalette()
   }
 
   function goToFrasco(frasco: Frasco, action: 'ver' | 'ingresar' | 'historial') {
@@ -623,7 +783,82 @@ export function CommandPalette() {
                   </>
                 )}
 
-                {query.trim() && results.length === 0 && resultsEstuches.length === 0 && resultsEtiquetas.length === 0 && resultsFrascos.length === 0 && (
+                {/* ── Metric query mode ─────────────────────────────── */}
+                {query.trim() && metricParams && (
+                  <>
+                    <div className="px-4 pt-2 pb-1 font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+                      Consulta de métricas
+                    </div>
+                    <div className="mx-2 mb-1 rounded p-3" style={{ background: 'rgba(96,165,250,0.08)' }}>
+                      {/* Query label */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <BarChart2 size={13} strokeWidth={1.5} style={{ color: '#60a5fa' }} />
+                        <span className="font-heading text-xs text-on-surface-variant capitalize">
+                          {metricParams.label}
+                        </span>
+                      </div>
+
+                      {/* Result row */}
+                      {metricLoading ? (
+                        <div className="h-5 w-32 bg-surface-high rounded animate-pulse mb-3" />
+                      ) : metricResult ? (
+                        <div className="flex flex-wrap gap-3 mb-3">
+                          <div className="flex flex-col">
+                            <span className="font-body text-xs text-on-surface-variant">Ingresos</span>
+                            <span className="font-heading text-base font-bold tabular-nums" style={{ color: '#00AE42' }}>
+                              {metricResult.totalIngresos.toLocaleString()} uds
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-body text-xs text-on-surface-variant">Egresos</span>
+                            <span className="font-heading text-base font-bold tabular-nums" style={{ color: '#ef4444' }}>
+                              {metricResult.totalEgresos.toLocaleString()} uds
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-body text-xs text-on-surface-variant">Balance</span>
+                            <span
+                              className="font-heading text-base font-bold tabular-nums"
+                              style={{ color: metricResult.balance >= 0 ? '#60a5fa' : '#ef4444' }}
+                            >
+                              {metricResult.balance.toLocaleString()} uds
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-body text-xs text-on-surface-variant">Movimientos</span>
+                            <span className="font-heading text-base font-bold tabular-nums text-on-surface">
+                              {metricResult.movimientosPeriodo}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        <Command.Item
+                          value="metric-ver-reporte"
+                          onSelect={() => goToMetricas(metricParams)}
+                          className="flex items-center gap-1.5 px-2 py-1.5 rounded font-body text-xs cursor-pointer transition-colors data-[selected=true]:bg-surface-bright text-on-surface-variant hover:text-on-surface"
+                          style={{ background: 'rgba(255,255,255,0.06)' }}
+                        >
+                          <ExternalLink size={11} strokeWidth={1.5} />
+                          Ver reporte completo
+                        </Command.Item>
+                        <Command.Item
+                          value="metric-exportar-pdf"
+                          onSelect={() => exportMetricPdf(metricParams)}
+                          className="flex items-center gap-1.5 px-2 py-1.5 rounded font-body text-xs cursor-pointer transition-colors data-[selected=true]:bg-surface-bright text-on-surface-variant hover:text-on-surface"
+                          style={{ background: 'rgba(255,255,255,0.06)' }}
+                        >
+                          <FileDown size={11} strokeWidth={1.5} />
+                          Exportar PDF
+                        </Command.Item>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {query.trim() && !metricParams && results.length === 0 && resultsEstuches.length === 0 && resultsEtiquetas.length === 0 && resultsFrascos.length === 0 && (
                   <div className="px-4 py-8 text-center font-body text-sm text-on-surface-variant/60">
                     Sin resultados para{' '}
                     <span className="text-on-surface">"{query}"</span>

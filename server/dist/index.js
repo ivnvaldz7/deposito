@@ -17,6 +17,8 @@ const frascos_1 = __importDefault(require("./routes/frascos"));
 const pendientes_1 = __importDefault(require("./routes/pendientes"));
 const users_1 = __importDefault(require("./routes/users"));
 const ordenes_1 = __importDefault(require("./routes/ordenes"));
+const events_1 = __importDefault(require("./routes/events"));
+const metricas_1 = __importDefault(require("./routes/metricas"));
 const app = (0, express_1.default)();
 const PORT = process.env.PORT ?? 3001;
 app.use((0, cors_1.default)({
@@ -38,6 +40,8 @@ app.use('/api/frascos', frascos_1.default);
 app.use('/api/pendientes', pendientes_1.default);
 app.use('/api/users', users_1.default);
 app.use('/api/ordenes', ordenes_1.default);
+app.use('/api/events', events_1.default);
+app.use('/api/metricas', metricas_1.default);
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
 });

@@ -36,6 +36,14 @@ interface FrascoBajo {
   total: number
 }
 
+interface DrogaPorVencer {
+  id: string
+  nombre: string
+  lote: string | null
+  vencimiento: string
+  cantidad: number
+}
+
 interface DashboardStats {
   totalDrogas: number
   drogasEnStock: number
@@ -52,6 +60,7 @@ interface DashboardStats {
   stockBajoEstuches: ItemMercadoBajo[]
   stockBajoEtiquetas: ItemMercadoBajo[]
   stockBajoFrascos: FrascoBajo[]
+  porVencer: DrogaPorVencer[]
 }
 
 interface InventorySummaryCardProps {
@@ -474,3 +483,4 @@ export function DashboardPage() {
     </div>
   )
 }
+

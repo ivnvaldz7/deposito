@@ -15,7 +15,8 @@ const TIPO_CHIP_STYLES: Record<string, React.CSSProperties> = {
   stock_actualizado:{ color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
   orden_creada:     { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
   orden_actualizada:{ color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' },
-  stock_bajo:       { color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' },
+  stock_bajo:          { color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' },
+  vencimiento_proximo: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
 }
 
 const TIPO_LABELS: Record<string, string> = {
@@ -24,6 +25,7 @@ const TIPO_LABELS: Record<string, string> = {
   orden_creada: 'Orden',
   orden_actualizada: 'Orden',
   stock_bajo: 'Stock bajo',
+  vencimiento_proximo: 'Vencimiento',
 }
 
 function TipoChip({ tipo }: { tipo: string }) {
