@@ -140,7 +140,7 @@ router.get(
     try {
       const ordenes = await prisma.ordenProduccion.findMany({
         where: { ...roleFilter, ...estadoWhere },
-        orderBy: [{ urgencia: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ createdAt: 'desc' }],
         include: {
           solicitante: { select: { id: true, name: true, role: true } },
           aprobador: { select: { id: true, name: true } },
@@ -510,3 +510,4 @@ router.put(
 )
 
 export default router
+

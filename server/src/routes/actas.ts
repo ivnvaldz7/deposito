@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
 import { sseManager } from '../lib/sse-manager'
+import { generarLote } from '../lib/lote-generator'
 
 const router = Router()
 
@@ -21,18 +22,28 @@ const CONDICIONES_EMBALAJE = Object.values(CondicionEmbalaje) as [
   ...CondicionEmbalaje[],
 ]
 
-const agregarItemSchema = z.object({
-  categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
-  productoNombre: z.string().min(2).max(100),
-  lote: z.string().min(1).max(50),
-  vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  temperaturaTransporte: z.string().trim().max(50).optional(),
-  condicionEmbalaje: z.enum(CONDICIONES_EMBALAJE).optional(),
-  observacionesCalidad: z.string().trim().max(1000).optional(),
-  aprobadoCalidad: z.boolean().optional(),
-  cantidadIngresada: z.number().int().positive(),
-  mercado: z.enum(MERCADOS).optional(),
-})
+const agregarItemSchema = z
+  .object({
+    categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+    productoNombre: z.string().min(2).max(100),
+    lote: z.string().trim().max(50).optional(),
+    vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    temperaturaTransporte: z.string().trim().max(50).optional(),
+    condicionEmbalaje: z.enum(CONDICIONES_EMBALAJE).optional(),
+    observacionesCalidad: z.string().trim().max(1000).optional(),
+    aprobadoCalidad: z.boolean().optional(),
+    cantidadIngresada: z.number().int().positive(),
+    mercado: z.enum(MERCADOS).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.categoria === 'droga' && !data.lote?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El lote es obligatorio para drogas',
+        path: ['lote'],
+      })
+    }
+  })
 
 const distribuirSchema = z.object({
   cantidad: z.number().int().positive(),
@@ -159,12 +170,18 @@ router.post(
         return
       }
 
+      // Drogas: lote manual obligatorio. Resto: autogenerado, ignorar lo que venga del frontend.
+      const lote =
+        categoria === 'droga'
+          ? result.data.lote!.trim()
+          : await generarLote(categoria)
+
       const item = await prisma.actaItem.create({
         data: {
           actaId,
           categoria: result.data.categoria,
           productoNombre: result.data.productoNombre,
-          lote: result.data.lote,
+          lote,
           vencimiento: result.data.vencimiento
             ? new Date(result.data.vencimiento + 'T00:00:00.000Z')
             : null,
@@ -357,3 +374,5 @@ router.post(
 )
 
 export default router
+
+

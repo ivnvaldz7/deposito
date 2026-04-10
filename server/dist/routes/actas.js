@@ -15,10 +15,11 @@ const crearActaSchema = zod_1.z.object({
 });
 const MERCADOS = Object.values(client_1.Mercado);
 const CONDICIONES_EMBALAJE = Object.values(client_1.CondicionEmbalaje);
-const agregarItemSchema = zod_1.z.object({
+const agregarItemSchema = zod_1.z
+    .object({
     categoria: zod_1.z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
     productoNombre: zod_1.z.string().min(2).max(100),
-    lote: zod_1.z.string().min(1).max(50),
+    lote: zod_1.z.string().trim().max(50).optional(),
     vencimiento: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     temperaturaTransporte: zod_1.z.string().trim().max(50).optional(),
     condicionEmbalaje: zod_1.z.enum(CONDICIONES_EMBALAJE).optional(),
@@ -26,6 +27,15 @@ const agregarItemSchema = zod_1.z.object({
     aprobadoCalidad: zod_1.z.boolean().optional(),
     cantidadIngresada: zod_1.z.number().int().positive(),
     mercado: zod_1.z.enum(MERCADOS).optional(),
+})
+    .superRefine((data, ctx) => {
+    if (data.categoria === 'droga' && !data.lote?.trim()) {
+        ctx.addIssue({
+            code: zod_1.z.ZodIssueCode.custom,
+            message: 'El lote es obligatorio para drogas',
+            path: ['lote'],
+        });
+    }
 });
 const distribuirSchema = zod_1.z.object({
     cantidad: zod_1.z.number().int().positive(),
@@ -132,7 +142,7 @@ router.post('/:id/items', auth_1.authenticate, (0, require_role_1.requireRole)('
                 actaId,
                 categoria: result.data.categoria,
                 productoNombre: result.data.productoNombre,
-                lote: result.data.lote,
+                lote: result.data.lote?.trim() || '',
                 vencimiento: result.data.vencimiento
                     ? new Date(result.data.vencimiento + 'T00:00:00.000Z')
                     : null,

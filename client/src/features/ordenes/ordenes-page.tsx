@@ -740,8 +740,14 @@ export function OrdenesPage() {
   }
 
   const urgentes = ordenes.filter((o) => o.urgencia === 'urgente')
-  const normales = ordenes.filter((o) => o.urgencia === 'normal')
-  const ordenesOrdenadas = [...urgentes, ...normales]
+  const ordenesOrdenadas = [...ordenes].sort((a, b) => {
+    const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    if (dateDiff !== 0) return dateDiff
+    if (a.estado === b.estado) return 0
+    if (a.estado === 'solicitada') return -1
+    if (b.estado === 'solicitada') return 1
+    return 0
+  })
 
   return (
     <div className="space-y-6">
@@ -796,3 +802,4 @@ export function OrdenesPage() {
     </div>
   )
 }
+

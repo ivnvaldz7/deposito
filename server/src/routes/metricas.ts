@@ -7,7 +7,8 @@ import { requireRole } from '../middleware/require-role'
 
 const router = Router()
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+type MovimientoReporte = Awaited<ReturnType<typeof loadMovimientos>>[number]
+type PdfDoc = InstanceType<typeof PDFDocument>
 
 function buildDateFilter(desde?: string, hasta?: string): Prisma.DateTimeFilter<'Movimiento'> | undefined {
   const f: Prisma.DateTimeFilter<'Movimiento'> = {}
@@ -18,189 +19,243 @@ function buildDateFilter(desde?: string, hasta?: string): Prisma.DateTimeFilter<
 
 function parseQueryParams(req: Request) {
   const desde = typeof req.query['desde'] === 'string' ? req.query['desde'] : undefined
-  const hasta  = typeof req.query['hasta']  === 'string' ? req.query['hasta']  : undefined
-  const categoria = typeof req.query['categoria'] === 'string' ? req.query['categoria'] : undefined
-  return { desde, hasta, categoria }
+  const hasta = typeof req.query['hasta'] === 'string' ? req.query['hasta'] : undefined
+  const categoria = typeof req.query['categoria'] === 'string' ? req.query['categoria'].trim() : undefined
+  const producto = typeof req.query['producto'] === 'string' ? req.query['producto'].trim() : undefined
+
+  return {
+    desde,
+    hasta,
+    categoria: categoria || undefined,
+    producto: producto || undefined,
+  }
 }
 
-// ─── GET /api/metricas ────────────────────────────────────────────────────────
-
-router.get('/', authenticate, requireRole('encargado', 'observador'), async (req: Request, res: Response): Promise<void> => {
-  const { desde, hasta, categoria } = parseQueryParams(req)
-
-  const dateFilter = buildDateFilter(desde, hasta)
+function buildMovimientoWhere(filters: {
+  desde?: string
+  hasta?: string
+  categoria?: string
+  producto?: string
+}): Prisma.MovimientoWhereInput {
   const where: Prisma.MovimientoWhereInput = {}
+  const dateFilter = buildDateFilter(filters.desde, filters.hasta)
+
   if (dateFilter) where.createdAt = dateFilter
-  if (categoria) where.categoria = categoria as Prisma.MovimientoWhereInput['categoria']
+  if (filters.categoria) where.categoria = filters.categoria as Prisma.MovimientoWhereInput['categoria']
+  if (filters.producto) {
+    where.productoNombre = { equals: filters.producto, mode: 'insensitive' }
+  }
 
-  try {
-    const movimientos = await prisma.movimiento.findMany({
-      where,
-      include: { user: { select: { name: true } } },
-      orderBy: { createdAt: 'asc' },
-    })
+  return where
+}
 
-    let totalIngresos = 0
-    let totalEgresos = 0
-    const categoriaMap: Record<string, number> = {}
-    const ingresadosMap: Record<string, number> = {}
-    const solicitadosMap: Record<string, number> = {}
+async function loadMovimientos(where: Prisma.MovimientoWhereInput) {
+  return prisma.movimiento.findMany({
+    where,
+    include: { user: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' },
+  })
+}
 
-    for (const m of movimientos) {
-      if (m.tipo === 'ingreso_acta') {
-        totalIngresos += m.cantidad
-        categoriaMap[m.categoria] = (categoriaMap[m.categoria] ?? 0) + m.cantidad
-        ingresadosMap[m.productoNombre] = (ingresadosMap[m.productoNombre] ?? 0) + m.cantidad
-      } else if (m.tipo === 'egreso_orden') {
-        totalEgresos += m.cantidad
-        solicitadosMap[m.productoNombre] = (solicitadosMap[m.productoNombre] ?? 0) + m.cantidad
-      } else if (m.tipo === 'ajuste_manual') {
-        // ajustes manuales suman o restan según signo, pero se registran siempre positivos
-        // Se tratan como egresos en el balance
-        totalEgresos += m.cantidad
-      }
+function buildResumen(movimientos: MovimientoReporte[]) {
+  let totalIngresos = 0
+  let totalEgresos = 0
+  const categoriaMap: Record<string, number> = {}
+  const ingresadosMap: Record<string, number> = {}
+  const solicitadosMap: Record<string, number> = {}
+
+  for (const movimiento of movimientos) {
+    if (movimiento.tipo === 'ingreso_acta') {
+      totalIngresos += movimiento.cantidad
+      categoriaMap[movimiento.categoria] = (categoriaMap[movimiento.categoria] ?? 0) + movimiento.cantidad
+      ingresadosMap[movimiento.productoNombre] = (ingresadosMap[movimiento.productoNombre] ?? 0) + movimiento.cantidad
+      continue
     }
 
-    const ingresosPorCategoria = Object.entries(categoriaMap)
-      .map(([cat, total]) => ({ categoria: cat, total }))
-      .sort((a, b) => b.total - a.total)
+    const cantidad = Math.abs(movimiento.cantidad)
+    totalEgresos += cantidad
 
-    const topProductosIngresados = Object.entries(ingresadosMap)
+    if (movimiento.tipo === 'egreso_orden') {
+      solicitadosMap[movimiento.productoNombre] = (solicitadosMap[movimiento.productoNombre] ?? 0) + cantidad
+    }
+  }
+
+  return {
+    totalIngresos,
+    totalEgresos,
+    balance: totalIngresos - totalEgresos,
+    movimientosPeriodo: movimientos.length,
+    ingresosPorCategoria: Object.entries(categoriaMap)
+      .map(([categoria, total]) => ({ categoria, total }))
+      .sort((a, b) => b.total - a.total),
+    topProductosIngresados: Object.entries(ingresadosMap)
       .map(([productoNombre, total]) => ({ productoNombre, total }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 10)
-
-    const topProductosSolicitados = Object.entries(solicitadosMap)
+      .slice(0, 10),
+    topProductosSolicitados: Object.entries(solicitadosMap)
       .map(([productoNombre, total]) => ({ productoNombre, total }))
       .sort((a, b) => b.total - a.total)
-      .slice(0, 10)
+      .slice(0, 10),
+  }
+}
 
-    res.json({
-      totalIngresos,
-      totalEgresos,
-      balance: totalIngresos - totalEgresos,
-      movimientosPeriodo: movimientos.length,
-      ingresosPorCategoria,
-      topProductosIngresados,
-      topProductosSolicitados,
+function formatDateLabel(iso?: string): string {
+  if (!iso) return 'Todo el período'
+  return new Date(`${iso}T00:00:00.000Z`).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+function formatDateTime(iso: string | Date): string {
+  return new Date(iso).toLocaleString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function drawPdfHeader(doc: PdfDoc, filters: { desde?: string; hasta?: string; categoria?: string; producto?: string }) {
+  doc.roundedRect(40, 34, 515, 84, 6).fill('#00AE42')
+  doc.fillColor('#003918').font('Helvetica-Bold').fontSize(11).text('Depósito', 58, 50)
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(20).text('Reporte de Movimientos', 58, 66)
+  doc.fillColor('#dcf6e5').font('Helvetica').fontSize(10).text('Resumen profesional del período y filtros aplicados', 58, 92)
+
+  doc.fillColor('#bccbb8').font('Helvetica').fontSize(10)
+  doc.text(`Rango: ${filters.desde ? formatDateLabel(filters.desde) : 'Inicio'} → ${filters.hasta ? formatDateLabel(filters.hasta) : 'Hoy'}`, 40, 132)
+  doc.text(`Categoría: ${filters.categoria ?? 'Todas'}`, 40, 148)
+  doc.text(`Producto: ${filters.producto ?? 'Todos'}`, 282, 148)
+}
+
+function drawTableHeader(doc: PdfDoc, y: number) {
+  const columns = [
+    { label: 'Fecha', x: 40, width: 92, align: 'left' as const },
+    { label: 'Tipo', x: 132, width: 92, align: 'left' as const },
+    { label: 'Categoría', x: 224, width: 82, align: 'left' as const },
+    { label: 'Producto', x: 306, width: 128, align: 'left' as const },
+    { label: 'Cantidad', x: 434, width: 54, align: 'right' as const },
+    { label: 'Usuario', x: 488, width: 67, align: 'left' as const },
+  ]
+
+  doc.rect(40, y, 515, 24).fill('#00AE42')
+  doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(9)
+
+  for (const column of columns) {
+    doc.text(column.label, column.x + 6, y + 8, {
+      width: column.width - 12,
+      align: column.align,
     })
+  }
+}
+
+function drawPdfFooter(doc: PdfDoc) {
+  const footerY = 790
+  doc.moveTo(40, footerY).lineTo(555, footerY).lineWidth(0.6).strokeColor('#3d4a3c').stroke()
+  doc.fillColor('#bccbb8').font('Helvetica').fontSize(9).text(
+    `Generado por Depósito · ${new Date().toLocaleString('es-AR')}`,
+    40,
+    footerY + 8,
+    { align: 'center', width: 515 }
+  )
+}
+
+router.get('/', authenticate, requireRole('encargado', 'observador'), async (req: Request, res: Response): Promise<void> => {
+  const filters = parseQueryParams(req)
+
+  try {
+    const movimientos = await loadMovimientos(buildMovimientoWhere(filters))
+    res.json(buildResumen(movimientos))
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
   }
 })
 
-// ─── GET /api/metricas/exportar-pdf ───────────────────────────────────────────
-
 router.get('/exportar-pdf', authenticate, requireRole('encargado', 'observador'), async (req: Request, res: Response): Promise<void> => {
-  const { desde, hasta, categoria } = parseQueryParams(req)
-
-  const dateFilter = buildDateFilter(desde, hasta)
-  const where: Prisma.MovimientoWhereInput = {}
-  if (dateFilter) where.createdAt = dateFilter
-  if (categoria) where.categoria = categoria as Prisma.MovimientoWhereInput['categoria']
+  const filters = parseQueryParams(req)
 
   try {
-    const movimientos = await prisma.movimiento.findMany({
-      where,
-      include: { user: { select: { name: true } } },
-      orderBy: { createdAt: 'desc' },
-    })
-
-    let totalIngresos = 0
-    let totalEgresos = 0
-    for (const m of movimientos) {
-      if (m.tipo === 'ingreso_acta') totalIngresos += m.cantidad
-      else totalEgresos += m.cantidad
-    }
-
+    const movimientos = await loadMovimientos(buildMovimientoWhere(filters))
+    const resumen = buildResumen(movimientos)
     const doc = new PDFDocument({ margin: 40, size: 'A4' })
 
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="metricas-${desde ?? 'inicio'}-${hasta ?? 'hoy'}.pdf"`
+      `attachment; filename="movimientos-${filters.desde ?? 'inicio'}-${filters.hasta ?? 'hoy'}.pdf"`
     )
+
     doc.pipe(res)
+    drawPdfHeader(doc, filters)
+    drawTableHeader(doc, 182)
 
-    // ── Title ─────────────────────────────────────────────────────────────────
-    doc.fontSize(18).font('Helvetica-Bold').text('Reporte de Métricas', { align: 'center' })
-    doc.moveDown(0.4)
-
-    const rangoLabel =
-      desde && hasta
-        ? `${desde} → ${hasta}`
-        : desde
-        ? `Desde ${desde}`
-        : hasta
-        ? `Hasta ${hasta}`
-        : 'Todo el período'
-
-    doc.fontSize(11).font('Helvetica').text(`Período: ${rangoLabel}`, { align: 'center' })
-    if (categoria) {
-      doc.text(`Categoría: ${categoria}`, { align: 'center' })
-    }
-    doc.text(`Generado: ${new Date().toLocaleString('es-AR')}`, { align: 'center' })
-    doc.moveDown(1)
-
-    // ── Summary ───────────────────────────────────────────────────────────────
-    doc.fontSize(13).font('Helvetica-Bold').text('Resumen')
-    doc.moveDown(0.3)
-    doc.fontSize(11).font('Helvetica')
-    doc.text(`Total ingresos:   ${totalIngresos.toLocaleString()} uds`)
-    doc.text(`Total egresos:    ${totalEgresos.toLocaleString()} uds`)
-    doc.text(`Balance:          ${(totalIngresos - totalEgresos).toLocaleString()} uds`)
-    doc.text(`Movimientos:      ${movimientos.length}`)
-    doc.moveDown(1)
-
-    // ── Table header ──────────────────────────────────────────────────────────
-    doc.fontSize(13).font('Helvetica-Bold').text('Movimientos')
-    doc.moveDown(0.4)
-
-    const colX = { fecha: 40, tipo: 130, producto: 220, cantidad: 390, usuario: 450 }
-    const rowH = 18
-
-    // Header row
-    doc.fontSize(9).font('Helvetica-Bold')
-    doc.text('Fecha',    colX.fecha,    doc.y, { continued: true, width: 85 })
-    doc.text('Tipo',     colX.tipo,     doc.y, { continued: true, width: 85 })
-    doc.text('Producto', colX.producto, doc.y, { continued: true, width: 165 })
-    doc.text('Cant.',    colX.cantidad, doc.y, { continued: true, width: 55 })
-    doc.text('Usuario',  colX.usuario,  doc.y, { width: 100 })
-
-    const headerY = doc.y
-    doc.moveTo(40, headerY).lineTo(555, headerY).lineWidth(0.5).stroke()
-    doc.moveDown(0.3)
-
-    // Data rows
-    doc.fontSize(8).font('Helvetica')
-
-    const TIPO_LABELS: Record<string, string> = {
-      ingreso_acta:  'Ingreso acta',
-      egreso_orden:  'Egreso orden',
-      ajuste_manual: 'Ajuste manual',
+    const tipoLabels: Record<string, string> = {
+      ingreso_acta: 'Ingreso',
+      egreso_orden: 'Egreso',
+      ajuste_manual: 'Ajuste',
     }
 
-    for (const m of movimientos) {
-      if (doc.y > 760) {
+    let rowY = 206
+    doc.fillColor('#101510').font('Helvetica').fontSize(8.5)
+
+    for (const movimiento of movimientos) {
+      if (rowY > 742) {
+        drawPdfFooter(doc)
         doc.addPage()
-        doc.y = 40
+        drawPdfHeader(doc, filters)
+        drawTableHeader(doc, 182)
+        rowY = 206
       }
-      const y = doc.y
-      const fecha = new Date(m.createdAt).toLocaleDateString('es-AR')
-      const tipo  = TIPO_LABELS[m.tipo] ?? m.tipo
 
-      doc.text(fecha,           colX.fecha,    y, { continued: true, width: 85 })
-      doc.text(tipo,            colX.tipo,     y, { continued: true, width: 85 })
-      doc.text(m.productoNombre, colX.producto, y, { continued: true, width: 165 })
-      doc.text(String(m.cantidad), colX.cantidad, y, { continued: true, width: 55 })
-      doc.text(m.user.name,     colX.usuario,  y, { width: 100 })
-      doc.moveDown(rowH / doc.currentLineHeight() - 1)
+      doc.rect(40, rowY, 515, 26).lineWidth(0.4).strokeColor('#3d4a3c').stroke()
+      doc.text(formatDateTime(movimiento.createdAt), 46, rowY + 7, { width: 80 })
+      doc.text(tipoLabels[movimiento.tipo] ?? movimiento.tipo, 138, rowY + 7, { width: 80 })
+      doc.text(movimiento.categoria, 230, rowY + 7, { width: 70 })
+      doc.text(movimiento.productoNombre, 312, rowY + 7, { width: 116 })
+      doc.text(String(movimiento.cantidad), 440, rowY + 7, { width: 42, align: 'right' })
+      doc.text(movimiento.user.name, 494, rowY + 7, { width: 55 })
+      rowY += 26
     }
 
     if (movimientos.length === 0) {
-      doc.text('Sin movimientos en este período.')
+      doc.roundedRect(40, rowY + 8, 515, 44, 4).fill('#181d18')
+      doc.fillColor('#bccbb8').font('Helvetica').fontSize(10).text(
+        'No hay movimientos para los filtros seleccionados.',
+        40,
+        rowY + 24,
+        { align: 'center', width: 515 }
+      )
+      rowY += 68
     }
 
+    rowY += 20
+    if (rowY > 706) {
+      drawPdfFooter(doc)
+      doc.addPage()
+      drawPdfHeader(doc, filters)
+      rowY = 184
+    }
+
+    doc.fillColor('#e2ece0').font('Helvetica-Bold').fontSize(12).text('Totales del período', 40, rowY)
+    rowY += 20
+
+    const totals = [
+      { label: 'Total ingresos', value: resumen.totalIngresos, color: '#00AE42' },
+      { label: 'Total egresos', value: resumen.totalEgresos, color: '#f44336' },
+      { label: 'Balance', value: resumen.balance, color: resumen.balance >= 0 ? '#2196f3' : '#f44336' },
+    ]
+
+    let boxX = 40
+    for (const total of totals) {
+      doc.roundedRect(boxX, rowY, 160, 56, 4).fill('#181d18')
+      doc.fillColor('#bccbb8').font('Helvetica').fontSize(9).text(total.label, boxX + 12, rowY + 12)
+      doc.fillColor(total.color).font('Helvetica-Bold').fontSize(16).text(total.value.toLocaleString(), boxX + 12, rowY + 30)
+      boxX += 176
+    }
+
+    drawPdfFooter(doc)
     doc.end()
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
@@ -208,3 +263,4 @@ router.get('/exportar-pdf', authenticate, requireRole('encargado', 'observador')
 })
 
 export default router
+

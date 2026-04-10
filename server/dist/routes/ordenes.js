@@ -115,7 +115,7 @@ router.get('/', auth_1.authenticate, async (req, res) => {
     try {
         const ordenes = await prisma_1.prisma.ordenProduccion.findMany({
             where: { ...roleFilter, ...estadoWhere },
-            orderBy: [{ urgencia: 'desc' }, { createdAt: 'desc' }],
+            orderBy: [{ createdAt: 'desc' }],
             include: {
                 solicitante: { select: { id: true, name: true, role: true } },
                 aprobador: { select: { id: true, name: true } },

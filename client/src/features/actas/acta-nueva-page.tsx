@@ -127,7 +127,7 @@ function Paso1({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5 max-w-md">
+    <form onSubmit={handleSubmit(onSubmit, () => toast.error('Completá la fecha del acta antes de continuar.'))} noValidate className="space-y-5 max-w-md">
       <div className="space-y-1">
         <label htmlFor="acta-fecha" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
           Fecha
@@ -511,7 +511,7 @@ const itemSchema = z
   .object({
     categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
     productoNombre: z.string().min(2, 'Mínimo 2 caracteres').max(100),
-    lote: z.string().min(1, 'Requerido').max(50),
+    lote: z.string().max(50, 'Máximo 50 caracteres').optional(),
     vencimiento: z.string().optional(),
     temperaturaTransporte: z.string().max(50, 'MÃ¡ximo 50 caracteres').optional(),
     condicionEmbalaje: z.enum(['bueno', 'regular', 'malo']).optional(),
@@ -529,6 +529,13 @@ const itemSchema = z
         code: z.ZodIssueCode.custom,
         message: `El mercado es requerido para ${data.categoria}s`,
         path: ['mercado'],
+      })
+    }
+    if (data.categoria === 'droga' && !data.lote?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'El lote es obligatorio para drogas',
+        path: ['lote'],
       })
     }
     if (data.categoria === 'droga' && !data.vencimiento) {
@@ -629,7 +636,7 @@ function Paso2({
         {
           categoria: data.categoria,
           productoNombre: data.productoNombre,
-          lote: data.lote,
+          ...(data.categoria === 'droga' ? { lote: data.lote } : {}),
           cantidadIngresada: Number(data.cantidadIngresada),
           ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
           ...(data.temperaturaTransporte?.trim()
@@ -667,7 +674,7 @@ function Paso2({
   return (
     <div className="space-y-8 max-w-lg">
       {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit, () => toast.error('Completá categoría, producto y cantidad antes de agregar el item.'))} noValidate className="space-y-4">
         {/* Categoría */}
         <div className="space-y-1">
           <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
@@ -793,23 +800,42 @@ function Paso2({
           </div>
         )}
 
-        {/* Lote + Vencimiento (drogas) + Cantidad */}
-        <div className={`grid gap-3 ${categoria === 'droga' ? 'grid-cols-2' : 'grid-cols-2'}`}>
-          <div className="space-y-1">
-            <label htmlFor="acta-item-lote" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Lote
-            </label>
-            <input
-              id="acta-item-lote"
-              {...register('lote')}
-              type="text"
-              placeholder="Ej: L240901"
-              className="input-field"
-            />
-            {errors.lote && (
-              <p className="font-body text-error text-xs">{errors.lote.message}</p>
-            )}
-          </div>
+        {/* Lote + Cantidad */}
+        <div className="grid grid-cols-2 gap-3">
+          {categoria === 'droga' ? (
+            <div className="space-y-1">
+              <label htmlFor="acta-item-lote" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                Lote
+              </label>
+              <input
+                id="acta-item-lote"
+                {...register('lote')}
+                type="text"
+                placeholder="Ej: L240901"
+                className="input-field"
+              />
+              {errors.lote && (
+                <p className="font-body text-error text-xs">{errors.lote.message}</p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                Lote
+              </label>
+              <div className="bg-surface-low rounded px-3 py-2.5 font-body text-xs text-on-surface-variant leading-relaxed">
+                <span>Se asignará automáticamente</span>
+                <br />
+                <span className="font-mono" style={{ color: '#54e16d99' }}>
+                  {categoria === 'estuche'
+                    ? 'EST-XXXX'
+                    : categoria === 'etiqueta'
+                    ? 'ETQ-XXXX'
+                    : 'FRA-XXXX'}
+                </span>
+              </div>
+            </div>
+          )}
           <div className="space-y-1">
             <label htmlFor="acta-item-cantidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
               {categoria === 'frasco' ? 'Cajas' : 'Cantidad'}
@@ -1316,3 +1342,4 @@ export function ActaNuevaPage() {
     </div>
   )
 }
+
