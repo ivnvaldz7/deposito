@@ -113,7 +113,7 @@ const FRASCOS_CATALOGO = [
   'PVC 500 ML', 'VETERINARIO 250 ML',
 ]
 
-function buildCatalogoCanonico(): { nombre: string; categoria: 'droga' | 'estuche' | 'etiqueta' | 'frasco' }[] {
+export function buildCatalogoCanonico(): { nombre: string; categoria: 'droga' | 'estuche' | 'etiqueta' | 'frasco' }[] {
   const allCatalogo = [
     ...DROGAS_CATALOGO.map((nombre) => ({ nombre, categoria: 'droga' as const })),
     ...ESTUCHES_CATALOGO.map((nombre) => ({ nombre, categoria: 'estuche' as const })),
@@ -421,7 +421,7 @@ const frascos: { articulo: string; unidadesPorCaja: number; cantidadCajas: numbe
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-async function main() {
+export async function main() {
   // 1. Seed catálogo de productos
   console.log('Seeding catálogo de productos...')
   const catalogoMap = new Map<string, string>() // normalizeForMatch(nombreCompleto) → productoId
@@ -522,9 +522,11 @@ async function main() {
   console.log(`✅ ${frascos.length} frascos cargados`)
 }
 
-main()
-  .catch((e) => {
-    console.error(e)
-    process.exit(1)
-  })
-  .finally(() => prisma.$disconnect())
+if (require.main === module) {
+  main()
+    .catch((e) => {
+      console.error(e)
+      process.exit(1)
+    })
+    .finally(() => prisma.$disconnect())
+}

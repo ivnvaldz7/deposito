@@ -4,7 +4,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.signToken = signToken;
+exports.signRefreshToken = signRefreshToken;
 exports.verifyToken = verifyToken;
+exports.verifyRefreshToken = verifyRefreshToken;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 function getJwtSecret() {
     const secret = process.env.JWT_SECRET;
@@ -15,11 +17,21 @@ function getJwtSecret() {
     return secret;
 }
 const JWT_SECRET = getJwtSecret();
-const JWT_EXPIRES_IN = '7d';
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET ?? JWT_SECRET;
+const ACCESS_TOKEN_EXPIRES_IN = '15m';
+const REFRESH_TOKEN_EXPIRES_IN = '30d';
 function signToken(payload) {
-    return jsonwebtoken_1.default.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jsonwebtoken_1.default.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRES_IN });
+}
+function signRefreshToken(userId) {
+    return jsonwebtoken_1.default.sign({ sub: userId, type: 'refresh' }, REFRESH_TOKEN_SECRET, {
+        expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+    });
 }
 function verifyToken(token) {
     return jsonwebtoken_1.default.verify(token, JWT_SECRET);
+}
+function verifyRefreshToken(token) {
+    return jsonwebtoken_1.default.verify(token, REFRESH_TOKEN_SECRET);
 }
 //# sourceMappingURL=jwt.js.map

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { LoginPage } from '@/features/auth/login-page'
@@ -19,12 +20,24 @@ import { AppToaster } from '@/components/ui/toaster'
 
 function ProtectedRoute() {
   const token = useAuthStore((s) => s.token)
+  const authResolved = useAuthStore((s) => s.authResolved)
+
+  if (!authResolved) {
+    return <div className="min-h-screen bg-surface" />
+  }
+
   if (!token) return <Navigate to="/login" replace />
   return <Outlet />
 }
 
 function PublicRoute() {
   const token = useAuthStore((s) => s.token)
+  const authResolved = useAuthStore((s) => s.authResolved)
+
+  if (!authResolved) {
+    return <div className="min-h-screen bg-surface" />
+  }
+
   if (token) return <Navigate to="/dashboard" replace />
   return <Outlet />
 }
@@ -37,6 +50,12 @@ function EncargadoRoute() {
 
 
 function App() {
+  const initializeAuth = useAuthStore((s) => s.initializeAuth)
+
+  useEffect(() => {
+    void initializeAuth()
+  }, [initializeAuth])
+
   return (
     <BrowserRouter>
       <Routes>

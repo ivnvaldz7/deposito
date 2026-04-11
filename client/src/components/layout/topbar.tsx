@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCommandPaletteStore } from '@/stores/command-palette-store'
 import { useNotificationsStore, type Notification } from '@/stores/notifications-store'
+import { apiClient } from '@/lib/api-client'
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const shortcutLabel = isMac ? '⌘K' : 'Ctrl+Shift+K'
@@ -155,7 +156,12 @@ export function Topbar() {
     return () => document.removeEventListener('mousedown', handler)
   }, [panelOpen])
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      await apiClient.post('/auth/logout')
+    } catch {
+      // logout local incluso si el clear-cookie falla
+    }
     logout()
     navigate('/login', { replace: true })
   }

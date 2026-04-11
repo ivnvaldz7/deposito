@@ -239,6 +239,13 @@ router.post('/:id/items/:itemId/distribuir', auth_1.authenticate, (0, require_ro
             if (!item || item.actaId !== actaId) {
                 throw new Error('Item no encontrado');
             }
+            const acta = await tx.acta.findUnique({ where: { id: actaId } });
+            if (!acta) {
+                throw new Error('Acta no encontrada');
+            }
+            if (acta.estado === 'completada') {
+                throw new Error('No se puede distribuir una acta completada');
+            }
             const restante = item.cantidadIngresada - item.cantidadDistribuida;
             if (cantidad > restante) {
                 throw new Error(`Cantidad excede lo disponible (restante: ${restante})`);
