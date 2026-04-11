@@ -1,12 +1,12 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Check, X, ChevronDown } from 'lucide-react'
-import Fuse from 'fuse.js'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { ProductoSelector } from '@/components/producto-selector'
 import {
   Dialog,
   DialogTrigger,
@@ -39,15 +39,6 @@ interface OrdenProduccion {
   aprobador: { id: string; name: string } | null
 }
 
-interface InventarioItem {
-  id: string
-  nombre?: string   // drogas
-  articulo?: string // estuches, etiquetas, frascos
-  mercado?: Mercado
-  cantidad?: number
-  cantidadCajas?: number
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const CATEGORIA_LABELS: Record<Categoria, string> = {
@@ -71,10 +62,6 @@ const MERCADOS = Object.keys(MERCADO_LABELS) as Mercado[]
 
 function needsMercado(cat: Categoria) {
   return cat === 'estuche' || cat === 'etiqueta'
-}
-
-function getItemName(item: InventarioItem): string {
-  return item.nombre ?? item.articulo ?? ''
 }
 
 function formatFecha(iso: string): string {
@@ -126,106 +113,11 @@ function UrgenciaChip({ urgencia }: { urgencia: Urgencia }) {
   )
 }
 
-// ─── Product search combobox ──────────────────────────────────────────────────
-
-function ProductSearch({
-  items,
-  value,
-  onChange,
-  placeholder,
-}: {
-  items: InventarioItem[]
-  value: string
-  onChange: (name: string) => void
-  placeholder: string
-}) {
-  const [query, setQuery] = useState(value)
-  const [open, setOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  const fuse = useMemo(
-    () =>
-      items.length
-        ? new Fuse(items, {
-            keys: ['nombre', 'articulo'],
-            threshold: 0.45,
-            includeScore: true,
-          })
-        : null,
-    [items]
-  )
-
-  const results = useMemo(() => {
-    if (!fuse || !query.trim()) return items.slice(0, 8)
-    return fuse
-      .search(query)
-      .slice(0, 8)
-      .map((r) => r.item)
-  }, [fuse, items, query])
-
-  function handleSelect(item: InventarioItem) {
-    const name = getItemName(item)
-    setQuery(name)
-    onChange(name)
-    setOpen(false)
-  }
-
-  // Close on outside click
-  useEffect(() => {
-    function handler(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [])
-
-  return (
-    <div ref={containerRef} className="relative">
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value)
-          onChange(e.target.value)
-          setOpen(true)
-        }}
-        onFocus={() => setOpen(true)}
-        placeholder={placeholder}
-        className="input-field w-full"
-        autoComplete="off"
-      />
-      {open && results.length > 0 && (
-        <ul className="absolute z-50 top-full left-0 right-0 mt-1 rounded overflow-hidden shadow-lg max-h-52 overflow-y-auto"
-          style={{ background: 'rgba(49,54,49,0.98)', backdropFilter: 'blur(12px)' }}
-        >
-          {results.map((item) => (
-            <li key={item.id}>
-              <button
-                type="button"
-                className="w-full text-left px-3 py-2 font-body text-sm text-on-surface hover:bg-surface-bright transition-colors"
-                onMouseDown={() => handleSelect(item)}
-              >
-                {getItemName(item)}
-                {item.mercado && (
-                  <span className="ml-2 font-body text-xs text-on-surface-variant">
-                    {MERCADO_LABELS[item.mercado]}
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
 // ─── Modal Nueva Orden ────────────────────────────────────────────────────────
 
 const nuevaOrdenSchema = z.object({
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+  productoId: z.string().uuid().optional(),
   productoNombre: z.string().min(2, 'Seleccioná un producto'),
   mercado: z.string().optional(),
   cantidad: z
@@ -241,8 +133,6 @@ function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => voi
   const token = useAuthStore((s) => s.token)
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const [inventarioItems, setInventarioItems] = useState<InventarioItem[]>([])
-  const [loadingItems, setLoadingItems] = useState(false)
 
   const {
     register,
@@ -253,41 +143,18 @@ function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => voi
     formState: { errors, isSubmitting },
   } = useForm<NuevaOrdenForm>({
     resolver: zodResolver(nuevaOrdenSchema),
-    defaultValues: { categoria: 'droga', productoNombre: '', mercado: '', cantidad: '', urgencia: 'normal' },
+    defaultValues: { categoria: 'droga', productoId: undefined, productoNombre: '', mercado: '', cantidad: '', urgencia: 'normal' },
   })
 
   const categoria = useWatch({ control, name: 'categoria' })
+  const productoId = useWatch({ control, name: 'productoId' })
   const productoNombre = useWatch({ control, name: 'productoNombre' })
-
-  // Cargar inventario cuando cambia la categoría
   useEffect(() => {
     if (!open) return
-
-    const path = categoria === 'droga'
-      ? '/drogas'
-      : categoria === 'estuche'
-      ? '/estuches'
-      : categoria === 'etiqueta'
-      ? '/etiquetas'
-      : '/frascos'
-
-    async function load() {
-      setInventarioItems([])
-      setValue('productoNombre', '')
-      setValue('mercado', '')
-      setLoadingItems(true)
-      try {
-        const items = await apiClient.get<InventarioItem[]>(path, token)
-        setInventarioItems(items)
-      } catch {
-        setInventarioItems([])
-      } finally {
-        setLoadingItems(false)
-      }
-    }
-
-    load()
-  }, [categoria, open, token, setValue])
+    setValue('productoId', undefined)
+    setValue('productoNombre', '')
+    setValue('mercado', '')
+  }, [categoria, open, setValue])
 
   async function onSubmit(data: NuevaOrdenForm) {
     setServerError(null)
@@ -301,6 +168,9 @@ function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => voi
         productoNombre: data.productoNombre,
         cantidad: Number(data.cantidad),
         urgencia: data.urgencia,
+      }
+      if (data.productoId) {
+        body.productoId = data.productoId
       }
       if (needsMercado(data.categoria) && data.mercado) {
         body.mercado = data.mercado
@@ -316,7 +186,7 @@ function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => voi
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next) { reset(); setServerError(null); setInventarioItems([]) }
+    if (!next) { reset(); setServerError(null) }
     setOpen(next)
   }
 
@@ -356,16 +226,17 @@ function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => voi
             <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
               Producto
             </label>
-            {loadingItems ? (
-              <div className="input-field text-on-surface-variant text-sm">Cargando productos...</div>
-            ) : (
-              <ProductSearch
-                items={inventarioItems}
-                value={productoNombre}
-                onChange={(name) => setValue('productoNombre', name, { shouldValidate: true })}
-                placeholder={`Buscá un ${CATEGORIA_LABELS[categoria].toLowerCase()}...`}
-              />
-            )}
+            <ProductoSelector
+              key={`${categoria}-${productoId ?? 'empty'}`}
+              categoria={categoria}
+              displayValue={productoNombre}
+              onChange={(id, nombre) => {
+                setValue('productoId', id || undefined, { shouldValidate: true })
+                setValue('productoNombre', nombre, { shouldValidate: true })
+              }}
+              token={token}
+              placeholder={`Buscá un ${CATEGORIA_LABELS[categoria].toLowerCase()}...`}
+            />
             {errors.productoNombre && (
               <p className="font-body text-error text-xs">{errors.productoNombre.message}</p>
             )}

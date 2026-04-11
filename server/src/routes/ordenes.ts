@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { authenticate, AuthRequest } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
 import { sseManager, STOCK_BAJO_THRESHOLD, STOCK_BAJO_FRASCOS_THRESHOLD } from '../lib/sse-manager'
+import { resolveCanonicalProductName } from '../lib/producto-catalogo'
 
 const router = Router()
 
@@ -14,6 +15,7 @@ const MERCADOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
 
 const crearOrdenSchema = z.object({
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+  productoId: z.string().uuid().optional(),
   productoNombre: z.string().min(2).max(200),
   mercado: z.enum(MERCADOS).optional(),
   cantidad: z.number().int().positive(),
@@ -26,6 +28,10 @@ const rechazarSchema = z.object({
 
 // Estados finales que no permiten más transiciones
 const ESTADOS_FINALES = ['completada', 'rechazada'] as const
+
+function normalizeForMatch(str: string): string {
+  return resolveCanonicalProductName(str)
+}
 
 // Helper: verifica si el stock bajó del threshold después de un egreso
 async function checkStockBajo(
@@ -73,17 +79,29 @@ router.post(
       return
     }
 
-    const { categoria, productoNombre, mercado, cantidad, urgencia } = result.data
+    const { categoria, productoId, mercado, cantidad, urgencia } = result.data
+    let { productoNombre } = result.data
 
     if ((categoria === 'estuche' || categoria === 'etiqueta') && !mercado) {
       res.status(400).json({ message: 'El campo mercado es obligatorio para estuches y etiquetas' })
       return
     }
 
+    // Si viene productoId, validar en catálogo y usar nombreCompleto
+    if (productoId) {
+      const producto = await prisma.producto.findUnique({ where: { id: productoId } })
+      if (!producto || producto.categoria !== categoria) {
+        res.status(400).json({ message: 'Producto no encontrado en el catálogo o categoría incorrecta' })
+        return
+      }
+      productoNombre = producto.nombreCompleto
+    }
+
     try {
       const orden = await prisma.ordenProduccion.create({
         data: {
           solicitanteId: req.user!.id,
+          productoId: productoId ?? null,
           categoria,
           productoNombre,
           mercado: mercado ?? null,
@@ -267,9 +285,10 @@ router.put(
 
         if (categoria === 'droga') {
           // FIFO: descontar empezando por el lote con vencimiento más próximo
-          const lotes = await tx.inventarioDroga.findMany({
-            where: { nombre: productoNombre, cantidad: { gt: 0 } },
-          })
+          const drogas_where = orden.productoId
+            ? { productoId: orden.productoId, cantidad: { gt: 0 } }
+            : { nombre: productoNombre, cantidad: { gt: 0 } }
+          const lotes = await tx.inventarioDroga.findMany({ where: drogas_where })
 
           // Ordenar en app: vencimiento no-null ASC primero, luego null (sin vencimiento)
           const sorted = [...lotes].sort((a, b) => {
@@ -314,34 +333,54 @@ router.put(
           }
         } else if (categoria === 'estuche') {
           if (!mercado) throw new Error('El campo mercado es obligatorio para estuches')
-          const estuche = await tx.inventarioEstuche.findUnique({
-            where: { articulo_mercado: { articulo: productoNombre, mercado } },
-          })
-          if (!estuche) throw new Error('Producto no encontrado en inventario de estuches')
-          if (estuche.cantidad < cantidad) throw new Error(`Stock insuficiente (disponible: ${estuche.cantidad})`)
+          const estuche = orden.productoId
+            ? await tx.inventarioEstuche.findFirst({ where: { productoId: orden.productoId, mercado } })
+            : null
+          let estucheResolved = estuche
+          if (!estucheResolved) {
+            const buscar = normalizeForMatch(productoNombre)
+            const candidatos = await tx.inventarioEstuche.findMany({ where: { mercado } })
+            estucheResolved = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar) ?? null
+          }
+          if (!estucheResolved) throw new Error('Producto no encontrado en inventario de estuches')
+          if (estucheResolved.cantidad < cantidad) throw new Error(`Stock insuficiente (disponible: ${estucheResolved.cantidad})`)
           await tx.inventarioEstuche.update({
-            where: { articulo_mercado: { articulo: productoNombre, mercado } },
+            where: { id: estucheResolved.id },
             data: { cantidad: { decrement: cantidad } },
           })
         } else if (categoria === 'etiqueta') {
           if (!mercado) throw new Error('El campo mercado es obligatorio para etiquetas')
-          const etiqueta = await tx.inventarioEtiqueta.findUnique({
-            where: { articulo_mercado: { articulo: productoNombre, mercado } },
-          })
-          if (!etiqueta) throw new Error('Producto no encontrado en inventario de etiquetas')
-          if (etiqueta.cantidad < cantidad) throw new Error(`Stock insuficiente (disponible: ${etiqueta.cantidad})`)
+          const etiqueta = orden.productoId
+            ? await tx.inventarioEtiqueta.findFirst({ where: { productoId: orden.productoId, mercado } })
+            : null
+          let etiquetaResolved = etiqueta
+          if (!etiquetaResolved) {
+            const buscar = normalizeForMatch(productoNombre)
+            const candidatos = await tx.inventarioEtiqueta.findMany({ where: { mercado } })
+            etiquetaResolved = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar) ?? null
+          }
+          if (!etiquetaResolved) throw new Error('Producto no encontrado en inventario de etiquetas')
+          if (etiquetaResolved.cantidad < cantidad) throw new Error(`Stock insuficiente (disponible: ${etiquetaResolved.cantidad})`)
           await tx.inventarioEtiqueta.update({
-            where: { articulo_mercado: { articulo: productoNombre, mercado } },
+            where: { id: etiquetaResolved.id },
             data: { cantidad: { decrement: cantidad } },
           })
         } else if (categoria === 'frasco') {
-          const frasco = await tx.inventarioFrasco.findUnique({ where: { articulo: productoNombre } })
-          if (!frasco) throw new Error('Producto no encontrado en inventario de frascos')
-          if (frasco.cantidadCajas < cantidad) throw new Error(`Stock insuficiente (disponible: ${frasco.cantidadCajas} cajas)`)
-          const nuevasCajas = frasco.cantidadCajas - cantidad
+          const frasco = orden.productoId
+            ? await tx.inventarioFrasco.findFirst({ where: { productoId: orden.productoId } })
+            : null
+          let frascoResolved = frasco
+          if (!frascoResolved) {
+            const buscar = normalizeForMatch(productoNombre)
+            const candidatos = await tx.inventarioFrasco.findMany()
+            frascoResolved = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar) ?? null
+          }
+          if (!frascoResolved) throw new Error('Producto no encontrado en inventario de frascos')
+          if (frascoResolved.cantidadCajas < cantidad) throw new Error(`Stock insuficiente (disponible: ${frascoResolved.cantidadCajas} cajas)`)
+          const nuevasCajas = frascoResolved.cantidadCajas - cantidad
           await tx.inventarioFrasco.update({
-            where: { articulo: productoNombre },
-            data: { cantidadCajas: nuevasCajas, total: nuevasCajas * frasco.unidadesPorCaja },
+            where: { id: frascoResolved.id },
+            data: { cantidadCajas: nuevasCajas, total: nuevasCajas * frascoResolved.unidadesPorCaja },
           })
         }
 
@@ -510,4 +549,3 @@ router.put(
 )
 
 export default router
-

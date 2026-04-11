@@ -6,6 +6,7 @@ import { Plus, Trash2, CalendarClock } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { fetchCatalogoProductos } from '@/lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '@/features/inventory/shared/inventory-states'
 import {
   Dialog,
@@ -21,6 +22,7 @@ import {
 
 interface DrogaRecord {
   id: string
+  productoId?: string | null
   nombre: string
   lote: string | null
   vencimiento: string | null
@@ -44,11 +46,12 @@ function diasHastaVencimiento(vencimiento: string): number {
   return Math.floor((new Date(vencimiento).getTime() - Date.now()) / 86_400_000)
 }
 
-function groupDrogas(records: DrogaRecord[]): DrogaGroup[] {
+function groupDrogas(records: DrogaRecord[], getDisplayName: (record: DrogaRecord) => string): DrogaGroup[] {
   const map = new Map<string, DrogaRecord[]>()
   for (const r of records) {
-    if (!map.has(r.nombre)) map.set(r.nombre, [])
-    map.get(r.nombre)!.push(r)
+    const displayName = getDisplayName(r)
+    if (!map.has(displayName)) map.set(displayName, [])
+    map.get(displayName)!.push(r)
   }
 
   return Array.from(map.entries())
@@ -271,6 +274,7 @@ export function DrogasPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
     apiClient
@@ -278,9 +282,23 @@ export function DrogasPage() {
       .then(setRecords)
       .catch(() => setError('No se pudo cargar el inventario'))
       .finally(() => setLoading(false))
+
+    fetchCatalogoProductos('droga', token)
+      .then((productos) => {
+        setCatalogMap(
+          Object.fromEntries(productos.map((producto) => [producto.id, producto.nombreCompleto]))
+        )
+      })
+      .catch(() => {})
   }, [token])
 
-  const groups = useMemo(() => groupDrogas(records), [records])
+  const groups = useMemo(
+    () =>
+      groupDrogas(records, (record) =>
+        record.productoId ? (catalogMap[record.productoId] ?? record.nombre) : record.nombre
+      ),
+    [records, catalogMap]
+  )
 
   function handleCreated(droga: DrogaRecord) {
     setRecords((prev) => [...prev, droga])
@@ -371,7 +389,12 @@ export function DrogasPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={() => handleDelete(lote.id, `${lote.nombre} (lote ${lote.lote ?? 'sin lote'})`)}
+                        onClick={() =>
+                          handleDelete(
+                            lote.id,
+                            `${lote.productoId ? (catalogMap[lote.productoId] ?? lote.nombre) : lote.nombre} (lote ${lote.lote ?? 'sin lote'})`
+                          )
+                        }
                         disabled={deletingId === lote.id}
                         className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
                         title="Eliminar lote"
@@ -390,4 +413,3 @@ export function DrogasPage() {
     </div>
   )
 }
-

@@ -14,6 +14,7 @@ import usersRoutes from './routes/users'
 import ordenesRoutes from './routes/ordenes'
 import eventsRoutes from './routes/events'
 import metricasRoutes from './routes/metricas'
+import productosRoutes from './routes/productos'
 
 const app = express()
 const PORT = process.env.PORT ?? 3001
@@ -41,6 +42,7 @@ app.use('/api/users', usersRoutes)
 app.use('/api/ordenes', ordenesRoutes)
 app.use('/api/events', eventsRoutes)
 app.use('/api/metricas', metricasRoutes)
+app.use('/api/productos', productosRoutes)
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`)

@@ -7,7 +7,17 @@ const prisma_1 = require("../lib/prisma");
 const auth_1 = require("../middleware/auth");
 const require_role_1 = require("../middleware/require-role");
 const sse_manager_1 = require("../lib/sse-manager");
+const lote_generator_1 = require("../lib/lote-generator");
+const producto_catalogo_1 = require("../lib/producto-catalogo");
 const router = (0, express_1.Router)();
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+/**
+ * Normaliza un nombre para comparación: elimina TODOS los espacios y convierte a uppercase.
+ * Resuelve diferencias como "100 ML" vs "100ML" o "olivitasan" vs "OLIVITASAN".
+ */
+function normalizeForMatch(str) {
+    return (0, producto_catalogo_1.resolveCanonicalProductName)(str);
+}
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 const crearActaSchema = zod_1.z.object({
     fecha: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
@@ -18,6 +28,7 @@ const CONDICIONES_EMBALAJE = Object.values(client_1.CondicionEmbalaje);
 const agregarItemSchema = zod_1.z
     .object({
     categoria: zod_1.z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+    productoId: zod_1.z.string().uuid().optional(),
     productoNombre: zod_1.z.string().min(2).max(100),
     lote: zod_1.z.string().trim().max(50).optional(),
     vencimiento: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -137,12 +148,28 @@ router.post('/:id/items', auth_1.authenticate, (0, require_role_1.requireRole)('
             res.status(404).json({ message: 'Acta no encontrada' });
             return;
         }
+        // Si viene productoId, validar en catálogo y usar nombreCompleto como nombre canónico
+        let productoId = result.data.productoId;
+        let productoNombre = result.data.productoNombre;
+        if (productoId) {
+            const producto = await prisma_1.prisma.producto.findUnique({ where: { id: productoId } });
+            if (!producto || producto.categoria !== categoria) {
+                res.status(400).json({ message: 'Producto no encontrado en el catálogo o categoría incorrecta' });
+                return;
+            }
+            productoNombre = producto.nombreCompleto;
+        }
+        // Drogas: lote manual obligatorio. Resto: autogenerado, ignorar lo que venga del frontend.
+        const lote = categoria === 'droga'
+            ? result.data.lote.trim()
+            : await (0, lote_generator_1.generarLote)(categoria);
         const item = await prisma_1.prisma.actaItem.create({
             data: {
                 actaId,
+                productoId: productoId ?? null,
                 categoria: result.data.categoria,
-                productoNombre: result.data.productoNombre,
-                lote: result.data.lote?.trim() || '',
+                productoNombre,
+                lote,
                 vencimiento: result.data.vencimiento
                     ? new Date(result.data.vencimiento + 'T00:00:00.000Z')
                     : null,
@@ -182,35 +209,60 @@ router.post('/:id/items/:itemId/distribuir', auth_1.authenticate, (0, require_ro
                 throw new Error(`Cantidad excede lo disponible (restante: ${restante})`);
             }
             // 2. Actualizar inventario según categoría
+            // Prioridad: buscar por productoId (confiable). Fallback: normalizeForMatch (legacy).
             if (item.categoria === 'droga') {
-                // Upsert en inventario usando (nombre, lote) como clave
-                await tx.inventarioDroga.upsert({
-                    where: { nombre_lote: { nombre: item.productoNombre, lote: item.lote } },
-                    update: {
-                        cantidad: { increment: cantidad },
-                        // Actualizar vencimiento si aún no tenía uno
-                        ...(item.vencimiento ? { vencimiento: item.vencimiento } : {}),
-                    },
-                    create: {
-                        nombre: item.productoNombre,
-                        lote: item.lote,
-                        vencimiento: item.vencimiento,
-                        cantidad,
-                    },
-                });
+                let invDroga = item.productoId
+                    ? await tx.inventarioDroga.findFirst({
+                        where: { productoId: item.productoId, lote: item.lote },
+                    })
+                    : null;
+                if (!invDroga) {
+                    const buscar = normalizeForMatch(item.productoNombre);
+                    const candidatos = await tx.inventarioDroga.findMany({ where: { lote: item.lote } });
+                    invDroga = candidatos.find((d) => normalizeForMatch(d.nombre) === buscar) ?? null;
+                    console.log(`Buscando: ${buscar} en droga — encontrado: ${invDroga ? 'si' : 'no'}`);
+                }
+                if (invDroga) {
+                    await tx.inventarioDroga.update({
+                        where: { id: invDroga.id },
+                        data: {
+                            cantidad: { increment: cantidad },
+                            ...(item.vencimiento ? { vencimiento: item.vencimiento } : {}),
+                        },
+                    });
+                }
+                else {
+                    await tx.inventarioDroga.create({
+                        data: {
+                            productoId: item.productoId ?? null,
+                            nombre: item.productoNombre,
+                            lote: item.lote,
+                            vencimiento: item.vencimiento,
+                            cantidad,
+                        },
+                    });
+                }
             }
             else if (item.categoria === 'estuche') {
                 if (!item.mercado) {
                     throw new Error('El item no tiene mercado asignado');
                 }
-                const existing = await tx.inventarioEstuche.findUnique({
-                    where: { articulo_mercado: { articulo: item.productoNombre, mercado: item.mercado } },
-                });
+                let existing = item.productoId
+                    ? await tx.inventarioEstuche.findFirst({
+                        where: { productoId: item.productoId, mercado: item.mercado },
+                    })
+                    : null;
+                if (!existing) {
+                    const buscar = normalizeForMatch(item.productoNombre);
+                    const candidatos = await tx.inventarioEstuche.findMany({ where: { mercado: item.mercado } });
+                    existing = candidatos.find((e) => normalizeForMatch(e.articulo) === buscar) ?? null;
+                    console.log(`Buscando: ${buscar} en estuche (${item.mercado}) — encontrado: ${existing ? 'si' : 'no'}`);
+                }
                 if (!existing) {
                     throw new Error('Producto no encontrado en inventario de estuche');
                 }
                 await tx.inventarioEstuche.update({
-                    where: { articulo_mercado: { articulo: item.productoNombre, mercado: item.mercado } },
+                    where: { id: existing.id },
                     data: { cantidad: { increment: cantidad } },
                 });
             }
@@ -218,27 +270,43 @@ router.post('/:id/items/:itemId/distribuir', auth_1.authenticate, (0, require_ro
                 if (!item.mercado) {
                     throw new Error('El item no tiene mercado asignado');
                 }
-                const existing = await tx.inventarioEtiqueta.findUnique({
-                    where: { articulo_mercado: { articulo: item.productoNombre, mercado: item.mercado } },
-                });
+                let existing = item.productoId
+                    ? await tx.inventarioEtiqueta.findFirst({
+                        where: { productoId: item.productoId, mercado: item.mercado },
+                    })
+                    : null;
+                if (!existing) {
+                    const buscar = normalizeForMatch(item.productoNombre);
+                    const candidatos = await tx.inventarioEtiqueta.findMany({ where: { mercado: item.mercado } });
+                    existing = candidatos.find((e) => normalizeForMatch(e.articulo) === buscar) ?? null;
+                    console.log(`Buscando: ${buscar} en etiqueta (${item.mercado}) — encontrado: ${existing ? 'si' : 'no'}`);
+                }
                 if (!existing) {
                     throw new Error('Producto no encontrado en inventario de etiqueta');
                 }
                 await tx.inventarioEtiqueta.update({
-                    where: { articulo_mercado: { articulo: item.productoNombre, mercado: item.mercado } },
+                    where: { id: existing.id },
                     data: { cantidad: { increment: cantidad } },
                 });
             }
             else if (item.categoria === 'frasco') {
-                const frasco = await tx.inventarioFrasco.findUnique({
-                    where: { articulo: item.productoNombre },
-                });
+                let frasco = item.productoId
+                    ? await tx.inventarioFrasco.findFirst({
+                        where: { productoId: item.productoId },
+                    })
+                    : null;
+                if (!frasco) {
+                    const buscar = normalizeForMatch(item.productoNombre);
+                    const candidatos = await tx.inventarioFrasco.findMany();
+                    frasco = candidatos.find((f) => normalizeForMatch(f.articulo) === buscar) ?? null;
+                    console.log(`Buscando: ${buscar} en frasco — encontrado: ${frasco ? 'si' : 'no'}`);
+                }
                 if (!frasco) {
                     throw new Error('Producto no encontrado en inventario de frasco');
                 }
                 const nuevasCajas = frasco.cantidadCajas + cantidad;
                 await tx.inventarioFrasco.update({
-                    where: { articulo: item.productoNombre },
+                    where: { id: frasco.id },
                     data: { cantidadCajas: nuevasCajas, total: nuevasCajas * frasco.unidadesPorCaja },
                 });
             }

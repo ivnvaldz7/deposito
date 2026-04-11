@@ -1,38 +1,14 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import Fuse from 'fuse.js'
 import { ChevronRight, Plus, Check, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { ProductoSelector } from '@/components/producto-selector'
 import type { Acta, ActaItem, Categoria, CondicionEmbalaje, Mercado } from './types'
-
-// ─── Tipos locales para autocompletes ────────────────────────────────────────
-
-interface Estuche {
-  id: string
-  articulo: string
-  mercado: Mercado
-  cantidad: number
-}
-
-interface Etiqueta {
-  id: string
-  articulo: string
-  mercado: Mercado
-  cantidad: number
-}
-
-interface Frasco {
-  id: string
-  articulo: string
-  unidadesPorCaja: number
-  cantidadCajas: number
-  total: number
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -203,301 +179,7 @@ const CONDICION_EMBALAJE_OPTIONS: {
   { value: 'malo', label: 'Malo', color: '#F44336' },
 ]
 
-function DrogaAutocomplete({
-  id,
-  drogas,
-  value,
-  onChange,
-}: {
-  id: string
-  drogas: string[]
-  value: string
-  onChange: (v: string) => void
-}) {
-  const [results, setResults] = useState<string[]>([])
-  const [open, setOpen] = useState(false)
-  const fuseRef = useRef<Fuse<string>>(new Fuse(drogas, { threshold: 0.45, keys: [] }))
-
-  useEffect(() => {
-    fuseRef.current = new Fuse(drogas, { threshold: 0.45, keys: [] })
-  }, [drogas])
-
-  function handleInput(q: string) {
-    onChange(q)
-    if (q.length < 1) {
-      setResults([])
-      setOpen(false)
-      return
-    }
-    const res = fuseRef.current.search(q).map((r) => r.item).slice(0, 8)
-    setResults(res)
-    setOpen(res.length > 0)
-  }
-
-  function select(name: string) {
-    onChange(name)
-    setResults([])
-    setOpen(false)
-  }
-
-  return (
-    <div className="relative">
-      <input
-        id={id}
-        type="text"
-        value={value}
-        onChange={(e) => handleInput(e.target.value)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Buscar droga del inventario..."
-        className="input-field"
-        autoComplete="off"
-      />
-      {open && (
-        <div className="absolute z-20 w-full mt-1 bg-surface-highest/90 backdrop-blur-[12px] rounded shadow-float overflow-hidden">
-          {results.map((name) => (
-            <button
-              key={name}
-              type="button"
-              onMouseDown={(e) => { e.preventDefault(); select(name) }}
-              className="w-full text-left px-4 py-2.5 font-body text-sm text-on-surface hover:bg-surface-bright transition-colors"
-            >
-              {name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Estuche autocomplete ─────────────────────────────────────────────────────
-
-function EstucheAutocomplete({
-  id,
-  estuches,
-  value,
-  onChange,
-  onMercadoDetected,
-}: {
-  id: string
-  estuches: Estuche[]
-  value: string
-  onChange: (v: string) => void
-  onMercadoDetected: (m: Mercado) => void
-}) {
-  const [results, setResults] = useState<Estuche[]>([])
-  const [open, setOpen] = useState(false)
-  // Unique article names for search
-  const articulos = useMemo(
-    () => [...new Set(estuches.map((e) => e.articulo))],
-    [estuches]
-  )
-  const fuseRef = useRef<Fuse<string>>(new Fuse(articulos, { threshold: 0.45, keys: [] }))
-
-  useEffect(() => {
-    fuseRef.current = new Fuse(articulos, { threshold: 0.45, keys: [] })
-  }, [articulos])
-
-  function handleInput(q: string) {
-    onChange(q)
-    if (q.length < 1) { setResults([]); setOpen(false); return }
-    const matched = fuseRef.current.search(q).map((r) => r.item).slice(0, 8)
-    // deduplicate by articulo, keeping first entry per articulo
-    const seen = new Set<string>()
-    const deduped = estuches.filter((e) => {
-      if (!matched.includes(e.articulo) || seen.has(e.articulo)) return false
-      seen.add(e.articulo)
-      return true
-    })
-    setResults(deduped)
-    setOpen(deduped.length > 0)
-  }
-
-  function select(estuche: Estuche) {
-    onChange(estuche.articulo)
-    onMercadoDetected(estuche.mercado)
-    setResults([])
-    setOpen(false)
-  }
-
-  return (
-    <div className="relative">
-      <input
-        id={id}
-        type="text"
-        value={value}
-        onChange={(e) => handleInput(e.target.value)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Buscar estuche del inventario..."
-        className="input-field"
-        autoComplete="off"
-      />
-      {open && (
-        <div className="absolute z-20 w-full mt-1 bg-surface-highest/90 backdrop-blur-[12px] rounded shadow-float overflow-hidden">
-          {results.map((e) => (
-            <button
-              key={e.id}
-              type="button"
-              onMouseDown={(ev) => { ev.preventDefault(); select(e) }}
-              className="w-full text-left px-4 py-2.5 font-body text-sm text-on-surface hover:bg-surface-bright transition-colors"
-            >
-              {e.articulo}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Etiqueta autocomplete ────────────────────────────────────────────────────
-
-function EtiquetaAutocomplete({
-  id,
-  etiquetas,
-  value,
-  onChange,
-  onMercadoDetected,
-}: {
-  id: string
-  etiquetas: Etiqueta[]
-  value: string
-  onChange: (v: string) => void
-  onMercadoDetected: (m: Mercado) => void
-}) {
-  const [results, setResults] = useState<Etiqueta[]>([])
-  const [open, setOpen] = useState(false)
-  const articulos = useMemo(
-    () => [...new Set(etiquetas.map((e) => e.articulo))],
-    [etiquetas]
-  )
-  const fuseRef = useRef<Fuse<string>>(new Fuse(articulos, { threshold: 0.45, keys: [] }))
-
-  useEffect(() => {
-    fuseRef.current = new Fuse(articulos, { threshold: 0.45, keys: [] })
-  }, [articulos])
-
-  function handleInput(q: string) {
-    onChange(q)
-    if (q.length < 1) { setResults([]); setOpen(false); return }
-    const matched = fuseRef.current.search(q).map((r) => r.item).slice(0, 8)
-    const seen = new Set<string>()
-    const deduped = etiquetas.filter((e) => {
-      if (!matched.includes(e.articulo) || seen.has(e.articulo)) return false
-      seen.add(e.articulo)
-      return true
-    })
-    setResults(deduped)
-    setOpen(deduped.length > 0)
-  }
-
-  function select(etiqueta: Etiqueta) {
-    onChange(etiqueta.articulo)
-    onMercadoDetected(etiqueta.mercado)
-    setResults([])
-    setOpen(false)
-  }
-
-  return (
-    <div className="relative">
-      <input
-        id={id}
-        type="text"
-        value={value}
-        onChange={(e) => handleInput(e.target.value)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Buscar etiqueta del inventario..."
-        className="input-field"
-        autoComplete="off"
-      />
-      {open && (
-        <div className="absolute z-20 w-full mt-1 bg-surface-highest/90 backdrop-blur-[12px] rounded shadow-float overflow-hidden">
-          {results.map((e) => (
-            <button
-              key={e.id}
-              type="button"
-              onMouseDown={(ev) => { ev.preventDefault(); select(e) }}
-              className="w-full text-left px-4 py-2.5 font-body text-sm text-on-surface hover:bg-surface-bright transition-colors"
-            >
-              {e.articulo}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ─── Frasco autocomplete ──────────────────────────────────────────────────────
-
-function FrascoAutocomplete({
-  id,
-  frascos,
-  value,
-  onChange,
-  onFrascoSelected,
-}: {
-  id: string
-  frascos: Frasco[]
-  value: string
-  onChange: (v: string) => void
-  onFrascoSelected: (f: Frasco | null) => void
-}) {
-  const [results, setResults] = useState<Frasco[]>([])
-  const [open, setOpen] = useState(false)
-  const fuseRef = useRef<Fuse<Frasco>>(new Fuse(frascos, { keys: ['articulo'], threshold: 0.45 }))
-
-  useEffect(() => {
-    fuseRef.current = new Fuse(frascos, { keys: ['articulo'], threshold: 0.45 })
-  }, [frascos])
-
-  function handleInput(q: string) {
-    onChange(q)
-    onFrascoSelected(null)
-    if (q.length < 1) { setResults([]); setOpen(false); return }
-    const res = fuseRef.current.search(q).map((r) => r.item).slice(0, 8)
-    setResults(res)
-    setOpen(res.length > 0)
-  }
-
-  function select(frasco: Frasco) {
-    onChange(frasco.articulo)
-    onFrascoSelected(frasco)
-    setResults([])
-    setOpen(false)
-  }
-
-  return (
-    <div className="relative">
-      <input
-        id={id}
-        type="text"
-        value={value}
-        onChange={(e) => handleInput(e.target.value)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Buscar frasco del inventario..."
-        className="input-field"
-        autoComplete="off"
-      />
-      {open && (
-        <div className="absolute z-20 w-full mt-1 bg-surface-highest/90 backdrop-blur-[12px] rounded shadow-float overflow-hidden">
-          {results.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onMouseDown={(ev) => { ev.preventDefault(); select(f) }}
-              className="w-full text-left px-4 py-2.5 font-body text-sm text-on-surface hover:bg-surface-bright transition-colors"
-            >
-              <span>{f.articulo}</span>
-              <span className="ml-2 text-on-surface-variant text-xs">{f.unidadesPorCaja} uds/caja</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
+// ─── Autocompletes individuales eliminados — se usa <ProductoSelector> ──────
 // ─── Step 2: agregar items ────────────────────────────────────────────────────
 
 const CATEGORIAS: { value: Categoria; label: string }[] = [
@@ -510,6 +192,7 @@ const CATEGORIAS: { value: Categoria; label: string }[] = [
 const itemSchema = z
   .object({
     categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+    productoId: z.string().uuid().optional(),
     productoNombre: z.string().min(2, 'Mínimo 2 caracteres').max(100),
     lote: z.string().max(50, 'Máximo 50 caracteres').optional(),
     vencimiento: z.string().optional(),
@@ -551,28 +234,19 @@ type ItemFormData = z.infer<typeof itemSchema>
 
 function Paso2({
   actaId,
-  drogas,
-  estuches,
-  etiquetas,
-  frascos,
   items,
   onItemAdded,
   onNext,
   prefillItem,
 }: {
   actaId: string
-  drogas: string[]
-  estuches: Estuche[]
-  etiquetas: Etiqueta[]
-  frascos: Frasco[]
   items: ActaItem[]
   onItemAdded: (item: ActaItem) => void
   onNext: () => void
-  prefillItem?: { categoria: Categoria; productoNombre: string; cantidadIngresada: string } | null
+  prefillItem?: { categoria: Categoria; productoNombre: string; productoId?: string; cantidadIngresada: string } | null
 }) {
   const token = useAuthStore((s) => s.token)
   const [serverError, setServerError] = useState<string | null>(null)
-  const [, setFrascoInfo] = useState<Frasco | null>(null)
   const [qualityOpen, setQualityOpen] = useState(false)
   const prefillAppliedRef = useRef(false)
 
@@ -587,6 +261,7 @@ function Paso2({
     resolver: zodResolver(itemSchema),
     defaultValues: {
       categoria: 'droga',
+      productoId: undefined,
       productoNombre: '',
       lote: '',
       vencimiento: '',
@@ -600,21 +275,19 @@ function Paso2({
   })
 
   const categoria = useWatch({ control, name: 'categoria' })
+  const selectedProductoId = useWatch({ control, name: 'productoId' })
   const productoNombre = useWatch({ control, name: 'productoNombre' })
   const mercado = useWatch({ control, name: 'mercado' })
-  const cantidadVal = useWatch({ control, name: 'cantidadIngresada' })
   const condicionEmbalaje = useWatch({ control, name: 'condicionEmbalaje' })
   const aprobadoCalidad = useWatch({ control, name: 'aprobadoCalidad' })
-  const displayedFrascoInfo =
-    categoria === 'frasco' && productoNombre
-      ? frascos.find((frasco) => frasco.articulo === productoNombre) ?? null
-      : null
 
   useEffect(() => {
     if (!prefillItem || prefillAppliedRef.current) return
 
+    const pid = prefillItem.productoId ?? ''
     reset({
       categoria: prefillItem.categoria,
+      productoId: pid || undefined,
       productoNombre: prefillItem.productoNombre,
       lote: '',
       vencimiento: '',
@@ -635,6 +308,7 @@ function Paso2({
         `/actas/${actaId}/items`,
         {
           categoria: data.categoria,
+          ...(data.productoId ? { productoId: data.productoId } : {}),
           productoNombre: data.productoNombre,
           ...(data.categoria === 'droga' ? { lote: data.lote } : {}),
           cantidadIngresada: Number(data.cantidadIngresada),
@@ -655,6 +329,7 @@ function Paso2({
       toast.info(`Item "${item.productoNombre}" agregado al acta.`)
       reset({
         categoria: data.categoria,
+        productoId: undefined,
         productoNombre: '',
         lote: '',
         vencimiento: '',
@@ -687,11 +362,9 @@ function Paso2({
                 type="button"
                 onClick={() => {
                   setValue('categoria', value)
+                  setValue('productoId', undefined)
                   setValue('productoNombre', '')
                   setValue('mercado', undefined)
-                  if (value !== 'frasco') {
-                    setFrascoInfo(null)
-                  }
                 }}
                 className="px-3 py-1.5 rounded font-body text-sm transition-colors"
                 style={
@@ -706,70 +379,26 @@ function Paso2({
           </div>
         </div>
 
-        {/* Producto */}
+        {/* Producto — catálogo centralizado */}
         <div className="space-y-1">
           <label htmlFor="acta-item-producto" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
             Producto
           </label>
-          {categoria === 'droga' ? (
-            <DrogaAutocomplete
-              id="acta-item-producto"
-              drogas={drogas}
-              value={productoNombre}
-              onChange={(v) => setValue('productoNombre', v, { shouldValidate: true })}
-            />
-          ) : categoria === 'estuche' ? (
-            <EstucheAutocomplete
-              id="acta-item-producto"
-              estuches={estuches}
-              value={productoNombre}
-              onChange={(v) => setValue('productoNombre', v, { shouldValidate: true })}
-              onMercadoDetected={(m) => setValue('mercado', m, { shouldValidate: true })}
-            />
-          ) : categoria === 'etiqueta' ? (
-            <EtiquetaAutocomplete
-              id="acta-item-producto"
-              etiquetas={etiquetas}
-              value={productoNombre}
-              onChange={(v) => setValue('productoNombre', v, { shouldValidate: true })}
-              onMercadoDetected={(m) => setValue('mercado', m, { shouldValidate: true })}
-            />
-          ) : categoria === 'frasco' ? (
-            <FrascoAutocomplete
-              id="acta-item-producto"
-              frascos={frascos}
-              value={productoNombre}
-              onChange={(v) => setValue('productoNombre', v, { shouldValidate: true })}
-              onFrascoSelected={setFrascoInfo}
-            />
-          ) : (
-            <input
-              id="acta-item-producto"
-              {...register('productoNombre')}
-              type="text"
-              placeholder="Nombre del producto"
-              className="input-field"
-            />
-          )}
+          <ProductoSelector
+            key={`${categoria}-${selectedProductoId ?? 'empty'}`}
+            id="acta-item-producto"
+            categoria={categoria}
+            displayValue={productoNombre}
+            onChange={(id, nombre) => {
+              setValue('productoId', id || undefined, { shouldValidate: true })
+              setValue('productoNombre', nombre, { shouldValidate: true })
+            }}
+            token={token}
+          />
           {errors.productoNombre && (
             <p className="font-body text-error text-xs">{errors.productoNombre.message}</p>
           )}
         </div>
-
-        {/* Info frasco — solo para frascos */}
-        {categoria === 'frasco' && displayedFrascoInfo && (
-          <div className="bg-surface-low rounded px-3 py-2 font-body text-xs text-on-surface-variant space-y-0.5">
-            <p>{displayedFrascoInfo.unidadesPorCaja} uds/caja</p>
-            {Number(cantidadVal) > 0 && (
-              <p>
-                Total:{' '}
-                <span className="text-on-surface font-medium tabular-nums">
-                  {(displayedFrascoInfo.unidadesPorCaja * Number(cantidadVal)).toLocaleString()} unidades
-                </span>
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Mercado — para estuches y etiquetas */}
         {(categoria === 'estuche' || categoria === 'etiqueta') && (
@@ -1249,9 +878,9 @@ function Paso3({
 export function ActaNuevaPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const token = useAuthStore((s) => s.token)
   const pendingPrefill = (location.state as {
     productoNombre?: string
+    productoId?: string
     categoria?: Categoria
     cantidadIngresada?: string
   } | null) ?? null
@@ -1259,20 +888,6 @@ export function ActaNuevaPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [acta, setActa] = useState<Acta | null>(null)
   const [items, setItems] = useState<ActaItem[]>([])
-  const [drogas, setDrogas] = useState<string[]>([])
-  const [estuches, setEstuches] = useState<Estuche[]>([])
-  const [etiquetas, setEtiquetas] = useState<Etiqueta[]>([])
-  const [frascos, setFrascos] = useState<Frasco[]>([])
-
-  useEffect(() => {
-    apiClient
-      .get<{ id: string; nombre: string }[]>('/drogas', token)
-      .then((list) => setDrogas([...new Set(list.map((d) => d.nombre))]))
-      .catch(() => {})
-    apiClient.get<Estuche[]>('/estuches', token).then(setEstuches).catch(() => {})
-    apiClient.get<Etiqueta[]>('/etiquetas', token).then(setEtiquetas).catch(() => {})
-    apiClient.get<Frasco[]>('/frascos', token).then(setFrascos).catch(() => {})
-  }, [token])
 
   function handleActaCreada(a: Acta) {
     setActa(a)
@@ -1313,10 +928,6 @@ export function ActaNuevaPage() {
       {step === 2 && acta && (
         <Paso2
           actaId={acta.id}
-          drogas={drogas}
-          estuches={estuches}
-          etiquetas={etiquetas}
-          frascos={frascos}
           items={items}
           onItemAdded={handleItemAdded}
           onNext={() => setStep(3)}
@@ -1325,6 +936,7 @@ export function ActaNuevaPage() {
               ? {
                   categoria: pendingPrefill.categoria,
                   productoNombre: pendingPrefill.productoNombre,
+                  productoId: pendingPrefill.productoId,
                   cantidadIngresada: pendingPrefill.cantidadIngresada,
                 }
               : null
@@ -1342,4 +954,3 @@ export function ActaNuevaPage() {
     </div>
   )
 }
-

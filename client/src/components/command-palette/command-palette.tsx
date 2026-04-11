@@ -12,64 +12,26 @@ import { apiClient } from '@/lib/api-client'
 
 interface Droga {
   id: string
-  nombre: string
-  cantidad: number
+  nombreCompleto: string
+  categoria: 'droga'
 }
-
-type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
 
 interface Estuche {
   id: string
-  articulo: string
-  mercado: Mercado
-  cantidad: number
-}
-
-const MERCADO_COLORS: Record<Mercado, string> = {
-  argentina:    '#00AE42',
-  colombia:     '#FF9800',
-  mexico:       '#2196F3',
-  ecuador:      '#9C27B0',
-  bolivia:      '#F44336',
-  paraguay:     '#00BCD4',
-  no_exportable: '#757575',
-}
-
-const MERCADO_LABELS: Record<Mercado, string> = {
-  argentina:    'ARG',
-  colombia:     'COL',
-  mexico:       'MEX',
-  ecuador:      'ECU',
-  bolivia:      'BOL',
-  paraguay:     'PAR',
-  no_exportable: 'N/E',
+  nombreCompleto: string
+  categoria: 'estuche'
 }
 
 interface Etiqueta {
   id: string
-  articulo: string
-  mercado: Mercado
-  cantidad: number
+  nombreCompleto: string
+  categoria: 'etiqueta'
 }
 
 interface Frasco {
   id: string
-  articulo: string
-  unidadesPorCaja: number
-  cantidadCajas: number
-  total: number
-}
-
-function MercadoChip({ mercado }: { mercado: Mercado }) {
-  const color = MERCADO_COLORS[mercado]
-  return (
-    <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-      style={{ color, backgroundColor: `${color}1a` }}
-    >
-      {MERCADO_LABELS[mercado]}
-    </span>
-  )
+  nombreCompleto: string
+  categoria: 'frasco'
 }
 
 // ─── Metrics query parser ─────────────────────────────────────────────────────
@@ -204,24 +166,6 @@ function incrementFreq(nombre: string): void {
   localStorage.setItem(FREQ_KEY, JSON.stringify(freq))
 }
 
-// ─── Stock chip ───────────────────────────────────────────────────────────────
-
-function StockChip({ cantidad }: { cantidad: number }) {
-  const bajo = cantidad < 10
-  return (
-    <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-      style={
-        bajo
-          ? { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }
-          : { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
-      }
-    >
-      {bajo ? 'Stock bajo' : 'Normal'}
-    </span>
-  )
-}
-
 // ─── Action button ────────────────────────────────────────────────────────────
 
 function ActionBtn({
@@ -271,19 +215,19 @@ export function CommandPalette() {
   const history = useMemo(() => (isOpen ? getHistory() : []), [isOpen])
 
   const fuseDrogas = useMemo(
-    () => drogas.length ? new Fuse(drogas, { keys: ['nombre'], threshold: 0.45, includeScore: true }) : null,
+    () => drogas.length ? new Fuse(drogas, { keys: ['nombreCompleto'], threshold: 0.45, includeScore: true }) : null,
     [drogas]
   )
   const fuseEstuches = useMemo(
-    () => estuches.length ? new Fuse(estuches, { keys: ['articulo'], threshold: 0.45, includeScore: true }) : null,
+    () => estuches.length ? new Fuse(estuches, { keys: ['nombreCompleto'], threshold: 0.45, includeScore: true }) : null,
     [estuches]
   )
   const fuseEtiquetas = useMemo(
-    () => etiquetas.length ? new Fuse(etiquetas, { keys: ['articulo'], threshold: 0.45, includeScore: true }) : null,
+    () => etiquetas.length ? new Fuse(etiquetas, { keys: ['nombreCompleto'], threshold: 0.45, includeScore: true }) : null,
     [etiquetas]
   )
   const fuseFrascos = useMemo(
-    () => frascos.length ? new Fuse(frascos, { keys: ['articulo'], threshold: 0.45, includeScore: true }) : null,
+    () => frascos.length ? new Fuse(frascos, { keys: ['nombreCompleto'], threshold: 0.45, includeScore: true }) : null,
     [frascos]
   )
 
@@ -317,20 +261,20 @@ export function CommandPalette() {
     }
   }, [isOpen])
 
-  // ── Load drogas + estuches on first open ────────────────────────────────────
+  // ── Load catálogo on first open ─────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) return
     if (drogas.length === 0) {
-      apiClient.get<Droga[]>('/drogas', token).then(setDrogas).catch(() => {})
+      apiClient.get<Droga[]>('/productos?categoria=droga', token).then(setDrogas).catch(() => {})
     }
     if (estuches.length === 0) {
-      apiClient.get<Estuche[]>('/estuches', token).then(setEstuches).catch(() => {})
+      apiClient.get<Estuche[]>('/productos?categoria=estuche', token).then(setEstuches).catch(() => {})
     }
     if (etiquetas.length === 0) {
-      apiClient.get<Etiqueta[]>('/etiquetas', token).then(setEtiquetas).catch(() => {})
+      apiClient.get<Etiqueta[]>('/productos?categoria=etiqueta', token).then(setEtiquetas).catch(() => {})
     }
     if (frascos.length === 0) {
-      apiClient.get<Frasco[]>('/frascos', token).then(setFrascos).catch(() => {})
+      apiClient.get<Frasco[]>('/productos?categoria=frasco', token).then(setFrascos).catch(() => {})
     }
   }, [isOpen, drogas.length, estuches.length, etiquetas.length, frascos.length, token])
 
@@ -382,7 +326,7 @@ export function CommandPalette() {
         const sa = a.score ?? 1
         const sb = b.score ?? 1
         if (Math.abs(sa - sb) < 0.1) {
-          return (freq[b.item.nombre] ?? 0) - (freq[a.item.nombre] ?? 0)
+          return (freq[b.item.nombreCompleto] ?? 0) - (freq[a.item.nombreCompleto] ?? 0)
         }
         return sa - sb
       })
@@ -400,7 +344,7 @@ export function CommandPalette() {
         const sa = a.score ?? 1
         const sb = b.score ?? 1
         if (Math.abs(sa - sb) < 0.1) {
-          return (freq[b.item.articulo] ?? 0) - (freq[a.item.articulo] ?? 0)
+          return (freq[b.item.nombreCompleto] ?? 0) - (freq[a.item.nombreCompleto] ?? 0)
         }
         return sa - sb
       })
@@ -411,12 +355,12 @@ export function CommandPalette() {
   // ── Navigation with tracking ────────────────────────────────────────────────
   function goTo(droga: Droga, action: 'ver' | 'ingresar' | 'historial') {
     if (query.trim()) saveToHistory(query.trim())
-    if (action !== 'historial') incrementFreq(droga.nombre)
+    if (action !== 'historial') incrementFreq(droga.nombreCompleto)
     closePalette()
     if (action === 'ver') navigate('/drogas')
     else if (action === 'ingresar')
-      navigate('/ingresos', { state: { productoNombre: droga.nombre } })
-    else navigate(`/movimientos?producto=${encodeURIComponent(droga.nombre)}`)
+      navigate('/ingresos', { state: { productoId: droga.id, productoNombre: droga.nombreCompleto, categoria: 'droga' } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(droga.nombreCompleto)}`)
   }
 
   // ── Etiqueta fuzzy results ───────────────────────────────────────────────────
@@ -428,7 +372,7 @@ export function CommandPalette() {
       .sort((a, b) => {
         const sa = a.score ?? 1
         const sb = b.score ?? 1
-        if (Math.abs(sa - sb) < 0.1) return (freq[b.item.articulo] ?? 0) - (freq[a.item.articulo] ?? 0)
+        if (Math.abs(sa - sb) < 0.1) return (freq[b.item.nombreCompleto] ?? 0) - (freq[a.item.nombreCompleto] ?? 0)
         return sa - sb
       })
       .slice(0, 5)
@@ -444,7 +388,7 @@ export function CommandPalette() {
       .sort((a, b) => {
         const sa = a.score ?? 1
         const sb = b.score ?? 1
-        if (Math.abs(sa - sb) < 0.1) return (freq[b.item.articulo] ?? 0) - (freq[a.item.articulo] ?? 0)
+        if (Math.abs(sa - sb) < 0.1) return (freq[b.item.nombreCompleto] ?? 0) - (freq[a.item.nombreCompleto] ?? 0)
         return sa - sb
       })
       .slice(0, 5)
@@ -453,22 +397,22 @@ export function CommandPalette() {
 
   function goToEstuche(estuche: Estuche, action: 'ver' | 'ingresar' | 'historial') {
     if (query.trim()) saveToHistory(query.trim())
-    if (action !== 'historial') incrementFreq(estuche.articulo)
+    if (action !== 'historial') incrementFreq(estuche.nombreCompleto)
     closePalette()
     if (action === 'ver') navigate('/estuches')
     else if (action === 'ingresar')
-      navigate('/ingresos', { state: { productoNombre: estuche.articulo, mercado: estuche.mercado, categoria: 'estuche' } })
-    else navigate(`/movimientos?producto=${encodeURIComponent(estuche.articulo)}`)
+      navigate('/ingresos', { state: { productoId: estuche.id, productoNombre: estuche.nombreCompleto, categoria: 'estuche' } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(estuche.nombreCompleto)}`)
   }
 
   function goToEtiqueta(etiqueta: Etiqueta, action: 'ver' | 'ingresar' | 'historial') {
     if (query.trim()) saveToHistory(query.trim())
-    if (action !== 'historial') incrementFreq(etiqueta.articulo)
+    if (action !== 'historial') incrementFreq(etiqueta.nombreCompleto)
     closePalette()
     if (action === 'ver') navigate('/etiquetas')
     else if (action === 'ingresar')
-      navigate('/ingresos', { state: { productoNombre: etiqueta.articulo, mercado: etiqueta.mercado, categoria: 'etiqueta' } })
-    else navigate(`/movimientos?producto=${encodeURIComponent(etiqueta.articulo)}`)
+      navigate('/ingresos', { state: { productoId: etiqueta.id, productoNombre: etiqueta.nombreCompleto, categoria: 'etiqueta' } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(etiqueta.nombreCompleto)}`)
   }
 
   function goToMetricas(params: MetricQueryParams) {
@@ -503,12 +447,12 @@ export function CommandPalette() {
 
   function goToFrasco(frasco: Frasco, action: 'ver' | 'ingresar' | 'historial') {
     if (query.trim()) saveToHistory(query.trim())
-    if (action !== 'historial') incrementFreq(frasco.articulo)
+    if (action !== 'historial') incrementFreq(frasco.nombreCompleto)
     closePalette()
     if (action === 'ver') navigate('/frascos')
     else if (action === 'ingresar')
-      navigate('/ingresos', { state: { productoNombre: frasco.articulo, categoria: 'frasco' } })
-    else navigate(`/movimientos?producto=${encodeURIComponent(frasco.articulo)}`)
+      navigate('/ingresos', { state: { productoId: frasco.id, productoNombre: frasco.nombreCompleto, categoria: 'frasco' } })
+    else navigate(`/movimientos?producto=${encodeURIComponent(frasco.nombreCompleto)}`)
   }
 
   // ── Floating button (mobile) — always rendered ──────────────────────────────
@@ -631,15 +575,9 @@ export function CommandPalette() {
                         {/* Name + stock */}
                         <div className="flex-1 min-w-0">
                           <p className="font-body text-sm text-on-surface truncate">
-                            {droga.nombre}
-                          </p>
-                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
-                            {droga.cantidad} uds
+                            {droga.nombreCompleto}
                           </p>
                         </div>
-
-                        {/* Chip */}
-                        <StockChip cantidad={droga.cantidad} />
 
                         {/* Actions */}
                         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
@@ -685,14 +623,9 @@ export function CommandPalette() {
 
                         <div className="flex-1 min-w-0">
                           <p className="font-body text-sm text-on-surface truncate">
-                            {estuche.articulo}
-                          </p>
-                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
-                            {estuche.cantidad} uds
+                            {estuche.nombreCompleto}
                           </p>
                         </div>
-
-                        <MercadoChip mercado={estuche.mercado} />
 
                         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
                           <ActionBtn
@@ -731,12 +664,8 @@ export function CommandPalette() {
                       >
                         <Tag size={14} strokeWidth={1.5} className="text-on-surface-variant shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-body text-sm text-on-surface truncate">{etiqueta.articulo}</p>
-                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
-                            {etiqueta.cantidad} uds
-                          </p>
+                          <p className="font-body text-sm text-on-surface truncate">{etiqueta.nombreCompleto}</p>
                         </div>
-                        <MercadoChip mercado={etiqueta.mercado} />
                         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
                           <ActionBtn icon={Eye} label="Ver" onClick={() => goToEtiqueta(etiqueta, 'ver')} />
                           <ActionBtn icon={FilePlus} label="Ingresar" onClick={() => goToEtiqueta(etiqueta, 'ingresar')} />
@@ -762,17 +691,8 @@ export function CommandPalette() {
                       >
                         <Box size={14} strokeWidth={1.5} className="text-on-surface-variant shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="font-body text-sm text-on-surface truncate">{frasco.articulo}</p>
-                          <p className="font-body text-xs text-on-surface-variant tabular-nums mt-0.5">
-                            {frasco.cantidadCajas} cajas · {frasco.total.toLocaleString()} uds
-                          </p>
+                          <p className="font-body text-sm text-on-surface truncate">{frasco.nombreCompleto}</p>
                         </div>
-                        <span
-                          className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-                          style={{ color: '#bccbb8', backgroundColor: 'rgba(188,203,184,0.10)' }}
-                        >
-                          {frasco.unidadesPorCaja}/caja
-                        </span>
                         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100 transition-opacity">
                           <ActionBtn icon={Eye} label="Ver" onClick={() => goToFrasco(frasco, 'ver')} />
                           <ActionBtn icon={FilePlus} label="Ingresar" onClick={() => goToFrasco(frasco, 'ingresar')} />

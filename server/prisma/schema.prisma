@@ -64,6 +64,7 @@ enum EstadoActa {
 model ActaItem {
   id                  String    @id @default(uuid())
   actaId              String    @map("acta_id")
+  productoId          String?   @map("producto_id")
   categoria           Categoria
   productoNombre      String    @map("producto_nombre")
   lote                String
@@ -77,8 +78,10 @@ model ActaItem {
   mercado             Mercado?  // solo para categoría estuche/etiqueta
   createdAt           DateTime  @default(now()) @map("created_at")
 
-  acta Acta @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  acta     Acta      @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  producto Producto? @relation(fields: [productoId], references: [id])
 
+  @@index([productoId])
   @@map("acta_items")
 }
 
@@ -110,13 +113,18 @@ enum CondicionEmbalaje {
 // ============================================================
 model InventarioDroga {
   id          String    @id @default(uuid())
+  productoId  String?   @map("producto_id")
   nombre      String
   lote        String?
   vencimiento DateTime? @db.Date @map("vencimiento")
   cantidad    Int       @default(0)
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  producto Producto? @relation(fields: [productoId], references: [id])
+
   @@unique([nombre, lote])
+  @@index([productoId])
+  @@index([productoId, lote])
   @@map("inventario_drogas")
 }
 
@@ -124,13 +132,18 @@ model InventarioDroga {
 // INVENTARIO ESTUCHES
 // ============================================================
 model InventarioEstuche {
-  id        String   @id @default(uuid())
-  articulo  String
-  mercado   Mercado
-  cantidad  Int      @default(0)
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  productoId String?  @map("producto_id")
+  articulo   String
+  mercado    Mercado
+  cantidad   Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  producto Producto? @relation(fields: [productoId], references: [id])
 
   @@unique([articulo, mercado])
+  @@index([productoId])
+  @@index([productoId, mercado])
   @@map("inventario_estuches")
 }
 
@@ -138,13 +151,18 @@ model InventarioEstuche {
 // INVENTARIO ETIQUETAS
 // ============================================================
 model InventarioEtiqueta {
-  id        String   @id @default(uuid())
-  articulo  String
-  mercado   Mercado
-  cantidad  Int      @default(0)
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(uuid())
+  productoId String?  @map("producto_id")
+  articulo   String
+  mercado    Mercado
+  cantidad   Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  producto Producto? @relation(fields: [productoId], references: [id])
 
   @@unique([articulo, mercado])
+  @@index([productoId])
+  @@index([productoId, mercado])
   @@map("inventario_etiquetas")
 }
 
@@ -153,12 +171,16 @@ model InventarioEtiqueta {
 // ============================================================
 model InventarioFrasco {
   id              String   @id @default(uuid())
+  productoId      String?  @map("producto_id")
   articulo        String   @unique
   unidadesPorCaja Int      @map("unidades_por_caja")
   cantidadCajas   Int      @default(0) @map("cantidad_cajas")
   total           Int      @default(0)
   updatedAt       DateTime @updatedAt @map("updated_at")
 
+  producto Producto? @relation(fields: [productoId], references: [id])
+
+  @@index([productoId])
   @@map("inventario_frascos")
 }
 
@@ -229,6 +251,7 @@ model OrdenProduccion {
   id             String      @id @default(uuid())
   solicitanteId  String      @map("solicitante_id")
   aprobadoPor    String?     @map("aprobado_por")
+  productoId     String?     @map("producto_id")
   categoria      Categoria
   productoNombre String      @map("producto_nombre")
   mercado        Mercado?
@@ -239,9 +262,11 @@ model OrdenProduccion {
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  solicitante User  @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
-  aprobador   User? @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
+  solicitante User      @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
+  aprobador   User?     @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
+  producto    Producto? @relation(fields: [productoId], references: [id])
 
+  @@index([productoId])
   @@map("ordenes_produccion")
 }
 
@@ -256,4 +281,30 @@ enum EstadoOrden {
   ejecutada
   completada
   rechazada
+}
+
+// ============================================================
+// CATÁLOGO DE PRODUCTOS
+// ============================================================
+model Producto {
+  id             String    @id @default(uuid())
+  nombreBase     String    @map("nombre_base")
+  volumen        Decimal?  @db.Decimal(10, 3)
+  unidad         String?
+  variante       String?
+  categoria      Categoria
+  nombreCompleto String    @map("nombre_completo")
+  activo         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  inventarioDrogas    InventarioDroga[]
+  inventarioEstuches  InventarioEstuche[]
+  inventarioEtiquetas InventarioEtiqueta[]
+  inventarioFrascos   InventarioFrasco[]
+  actaItems           ActaItem[]
+  ordenes             OrdenProduccion[]
+
+  @@unique([nombreCompleto, categoria])
+  @@map("productos")
 }

@@ -10,6 +10,7 @@
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:backfill": "tsx prisma/backfill-productos.ts",
     "db:create-admin": "tsx src/scripts/create-admin.ts"
   },
   "prisma": {

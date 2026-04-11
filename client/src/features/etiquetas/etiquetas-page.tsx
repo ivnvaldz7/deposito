@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { fetchCatalogoProductos } from '@/lib/catalogo-productos'
 import { sortByArticulo } from '@/lib/sort-utils'
 import { InlineNumberEditor } from '@/features/inventory/shared/inline-number-editor'
 import { MercadoChip } from '@/features/inventory/shared/mercado-chip'
@@ -33,6 +34,7 @@ import {
 
 interface Etiqueta {
   id: string
+  productoId?: string | null
   articulo: string
   mercado: Mercado
   cantidad: number
@@ -375,6 +377,7 @@ export function EtiquetasPage() {
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingEtiqueta, setEditingEtiqueta] = useState<Etiqueta | null>(null)
+  const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
     apiClient
@@ -382,7 +385,19 @@ export function EtiquetasPage() {
       .then((list) => setAllEtiquetas(sortEtiquetas(list)))
       .catch(() => setError('No se pudo cargar las etiquetas'))
       .finally(() => setLoading(false))
+
+    fetchCatalogoProductos('etiqueta', token)
+      .then((productos) => {
+        setCatalogMap(
+          Object.fromEntries(productos.map((producto) => [producto.id, producto.nombreCompleto]))
+        )
+      })
+      .catch(() => {})
   }, [token])
+
+  function getDisplayName(etiqueta: Etiqueta): string {
+    return etiqueta.productoId ? (catalogMap[etiqueta.productoId] ?? etiqueta.articulo) : etiqueta.articulo
+  }
 
   const etiquetas =
     mercadoFiltro === 'todos'
@@ -478,7 +493,7 @@ export function EtiquetasPage() {
               <TableBody>
                 {etiquetas.map((etiqueta) => (
                   <TableRow key={etiqueta.id}>
-                    <TableCell className="font-body text-on-surface">{etiqueta.articulo}</TableCell>
+                    <TableCell className="font-body text-on-surface">{getDisplayName(etiqueta)}</TableCell>
                     <TableCell>
                       <MercadoChip mercado={etiqueta.mercado} />
                     </TableCell>
@@ -525,7 +540,7 @@ export function EtiquetasPage() {
                 className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface text-sm truncate">{etiqueta.articulo}</p>
+                  <p className="font-body text-on-surface text-sm truncate">{getDisplayName(etiqueta)}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <MercadoChip mercado={etiqueta.mercado} />
                     <span className="font-body text-on-surface-variant text-xs tabular-nums">

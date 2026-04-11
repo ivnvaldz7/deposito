@@ -16,7 +16,9 @@
       "Bash(node:*)",
       "Bash(npx eslint:*)",
       "Bash(cmd /c \"npx prisma migrate dev --name add_lote_vencimiento_drogas --create-only < nul\")",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(echo \"SERVER:$?\")",
+      "Bash(echo \"CLIENT:$?\")"
     ]
   }
 }

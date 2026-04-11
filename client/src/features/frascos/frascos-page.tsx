@@ -6,6 +6,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { fetchCatalogoProductos } from '@/lib/catalogo-productos'
 import { InlineNumberEditor } from '@/features/inventory/shared/inline-number-editor'
 import { EmptyState, ErrorState, LoadingState } from '@/features/inventory/shared/inventory-states'
 import { sortByArticulo } from '@/lib/sort-utils'
@@ -31,6 +32,7 @@ import {
 
 interface Frasco {
   id: string
+  productoId?: string | null
   articulo: string
   unidadesPorCaja: number
   cantidadCajas: number
@@ -379,6 +381,7 @@ export function FrascosPage() {
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingFrasco, setEditingFrasco] = useState<Frasco | null>(null)
+  const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
 
   useEffect(() => {
     apiClient
@@ -386,7 +389,19 @@ export function FrascosPage() {
       .then((list) => setFrascos(sortFrascos(list)))
       .catch(() => setError('No se pudo cargar los frascos'))
       .finally(() => setLoading(false))
+
+    fetchCatalogoProductos('frasco', token)
+      .then((productos) => {
+        setCatalogMap(
+          Object.fromEntries(productos.map((producto) => [producto.id, producto.nombreCompleto]))
+        )
+      })
+      .catch(() => {})
   }, [token])
+
+  function getDisplayName(frasco: Frasco): string {
+    return frasco.productoId ? (catalogMap[frasco.productoId] ?? frasco.articulo) : frasco.articulo
+  }
 
   function handleCreated(f: Frasco) {
     setFrascos((prev) => sortFrascos([...prev, f]))
@@ -461,7 +476,7 @@ export function FrascosPage() {
               <TableBody>
                 {frascos.map((frasco) => (
                   <TableRow key={frasco.id}>
-                    <TableCell className="font-body text-on-surface">{frasco.articulo}</TableCell>
+                    <TableCell className="font-body text-on-surface">{getDisplayName(frasco)}</TableCell>
                     <TableCell className="text-right">
                       <span className="font-body text-on-surface-variant tabular-nums text-sm">
                         {frasco.unidadesPorCaja}
@@ -514,7 +529,7 @@ export function FrascosPage() {
                 className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface text-sm truncate">{frasco.articulo}</p>
+                  <p className="font-body text-on-surface text-sm truncate">{getDisplayName(frasco)}</p>
                   <p className="font-body text-on-surface-variant text-xs mt-0.5 tabular-nums">
                     {frasco.unidadesPorCaja} uds/caja ·{' '}
                     {frasco.cantidadCajas} cajas ·{' '}
