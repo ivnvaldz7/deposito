@@ -16,6 +16,10 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
+function currentMonthISO(): string {
+  return new Date().toISOString().slice(0, 7)
+}
+
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
 const STEPS = ['Datos del acta', 'Agregar items', 'Distribuir']
@@ -195,7 +199,7 @@ const itemSchema = z
     productoId: z.string().uuid().optional(),
     productoNombre: z.string().min(2, 'Mínimo 2 caracteres').max(100),
     lote: z.string().max(50, 'Máximo 50 caracteres').optional(),
-    vencimiento: z.string().optional(),
+    vencimiento: z.string().regex(/^\d{4}-\d{2}$/, 'Usá formato MM/AAAA').optional(),
     temperaturaTransporte: z.string().max(50, 'MÃ¡ximo 50 caracteres').optional(),
     condicionEmbalaje: z.enum(['bueno', 'regular', 'malo']).optional(),
     observacionesCalidad: z.string().max(1000, 'MÃ¡ximo 1000 caracteres').optional(),
@@ -264,7 +268,7 @@ function Paso2({
       productoId: undefined,
       productoNombre: '',
       lote: '',
-      vencimiento: '',
+      vencimiento: currentMonthISO(),
       temperaturaTransporte: '',
       condicionEmbalaje: undefined,
       observacionesCalidad: '',
@@ -290,7 +294,7 @@ function Paso2({
       productoId: pid || undefined,
       productoNombre: prefillItem.productoNombre,
       lote: '',
-      vencimiento: '',
+      vencimiento: currentMonthISO(),
       temperaturaTransporte: '',
       condicionEmbalaje: undefined,
       observacionesCalidad: '',
@@ -332,7 +336,7 @@ function Paso2({
         productoId: undefined,
         productoNombre: '',
         lote: '',
-        vencimiento: '',
+        vencimiento: currentMonthISO(),
         temperaturaTransporte: '',
         condicionEmbalaje: undefined,
         observacionesCalidad: '',
@@ -492,9 +496,10 @@ function Paso2({
             <input
               id="acta-item-vencimiento"
               {...register('vencimiento')}
-              type="date"
+              type="month"
               className="input-field"
             />
+            <p className="font-body text-on-surface-variant text-xs">Mes y año. Se guardará el último día del mes.</p>
             {errors.vencimiento && (
               <p className="font-body text-error text-xs">{errors.vencimiento.message}</p>
             )}

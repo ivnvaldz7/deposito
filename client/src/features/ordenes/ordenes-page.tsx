@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
 import { ProductoSelector } from '@/components/producto-selector'
+import { PageHeader } from '@/components/layout/page-header'
 import {
   Dialog,
   DialogTrigger,
@@ -129,9 +130,16 @@ const nuevaOrdenSchema = z.object({
 
 type NuevaOrdenForm = z.infer<typeof nuevaOrdenSchema>
 
-function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => void }) {
+function NuevaOrdenModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (o: OrdenProduccion) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
   const token = useAuthStore((s) => s.token)
-  const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -179,7 +187,7 @@ function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => voi
       onCreated(orden)
       toast.info(`Orden creada para "${orden.productoNombre}".`)
       reset()
-      setOpen(false)
+      onOpenChange(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al crear la orden')
     }
@@ -187,18 +195,11 @@ function NuevaOrdenModal({ onCreated }: { onCreated: (o: OrdenProduccion) => voi
 
   function handleOpenChange(next: boolean) {
     if (!next) { reset(); setServerError(null) }
-    setOpen(next)
+    onOpenChange(next)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button className="btn-primary flex items-center gap-2 w-auto px-4 py-2 text-sm">
-          <Plus size={14} strokeWidth={2} />
-          Nueva orden
-        </button>
-      </DialogTrigger>
-
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Nueva orden de producción</DialogTitle>
@@ -582,6 +583,7 @@ export function OrdenesPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filtroEstado, setFiltroEstado] = useState<EstadoOrden | 'todas'>('todas')
+  const [nuevaOrdenOpen, setNuevaOrdenOpen] = useState(false)
 
   useEffect(() => {
     const query = filtroEstado !== 'todas' ? `?estado=${filtroEstado}` : ''
@@ -611,6 +613,7 @@ export function OrdenesPage() {
   }
 
   const urgentes = ordenes.filter((o) => o.urgencia === 'urgente')
+  const pendientesAprobacion = ordenes.filter((o) => o.estado === 'solicitada').length
   const ordenesOrdenadas = [...ordenes].sort((a, b) => {
     const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     if (dateDiff !== 0) return dateDiff
@@ -622,24 +625,33 @@ export function OrdenesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Órdenes de Producción</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {loading ? '...' : `${ordenes.length} ${ordenes.length === 1 ? 'orden' : 'órdenes'}`}
-            {urgentes.length > 0 && !loading && (
-              <span className="ml-2" style={{ color: '#ef4444' }}>
-                · {urgentes.length} urgente{urgentes.length > 1 ? 's' : ''}
-              </span>
-            )}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <FiltroEstado value={filtroEstado} onChange={setFiltroEstado} />
-          {canCreate && <NuevaOrdenModal onCreated={handleCreated} />}
-        </div>
-      </div>
+      <PageHeader
+        title="ÓRDENES"
+        stats={[
+          { label: 'órdenes', value: loading ? '...' : ordenes.length },
+          { label: 'urgentes', value: loading ? '...' : urgentes.length, warning: urgentes.length > 0 && !loading },
+          { label: 'por aprobar', value: loading ? '...' : pendientesAprobacion, warning: pendientesAprobacion > 0 && !loading },
+        ]}
+        primaryAction={
+          canCreate
+            ? {
+                label: 'Nueva orden',
+                onClick: () => setNuevaOrdenOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      >
+        <FiltroEstado value={filtroEstado} onChange={setFiltroEstado} />
+      </PageHeader>
+
+      {canCreate ? (
+        <NuevaOrdenModal
+          onCreated={handleCreated}
+          open={nuevaOrdenOpen}
+          onOpenChange={setNuevaOrdenOpen}
+        />
+      ) : null}
 
       {/* Content */}
       {loading ? (

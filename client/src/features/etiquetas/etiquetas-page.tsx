@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,13 +25,13 @@ import {
 } from '@/components/ui/table'
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog'
+import { PageHeader } from '@/components/layout/page-header'
 
 interface Etiqueta {
   id: string
@@ -47,6 +48,10 @@ function sortEtiquetas(list: Etiqueta[]): Etiqueta[] {
   return [...list].sort((a, b) =>
     a.mercado.localeCompare(b.mercado) || sortByArticulo(a.articulo, b.articulo)
   )
+}
+
+function normalizeProducto(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -69,9 +74,16 @@ const agregarSchema = z.object({
 
 type AgregarFormData = z.infer<typeof agregarSchema>
 
-function AgregarEtiquetaModal({ onCreated }: { onCreated: (e: Etiqueta) => void }) {
+function AgregarEtiquetaModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (e: Etiqueta) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
   const token = useAuthStore((s) => s.token)
-  const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -103,7 +115,7 @@ function AgregarEtiquetaModal({ onCreated }: { onCreated: (e: Etiqueta) => void 
         toast.success(`Etiqueta "${etiqueta.articulo}" agregada.`)
       }
       reset()
-      setOpen(false)
+      onOpenChange(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
     }
@@ -111,18 +123,11 @@ function AgregarEtiquetaModal({ onCreated }: { onCreated: (e: Etiqueta) => void 
 
   function handleOpenChange(next: boolean) {
     if (!next) { reset(); setServerError(null) }
-    setOpen(next)
+    onOpenChange(next)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button className="btn-primary flex items-center gap-2 w-auto px-4 py-2 text-sm">
-          <Plus size={14} strokeWidth={2} />
-          Agregar etiqueta
-        </button>
-      </DialogTrigger>
-
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Agregar etiqueta</DialogTitle>
@@ -370,14 +375,18 @@ export function EtiquetasPage() {
   const token = useAuthStore((s) => s.token)
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.role === 'encargado'
+  const [searchParams] = useSearchParams()
 
   const [allEtiquetas, setAllEtiquetas] = useState<Etiqueta[]>([])
-  const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>('todos')
+  const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>(
+    (searchParams.get('mercado') as Mercado | 'todos') ?? 'todos'
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingEtiqueta, setEditingEtiqueta] = useState<Etiqueta | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
+  const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
     apiClient
@@ -395,14 +404,27 @@ export function EtiquetasPage() {
       .catch(() => {})
   }, [token])
 
-  function getDisplayName(etiqueta: Etiqueta): string {
+  const getDisplayName = useCallback((etiqueta: Etiqueta): string => {
     return etiqueta.productoId ? (catalogMap[etiqueta.productoId] ?? etiqueta.articulo) : etiqueta.articulo
-  }
+  }, [catalogMap])
 
-  const etiquetas =
-    mercadoFiltro === 'todos'
-      ? allEtiquetas
-      : allEtiquetas.filter((e) => e.mercado === mercadoFiltro)
+  useEffect(() => {
+    const nextMercado = (searchParams.get('mercado') as Mercado | 'todos') ?? 'todos'
+    setMercadoFiltro(nextMercado)
+  }, [searchParams])
+
+  const productoFiltro = searchParams.get('producto') ?? ''
+
+  const etiquetas = useMemo(() => {
+    const byMercado =
+      mercadoFiltro === 'todos'
+        ? allEtiquetas
+        : allEtiquetas.filter((e) => e.mercado === mercadoFiltro)
+
+    if (!productoFiltro) return byMercado
+    const target = normalizeProducto(productoFiltro)
+    return byMercado.filter((etiqueta) => normalizeProducto(getDisplayName(etiqueta)) === target)
+  }, [allEtiquetas, mercadoFiltro, productoFiltro, getDisplayName])
 
   function handleCreated(e: Etiqueta) {
     setAllEtiquetas((prev) => sortEtiquetas([...prev, e]))
@@ -442,21 +464,38 @@ export function EtiquetasPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Etiquetas</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {etiquetas.length} artículos
-            {stockBajoCount > 0 && (
-              <span className="ml-2" style={{ color: '#FF9800' }}>
-                · {stockBajoCount} con stock bajo
-              </span>
-            )}
-          </p>
-        </div>
-        {isEncargado && <AgregarEtiquetaModal onCreated={handleCreated} />}
-      </div>
+      <PageHeader
+        title="ETIQUETAS"
+        stats={[
+          { label: 'artículos', value: etiquetas.length },
+          { label: 'mercados', value: MERCADOS.filter((mercado) => countsByMercado[mercado.value] > 0).length },
+          { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
+        ]}
+        primaryAction={
+          isEncargado
+            ? {
+                label: 'Agregar etiqueta',
+                onClick: () => setAgregarOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      >
+        <MercadoFilter
+          mercadoActivo={mercadoFiltro}
+          onChangeMercado={setMercadoFiltro}
+          totalCount={allEtiquetas.length}
+          countsByMercado={countsByMercado}
+        />
+      </PageHeader>
+
+      {isEncargado ? (
+        <AgregarEtiquetaModal
+          onCreated={handleCreated}
+          open={agregarOpen}
+          onOpenChange={setAgregarOpen}
+        />
+      ) : null}
 
       {editingEtiqueta && (
         <EditarEtiquetaModal
@@ -466,16 +505,8 @@ export function EtiquetasPage() {
         />
       )}
 
-      {/* Filtro por mercado */}
-      <MercadoFilter
-        mercadoActivo={mercadoFiltro}
-        onChangeMercado={setMercadoFiltro}
-        totalCount={allEtiquetas.length}
-        countsByMercado={countsByMercado}
-      />
-
       {etiquetas.length === 0 ? (
-        <EmptyState message="No hay etiquetas para este mercado." />
+        <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       ) : (
         <>
           {/* Desktop table */}
@@ -492,7 +523,7 @@ export function EtiquetasPage() {
               </TableHeader>
               <TableBody>
                 {etiquetas.map((etiqueta) => (
-                  <TableRow key={etiqueta.id}>
+                  <TableRow key={etiqueta.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(etiqueta)}</TableCell>
                     <TableCell>
                       <MercadoChip mercado={etiqueta.mercado} />
@@ -537,7 +568,7 @@ export function EtiquetasPage() {
             {etiquetas.map((etiqueta) => (
               <div
                 key={etiqueta.id}
-                className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3"
+                className={`bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(etiqueta)}</p>

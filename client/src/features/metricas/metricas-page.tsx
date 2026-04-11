@@ -5,6 +5,7 @@ import Fuse from 'fuse.js'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'
 import { toast } from '@/lib/toast'
+import { PageHeader } from '@/components/layout/page-header'
 
 interface MetricasData {
   totalIngresos: number
@@ -316,29 +317,27 @@ export function MetricasPage() {
 
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-3">
-          <BarChart2 size={20} strokeWidth={1.5} className="text-primary-container" />
-          <div>
-            <h1 className="font-heading font-bold text-xl text-on-surface">Métricas</h1>
-            <p className="font-body text-sm text-on-surface-variant">
-              Movimientos, balance y ranking de productos del período.
-            </p>
+      <PageHeader
+        title="MÉTRICAS"
+        stats={[
+          { label: 'ingresos', value: loading ? '...' : (data?.totalIngresos ?? 0) },
+          { label: 'egresos', value: loading ? '...' : (data?.totalEgresos ?? 0) },
+          { label: 'balance', value: loading ? '...' : (data?.balance ?? 0), warning: !loading && (data?.balance ?? 0) < 0 },
+          { label: 'movimientos', value: loading ? '...' : (data?.movimientosPeriodo ?? 0) },
+        ]}
+        primaryAction={{
+          label: exporting ? 'Exportando…' : 'Exportar PDF',
+          onClick: handleExportPdf,
+          icon: <FileDown size={14} strokeWidth={1.5} />,
+        }}
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 font-body text-sm text-on-surface-variant">
+            <BarChart2 size={18} strokeWidth={1.5} className="text-primary-container" />
+            Movimientos, balance y ranking de productos del período.
           </div>
-        </div>
-        <button
-          onClick={handleExportPdf}
-          disabled={exporting || loading}
-          className="flex items-center gap-2 px-3 py-2 rounded font-heading font-semibold text-sm transition-colors disabled:opacity-50"
-          style={{ background: 'rgba(0,174,66,0.12)', color: '#00AE42' }}
-        >
-          <FileDown size={14} strokeWidth={1.5} />
-          {exporting ? 'Exportando…' : 'Exportar PDF'}
-        </button>
-      </div>
 
-      <div className="bg-surface-low rounded p-4 shadow-[inset_0_0_0_1px_rgba(61,74,60,0.12)]">
-        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-wrap gap-3 items-end">
           <div className="flex flex-col gap-1">
             <label htmlFor="metricas-desde" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
               Desde
@@ -407,7 +406,8 @@ export function MetricasPage() {
             </button>
           )}
         </div>
-      </div>
+        </div>
+      </PageHeader>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <MetricCard label="Ingresos" value={data?.totalIngresos ?? null} icon={TrendingUp} color="#00AE42" loading={loading} />

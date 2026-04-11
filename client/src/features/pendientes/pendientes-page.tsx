@@ -8,6 +8,7 @@ import { Check, ChevronDown, PackagePlus, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { PageHeader } from '@/components/layout/page-header'
 import {
   Dialog,
   DialogClose,
@@ -205,9 +206,16 @@ function FrascoCombobox({
   )
 }
 
-function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void }) {
+function EnviarModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (p: InsumoPendiente) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
   const token = useAuthStore((s) => s.token)
-  const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [frascos, setFrascos] = useState<Frasco[]>([])
   const [loadingFrascos, setLoadingFrascos] = useState(false)
@@ -281,7 +289,7 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
       setSelectedFrasco(null)
       setServerError(null)
     }
-    setOpen(next)
+    onOpenChange(next)
   }
 
   async function onSubmit(data: EnviarFormData) {
@@ -315,18 +323,7 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
   }
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={() => handleOpenChange(true)}
-        className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-colors"
-        style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
-      >
-        <Plus size={14} strokeWidth={2} />
-        Enviar a esterilización
-      </button>
-
-      <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enviar a esterilización</DialogTitle>
@@ -472,7 +469,6 @@ function EnviarModal({ onCreated }: { onCreated: (p: InsumoPendiente) => void })
           </form>
         </DialogContent>
       </Dialog>
-    </>
   )
 }
 
@@ -712,6 +708,7 @@ export function PendientesPage() {
   const [pendientes, setPendientes] = useState<InsumoPendiente[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [enviarOpen, setEnviarOpen] = useState(false)
 
   useEffect(() => {
     apiClient
@@ -723,6 +720,7 @@ export function PendientesPage() {
 
   const enEsterilizacion = pendientes.filter((p) => p.estado === 'en_esterilizacion')
   const recibidos = pendientes.filter((p) => p.estado === 'recibido')
+  const cajasEnEsterilizacion = enEsterilizacion.reduce((sum, pendiente) => sum + pendiente.cantidad, 0)
 
   function handleCreated(pendiente: InsumoPendiente) {
     setPendientes((prev) => [pendiente, ...prev])
@@ -750,20 +748,31 @@ export function PendientesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-xl font-semibold text-on-surface">Insumos Pendientes</h1>
-          <p className="mt-0.5 font-body text-sm text-on-surface-variant">
-            Frascos enviados a esterilización
-            {!loading && !error && (
-              <span className="ml-1">
-                · {enEsterilizacion.length} en esterilización · {recibidos.length} recibidos
-              </span>
-            )}
-          </p>
-        </div>
-        {isEncargado && <EnviarModal onCreated={handleCreated} />}
-      </div>
+      <PageHeader
+        title="PENDIENTES"
+        stats={[
+          { label: 'en esterilización', value: loading ? '...' : enEsterilizacion.length, warning: enEsterilizacion.length > 0 && !loading },
+          { label: 'recibidos', value: loading ? '...' : recibidos.length },
+          { label: 'cajas afuera', value: loading ? '...' : cajasEnEsterilizacion, warning: cajasEnEsterilizacion > 0 && !loading },
+        ]}
+        primaryAction={
+          isEncargado
+            ? {
+                label: 'Enviar a esterilización',
+                onClick: () => setEnviarOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      />
+
+      {isEncargado ? (
+        <EnviarModal
+          onCreated={handleCreated}
+          open={enviarOpen}
+          onOpenChange={setEnviarOpen}
+        />
+      ) : null}
 
       {loading ? (
         <div className="flex h-48 items-center justify-center">

@@ -20,6 +20,17 @@ function normalizeForMatch(str: string): string {
   return resolveCanonicalProductName(str)
 }
 
+function toEndOfMonthDate(value: string): Date {
+  if (/^\d{4}-\d{2}$/.test(value)) {
+    const [yearRaw, monthRaw] = value.split('-')
+    const year = Number(yearRaw)
+    const monthIndex = Number(monthRaw) - 1
+    return new Date(Date.UTC(year, monthIndex + 1, 0, 0, 0, 0, 0))
+  }
+
+  return new Date(value + 'T00:00:00.000Z')
+}
+
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const crearActaSchema = z.object({
@@ -39,7 +50,7 @@ const agregarItemSchema = z
     productoId: z.string().uuid().optional(),
     productoNombre: z.string().min(2).max(100),
     lote: z.string().trim().max(50).optional(),
-    vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    vencimiento: z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/).optional(),
     temperaturaTransporte: z.string().trim().max(50).optional(),
     condicionEmbalaje: z.enum(CONDICIONES_EMBALAJE).optional(),
     observacionesCalidad: z.string().trim().max(1000).optional(),
@@ -223,7 +234,7 @@ router.post(
           productoNombre,
           lote,
           vencimiento: result.data.vencimiento
-            ? new Date(result.data.vencimiento + 'T00:00:00.000Z')
+            ? toEndOfMonthDate(result.data.vencimiento)
             : null,
           temperaturaTransporte: result.data.temperaturaTransporte?.trim() || null,
           condicionEmbalaje: result.data.condicionEmbalaje ?? null,

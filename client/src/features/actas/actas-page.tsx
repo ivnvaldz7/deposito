@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient } from '@/lib/api-client'
+import { PageHeader } from '@/components/layout/page-header'
 import {
   Table,
   TableHeader,
@@ -73,25 +74,28 @@ export function ActasPage() {
     )
   }
 
+  const calidadPendienteCount = actas.filter(hasQualityNoAprobada).length
+  const completadasCount = actas.filter((acta) => acta.estado === 'completada').length
+
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Actas</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {actas.length} {actas.length === 1 ? 'acta registrada' : 'actas registradas'}
-          </p>
-        </div>
-        {isEncargado && (
-          <button
-            className="btn-primary flex items-center gap-2 w-auto px-4 py-2 text-sm"
-            onClick={() => navigate('/ingresos')}
-          >
-            <Plus size={14} strokeWidth={2} />
-            Nuevo Ingreso
-          </button>
-        )}
-      </div>
+      <PageHeader
+        title="ACTAS"
+        stats={[
+          { label: 'actas', value: actas.length },
+          { label: 'completadas', value: completadasCount },
+          { label: 'calidad pendiente', value: calidadPendienteCount, warning: calidadPendienteCount > 0 },
+        ]}
+        primaryAction={
+          isEncargado
+            ? {
+                label: 'Nuevo ingreso',
+                onClick: () => navigate('/ingresos'),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      />
 
       {actas.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 bg-surface-low rounded gap-3">

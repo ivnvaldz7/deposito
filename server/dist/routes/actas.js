@@ -18,6 +18,15 @@ const router = (0, express_1.Router)();
 function normalizeForMatch(str) {
     return (0, producto_catalogo_1.resolveCanonicalProductName)(str);
 }
+function toEndOfMonthDate(value) {
+    if (/^\d{4}-\d{2}$/.test(value)) {
+        const [yearRaw, monthRaw] = value.split('-');
+        const year = Number(yearRaw);
+        const monthIndex = Number(monthRaw) - 1;
+        return new Date(Date.UTC(year, monthIndex + 1, 0, 0, 0, 0, 0));
+    }
+    return new Date(value + 'T00:00:00.000Z');
+}
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 const crearActaSchema = zod_1.z.object({
     fecha: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
@@ -31,7 +40,7 @@ const agregarItemSchema = zod_1.z
     productoId: zod_1.z.string().uuid().optional(),
     productoNombre: zod_1.z.string().min(2).max(100),
     lote: zod_1.z.string().trim().max(50).optional(),
-    vencimiento: zod_1.z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    vencimiento: zod_1.z.string().regex(/^\d{4}-\d{2}(-\d{2})?$/).optional(),
     temperaturaTransporte: zod_1.z.string().trim().max(50).optional(),
     condicionEmbalaje: zod_1.z.enum(CONDICIONES_EMBALAJE).optional(),
     observacionesCalidad: zod_1.z.string().trim().max(1000).optional(),
@@ -184,7 +193,7 @@ router.post('/:id/items', auth_1.authenticate, (0, require_role_1.requireRole)('
                 productoNombre,
                 lote,
                 vencimiento: result.data.vencimiento
-                    ? new Date(result.data.vencimiento + 'T00:00:00.000Z')
+                    ? toEndOfMonthDate(result.data.vencimiento)
                     : null,
                 temperaturaTransporte: result.data.temperaturaTransporte?.trim() || null,
                 condicionEmbalaje: result.data.condicionEmbalaje ?? null,

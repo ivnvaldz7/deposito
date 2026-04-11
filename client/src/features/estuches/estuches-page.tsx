@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -24,13 +25,13 @@ import {
 } from '@/components/ui/table'
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog'
+import { PageHeader } from '@/components/layout/page-header'
 
 interface Estuche {
   id: string
@@ -47,6 +48,10 @@ function sortEstuches(list: Estuche[]): Estuche[] {
   return [...list].sort((a, b) =>
     a.mercado.localeCompare(b.mercado) || sortByArticulo(a.articulo, b.articulo)
   )
+}
+
+function normalizeProducto(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -69,9 +74,16 @@ const agregarSchema = z.object({
 
 type AgregarFormData = z.infer<typeof agregarSchema>
 
-function AgregarEstucheModal({ onCreated }: { onCreated: (e: Estuche) => void }) {
+function AgregarEstucheModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (e: Estuche) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
   const token = useAuthStore((s) => s.token)
-  const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -103,7 +115,7 @@ function AgregarEstucheModal({ onCreated }: { onCreated: (e: Estuche) => void })
         toast.success(`Estuche "${estuche.articulo}" agregado.`)
       }
       reset()
-      setOpen(false)
+      onOpenChange(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
     }
@@ -111,18 +123,11 @@ function AgregarEstucheModal({ onCreated }: { onCreated: (e: Estuche) => void })
 
   function handleOpenChange(next: boolean) {
     if (!next) { reset(); setServerError(null) }
-    setOpen(next)
+    onOpenChange(next)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button className="btn-primary flex items-center gap-2 w-auto px-4 py-2 text-sm">
-          <Plus size={14} strokeWidth={2} />
-          Agregar estuche
-        </button>
-      </DialogTrigger>
-
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Agregar estuche</DialogTitle>
@@ -370,14 +375,18 @@ export function EstuchesPage() {
   const token = useAuthStore((s) => s.token)
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.role === 'encargado'
+  const [searchParams] = useSearchParams()
 
   const [allEstuches, setAllEstuches] = useState<Estuche[]>([])
-  const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>('todos')
+  const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>(
+    (searchParams.get('mercado') as Mercado | 'todos') ?? 'todos'
+  )
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingEstuche, setEditingEstuche] = useState<Estuche | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
+  const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
     apiClient
@@ -395,14 +404,27 @@ export function EstuchesPage() {
       .catch(() => {})
   }, [token])
 
-  function getDisplayName(estuche: Estuche): string {
+  const getDisplayName = useCallback((estuche: Estuche): string => {
     return estuche.productoId ? (catalogMap[estuche.productoId] ?? estuche.articulo) : estuche.articulo
-  }
+  }, [catalogMap])
 
-  const estuches =
-    mercadoFiltro === 'todos'
-      ? allEstuches
-      : allEstuches.filter((e) => e.mercado === mercadoFiltro)
+  useEffect(() => {
+    const nextMercado = (searchParams.get('mercado') as Mercado | 'todos') ?? 'todos'
+    setMercadoFiltro(nextMercado)
+  }, [searchParams])
+
+  const productoFiltro = searchParams.get('producto') ?? ''
+
+  const estuches = useMemo(() => {
+    const byMercado =
+      mercadoFiltro === 'todos'
+        ? allEstuches
+        : allEstuches.filter((e) => e.mercado === mercadoFiltro)
+
+    if (!productoFiltro) return byMercado
+    const target = normalizeProducto(productoFiltro)
+    return byMercado.filter((estuche) => normalizeProducto(getDisplayName(estuche)) === target)
+  }, [allEstuches, mercadoFiltro, productoFiltro, getDisplayName])
 
   function handleCreated(e: Estuche) {
     setAllEstuches((prev) => sortEstuches([...prev, e]))
@@ -442,21 +464,38 @@ export function EstuchesPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Estuches</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {estuches.length} artículos
-            {stockBajoCount > 0 && (
-              <span className="ml-2" style={{ color: '#FF9800' }}>
-                · {stockBajoCount} con stock bajo
-              </span>
-            )}
-          </p>
-        </div>
-        {isEncargado && <AgregarEstucheModal onCreated={handleCreated} />}
-      </div>
+      <PageHeader
+        title="ESTUCHES"
+        stats={[
+          { label: 'artículos', value: estuches.length },
+          { label: 'mercados', value: MERCADOS.filter((mercado) => countsByMercado[mercado.value] > 0).length },
+          { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
+        ]}
+        primaryAction={
+          isEncargado
+            ? {
+                label: 'Agregar estuche',
+                onClick: () => setAgregarOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      >
+        <MercadoFilter
+          mercadoActivo={mercadoFiltro}
+          onChangeMercado={setMercadoFiltro}
+          totalCount={allEstuches.length}
+          countsByMercado={countsByMercado}
+        />
+      </PageHeader>
+
+      {isEncargado ? (
+        <AgregarEstucheModal
+          onCreated={handleCreated}
+          open={agregarOpen}
+          onOpenChange={setAgregarOpen}
+        />
+      ) : null}
 
       {editingEstuche && (
         <EditarEstucheModal
@@ -466,16 +505,8 @@ export function EstuchesPage() {
         />
       )}
 
-      {/* Filtro por mercado */}
-      <MercadoFilter
-        mercadoActivo={mercadoFiltro}
-        onChangeMercado={setMercadoFiltro}
-        totalCount={allEstuches.length}
-        countsByMercado={countsByMercado}
-      />
-
       {estuches.length === 0 ? (
-        <EmptyState message="No hay estuches para este mercado." />
+        <EmptyState message={productoFiltro ? 'No se encontró ese estuche con los filtros aplicados.' : 'No hay estuches para este mercado.'} />
       ) : (
         <>
           {/* Desktop table */}
@@ -492,7 +523,7 @@ export function EstuchesPage() {
               </TableHeader>
               <TableBody>
                 {estuches.map((estuche) => (
-                  <TableRow key={estuche.id}>
+                  <TableRow key={estuche.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(estuche)}</TableCell>
                     <TableCell>
                       <MercadoChip mercado={estuche.mercado} />
@@ -537,7 +568,7 @@ export function EstuchesPage() {
             {estuches.map((estuche) => (
               <div
                 key={estuche.id}
-                className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3"
+                className={`bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(estuche)}</p>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,13 +11,13 @@ import { fetchCatalogoProductos } from '@/lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '@/features/inventory/shared/inventory-states'
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog'
+import { PageHeader } from '@/components/layout/page-header'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,10 @@ function groupDrogas(records: DrogaRecord[], getDisplayName: (record: DrogaRecor
       }),
     }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+}
+
+function normalizeProducto(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
 
 // ─── Vencimiento chip ─────────────────────────────────────────────────────────
@@ -129,9 +134,16 @@ const agregarSchema = z.object({
 
 type AgregarFormData = z.infer<typeof agregarSchema>
 
-function AgregarDrogaModal({ onCreated }: { onCreated: (d: DrogaRecord) => void }) {
+function AgregarDrogaModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (d: DrogaRecord) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
   const token = useAuthStore((s) => s.token)
-  const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -157,7 +169,7 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: DrogaRecord) => void 
       onCreated(droga)
       toast.success(`Droga "${droga.nombre}" agregada.`)
       reset()
-      setOpen(false)
+      onOpenChange(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
     }
@@ -165,18 +177,11 @@ function AgregarDrogaModal({ onCreated }: { onCreated: (d: DrogaRecord) => void 
 
   function handleOpenChange(next: boolean) {
     if (!next) { reset(); setServerError(null) }
-    setOpen(next)
+    onOpenChange(next)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button className="btn-primary flex items-center gap-2 w-auto px-4 py-2 text-sm">
-          <Plus size={14} strokeWidth={2} />
-          Agregar droga
-        </button>
-      </DialogTrigger>
-
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Agregar droga</DialogTitle>
@@ -269,12 +274,14 @@ export function DrogasPage() {
   const token = useAuthStore((s) => s.token)
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.role === 'encargado'
+  const [searchParams] = useSearchParams()
 
   const [records, setRecords] = useState<DrogaRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
+  const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
     apiClient
@@ -299,6 +306,12 @@ export function DrogasPage() {
       ),
     [records, catalogMap]
   )
+  const productoFiltro = searchParams.get('producto') ?? ''
+  const filteredGroups = useMemo(() => {
+    if (!productoFiltro) return groups
+    const target = normalizeProducto(productoFiltro)
+    return groups.filter((group) => normalizeProducto(group.nombre) === target)
+  }, [groups, productoFiltro])
 
   function handleCreated(droga: DrogaRecord) {
     setRecords((prev) => [...prev, droga])
@@ -327,29 +340,42 @@ export function DrogasPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Drogas</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {groups.length} productos · {records.length} lotes
-            {stockBajoCount > 0 && (
-              <span className="ml-2" style={{ color: '#FF9800' }}>· {stockBajoCount} con stock bajo</span>
-            )}
-            {porVencerCount > 0 && (
-              <span className="ml-2" style={{ color: '#ef4444' }}>· {porVencerCount} vencen pronto</span>
-            )}
-          </p>
-        </div>
-        {isEncargado && <AgregarDrogaModal onCreated={handleCreated} />}
-      </div>
+      <PageHeader
+        title="DROGAS"
+        stats={[
+          { label: 'productos', value: groups.length },
+          { label: 'lotes', value: records.length },
+          { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
+          { label: 'vencen pronto', value: porVencerCount, warning: porVencerCount > 0 },
+        ]}
+        primaryAction={
+          isEncargado
+            ? {
+                label: 'Agregar droga',
+                onClick: () => setAgregarOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      />
 
-      {groups.length === 0 ? (
-        <EmptyState message="No hay drogas cargadas todavía." />
+      {isEncargado ? (
+        <AgregarDrogaModal
+          onCreated={handleCreated}
+          open={agregarOpen}
+          onOpenChange={setAgregarOpen}
+        />
+      ) : null}
+
+      {filteredGroups.length === 0 ? (
+        <EmptyState message={productoFiltro ? 'No se encontró esa droga en inventario.' : 'No hay drogas cargadas todavía.'} />
       ) : (
         <div className="space-y-2">
-          {groups.map((group) => (
-            <div key={group.nombre} className="bg-surface-low rounded overflow-hidden">
+          {filteredGroups.map((group) => (
+            <div
+              key={group.nombre}
+              className={`bg-surface-low rounded overflow-hidden ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
+            >
               {/* Group header */}
               <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/10">
                 <div className="flex items-center gap-3">

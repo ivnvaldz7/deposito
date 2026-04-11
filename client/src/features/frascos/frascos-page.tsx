@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -20,13 +21,13 @@ import {
 } from '@/components/ui/table'
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
   DialogClose,
 } from '@/components/ui/dialog'
+import { PageHeader } from '@/components/layout/page-header'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,6 +45,10 @@ interface Frasco {
 
 function sortFrascos(list: Frasco[]): Frasco[] {
   return [...list].sort((a, b) => sortByArticulo(a.articulo, b.articulo))
+}
+
+function normalizeProducto(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
 
 const STOCK_BAJO_THRESHOLD = 5
@@ -64,9 +69,16 @@ const agregarSchema = z.object({
 
 type AgregarFormData = z.infer<typeof agregarSchema>
 
-function AgregarFrascoModal({ onCreated }: { onCreated: (f: Frasco) => void }) {
+function AgregarFrascoModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (f: Frasco) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
   const token = useAuthStore((s) => s.token)
-  const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -103,7 +115,7 @@ function AgregarFrascoModal({ onCreated }: { onCreated: (f: Frasco) => void }) {
         toast.success(`Frasco "${frasco.articulo}" agregado.`)
       }
       reset()
-      setOpen(false)
+      onOpenChange(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
     }
@@ -111,18 +123,11 @@ function AgregarFrascoModal({ onCreated }: { onCreated: (f: Frasco) => void }) {
 
   function handleOpenChange(next: boolean) {
     if (!next) { reset(); setServerError(null) }
-    setOpen(next)
+    onOpenChange(next)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button className="btn-primary flex items-center gap-2 w-auto px-4 py-2 text-sm">
-          <Plus size={14} strokeWidth={2} />
-          Agregar frasco
-        </button>
-      </DialogTrigger>
-
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Agregar frasco</DialogTitle>
@@ -375,6 +380,7 @@ export function FrascosPage() {
   const token = useAuthStore((s) => s.token)
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.role === 'encargado'
+  const [searchParams] = useSearchParams()
 
   const [frascos, setFrascos] = useState<Frasco[]>([])
   const [loading, setLoading] = useState(true)
@@ -382,6 +388,7 @@ export function FrascosPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingFrasco, setEditingFrasco] = useState<Frasco | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
+  const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
     apiClient
@@ -399,9 +406,16 @@ export function FrascosPage() {
       .catch(() => {})
   }, [token])
 
-  function getDisplayName(frasco: Frasco): string {
+  const getDisplayName = useCallback((frasco: Frasco): string => {
     return frasco.productoId ? (catalogMap[frasco.productoId] ?? frasco.articulo) : frasco.articulo
-  }
+  }, [catalogMap])
+
+  const productoFiltro = searchParams.get('producto') ?? ''
+  const filteredFrascos = useMemo(() => {
+    if (!productoFiltro) return frascos
+    const target = normalizeProducto(productoFiltro)
+    return frascos.filter((frasco) => normalizeProducto(getDisplayName(frasco)) === target)
+  }, [frascos, productoFiltro, getDisplayName])
 
   function handleCreated(f: Frasco) {
     setFrascos((prev) => sortFrascos([...prev, f]))
@@ -433,21 +447,36 @@ export function FrascosPage() {
     return <ErrorState message={error} />
   }
 
+  const totalCajas = frascos.reduce((s, f) => s + f.cantidadCajas, 0)
+  const stockBajoCount = frascos.filter((frasco) => frasco.cantidadCajas < STOCK_BAJO_THRESHOLD).length
+
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Frascos</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {frascos.length} artículos ·{' '}
-            <span className="tabular-nums">
-              {frascos.reduce((s, f) => s + f.cantidadCajas, 0).toLocaleString()} cajas
-            </span>
-          </p>
-        </div>
-        {isEncargado && <AgregarFrascoModal onCreated={handleCreated} />}
-      </div>
+      <PageHeader
+        title="FRASCOS"
+        stats={[
+          { label: 'artículos', value: frascos.length },
+          { label: 'cajas', value: totalCajas.toLocaleString() },
+          { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
+        ]}
+        primaryAction={
+          isEncargado
+            ? {
+                label: 'Agregar frasco',
+                onClick: () => setAgregarOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      />
+
+      {isEncargado ? (
+        <AgregarFrascoModal
+          onCreated={handleCreated}
+          open={agregarOpen}
+          onOpenChange={setAgregarOpen}
+        />
+      ) : null}
 
       {editingFrasco && (
         <EditarFrascoModal
@@ -457,8 +486,8 @@ export function FrascosPage() {
         />
       )}
 
-      {frascos.length === 0 ? (
-        <EmptyState message="No hay frascos cargados." />
+      {filteredFrascos.length === 0 ? (
+        <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />
       ) : (
         <>
           {/* Desktop table */}
@@ -474,8 +503,8 @@ export function FrascosPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {frascos.map((frasco) => (
-                  <TableRow key={frasco.id}>
+                {filteredFrascos.map((frasco) => (
+                  <TableRow key={frasco.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(frasco)}</TableCell>
                     <TableCell className="text-right">
                       <span className="font-body text-on-surface-variant tabular-nums text-sm">
@@ -523,10 +552,10 @@ export function FrascosPage() {
 
           {/* Mobile cards */}
           <div className="md:hidden space-y-2">
-            {frascos.map((frasco) => (
+            {filteredFrascos.map((frasco) => (
               <div
                 key={frasco.id}
-                className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3"
+                className={`bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(frasco)}</p>

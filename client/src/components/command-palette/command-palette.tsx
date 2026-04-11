@@ -166,6 +166,16 @@ function incrementFreq(nombre: string): void {
   localStorage.setItem(FREQ_KEY, JSON.stringify(freq))
 }
 
+function buildInventoryPath(
+  path: string,
+  producto: string,
+  mercado?: string
+): string {
+  const params = new URLSearchParams({ producto })
+  if (mercado) params.set('mercado', mercado)
+  return `${path}?${params.toString()}`
+}
+
 // ─── Action button ────────────────────────────────────────────────────────────
 
 function ActionBtn({
@@ -236,10 +246,14 @@ export function CommandPalette() {
     const isMac = /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 
     function handler(e: KeyboardEvent) {
+      const key = e.key.toLowerCase()
+      const code = e.code
+      const isK = key === 'k' || code === 'KeyK'
+
       // Mac: ⌘K  |  Windows/Linux: Ctrl+Shift+K
       const triggered = isMac
-        ? e.metaKey && !e.shiftKey && e.key === 'k'
-        : e.ctrlKey && e.shiftKey && e.key === 'K'
+        ? e.metaKey && !e.ctrlKey && !e.altKey && isK
+        : e.ctrlKey && e.shiftKey && !e.altKey && isK
 
       if (triggered) {
         e.preventDefault()
@@ -250,8 +264,8 @@ export function CommandPalette() {
         closePalette()
       }
     }
-    window.addEventListener('keydown', handler, { capture: true })
-    return () => window.removeEventListener('keydown', handler, { capture: true })
+    document.addEventListener('keydown', handler, { capture: true })
+    return () => document.removeEventListener('keydown', handler, { capture: true })
   }, [isOpen, togglePalette, closePalette])
 
   // ── Focus input on open ─────────────────────────────────────────────────────
@@ -357,7 +371,7 @@ export function CommandPalette() {
     if (query.trim()) saveToHistory(query.trim())
     if (action !== 'historial') incrementFreq(droga.nombreCompleto)
     closePalette()
-    if (action === 'ver') navigate('/drogas')
+    if (action === 'ver') navigate(buildInventoryPath('/drogas', droga.nombreCompleto))
     else if (action === 'ingresar')
       navigate('/ingresos', { state: { productoId: droga.id, productoNombre: droga.nombreCompleto, categoria: 'droga' } })
     else navigate(`/movimientos?producto=${encodeURIComponent(droga.nombreCompleto)}`)
@@ -399,7 +413,7 @@ export function CommandPalette() {
     if (query.trim()) saveToHistory(query.trim())
     if (action !== 'historial') incrementFreq(estuche.nombreCompleto)
     closePalette()
-    if (action === 'ver') navigate('/estuches')
+    if (action === 'ver') navigate(buildInventoryPath('/estuches', estuche.nombreCompleto, 'todos'))
     else if (action === 'ingresar')
       navigate('/ingresos', { state: { productoId: estuche.id, productoNombre: estuche.nombreCompleto, categoria: 'estuche' } })
     else navigate(`/movimientos?producto=${encodeURIComponent(estuche.nombreCompleto)}`)
@@ -409,7 +423,7 @@ export function CommandPalette() {
     if (query.trim()) saveToHistory(query.trim())
     if (action !== 'historial') incrementFreq(etiqueta.nombreCompleto)
     closePalette()
-    if (action === 'ver') navigate('/etiquetas')
+    if (action === 'ver') navigate(buildInventoryPath('/etiquetas', etiqueta.nombreCompleto, 'todos'))
     else if (action === 'ingresar')
       navigate('/ingresos', { state: { productoId: etiqueta.id, productoNombre: etiqueta.nombreCompleto, categoria: 'etiqueta' } })
     else navigate(`/movimientos?producto=${encodeURIComponent(etiqueta.nombreCompleto)}`)
@@ -449,7 +463,7 @@ export function CommandPalette() {
     if (query.trim()) saveToHistory(query.trim())
     if (action !== 'historial') incrementFreq(frasco.nombreCompleto)
     closePalette()
-    if (action === 'ver') navigate('/frascos')
+    if (action === 'ver') navigate(buildInventoryPath('/frascos', frasco.nombreCompleto))
     else if (action === 'ingresar')
       navigate('/ingresos', { state: { productoId: frasco.id, productoNombre: frasco.nombreCompleto, categoria: 'frasco' } })
     else navigate(`/movimientos?producto=${encodeURIComponent(frasco.nombreCompleto)}`)

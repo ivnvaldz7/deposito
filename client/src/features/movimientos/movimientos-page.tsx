@@ -199,6 +199,13 @@ export function MovimientosPage() {
   })
 
   useEffect(() => {
+    setFilters((prev) => ({
+      ...prev,
+      producto: searchParams.get('producto') ?? '',
+    }))
+  }, [searchParams])
+
+  useEffect(() => {
     async function load() {
       setLoading(true)
       setError(null)
@@ -234,7 +241,7 @@ export function MovimientosPage() {
       </div>
 
       {/* Filters */}
-      <FiltersBar filters={filters} onChange={setFilters} />
+      <FiltersBar key={filters.producto} filters={filters} onChange={setFilters} />
 
       {/* Content */}
       {loading ? (

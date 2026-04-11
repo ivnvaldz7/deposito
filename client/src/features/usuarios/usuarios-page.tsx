@@ -6,6 +6,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
 import { toast } from '@/lib/toast'
+import { PageHeader } from '@/components/layout/page-header'
 import {
   Dialog,
   DialogTrigger,
@@ -114,9 +115,16 @@ const crearSchema = z.object({
 
 type CrearFormData = z.infer<typeof crearSchema>
 
-function CrearUsuarioModal({ onCreated }: { onCreated: (u: Usuario) => void }) {
+function CrearUsuarioModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (u: Usuario) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
   const token = useAuthStore((s) => s.token)
-  const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const {
@@ -140,7 +148,7 @@ function CrearUsuarioModal({ onCreated }: { onCreated: (u: Usuario) => void }) {
       onCreated(result.user)
       toast.success(`Usuario "${result.user.name}" creado.`)
       reset()
-      setOpen(false)
+      onOpenChange(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al crear usuario')
     }
@@ -148,18 +156,11 @@ function CrearUsuarioModal({ onCreated }: { onCreated: (u: Usuario) => void }) {
 
   function handleOpenChange(next: boolean) {
     if (!next) { reset(); setServerError(null) }
-    setOpen(next)
+    onOpenChange(next)
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button className="btn-primary flex items-center gap-2 w-auto px-4 py-2 text-sm">
-          <Plus size={14} strokeWidth={2} />
-          Crear usuario
-        </button>
-      </DialogTrigger>
-
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Crear usuario</DialogTitle>
@@ -335,6 +336,7 @@ export function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [crearOpen, setCrearOpen] = useState(false)
 
   useEffect(() => {
     apiClient
@@ -372,18 +374,30 @@ export function UsuariosPage() {
     )
   }
 
+  const encargadosCount = usuarios.filter((usuario) => usuario.role === 'encargado').length
+  const solicitantesCount = usuarios.filter((usuario) => usuario.role === 'solicitante').length
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-on-surface font-semibold text-xl">Usuarios</h1>
-          <p className="font-body text-on-surface-variant text-sm mt-0.5">
-            {usuarios.length} {usuarios.length === 1 ? 'usuario' : 'usuarios'}
-          </p>
-        </div>
-        <CrearUsuarioModal onCreated={handleCreated} />
-      </div>
+      <PageHeader
+        title="USUARIOS"
+        stats={[
+          { label: 'usuarios', value: usuarios.length },
+          { label: 'encargados', value: encargadosCount },
+          { label: 'solicitantes', value: solicitantesCount },
+        ]}
+        primaryAction={{
+          label: 'Crear usuario',
+          onClick: () => setCrearOpen(true),
+          icon: <Plus size={14} strokeWidth={2} />,
+        }}
+      />
+
+      <CrearUsuarioModal
+        onCreated={handleCreated}
+        open={crearOpen}
+        onOpenChange={setCrearOpen}
+      />
 
       {/* Desktop table */}
       <div className="hidden md:block bg-surface-low rounded overflow-hidden">
