@@ -172,6 +172,60 @@ const drogas = [
   'VITAMINA C', 'VITAMINA D2', 'VITAMINA E',
 ]
 
+const DROGAS_CANTIDADES_REALES: Record<string, number> = {
+  'ACIDO CITRICO': 0,
+  'ACIDO OLEICO': 0,
+  'ALCOHOL BENCILICO': 0,
+  ARGININA: 0,
+  ATP: 25,
+  'ASPARTATO DE MAGNESIO': 25,
+  'ASPARTATO DE POTASIO': 0,
+  'CITRATO DE SODIO': 0,
+  'CLORURO CUPRICO': 40,
+  'CLORURO DE BENZALCONIO': 0,
+  'CLORURO DE CALCIO': 25,
+  'CLORURO DE MAGNESIO': 25,
+  'CLORURO DE SODIO': 25,
+  'CLORURO DE ZINC': 0,
+  DEXTROSA: 50,
+  'DIISOPROPILAMINA DICLOROACETATO': 25,
+  'EDETATO DE COBRE Y ZINC': 250,
+  'EDETATO DE ZINC': 175,
+  EDTA: 0,
+  FENOL: 200,
+  'FOSFATO DE SODIO': 0,
+  GLICERINA: 175,
+  GLICEROFORMAL: 0,
+  'GLUCONATO DE ZINC': 8,
+  'GLUCONATO DE CALCIO': 160,
+  'HIERRO CITRATO': 75,
+  'HIERRO CITRATO 50%': 40,
+  'IODURO DE SODIO': 5,
+  ISOLEUCINA: 0,
+  'LECHE CONDENSADA': 20,
+  LEUCINA: 25,
+  LEVAMISOL: 0,
+  LISINA: 25,
+  NICOTINAMIDA: 250,
+  'NITRITO DE SODIO': 0,
+  'PANTOTENATO DE CALCIO': 25,
+  PROPILENGLICOL: 100,
+  PROPILPARABENO: 1,
+  'SELENITO DE SODIO': 25,
+  'SODA CAUSTICA': 25,
+  SORBITOL: 150,
+  'TIMILCOSIN FOSFATO': 400,
+  TWEEN: 0,
+  'VAINILLA AROMATICA': 0,
+  'VITAMINA A': 340,
+  'VITAMINA B1': 25,
+  'VITAMINA B12': 1,
+  'VITAMINA B6': 0,
+  'VITAMINA C': 50,
+  'VITAMINA D2': 0,
+  'VITAMINA E': 235,
+}
+
 const estuches: { articulo: string; mercado: Mercado; cantidad: number }[] = [
   // Argentina (40)
   { articulo: 'AMANTINA PREMIUM 100 ML',       mercado: 'argentina',     cantidad: 0     },
@@ -413,6 +467,7 @@ async function main() {
   console.log('Seeding drogas...')
   for (const nombre of drogas) {
     const productoId = getProductoId(nombre, 'droga')
+    const cantidad = DROGAS_CANTIDADES_REALES[nombre] ?? 0
     const existing = await prisma.inventarioDroga.findFirst({
       where: { nombre, lote: null },
     })
@@ -420,11 +475,11 @@ async function main() {
     if (existing) {
       await prisma.inventarioDroga.update({
         where: { id: existing.id },
-        data: { productoId },
+        data: { productoId, cantidad },
       })
     } else {
       await prisma.inventarioDroga.create({
-        data: { nombre, lote: null, vencimiento: null, cantidad: 0, productoId },
+        data: { nombre, lote: null, vencimiento: null, cantidad, productoId },
       })
     }
   }

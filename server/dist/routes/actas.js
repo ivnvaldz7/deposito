@@ -76,7 +76,8 @@ router.get('/', auth_1.authenticate, async (_req, res) => {
         });
         res.json(actas);
     }
-    catch {
+    catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 });
@@ -89,22 +90,33 @@ router.post('/', auth_1.authenticate, (0, require_role_1.requireRole)('encargado
     }
     const { fecha, notas } = result.data;
     try {
+        const currentUser = await prisma_1.prisma.user.findUnique({
+            where: { id: req.user.id },
+            select: { id: true, name: true },
+        });
+        if (!currentUser) {
+            res.status(401).json({
+                message: 'La sesión es inválida o está desactualizada. Volvé a iniciar sesión.',
+            });
+            return;
+        }
         const acta = await prisma_1.prisma.acta.create({
             data: {
                 fecha: new Date(fecha + 'T00:00:00.000Z'),
                 notas: notas ?? null,
-                createdBy: req.user.id,
+                createdBy: currentUser.id,
             },
         });
         sse_manager_1.sseManager.broadcastGlobal({
             tipo: 'ingreso_creado',
-            mensaje: `Nuevo acta de ingreso creada por ${req.user.name}`,
-            datos: { actaId: acta.id, fecha, createdBy: req.user.name },
+            mensaje: `Nuevo acta de ingreso creada por ${currentUser.name}`,
+            datos: { actaId: acta.id, fecha, createdBy: currentUser.name },
             timestamp: new Date().toISOString(),
         });
         res.status(201).json(acta);
     }
-    catch {
+    catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 });
@@ -125,7 +137,8 @@ router.get('/:id', auth_1.authenticate, async (req, res) => {
         }
         res.json(acta);
     }
-    catch {
+    catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 });
@@ -183,7 +196,29 @@ router.post('/:id/items', auth_1.authenticate, (0, require_role_1.requireRole)('
         });
         res.status(201).json(item);
     }
-    catch {
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error interno del servidor' });
+    }
+});
+// ─── PUT /api/actas/:id/items/:itemId/aprobar-calidad (encargado) ───────────
+router.put('/:id/items/:itemId/aprobar-calidad', auth_1.authenticate, (0, require_role_1.requireRole)('encargado'), async (req, res) => {
+    const actaId = req.params['id'];
+    const itemId = req.params['itemId'];
+    try {
+        const item = await prisma_1.prisma.actaItem.findUnique({ where: { id: itemId } });
+        if (!item || item.actaId !== actaId) {
+            res.status(404).json({ message: 'Item no encontrado' });
+            return;
+        }
+        const updatedItem = await prisma_1.prisma.actaItem.update({
+            where: { id: itemId },
+            data: { aprobadoCalidad: true },
+        });
+        res.json(updatedItem);
+    }
+    catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Error interno del servidor' });
     }
 });
@@ -375,6 +410,7 @@ router.post('/:id/items/:itemId/distribuir', auth_1.authenticate, (0, require_ro
         res.json({ item: updatedItem, acta: updatedActa });
     }
     catch (err) {
+        console.error(err);
         const msg = err instanceof Error ? err.message : 'Error interno del servidor';
         res.status(400).json({ message: msg });
     }

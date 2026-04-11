@@ -56,15 +56,18 @@ function ItemRow({
   actaId,
   isEncargado,
   onDistribuido,
+  onCalidadAprobada,
 }: {
   item: ActaItem
   actaId: string
   isEncargado: boolean
   onDistribuido: (updated: ActaItem) => void
+  onCalidadAprobada: (updated: ActaItem) => void
 }) {
   const token = useAuthStore((s) => s.token)
   const remaining = item.cantidadIngresada - item.cantidadDistribuida
   const [distributing, setDistributing] = useState(false)
+  const [approvingQuality, setApprovingQuality] = useState(false)
   const [value, setValue] = useState(String(remaining))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -106,6 +109,23 @@ function ItemRow({
     setLotes([])
     setSelectedLoteId('')
     setJustificacion('')
+  }
+
+  async function handleAprobarCalidad() {
+    setApprovingQuality(true)
+    try {
+      const updated = await apiClient.put<ActaItem>(
+        `/actas/${actaId}/items/${item.id}/aprobar-calidad`,
+        undefined,
+        token
+      )
+      onCalidadAprobada(updated)
+      toast.success(`Calidad aprobada para "${item.productoNombre}".`)
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Error al aprobar calidad')
+    } finally {
+      setApprovingQuality(false)
+    }
   }
 
   async function confirm() {
@@ -213,16 +233,29 @@ function ItemRow({
           <p className="font-heading text-on-surface text-xs uppercase tracking-widest font-semibold">
             Control de Calidad
           </p>
-          <span
-            className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
-            style={
-              item.aprobadoCalidad
-                ? { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
-                : { color: '#f44336', backgroundColor: 'rgba(244,67,54,0.10)' }
-            }
-          >
-            {item.aprobadoCalidad ? 'Aprobado' : 'No aprobado'}
-          </span>
+          <div className="flex items-center gap-2">
+            {!item.aprobadoCalidad && isEncargado && (
+              <button
+                type="button"
+                onClick={handleAprobarCalidad}
+                disabled={approvingQuality}
+                className="px-3 py-1 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
+                style={{ background: 'rgba(84,225,109,0.15)', color: '#54e16d' }}
+              >
+                {approvingQuality ? 'Aprobando...' : 'Aprobar calidad'}
+              </button>
+            )}
+            <span
+              className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
+              style={
+                item.aprobadoCalidad
+                  ? { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
+                  : { color: '#f44336', backgroundColor: 'rgba(244,67,54,0.10)' }
+              }
+            >
+              {item.aprobadoCalidad ? 'Aprobado' : 'No aprobado'}
+            </span>
+          </div>
         </div>
 
         {item.temperaturaTransporte && (
@@ -400,6 +433,10 @@ export function ActaDetallePage() {
     setActa((prev) => (prev ? { ...prev, estado: nuevoEstado } : prev))
   }
 
+  function handleCalidadAprobada(updated: ActaItem) {
+    setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
@@ -457,6 +494,7 @@ export function ActaDetallePage() {
               actaId={acta.id}
               isEncargado={isEncargado}
               onDistribuido={handleDistribuido}
+              onCalidadAprobada={handleCalidadAprobada}
             />
           ))}
         </div>
