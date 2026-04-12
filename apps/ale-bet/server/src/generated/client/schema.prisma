@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["ale_bet"]
+}
+
+model Producto {
+  id          String       @id @default(cuid())
+  nombre      String
+  sku         String       @unique
+  stockMinimo Int          @default(100)
+  activo      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lotes       Lote[]
+  itemsPedido ItemPedido[]
+
+  @@schema("ale_bet")
+}
+
+model Lote {
+  id               String   @id @default(cuid())
+  numero           String   @unique
+  productoId       String
+  producto         Producto @relation(fields: [productoId], references: [id])
+  cajas            Int      @default(0)
+  sueltos          Int      @default(0)
+  fechaProduccion  DateTime
+  fechaVencimiento DateTime
+  activo           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  @@schema("ale_bet")
+}
+
+model Cliente {
+  id        String   @id @default(cuid())
+  nombre    String
+  contacto  String?
+  direccion String?
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  pedidos   Pedido[]
+
+  @@schema("ale_bet")
+}
+
+model Pedido {
+  id         String       @id @default(cuid())
+  numero     String       @unique
+  clienteId  String
+  cliente    Cliente      @relation(fields: [clienteId], references: [id])
+  vendedorId String
+  armadorId  String?
+  estado     EstadoPedido @default(PENDIENTE)
+  items      ItemPedido[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@schema("ale_bet")
+}
+
+model ItemPedido {
+  id         String   @id @default(cuid())
+  pedidoId   String
+  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  productoId String
+  producto   Producto @relation(fields: [productoId], references: [id])
+  cantidad   Int
+  completado Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@schema("ale_bet")
+}
+
+model MovimientoStock {
+  id         String         @id @default(cuid())
+  productoId String
+  cantidad   Int
+  tipo       TipoMovimiento
+  referencia String?
+  usuarioId  String
+  createdAt  DateTime       @default(now())
+
+  @@schema("ale_bet")
+}
+
+enum EstadoPedido {
+  PENDIENTE
+  EN_ARMADO
+  COMPLETADO
+  CANCELADO
+
+  @@schema("ale_bet")
+}
+
+enum TipoMovimiento {
+  ENTRADA_MANUAL
+  SALIDA_PEDIDO
+  AJUSTE
+
+  @@schema("ale_bet")
+}

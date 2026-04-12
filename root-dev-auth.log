@@ -43,3 +43,39 @@ deposito-server:dev: ⚠️ REFRESH_TOKEN_SECRET no configurado. Se usará JWT_S
 @platform/admin-client:dev:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
 @platform/admin-client:dev: [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
 deposito-server:dev: Server running on http://localhost:3001
+deposito-server:dev: ^Cnpm error Lifecycle script `dev` failed with error:
+@platform/admin-client:dev: npm error Lifecycle script `dev` failed with error:
+deposito-server:dev: npm error code 3221225786
+@platform/admin-client:dev: npm error code 3221225786
+@platform/admin-client:dev: npm error path C:\Users\Usuario\Desktop\platform\apps\admin\client
+deposito-server:dev: npm error path C:\Users\Usuario\Desktop\platform\apps\deposito\server
+@platform/admin-client:dev: npm error workspace @platform/admin-client@0.0.1
+deposito-server:dev: npm error workspace deposito-server@0.1.0
+@platform/admin-client:dev: npm error location C:\Users\Usuario\Desktop\platform\apps\admin\client
+deposito-server:dev: npm error location C:\Users\Usuario\Desktop\platform\apps\deposito\server
+@platform/admin-client:dev: npm error command failed
+deposito-server:dev: npm error command failed
+deposito-server:dev: npm error command C:\WINDOWS\system32\cmd.exe /d /s /c tsx watch src/index.ts
+@platform/admin-client:dev: npm error command C:\WINDOWS\system32\cmd.exe /d /s /c vite --port 5174
+deposito-server:dev: npm notice
+deposito-server:dev: npm notice New major version of npm available! 10.9.0 -> 11.12.1
+deposito-server:dev: npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.12.1
+deposito-server:dev: npm notice To update run: npm install -g npm@11.12.1
+deposito-server:dev: npm notice
+@platform/admin-client:dev: npm notice
+@platform/admin-client:dev: npm notice New major version of npm available! 10.9.0 -> 11.12.1
+@platform/admin-client:dev: npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.12.1
+@platform/admin-client:dev: npm notice To update run: npm install -g npm@11.12.1
+@platform/admin-client:dev: npm notice
+@platform/admin-client:dev: �Desea terminar el trabajo por lotes (S/N)? 
+deposito-server:dev: �Desea terminar el trabajo por lotes (S/N)? 
+ ERROR  @platform/admin-client#dev: command (C:\Users\Usuario\Desktop\platform\apps\admin\client) C:\Program Files\nodejs\npm.cmd run dev exited (-1073741510)
+ ERROR  deposito-server#dev: command (C:\Users\Usuario\Desktop\platform\apps\deposito\server) C:\Program Files\nodejs\npm.cmd run dev exited (-1073741510)
+
+ Tasks:    0 successful, 4 total
+Cached:    0 cached, 4 total
+  Time:    2h13m56.252s 
+Failed:    @platform/admin-client#dev, deposito-server#dev
+
+ ERROR  run failed: command  exited (-1073741510)
+^C

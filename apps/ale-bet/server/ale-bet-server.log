@@ -1,0 +1,5 @@
+
+> @platform/ale-bet-server@0.0.1 dev
+> tsx watch src/index.ts
+
+Ale-Bet server running on http://localhost:3003
