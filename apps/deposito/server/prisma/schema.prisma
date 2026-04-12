@@ -1,0 +1,311 @@
+// Depósito - Schema v1 (Fase 1: Drogas + Actas + Movimientos)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USERS
+// ============================================================
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         Role     @default(observador)
+  platformUserId String? @unique @map("platform_user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  actas                  Acta[]
+  movimientos            Movimiento[]
+  insumoPendientes       InsumoPendiente[]
+  ordenesComoSolicitante OrdenProduccion[] @relation("OrdenesComoSolicitante")
+  ordenesComoAprobador   OrdenProduccion[] @relation("OrdenesComoAprobador")
+
+  @@map("users")
+}
+
+enum Role {
+  encargado
+  observador
+  solicitante
+}
+
+// ============================================================
+// ACTAS
+// ============================================================
+model Acta {
+  id        String     @id @default(uuid())
+  fecha     DateTime   @db.Date
+  createdBy String     @map("created_by")
+  estado    EstadoActa @default(pendiente)
+  notas     String?
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user  User       @relation(fields: [createdBy], references: [id])
+  items ActaItem[]
+
+  @@map("actas")
+}
+
+enum EstadoActa {
+  pendiente
+  parcial
+  completada
+}
+
+// ============================================================
+// ACTA ITEMS
+// ============================================================
+model ActaItem {
+  id                  String    @id @default(uuid())
+  actaId              String    @map("acta_id")
+  productoId          String?   @map("producto_id")
+  categoria           Categoria
+  productoNombre      String    @map("producto_nombre")
+  lote                String
+  vencimiento         DateTime? @db.Date @map("vencimiento")
+  temperaturaTransporte String? @map("temperatura_transporte")
+  condicionEmbalaje   CondicionEmbalaje? @map("condicion_embalaje")
+  observacionesCalidad String? @map("observaciones_calidad")
+  aprobadoCalidad     Boolean   @default(false) @map("aprobado_calidad")
+  cantidadIngresada   Int       @map("cantidad_ingresada")
+  cantidadDistribuida Int       @default(0) @map("cantidad_distribuida")
+  mercado             Mercado?  // solo para categoría estuche/etiqueta
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  acta     Acta      @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  producto Producto? @relation(fields: [productoId], references: [id])
+
+  @@index([productoId])
+  @@map("acta_items")
+}
+
+enum Categoria {
+  droga
+  estuche
+  etiqueta
+  frasco
+}
+
+enum Mercado {
+  argentina
+  colombia
+  mexico
+  ecuador
+  bolivia
+  paraguay
+  no_exportable
+}
+
+enum CondicionEmbalaje {
+  bueno
+  regular
+  malo
+}
+
+// ============================================================
+// INVENTARIO DROGAS
+// ============================================================
+model InventarioDroga {
+  id          String    @id @default(uuid())
+  productoId  String?   @map("producto_id")
+  nombre      String
+  lote        String?
+  vencimiento DateTime? @db.Date @map("vencimiento")
+  cantidad    Int       @default(0)
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  producto Producto? @relation(fields: [productoId], references: [id])
+
+  @@unique([nombre, lote])
+  @@index([productoId])
+  @@index([productoId, lote])
+  @@map("inventario_drogas")
+}
+
+// ============================================================
+// INVENTARIO ESTUCHES
+// ============================================================
+model InventarioEstuche {
+  id         String   @id @default(uuid())
+  productoId String?  @map("producto_id")
+  articulo   String
+  mercado    Mercado
+  cantidad   Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  producto Producto? @relation(fields: [productoId], references: [id])
+
+  @@unique([articulo, mercado])
+  @@index([productoId])
+  @@index([productoId, mercado])
+  @@map("inventario_estuches")
+}
+
+// ============================================================
+// INVENTARIO ETIQUETAS
+// ============================================================
+model InventarioEtiqueta {
+  id         String   @id @default(uuid())
+  productoId String?  @map("producto_id")
+  articulo   String
+  mercado    Mercado
+  cantidad   Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  producto Producto? @relation(fields: [productoId], references: [id])
+
+  @@unique([articulo, mercado])
+  @@index([productoId])
+  @@index([productoId, mercado])
+  @@map("inventario_etiquetas")
+}
+
+// ============================================================
+// INVENTARIO FRASCOS
+// ============================================================
+model InventarioFrasco {
+  id              String   @id @default(uuid())
+  productoId      String?  @map("producto_id")
+  articulo        String   @unique
+  unidadesPorCaja Int      @map("unidades_por_caja")
+  cantidadCajas   Int      @default(0) @map("cantidad_cajas")
+  total           Int      @default(0)
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  producto Producto? @relation(fields: [productoId], references: [id])
+
+  @@index([productoId])
+  @@map("inventario_frascos")
+}
+
+// ============================================================
+// MOVIMIENTOS (auditoría)
+// ============================================================
+model Movimiento {
+  id             String         @id @default(uuid())
+  tipo           TipoMovimiento
+  categoria      Categoria
+  productoNombre String         @map("producto_nombre")
+  lote           String?
+  cantidad       Int // positivo = ingreso, negativo = egreso
+  referenciaId   String?        @map("referencia_id")
+  referenciaTipo RefTipo?       @map("referencia_tipo")
+  justificacion  String?
+  createdBy      String         @map("created_by")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  user User @relation(fields: [createdBy], references: [id])
+
+  @@map("movimientos")
+}
+
+enum RefTipo {
+  acta_item
+  orden
+}
+
+enum TipoMovimiento {
+  ingreso_acta
+  egreso_orden
+  ajuste_manual
+}
+
+// ============================================================
+// INSUMOS PENDIENTES
+// ============================================================
+model InsumoPendiente {
+  id                   String          @id @default(uuid())
+  categoria            String          @default("frasco")
+  articulo             String
+  cantidad             Int
+  destino              String
+  estado               EstadoPendiente @default(en_esterilizacion)
+  fechaEnvio           DateTime        @db.Date @map("fecha_envio")
+  fechaRetornoEstimada DateTime?       @db.Date @map("fecha_retorno_estimada")
+  fechaRecibido        DateTime?       @db.Date @map("fecha_recibido")
+  notas                String?
+  createdBy            String          @map("created_by")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  user User @relation(fields: [createdBy], references: [id])
+
+  @@map("insumos_pendientes")
+}
+
+enum EstadoPendiente {
+  en_esterilizacion
+  recibido
+}
+
+// ============================================================
+// ÓRDENES DE PRODUCCIÓN
+// ============================================================
+model OrdenProduccion {
+  id             String      @id @default(uuid())
+  solicitanteId  String      @map("solicitante_id")
+  aprobadoPor    String?     @map("aprobado_por")
+  productoId     String?     @map("producto_id")
+  categoria      Categoria
+  productoNombre String      @map("producto_nombre")
+  mercado        Mercado?
+  cantidad       Int
+  urgencia       Urgencia    @default(normal)
+  estado         EstadoOrden @default(solicitada)
+  motivoRechazo  String?     @map("motivo_rechazo")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  solicitante User      @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
+  aprobador   User?     @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
+  producto    Producto? @relation(fields: [productoId], references: [id])
+
+  @@index([productoId])
+  @@map("ordenes_produccion")
+}
+
+enum Urgencia {
+  normal
+  urgente
+}
+
+enum EstadoOrden {
+  solicitada
+  aprobada
+  ejecutada
+  completada
+  rechazada
+}
+
+// ============================================================
+// CATÁLOGO DE PRODUCTOS
+// ============================================================
+model Producto {
+  id             String    @id @default(uuid())
+  nombreBase     String    @map("nombre_base")
+  volumen        Decimal?  @db.Decimal(10, 3)
+  unidad         String?
+  variante       String?
+  categoria      Categoria
+  nombreCompleto String    @map("nombre_completo")
+  activo         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  inventarioDrogas    InventarioDroga[]
+  inventarioEstuches  InventarioEstuche[]
+  inventarioEtiquetas InventarioEtiqueta[]
+  inventarioFrascos   InventarioFrasco[]
+  actaItems           ActaItem[]
+  ordenes             OrdenProduccion[]
+
+  @@unique([nombreCompleto, categoria])
+  @@map("productos")
+}

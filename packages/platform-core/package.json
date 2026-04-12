@@ -1,0 +1,16 @@
+{
+  "name": "@platform/core",
+  "version": "0.0.1",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@platform/db": "*",
+    "jsonwebtoken": "^9.0.0",
+    "bcryptjs": "^2.4.3"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.0",
+    "@types/bcryptjs": "^2.4.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  }
+}

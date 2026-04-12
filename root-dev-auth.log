@@ -1,0 +1,45 @@
+
+> dev
+> turbo run dev
+
+• turbo 2.9.6
+
+   • Packages in scope: @platform/admin-client, @platform/admin-server, @platform/core, @platform/db, @platform/types, @platform/ui, client, deposito-server
+   • Running dev in 8 packages
+   • Remote caching disabled
+
+@platform/admin-server:dev: cache bypass, force executing 573f4da63468f900
+@platform/admin-client:dev: cache bypass, force executing 1f5f31b3adfccd82
+deposito-server:dev: cache bypass, force executing d0cef3e87d99efb7
+client:dev: cache bypass, force executing d736732a9c74c447
+@platform/admin-server:dev: 
+@platform/admin-server:dev: > @platform/admin-server@0.0.1 dev
+@platform/admin-server:dev: > tsx watch src/index.ts
+@platform/admin-server:dev: 
+client:dev: 
+client:dev: > client@0.0.0 dev
+client:dev: > vite
+client:dev: 
+deposito-server:dev: 
+deposito-server:dev: > deposito-server@0.1.0 dev
+deposito-server:dev: > tsx watch src/index.ts
+deposito-server:dev: 
+@platform/admin-client:dev: 
+@platform/admin-client:dev: > @platform/admin-client@0.0.1 dev
+@platform/admin-client:dev: > vite --port 5174
+@platform/admin-client:dev: 
+@platform/admin-server:dev: Admin server escuchando en http://localhost:3002
+client:dev: [2m02:41:12[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because vite config has changed
+client:dev: 
+client:dev:   [32m[1mVITE[22m v8.0.8[39m  [2mready in [0m[1m810[22m[2m[0m ms[22m
+client:dev: 
+client:dev:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5173[22m/[39m
+client:dev: [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+deposito-server:dev: ⚠️ REFRESH_TOKEN_SECRET no configurado. Se usará JWT_SECRET como fallback.
+@platform/admin-client:dev: [2m02:41:13[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m Re-optimizing dependencies because lockfile has changed
+@platform/admin-client:dev: 
+@platform/admin-client:dev:   [32m[1mVITE[22m v8.0.8[39m  [2mready in [0m[1m611[22m[2m[0m ms[22m
+@platform/admin-client:dev: 
+@platform/admin-client:dev:   [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+@platform/admin-client:dev: [2m  [32m➜[39m  [1mNetwork[22m[2m: use [22m[1m--host[22m[2m to expose[22m
+deposito-server:dev: Server running on http://localhost:3001

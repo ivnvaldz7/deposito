@@ -1,0 +1,10 @@
+
+> @platform/admin-server@0.0.1 dev
+> tsx watch src/index.ts
+
+Admin server escuchando en http://localhost:3001
+02:30:00 [tsx] change in ./src\index.ts Restarting...
+cAdmin server escuchando en http://localhost:3001
+02:30:07 [tsx] unlink in ./..\..\..\packages\db\src\generated\client\index.js Restarting...
+cAdmin server escuchando en http://localhost:3001
+^C
