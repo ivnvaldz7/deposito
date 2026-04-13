@@ -27,3 +27,55 @@ body {
 * {
   box-sizing: border-box;
 }
+
+@keyframes aleBetFlashSuccess {
+  0% {
+    background: #0f2d0f;
+  }
+
+  50% {
+    background: #0f2d0f;
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+@keyframes aleBetFlashDanger {
+  0% {
+    background: #2d0f0f;
+  }
+
+  50% {
+    background: #2d0f0f;
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+@keyframes aleBetEnterNew {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.alebet-flash-success {
+  animation: aleBetFlashSuccess 600ms ease-out 1;
+}
+
+.alebet-flash-danger {
+  animation: aleBetFlashDanger 600ms ease-out 1;
+}
+
+.alebet-enter-new {
+  animation: aleBetEnterNew 300ms ease-out 1;
+}

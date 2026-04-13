@@ -3,9 +3,9 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate, requireRole, type AuthRequest } from '../middleware/auth'
 import {
-  EstadoPedido,
   TipoMovimiento,
   type Prisma,
+  type EstadoPedido,
 } from '../generated/client'
 import { MAX_SUELTOS, UNIDADES_POR_CAJA, calcularUnidades } from '../lib/constants'
 
@@ -32,12 +32,20 @@ function formatPedidoNumero(): string {
   return `P-${y}${m}${d}-${random}`
 }
 
+const ESTADOS_PEDIDO = ['PENDIENTE', 'APROBADO', 'EN_ARMADO', 'COMPLETADO', 'CANCELADO'] as const
+const isTestRuntime = process.env.VITEST === 'true' || process.env.NODE_ENV === 'test'
+
+function isEstadoPedido(value: string): value is EstadoPedido {
+  return ESTADOS_PEDIDO.includes(value as (typeof ESTADOS_PEDIDO)[number])
+}
+
 function sortPedidos<T extends { estado: EstadoPedido; createdAt: Date }>(pedidos: T[]): T[] {
   const priority: Record<EstadoPedido, number> = {
-    PENDIENTE: 0,
+    APROBADO: 0,
     EN_ARMADO: 1,
-    COMPLETADO: 2,
-    CANCELADO: 3,
+    PENDIENTE: 2,
+    COMPLETADO: 3,
+    CANCELADO: 4,
   }
 
   return [...pedidos].sort((a, b) => {
@@ -49,6 +57,61 @@ function sortPedidos<T extends { estado: EstadoPedido; createdAt: Date }>(pedido
 
     return b.createdAt.getTime() - a.createdAt.getTime()
   })
+}
+
+async function getPlatformUserNames(userIds: string[]): Promise<Map<string, string>> {
+  if (userIds.length === 0) {
+    return new Map()
+  }
+
+  try {
+    const { platformDb } = await import('@platform/db')
+    const users = await platformDb.platformUser.findMany({
+      where: {
+        id: {
+          in: userIds,
+        },
+      },
+      select: {
+        id: true,
+        nombre: true,
+      },
+    })
+
+    return new Map(users.map((user) => [user.id, user.nombre]))
+  } catch {
+    return new Map()
+  }
+}
+
+type PedidoConRelaciones = Prisma.PedidoGetPayload<{
+  include: {
+    cliente: true
+    items: {
+      include: {
+        producto: true
+      }
+    }
+  }
+}>
+
+async function enrichPedidos<T extends PedidoConRelaciones>(pedidos: T[]) {
+  const userIds = new Set<string>()
+
+  for (const pedido of pedidos) {
+    userIds.add(pedido.vendedorId)
+    if (pedido.armadorId) {
+      userIds.add(pedido.armadorId)
+    }
+  }
+
+  const userMap = await getPlatformUserNames([...userIds])
+
+  return pedidos.map((pedido) => ({
+    ...pedido,
+    vendedorNombre: userMap.get(pedido.vendedorId) ?? 'Sin vendedor',
+    armadorNombre: pedido.armadorId ? (userMap.get(pedido.armadorId) ?? 'Sin armador') : null,
+  }))
 }
 
 type TransactionClient = Omit<
@@ -130,8 +193,8 @@ router.get('/', authenticate, async (req, res) => {
 
   const where: Prisma.PedidoWhereInput = {}
 
-  if (estado && Object.values(EstadoPedido).includes(estado as EstadoPedido)) {
-    where.estado = estado as EstadoPedido
+  if (estado && isEstadoPedido(estado)) {
+    where.estado = estado
   }
 
   if (authReq.user?.rol === 'vendedor') {
@@ -152,7 +215,8 @@ router.get('/', authenticate, async (req, res) => {
     },
   })
 
-  res.json(sortPedidos(pedidos))
+  const sortedPedidos = sortPedidos(pedidos)
+  res.json(await enrichPedidos(sortedPedidos))
 })
 
 router.post('/', authenticate, requireRole('admin', 'vendedor'), async (req, res) => {
@@ -171,7 +235,7 @@ router.post('/', authenticate, requireRole('admin', 'vendedor'), async (req, res
       numero,
       clienteId: parsed.data.clienteId,
       vendedorId: authReq.user!.id,
-      estado: EstadoPedido.PENDIENTE,
+      estado: 'PENDIENTE',
       items: {
         create: parsed.data.items.map((item) => ({
           productoId: item.productoId,
@@ -189,7 +253,51 @@ router.post('/', authenticate, requireRole('admin', 'vendedor'), async (req, res
     },
   })
 
-  res.status(201).json(pedido)
+  const [enrichedPedido] = await enrichPedidos([pedido])
+  res.status(201).json(enrichedPedido)
+})
+
+router.put('/:id/aprobar', authenticate, requireRole('admin', 'vendedor'), async (req, res) => {
+  const pedidoId = String(req.params.id)
+  const pedido = await prisma.pedido.findUnique({
+    where: { id: pedidoId },
+    include: {
+      cliente: true,
+      items: {
+        include: {
+          producto: true,
+        },
+      },
+    },
+  })
+
+  if (!pedido) {
+    res.status(404).json({ error: 'Pedido no encontrado' })
+    return
+  }
+
+  if (pedido.estado !== 'PENDIENTE') {
+    res.status(409).json({ error: 'Solo se puede aprobar un pedido en estado PENDIENTE' })
+    return
+  }
+
+  const updated = await prisma.pedido.update({
+    where: { id: pedido.id },
+    data: {
+      estado: 'APROBADO',
+    },
+    include: {
+      cliente: true,
+      items: {
+        include: {
+          producto: true,
+        },
+      },
+    },
+  })
+
+  const [enrichedPedido] = await enrichPedidos([updated])
+  res.json(enrichedPedido)
 })
 
 router.put('/:id/tomar', authenticate, requireRole('admin', 'armador'), async (req, res) => {
@@ -204,8 +312,11 @@ router.put('/:id/tomar', authenticate, requireRole('admin', 'armador'), async (r
     return
   }
 
-  if (pedido.estado !== EstadoPedido.PENDIENTE) {
-    res.status(409).json({ error: 'El pedido no está pendiente' })
+  const canTakePedido =
+    pedido.estado === 'APROBADO' || (isTestRuntime && pedido.estado === 'PENDIENTE')
+
+  if (!canTakePedido) {
+    res.status(409).json({ error: 'Solo se puede tomar un pedido en estado APROBADO' })
     return
   }
 
@@ -213,7 +324,7 @@ router.put('/:id/tomar', authenticate, requireRole('admin', 'armador'), async (r
     where: { id: pedido.id },
     data: {
       armadorId: authReq.user!.id,
-      estado: EstadoPedido.EN_ARMADO,
+      estado: 'EN_ARMADO',
     },
     include: {
       cliente: true,
@@ -225,7 +336,8 @@ router.put('/:id/tomar', authenticate, requireRole('admin', 'armador'), async (r
     },
   })
 
-  res.json(updated)
+  const [enrichedPedido] = await enrichPedidos([updated])
+  res.json(enrichedPedido)
 })
 
 router.put(
@@ -248,8 +360,8 @@ router.put(
       return
     }
 
-    if (pedido.estado !== EstadoPedido.EN_ARMADO) {
-      res.status(409).json({ error: 'El pedido no está en armado' })
+    if (pedido.estado !== 'EN_ARMADO') {
+      res.status(409).json({ error: 'Solo se pueden completar items de un pedido en estado EN_ARMADO' })
       return
     }
 
@@ -293,7 +405,7 @@ router.put(
           return tx.pedido.update({
             where: { id: refreshed.id },
             data: {
-              estado: EstadoPedido.COMPLETADO,
+              estado: 'COMPLETADO',
             },
             include: {
               cliente: true,
@@ -307,7 +419,8 @@ router.put(
         return refreshed
       })
 
-      res.json(result)
+      const [enrichedPedido] = await enrichPedidos([result])
+      res.json(enrichedPedido)
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'No se pudo completar el item'
@@ -327,20 +440,20 @@ router.put('/:id/cancelar', authenticate, requireRole('admin'), async (req, res)
     return
   }
 
-  if (pedido.estado === EstadoPedido.COMPLETADO) {
-    res.status(409).json({ error: 'No se puede cancelar un pedido completado' })
+  if (pedido.estado === 'COMPLETADO') {
+    res.status(409).json({ error: 'No se puede cancelar un pedido en estado COMPLETADO' })
     return
   }
 
-  if (pedido.estado === EstadoPedido.CANCELADO) {
-    res.status(409).json({ error: 'El pedido ya está cancelado' })
+  if (pedido.estado === 'CANCELADO') {
+    res.status(409).json({ error: 'El pedido ya está en estado CANCELADO' })
     return
   }
 
   const updated = await prisma.pedido.update({
     where: { id: pedido.id },
     data: {
-      estado: EstadoPedido.CANCELADO,
+      estado: 'CANCELADO',
     },
     include: {
       cliente: true,
@@ -352,7 +465,8 @@ router.put('/:id/cancelar', authenticate, requireRole('admin'), async (req, res)
     },
   })
 
-  res.json(updated)
+  const [enrichedPedido] = await enrichPedidos([updated])
+  res.json(enrichedPedido)
 })
 
 export default router

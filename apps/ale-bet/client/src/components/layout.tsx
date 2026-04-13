@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { LogOut, Boxes, ClipboardList, LayoutDashboard, Package2, Users } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { removeToken } from '@/lib/auth'
@@ -16,10 +16,58 @@ const navItems = [
   { path: '/stock', label: 'Stock', icon: Boxes },
 ]
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+
+  if (parts.length === 0) {
+    return '?'
+  }
+
+  return parts
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .filter(Boolean)
+    .slice(0, 2)
+    .join('')
+}
+
 export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+
+  useEffect(() => {
+    const linkId = 'ale-bet-fonts'
+
+    if (document.getElementById(linkId)) {
+      return
+    }
+
+    const preconnect = document.createElement('link')
+    preconnect.rel = 'preconnect'
+    preconnect.href = 'https://fonts.googleapis.com'
+    preconnect.dataset.aleBetFont = 'preconnect'
+
+    const preconnectStatic = document.createElement('link')
+    preconnectStatic.rel = 'preconnect'
+    preconnectStatic.href = 'https://fonts.gstatic.com'
+    preconnectStatic.crossOrigin = 'anonymous'
+    preconnectStatic.dataset.aleBetFont = 'preconnect'
+
+    const link = document.createElement('link')
+    link.id = linkId
+    link.rel = 'stylesheet'
+    link.href =
+      'https://fonts.googleapis.com/css2?family=Inter:wght@400&family=Montserrat:wght@600;700&display=swap'
+
+    document.head.append(preconnect, preconnectStatic, link)
+
+    return () => {
+      document.querySelectorAll('[data-ale-bet-font="preconnect"]').forEach((node) => {
+        node.remove()
+      })
+      link.remove()
+    }
+  }, [])
 
   const visibleItems = navItems.filter((item) => {
     if (item.path === '/productos' || item.path === '/stock') {
@@ -66,34 +114,30 @@ export function Layout({ children }: LayoutProps) {
             </NavLink>
           ))}
         </nav>
-      </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
-        <header className="flex h-14 items-center justify-between border-b border-white/6 bg-[var(--surface-low)] px-5">
-          <div>
-            <span className="font-[Montserrat] text-sm font-semibold tracking-[0.18em] text-[var(--on-surface-variant)]">
-              Kinetic Monolith
-            </span>
-          </div>
-
+        <div className="border-t border-[#1a1a1a] px-4 py-[14px]">
           <div className="flex items-center gap-3">
-            {user ? (
-              <span className="text-sm text-[var(--on-surface)]">
-                {user.nombre} · {user.rol}
-              </span>
-            ) : null}
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#2a2a2a] bg-[#1e1e1e] text-[11px] font-semibold text-[#9ca3af]">
+              {getInitials(user?.nombre ?? '')}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium text-white">{user?.nombre ?? 'Sin usuario'}</p>
+              <p className="truncate text-[11px] text-[#6b7280]">{user?.rol ?? ''}</p>
+            </div>
             <button
               type="button"
               onClick={handleLogout}
-              className="text-[var(--on-surface-variant)] transition hover:text-[var(--on-surface)]"
+              className="text-[#6b7280] transition hover:text-white"
               aria-label="Cerrar sesión"
             >
               <LogOut size={16} strokeWidth={1.6} />
             </button>
           </div>
-        </header>
+        </div>
+      </aside>
 
-        <main className="flex-1 px-4 py-6 md:px-8">{children}</main>
+      <div className="flex min-h-screen flex-1 flex-col">
+        <main className="flex-1 bg-[#0d0d0d] px-6 py-6">{children}</main>
       </div>
     </div>
   )

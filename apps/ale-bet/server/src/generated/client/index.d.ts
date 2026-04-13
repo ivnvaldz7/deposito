@@ -50,6 +50,7 @@ export type MovimientoStock = $Result.DefaultSelection<Prisma.$MovimientoStockPa
 export namespace $Enums {
   export const EstadoPedido: {
   PENDIENTE: 'PENDIENTE',
+  APROBADO: 'APROBADO',
   EN_ARMADO: 'EN_ARMADO',
   COMPLETADO: 'COMPLETADO',
   CANCELADO: 'CANCELADO'
@@ -8485,10 +8486,11 @@ export namespace Prisma {
 
   export type LoteWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    numero?: string
+    numero_productoId?: LoteNumeroProductoIdCompoundUniqueInput
     AND?: LoteWhereInput | LoteWhereInput[]
     OR?: LoteWhereInput[]
     NOT?: LoteWhereInput | LoteWhereInput[]
+    numero?: StringFilter<"Lote"> | string
     productoId?: StringFilter<"Lote"> | string
     cajas?: IntFilter<"Lote"> | number
     sueltos?: IntFilter<"Lote"> | number
@@ -8497,7 +8499,7 @@ export namespace Prisma {
     activo?: BoolFilter<"Lote"> | boolean
     createdAt?: DateTimeFilter<"Lote"> | Date | string
     producto?: XOR<ProductoScalarRelationFilter, ProductoWhereInput>
-  }, "id" | "numero">
+  }, "id" | "numero_productoId">
 
   export type LoteOrderByWithAggregationInput = {
     id?: SortOrder
@@ -9391,6 +9393,11 @@ export namespace Prisma {
   export type ProductoScalarRelationFilter = {
     is?: ProductoWhereInput
     isNot?: ProductoWhereInput
+  }
+
+  export type LoteNumeroProductoIdCompoundUniqueInput = {
+    numero: string
+    productoId: string
   }
 
   export type LoteCountOrderByAggregateInput = {

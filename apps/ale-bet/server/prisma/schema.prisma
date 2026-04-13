@@ -24,7 +24,7 @@ model Producto {
 
 model Lote {
   id               String    @id @default(cuid())
-  numero           String    @unique
+  numero           String
   productoId       String
   producto         Producto  @relation(fields: [productoId], references: [id])
   cajas            Int       @default(0)
@@ -34,6 +34,7 @@ model Lote {
   activo           Boolean   @default(true)
   createdAt        DateTime  @default(now())
 
+  @@unique([numero, productoId])
   @@schema("ale_bet")
 }
 
@@ -91,6 +92,7 @@ model MovimientoStock {
 
 enum EstadoPedido {
   PENDIENTE
+  APROBADO
   EN_ARMADO
   COMPLETADO
   CANCELADO

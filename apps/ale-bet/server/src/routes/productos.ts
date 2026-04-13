@@ -137,7 +137,7 @@ router.delete('/:id', authenticate, requireRole('admin'), async (req, res) => {
       productoId,
       pedido: {
         estado: {
-          in: ['PENDIENTE', 'EN_ARMADO'],
+          in: ['PENDIENTE', 'APROBADO', 'EN_ARMADO'],
         },
       },
     },

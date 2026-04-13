@@ -197,6 +197,7 @@ exports.Prisma.NullsOrder = {
 };
 exports.EstadoPedido = exports.$Enums.EstadoPedido = {
   PENDIENTE: 'PENDIENTE',
+  APROBADO: 'APROBADO',
   EN_ARMADO: 'EN_ARMADO',
   COMPLETADO: 'COMPLETADO',
   CANCELADO: 'CANCELADO'

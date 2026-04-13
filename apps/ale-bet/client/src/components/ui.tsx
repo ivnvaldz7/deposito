@@ -12,14 +12,14 @@ export function Section({
   action?: ReactNode
 }) {
   return (
-    <section className="rounded-2xl border border-white/6 bg-[var(--surface-low)] p-5 shadow-[0_24px_60px_rgba(0,0,0,0.22)]">
+    <section className="space-y-4">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-[Montserrat] text-lg font-semibold text-[var(--on-surface)]">
+          <h2 className="text-[22px] font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             {title}
           </h2>
           {description ? (
-            <p className="mt-1 text-sm text-[var(--on-surface-variant)]">{description}</p>
+            <p className="mt-1 text-[12px] text-[#6b7280]">{description}</p>
           ) : null}
         </div>
         {action}
@@ -39,11 +39,16 @@ export function StatCard({
   accent?: string
 }) {
   return (
-    <div className="rounded-2xl border border-white/6 bg-[var(--surface-low)] p-5">
-      <p className="text-xs uppercase tracking-[0.18em] text-[var(--on-surface-variant)]">
+    <div className="rounded-[8px] border border-[#1e1e1e] bg-[#111111] px-4 py-[14px]">
+      <p className="text-[10px] uppercase tracking-[0.8px] text-[#6b7280]">
         {label}
       </p>
-      <p className={`mt-3 font-[Montserrat] text-3xl font-semibold ${accent}`}>{value}</p>
+      <p
+        className={`mt-2 text-[22px] font-bold text-white ${accent}`}
+        style={{ fontFamily: 'Montserrat, sans-serif' }}
+      >
+        {value}
+      </p>
     </div>
   )
 }

@@ -65,7 +65,7 @@ export function ClientesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-[#0d0d0d] text-white">
       <Section
         title="Clientes"
         description="Base comercial y de distribución."
@@ -77,22 +77,23 @@ export function ClientesPage() {
               setForm(emptyCliente)
               setOpen(true)
             }}
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[#07120b]"
+            className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d]"
+            style={{ fontFamily: 'Montserrat, sans-serif' }}
           >
             Nuevo cliente
           </button>
         }
       >
         {error ? <p className="mb-4 text-sm text-rose-300">{error}</p> : null}
-        <div className="space-y-3">
+        <div className="bg-[#0d0d0d]">
           {clientes.map((cliente) => (
             <div
               key={cliente.id}
-              className="flex flex-col gap-3 rounded-2xl border border-white/6 bg-[var(--surface-lowest)] p-4 md:flex-row md:items-center md:justify-between"
+              className="flex flex-col gap-3 border-b border-[#161616] px-4 py-[14px] transition-colors hover:bg-[#111111] md:flex-row md:items-center md:justify-between"
             >
               <div>
-                <p className="font-medium">{cliente.nombre}</p>
-                <p className="text-sm text-[var(--on-surface-variant)]">
+                <p className="font-medium text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>{cliente.nombre}</p>
+                <p className="text-sm text-[#6b7280]">
                   {cliente.contacto ?? 'Sin contacto'} · {cliente.direccion ?? 'Sin dirección'}
                 </p>
               </div>
@@ -113,7 +114,7 @@ export function ClientesPage() {
                       })
                       setOpen(true)
                     }}
-                    className="rounded-xl border border-white/8 px-3 py-2 text-sm"
+                    className="rounded-[8px] border border-[#1e1e1e] px-3 py-2 text-sm text-white transition hover:border-[#2a2a2a] hover:bg-[#111111]"
                   >
                     Editar
                   </button>
@@ -121,6 +122,7 @@ export function ClientesPage() {
               </div>
             </div>
           ))}
+          {clientes.length === 0 ? <p className="px-4 py-8 text-center text-[13px] text-[#6b7280]">No hay clientes para mostrar.</p> : null}
         </div>
       </Section>
 
@@ -151,7 +153,8 @@ export function ClientesPage() {
           />
           <button
             type="submit"
-            className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[#07120b]"
+            className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d]"
+            style={{ fontFamily: 'Montserrat, sans-serif' }}
           >
             Guardar
           </button>

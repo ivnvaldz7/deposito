@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Modal } from '@/components/modal'
 import { Section, StatusChip } from '@/components/ui'
 import {
@@ -19,6 +20,8 @@ function estadoLabel(estado: Pedido['estado']): string {
   switch (estado) {
     case 'PENDIENTE':
       return 'Nuevo'
+    case 'APROBADO':
+      return 'Aprobado'
     case 'EN_ARMADO':
       return 'En prep.'
     case 'COMPLETADO':
@@ -31,6 +34,8 @@ function estadoLabel(estado: Pedido['estado']): string {
 function estadoTone(estado: Pedido['estado']): 'amber' | 'blue' | 'green' | 'slate' {
   switch (estado) {
     case 'PENDIENTE':
+      return 'slate'
+    case 'APROBADO':
       return 'amber'
     case 'EN_ARMADO':
       return 'blue'
@@ -42,6 +47,7 @@ function estadoTone(estado: Pedido['estado']): 'amber' | 'blue' | 'green' | 'sla
 }
 
 export function PedidosPage() {
+  const location = useLocation()
   const user = useAuthStore((state) => state.user)
   const [pedidos, setPedidos] = useState<Pedido[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -51,10 +57,15 @@ export function PedidosPage() {
   const [clienteId, setClienteId] = useState('')
   const [items, setItems] = useState<NewPedidoItem[]>([{ productoId: '', cantidad: 1 }])
   const [error, setError] = useState<string | null>(null)
+  const [pendingCancelPedidoId, setPendingCancelPedidoId] = useState<string | null>(null)
+  const [animatedPedidoId, setAnimatedPedidoId] = useState<string | null>(null)
+  const [animatedTone, setAnimatedTone] = useState<'success' | 'danger' | null>(null)
+  const [newPedidoId, setNewPedidoId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
 
   const canCreate = user?.rol === 'admin' || user?.rol === 'vendedor'
+  const canApprove = user?.rol === 'admin' || user?.rol === 'vendedor'
   const canArm = user?.rol === 'admin' || user?.rol === 'armador'
   const canCancel = user?.rol === 'admin'
 
@@ -85,10 +96,22 @@ export function PedidosPage() {
     void loadData()
   }, [])
 
+  useEffect(() => {
+    const state = location.state as { openPedidoId?: string } | null
+    if (!state?.openPedidoId) {
+      return
+    }
+
+    const pedido = pedidos.find((entry) => entry.id === state.openPedidoId)
+    if (pedido) {
+      setSelectedPedido(pedido)
+    }
+  }, [location.state, pedidos])
+
   const visiblePedidos = useMemo(() => {
     if (user?.rol === 'armador') {
       return pedidos.filter(
-        (pedido) => pedido.estado === 'PENDIENTE' || pedido.armadorId === user.id
+        pedido => pedido.estado === 'APROBADO' || pedido.armadorId === user.id
       )
     }
 
@@ -111,13 +134,31 @@ export function PedidosPage() {
     setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }
 
+  function triggerPedidoFlash(id: string, tone: 'success' | 'danger'): void {
+    setAnimatedPedidoId(id)
+    setAnimatedTone(tone)
+
+    window.setTimeout(() => {
+      setAnimatedPedidoId((current) => (current === id ? null : current))
+      setAnimatedTone((current) => (current === tone ? null : current))
+    }, 600)
+  }
+
+  function triggerNewPedido(id: string): void {
+    setNewPedidoId(id)
+
+    window.setTimeout(() => {
+      setNewPedidoId((current) => (current === id ? null : current))
+    }, 300)
+  }
+
   async function handleCreatePedido(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault()
     setSubmitting(true)
     setError(null)
 
     try {
-      await apiRequest<Pedido>('/api/pedidos', {
+      const created = await apiRequest<Pedido>('/api/pedidos', {
         method: 'POST',
         body: JSON.stringify({
           clienteId,
@@ -129,6 +170,7 @@ export function PedidosPage() {
       setClienteId('')
       setItems([{ productoId: '', cantidad: 1 }])
       await loadData()
+      triggerNewPedido(created.id)
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'No se pudo crear el pedido')
     } finally {
@@ -139,6 +181,13 @@ export function PedidosPage() {
   async function handleTomarPedido(id: string): Promise<void> {
     await apiRequest<Pedido>(`/api/pedidos/${id}/tomar`, { method: 'PUT' })
     await loadData()
+    triggerPedidoFlash(id, 'success')
+  }
+
+  async function handleAprobarPedido(id: string): Promise<void> {
+    await apiRequest<Pedido>(`/api/pedidos/${id}/aprobar`, { method: 'PUT' })
+    await loadData()
+    triggerPedidoFlash(id, 'success')
   }
 
   async function handleCompletarItem(pedidoId: string, itemId: string): Promise<void> {
@@ -147,11 +196,14 @@ export function PedidosPage() {
     })
     await loadData()
     setSelectedPedido(updated)
+    triggerPedidoFlash(pedidoId, 'success')
   }
 
   async function handleCancelarPedido(id: string): Promise<void> {
     await apiRequest<Pedido>(`/api/pedidos/${id}/cancelar`, { method: 'PUT' })
+    setPendingCancelPedidoId(null)
     await loadData()
+    triggerPedidoFlash(id, 'danger')
   }
 
   if (loading) {
@@ -159,7 +211,7 @@ export function PedidosPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-[#0d0d0d] text-white">
       <Section
         title="Pedidos"
         description="Gestión comercial y de armado por rol."
@@ -168,7 +220,8 @@ export function PedidosPage() {
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[#07120b]"
+              className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d]"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
             >
               Nuevo pedido
             </button>
@@ -176,16 +229,24 @@ export function PedidosPage() {
         }
       >
         {error ? <p className="mb-4 text-sm text-rose-300">{error}</p> : null}
-        <div className="space-y-3">
+        <div className="overflow-hidden rounded-[8px] border border-[#1e1e1e] bg-[#0d0d0d]">
           {visiblePedidos.map((pedido) => (
             <div
               key={pedido.id}
-              className="rounded-2xl border border-white/6 bg-[var(--surface-lowest)] p-4"
+              className={`border-b border-[#161616] px-4 py-[14px] transition-colors hover:bg-[#111111] ${
+                newPedidoId === pedido.id
+                  ? 'alebet-enter-new'
+                  : animatedPedidoId === pedido.id
+                    ? animatedTone === 'danger'
+                      ? 'alebet-flash-danger'
+                      : 'alebet-flash-success'
+                    : ''
+              }`}
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="font-[Montserrat] text-lg font-semibold">{pedido.numero}</p>
-                  <p className="text-sm text-[var(--on-surface-variant)]">
+                  <p className="font-[Montserrat] text-lg font-semibold text-white">{pedido.numero}</p>
+                  <p className="text-sm text-[#6b7280]">
                     {pedido.cliente.nombre} · {pedido.items.length} items
                   </p>
                 </div>
@@ -194,35 +255,64 @@ export function PedidosPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedPedido(pedido)}
-                    className="rounded-xl border border-white/8 px-3 py-2 text-sm text-[var(--on-surface)]"
+                    className="rounded-[8px] border border-[#1e1e1e] px-3 py-2 text-sm text-white transition hover:border-[#2a2a2a] hover:bg-[#111111]"
                   >
                     Ver detalle
                   </button>
-                  {canArm && pedido.estado === 'PENDIENTE' ? (
+                  {canApprove && pedido.estado === 'PENDIENTE' ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleAprobarPedido(pedido.id)}
+                      className="rounded-[8px] border border-[#854f0b] bg-[#1c1a0a] px-3 py-2 text-sm text-[#f59e0b]"
+                    >
+                      Aprobar
+                    </button>
+                  ) : null}
+                  {canArm && pedido.estado === 'APROBADO' ? (
                     <button
                       type="button"
                       onClick={() => void handleTomarPedido(pedido.id)}
-                      className="rounded-xl border border-sky-400/25 bg-sky-400/10 px-3 py-2 text-sm text-sky-200"
+                      className="rounded-[8px] border border-sky-400/25 bg-sky-400/10 px-3 py-2 text-sm text-sky-200"
                     >
-                      Tomar pedido
+                      Tomar
                     </button>
                   ) : null}
-                  {canCancel &&
-                  (pedido.estado === 'PENDIENTE' || pedido.estado === 'EN_ARMADO') ? (
+                  {canCancel && pedido.estado !== 'COMPLETADO' ? (
                     <button
                       type="button"
-                      onClick={() => void handleCancelarPedido(pedido.id)}
-                      className="rounded-xl border border-rose-400/25 bg-rose-400/10 px-3 py-2 text-sm text-rose-200"
+                      onClick={() => setPendingCancelPedidoId((current) => current === pedido.id ? null : pedido.id)}
+                      className="rounded-[8px] border border-rose-400/25 bg-rose-400/10 px-3 py-2 text-sm text-rose-200"
                     >
                       Cancelar
                     </button>
                   ) : null}
                 </div>
               </div>
+              {pendingCancelPedidoId === pedido.id ? (
+                <div className="mt-3 rounded-[6px] border border-[#2a2a2a] bg-[#111111] px-3 py-3">
+                  <p className="text-[12px] text-[#e5e7eb]">¿Cancelar pedido {pedido.numero}?</p>
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setPendingCancelPedidoId(null)}
+                      className="rounded-[6px] border border-[#1e1e1e] px-3 py-2 text-[12px] text-[#6b7280] transition hover:border-[#374151] hover:text-white"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleCancelarPedido(pedido.id)}
+                      className="rounded-[6px] bg-[#ef4444] px-3 py-2 text-[12px] font-semibold text-white"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           ))}
           {visiblePedidos.length === 0 ? (
-            <p className="text-sm text-[var(--on-surface-variant)]">No hay pedidos para mostrar.</p>
+            <p className="px-4 py-8 text-center text-[13px] text-[#6b7280]">No hay pedidos para mostrar.</p>
           ) : null}
         </div>
       </Section>
@@ -296,7 +386,8 @@ export function PedidosPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[#07120b] disabled:opacity-60"
+              className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d] disabled:opacity-60"
+              style={{ fontFamily: 'Montserrat, sans-serif' }}
             >
               {submitting ? 'Guardando...' : 'Guardar pedido'}
             </button>

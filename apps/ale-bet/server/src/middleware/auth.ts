@@ -7,6 +7,8 @@ export interface AuthenticatedUser {
   rol: string
 }
 
+type PlatformAppName = 'ale_bet'
+
 export interface AuthRequest extends Request {
   user?: AuthenticatedUser
 }
@@ -61,6 +63,29 @@ export function requireRole(...roles: string[]): RequestHandler {
 
     if (!authReq.user) {
       res.status(401).json({ error: 'No autenticado' })
+      return
+    }
+
+    if (!roles.includes(authReq.user.rol)) {
+      res.status(403).json({ error: 'No autorizado' })
+      return
+    }
+
+    next()
+  }
+}
+
+export function requireApp(app: PlatformAppName, roles: string[]): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authReq = req as AuthRequest
+
+    if (!authReq.user) {
+      res.status(401).json({ error: 'No autenticado' })
+      return
+    }
+
+    if (app !== 'ale_bet') {
+      res.status(403).json({ error: 'Aplicación no autorizada' })
       return
     }
 

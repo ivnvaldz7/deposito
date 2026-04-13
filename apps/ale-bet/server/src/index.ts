@@ -6,6 +6,7 @@ import productosRoutes from './routes/productos'
 import pedidosRoutes from './routes/pedidos'
 import clientesRoutes from './routes/clientes'
 import stockRoutes from './routes/stock'
+import dashboardRoutes from './routes/dashboard'
 
 const app = express()
 const port = Number(process.env.PORT ?? 3003)
@@ -27,6 +28,7 @@ app.use('/api/productos', productosRoutes)
 app.use('/api/pedidos', pedidosRoutes)
 app.use('/api/clientes', clientesRoutes)
 app.use('/api/stock', stockRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 
 app.listen(port, () => {
   console.log(`Ale-Bet server running on http://localhost:${port}`)

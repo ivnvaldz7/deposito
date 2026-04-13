@@ -70,11 +70,32 @@ export interface Pedido {
   clienteId: string
   vendedorId: string
   armadorId: string | null
-  estado: 'PENDIENTE' | 'EN_ARMADO' | 'COMPLETADO' | 'CANCELADO'
+  estado: 'PENDIENTE' | 'APROBADO' | 'EN_ARMADO' | 'COMPLETADO' | 'CANCELADO'
   createdAt: string
   updatedAt: string
   cliente: Cliente
   items: PedidoItem[]
+  vendedorNombre?: string
+  armadorNombre?: string | null
+}
+
+export interface DashboardPedidoReciente {
+  id: string
+  numero: string
+  estado: Pedido['estado']
+  clienteNombre: string
+  vendedorNombre: string
+  armadorNombre: string | null
+  cantidadItems: number
+  createdAt: string
+}
+
+export interface DashboardOverview {
+  stockCritico: number
+  pedidosHoy: number
+  enArmado: number
+  totalProductos: number
+  pedidosRecientes: DashboardPedidoReciente[]
 }
 
 interface ApiOptions extends RequestInit {}

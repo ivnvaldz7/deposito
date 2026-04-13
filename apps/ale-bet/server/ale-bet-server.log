@@ -3,3 +3,7 @@
 > tsx watch src/index.ts
 
 Ale-Bet server running on http://localhost:3003
+07:10:21 [tsx] unlink in ./src\generated\client\index.js Rerunning...
+cAle-Bet server running on http://localhost:3003
+07:10:32 [tsx] unlink in ./src\generated\client\index.js Rerunning...
+cAle-Bet server running on http://localhost:3003
