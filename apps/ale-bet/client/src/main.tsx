@@ -10,6 +10,11 @@ if (!rootElement) {
   throw new Error('No se encontró el elemento root')
 }
 
+const saved = localStorage.getItem('theme')
+if (saved === 'light' || saved === 'dark') {
+  document.documentElement.setAttribute('data-theme', saved)
+}
+
 createRoot(rootElement).render(
   <StrictMode>
     <BrowserRouter>

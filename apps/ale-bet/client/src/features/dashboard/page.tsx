@@ -30,16 +30,13 @@ function formatDashboardDate(dateString: string): string {
   return `${dayMonth} ${time}`
 }
 
-function getInitials(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean)
-
-  if (parts.length === 0) {
-    return '?'
-  }
-
-  return parts
-    .map((part) => part[0]?.toUpperCase() ?? '')
+const getInitials = (nombre: string) => {
+  if (!nombre) return '?'
+  if (nombre === 'Admin Ale-Bet' || nombre.includes('Admin')) return 'IV'
+  return nombre
+    .split(' ')
     .filter(Boolean)
+    .map((w) => w[0].toUpperCase())
     .slice(0, 2)
     .join('')
 }
@@ -49,21 +46,21 @@ function isAdminVendor(name: string): boolean {
 }
 
 function getEstadoBadgeStyle(estado: Pedido['estado']): {
-  backgroundColor: string
+  background: string
   color: string
   border: string
 } {
   switch (estado) {
     case 'PENDIENTE':
-      return { backgroundColor: '#161616', color: '#6b7280', border: '1px solid #2a2a2a' }
+      return { background: '#161616', color: '#6b7280', border: '1px solid #2a2a2a' }
     case 'APROBADO':
-      return { backgroundColor: '#1c1a0a', color: '#f59e0b', border: '1px solid #854f0b' }
+      return { background: '#1c1a0a', color: '#f59e0b', border: '1px solid #854f0b' }
     case 'EN_ARMADO':
-      return { backgroundColor: '#0f1520', color: '#60a5fa', border: '1px solid #1e3a5f' }
+      return { background: '#0f1520', color: '#60a5fa', border: '1px solid #1e3a5f' }
     case 'COMPLETADO':
-      return { backgroundColor: '#0a0a0a', color: '#4b5563', border: '1px solid #1e1e1e' }
+      return { background: '#0a0a0a', color: '#4b5563', border: '1px solid #1e1e1e' }
     case 'CANCELADO':
-      return { backgroundColor: '#0a0a0a', color: '#3d3d3d', border: '1px solid #1a1a1a' }
+      return { background: '#0a0a0a', color: '#3d3d3d', border: '1px solid #1a1a1a' }
   }
 }
 
@@ -118,11 +115,12 @@ function PedidoRow({
 
       <div className="flex items-center gap-2">
         <span
-          className={`inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] font-semibold ${
+          className="inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] font-semibold"
+          style={
             adminVendor
-              ? 'border-[#166534] bg-[#0f1f0f] text-[#22c55e]'
-              : 'border-[#2a2a2a] bg-[#1e1e1e] text-[#6b7280]'
-          }`}
+              ? { background: '#0a2410', color: '#1a6b35', borderColor: '#1a6b35' }
+              : { background: '#1e1e1e', color: '#6b7280', borderColor: '#2a2a2a' }
+          }
         >
           {getInitials(pedido.vendedorNombre)}
         </span>
@@ -135,8 +133,17 @@ function PedidoRow({
 
       <div className="flex justify-center">
         <span
-          className="inline-flex w-[88px] items-center justify-center rounded-[4px] py-[3px] text-[10px] font-semibold"
-          style={estadoBadgeStyle}
+          style={{
+            ...estadoBadgeStyle,
+            fontSize: '10px',
+            fontWeight: 600,
+            padding: '3px 0',
+            borderRadius: '4px',
+            width: '88px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           {pedido.estado.replace('_', ' ')}
         </span>
@@ -244,9 +251,9 @@ export function DashboardPage() {
           onClick={() => navigate('/pedidos')}
         />
         <MetricCard
-          label="Total productos"
+          label="TOTAL PRODUCTOS"
           value={data.totalProductos}
-          subtitle="Catálogo activo"
+          subtitle="en inventario"
           valueClassName="text-white"
           onClick={() => navigate('/stock')}
         />

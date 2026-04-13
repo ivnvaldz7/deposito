@@ -3,16 +3,16 @@ import { Toaster } from 'sonner'
 export function AppToaster() {
   return (
     <Toaster
-      theme="dark"
+      theme="system"
       position="top-right"
       closeButton
       visibleToasts={5}
       toastOptions={{
         duration: 3600,
         style: {
-          background: 'rgba(49, 54, 49, 0.80)',
-          color: 'var(--color-on-surface-variant)',
-          border: '1px solid rgba(61, 74, 60, 0.15)',
+          background: 'color-mix(in srgb, var(--color-surface) 88%, transparent)',
+          color: 'var(--color-text-2)',
+          border: '1px solid var(--color-border)',
           backdropFilter: 'blur(12px)',
           boxShadow: '0 0 24px 0 rgba(0, 0, 0, 0.15)',
           borderRadius: '0.25rem',

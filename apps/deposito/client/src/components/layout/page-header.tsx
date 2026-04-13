@@ -31,7 +31,7 @@ export function PageHeader({
     <div className="space-y-4">
       <section
         className="rounded px-6 py-6"
-        style={{ backgroundColor: '#181d18' }}
+        style={{ backgroundColor: 'var(--color-surface)' }}
       >
         <div className="space-y-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -45,7 +45,7 @@ export function PageHeader({
                   type="button"
                   onClick={primaryAction.onClick}
                   className="inline-flex w-auto items-center gap-2 self-start rounded px-5 py-2.5 font-heading text-sm font-semibold transition-[box-shadow] hover:[box-shadow:inset_0_0_0_999px_rgba(255,255,255,0.10)]"
-                  style={{ backgroundColor: '#00AE42', color: '#00380f' }}
+                  style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-bg)' }}
                 >
                   {primaryAction.icon}
                   {primaryAction.label}
@@ -59,7 +59,7 @@ export function PageHeader({
               <div key={stat.label} className="min-w-[110px]">
                 <p
                   className="font-heading text-3xl font-bold leading-none"
-                  style={{ color: stat.warning ? '#FF9800' : '#00AE42' }}
+                  style={{ color: stat.warning ? 'var(--color-warning)' : 'var(--color-accent)' }}
                 >
                   {stat.value}
                 </p>
@@ -78,7 +78,7 @@ export function PageHeader({
                   type="button"
                   onClick={action.onClick}
                   className="inline-flex w-auto items-center justify-center gap-2 self-start rounded px-4 py-2 font-heading text-sm font-semibold text-on-surface transition-colors hover:bg-surface-bright"
-                  style={{ backgroundColor: '#262b27' }}
+                  style={{ backgroundColor: 'var(--color-accent-bg)' }}
                 >
                   {action.icon}
                   {action.label}
@@ -92,7 +92,7 @@ export function PageHeader({
       {children ? (
         <div
           className="rounded px-6 py-4"
-          style={{ backgroundColor: '#181d18' }}
+          style={{ backgroundColor: 'var(--color-surface)' }}
         >
           {children}
         </div>

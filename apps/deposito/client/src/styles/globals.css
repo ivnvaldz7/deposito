@@ -1,38 +1,72 @@
 @import "tailwindcss";
 
+:root {
+  --color-bg: #ffffff;
+  --color-surface: #f9f9f9;
+  --color-border: #e5e5e5;
+  --color-text: #111111;
+  --color-text-2: #6b7280;
+  --color-text-3: #9ca3af;
+  --color-accent: #1a6b35;
+  --color-accent-h: #145228;
+  --color-accent-bg: #f0faf4;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+}
+
+[data-theme="dark"] {
+  --color-bg: #0a0a0a;
+  --color-surface: #111111;
+  --color-border: #1e1e1e;
+  --color-text: #ffffff;
+  --color-text-2: #6b7280;
+  --color-text-3: #4b5563;
+  --color-accent: #1a6b35;
+  --color-accent-h: #1a6b35;
+  --color-accent-bg: #0a2410;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --color-bg: #0a0a0a;
+    --color-surface: #111111;
+    --color-border: #1e1e1e;
+    --color-text: #ffffff;
+    --color-text-2: #6b7280;
+    --color-text-3: #4b5563;
+    --color-accent: #1a6b35;
+    --color-accent-h: #1a6b35;
+    --color-accent-bg: #0a2410;
+    --color-danger: #ef4444;
+    --color-warning: #f59e0b;
+  }
+}
+
 @theme {
   /* === TIPOGRAFÍAS === */
   --font-heading: "Montserrat", sans-serif;
   --font-body: "Inter", sans-serif;
 
-  /* === PALETA OBSIDIAN & EMERALD === */
-  /* Superficies */
-  --color-surface: #101510;
-  --color-surface-lowest: #0a0f0b;
-  --color-surface-low: #181d18;
-  --color-surface-container: #1e231e;
-  --color-surface-high: #262b27;
-  --color-surface-highest: #313631;
-  --color-surface-bright: #353b35;
-
-  /* Primario (Emerald) */
-  --color-primary: #54e16d;
-  --color-primary-container: #00ae42;
-  --color-on-primary: #003918;
-  --color-on-primary-container: #00380f;
-
-  /* Secundario */
-  --color-secondary-container: #195424;
-
-  /* Texto */
-  --color-on-surface: #e2ece0;
-  --color-on-surface-variant: #bccbb8;
-  --color-outline-variant: #3d4a3c;
-
-  /* Semánticos */
-  --color-success: #00ae42;
-  --color-warning: #FF9800;
-  --color-error: #CF6679;
+  --color-surface: var(--color-bg);
+  --color-surface-lowest: var(--color-surface);
+  --color-surface-low: var(--color-surface);
+  --color-surface-container: var(--color-surface);
+  --color-surface-high: var(--color-accent-bg);
+  --color-surface-highest: var(--color-surface);
+  --color-surface-bright: var(--color-accent-bg);
+  --color-primary: var(--color-accent);
+  --color-primary-container: var(--color-accent);
+  --color-on-primary: var(--color-bg);
+  --color-on-primary-container: var(--color-bg);
+  --color-secondary-container: var(--color-accent-bg);
+  --color-on-surface: var(--color-text);
+  --color-on-surface-variant: var(--color-text-2);
+  --color-outline-variant: var(--color-border);
+  --color-success: var(--color-accent);
+  --color-warning: var(--color-warning);
+  --color-error: var(--color-danger);
 
   /* === RADIOS (max 4px según DESIGN.md) === */
   --radius: 0.25rem;
@@ -43,15 +77,14 @@
 
 @layer utilities {
   .input-field {
-    background-color: var(--color-surface-highest);
+    background-color: var(--color-surface);
     color: var(--color-on-surface);
     width: 100%;
     padding: 0.75rem 1rem;
     outline: none;
     border-radius: var(--radius);
-    border: none;
-    border-bottom: 2px solid transparent;
-    transition: border-color 0.15s ease;
+    border: 1px solid var(--color-border);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
     font-family: var(--font-body);
   }
 
@@ -65,7 +98,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(180deg, #54e16d 0%, #00AE42 100%);
+    background: var(--color-accent);
     color: var(--color-on-primary);
     font-family: var(--font-heading);
     font-weight: 600;
@@ -78,7 +111,7 @@
   }
 
   .btn-primary:hover {
-    opacity: 0.9;
+    background: var(--color-accent-h);
   }
 
   .btn-primary:disabled {
@@ -90,10 +123,10 @@
 @layer base {
   html {
     @apply bg-surface text-on-surface;
-    color-scheme: dark;
   }
 
   body {
+    margin: 0;
     font-family: var(--font-body);
     @apply bg-surface text-on-surface antialiased;
   }

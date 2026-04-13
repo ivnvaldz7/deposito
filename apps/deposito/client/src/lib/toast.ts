@@ -2,10 +2,10 @@ import type { ReactNode } from 'react'
 import { toast as sonnerToast, type ExternalToast } from 'sonner'
 
 const TOAST_COLORS = {
-  success: '#00AE42',
-  warning: '#FF9800',
-  error: '#f44336',
-  info: '#2196f3',
+  success: '#1a6b35',
+  warning: '#d97706',
+  error: '#dc2626',
+  info: '#1a6b35',
 } as const
 
 function hexToRgba(hex: string, alpha: number) {

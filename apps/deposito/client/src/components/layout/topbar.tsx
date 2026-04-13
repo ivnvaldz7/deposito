@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { LogOut, Search, Bell } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Search, Bell } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCommandPaletteStore } from '@/stores/command-palette-store'
 import { useNotificationsStore, type Notification } from '@/stores/notifications-store'
-import { apiClient } from '@/lib/api-client'
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
 const shortcutLabel = isMac ? '⌘K' : 'Ctrl+Shift+K'
@@ -12,12 +10,12 @@ const shortcutLabel = isMac ? '⌘K' : 'Ctrl+Shift+K'
 // ─── Tipo chip de notificación ────────────────────────────────────────────────
 
 const TIPO_CHIP_STYLES: Record<string, React.CSSProperties> = {
-  ingreso_creado:   { color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' },
-  stock_actualizado:{ color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
-  orden_creada:     { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
-  orden_actualizada:{ color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' },
-  stock_bajo:          { color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' },
-  vencimiento_proximo: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
+  ingreso_creado:   { color: 'var(--color-accent)', backgroundColor: 'var(--color-accent-bg)' },
+  stock_actualizado:{ color: 'var(--color-accent)', backgroundColor: 'var(--color-accent-bg)' },
+  orden_creada:     { color: 'var(--color-warning)', backgroundColor: 'color-mix(in srgb, var(--color-warning) 10%, transparent)' },
+  orden_actualizada:{ color: 'var(--color-accent)', backgroundColor: 'var(--color-accent-bg)' },
+  stock_bajo:          { color: 'var(--color-danger)', backgroundColor: 'color-mix(in srgb, var(--color-danger) 10%, transparent)' },
+  vencimiento_proximo: { color: 'var(--color-warning)', backgroundColor: 'color-mix(in srgb, var(--color-warning) 10%, transparent)' },
 }
 
 const TIPO_LABELS: Record<string, string> = {
@@ -30,7 +28,7 @@ const TIPO_LABELS: Record<string, string> = {
 }
 
 function TipoChip({ tipo }: { tipo: string }) {
-  const style = TIPO_CHIP_STYLES[tipo] ?? { color: '#bccbb8', backgroundColor: 'rgba(188,203,184,0.10)' }
+  const style = TIPO_CHIP_STYLES[tipo] ?? { color: 'var(--color-text-2)', backgroundColor: 'var(--color-accent-bg)' }
   return (
     <span
       className="inline-block font-body text-xs font-medium px-1.5 py-0.5 rounded shrink-0"
@@ -66,9 +64,9 @@ function NotificationsPanel({
   onClose: () => void
 }) {
   return (
-    <div
+      <div
       className="absolute right-0 top-full mt-2 w-80 rounded overflow-hidden shadow-lg z-50"
-      style={{ background: 'rgba(49,54,49,0.97)', backdropFilter: 'blur(12px)' }}
+      style={{ background: 'color-mix(in srgb, var(--color-surface) 96%, transparent)', backdropFilter: 'blur(12px)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/15">
@@ -134,8 +132,6 @@ function NotificationsPanel({
 
 export function Topbar() {
   const user = useAuthStore((s) => s.user)
-  const logout = useAuthStore((s) => s.logout)
-  const navigate = useNavigate()
   const openPalette = useCommandPaletteStore((s) => s.openPalette)
   const notifications = useNotificationsStore((s) => s.notifications)
   const unreadCount = useNotificationsStore((s) => s.unreadCount)
@@ -155,16 +151,6 @@ export function Topbar() {
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [panelOpen])
-
-  async function handleLogout() {
-    try {
-      await apiClient.post('/auth/logout')
-    } catch {
-      // logout local incluso si el clear-cookie falla
-    }
-    logout()
-    navigate('/login', { replace: true })
-  }
 
   function handleBellClick() {
     setPanelOpen((v) => !v)
@@ -207,7 +193,7 @@ export function Topbar() {
                   fontSize: '0.55rem',
                   width: '14px',
                   height: '14px',
-                  backgroundColor: '#ef4444',
+                  backgroundColor: 'var(--color-danger)',
                   lineHeight: 1,
                 }}
                 aria-label={`${unreadCount} notificaciones sin leer`}
@@ -231,14 +217,6 @@ export function Topbar() {
             {user.name}
           </span>
         )}
-        <button
-          onClick={handleLogout}
-          title="Cerrar sesión"
-          aria-label="Cerrar sesión"
-          className="text-on-surface-variant hover:text-on-surface transition-colors"
-        >
-          <LogOut size={16} strokeWidth={1.5} />
-        </button>
       </div>
     </header>
   )

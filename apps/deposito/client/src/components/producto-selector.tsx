@@ -47,7 +47,7 @@ export function ProductoSelector({
   const [results, setResults] = useState<Producto[]>([])
   const [open, setOpen] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(-1)
-  const fuseRef = useRef<Fuse<Producto>>(new Fuse([], { keys: ['nombreCompleto'], threshold: 0.4 }))
+  const fuseRef = useRef<Fuse<Producto>>(new Fuse<Producto>([], { keys: ['nombreCompleto'], threshold: 0.4 }))
 
   useEffect(() => {
     if (!token) return

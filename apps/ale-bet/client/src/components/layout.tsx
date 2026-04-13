@@ -88,11 +88,17 @@ export function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-transparent text-[var(--on-surface)] md:flex">
-      <aside className="hidden min-h-screen w-60 shrink-0 border-r border-white/6 bg-[var(--surface-lowest)] md:flex md:flex-col">
-        <div className="border-b border-white/6 px-6 py-5">
-          <span className="font-[Montserrat] text-lg font-bold tracking-tight text-[var(--primary-container)]">
-            Ale-Bet
+    <div
+      className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] md:flex"
+      style={{ minHeight: '100vh', height: '100vh', overflow: 'hidden', background: 'var(--color-bg)' }}
+    >
+      <aside className="hidden min-h-screen w-60 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] md:flex md:flex-col">
+        <div className="border-b border-[var(--color-border)] px-6 py-5">
+          <span
+            className="font-bold text-[var(--color-accent)]"
+            style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '15px', letterSpacing: '1px' }}
+          >
+            logística
           </span>
         </div>
 
@@ -104,8 +110,8 @@ export function Layout({ children }: LayoutProps) {
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded px-3 py-2.5 text-sm font-semibold transition-colors ${
                   isActive
-                    ? 'bg-[var(--surface-high)] text-[var(--on-surface)]'
-                    : 'text-[var(--on-surface-variant)] hover:bg-[var(--surface-bright)] hover:text-[var(--on-surface)]'
+                    ? 'bg-[var(--color-accent-bg)] text-[var(--color-text)]'
+                    : 'text-[var(--color-text-2)] hover:bg-[var(--color-accent-bg)] hover:text-[var(--color-text)]'
                 }`
               }
             >
@@ -115,19 +121,19 @@ export function Layout({ children }: LayoutProps) {
           ))}
         </nav>
 
-        <div className="border-t border-[#1a1a1a] px-4 py-[14px]">
+        <div className="border-t border-[var(--color-border)] px-4 py-[14px]">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#2a2a2a] bg-[#1e1e1e] text-[11px] font-semibold text-[#9ca3af]">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-accent-bg)] text-[11px] font-semibold text-[var(--color-text-3)]">
               {getInitials(user?.nombre ?? '')}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-medium text-white">{user?.nombre ?? 'Sin usuario'}</p>
-              <p className="truncate text-[11px] text-[#6b7280]">{user?.rol ?? ''}</p>
+              <p className="truncate text-[13px] font-medium text-[var(--color-text)]">{user?.nombre ?? 'Sin usuario'}</p>
+              <p className="truncate text-[11px] text-[var(--color-text-2)]">{user?.rol ?? ''}</p>
             </div>
             <button
               type="button"
               onClick={handleLogout}
-              className="text-[#6b7280] transition hover:text-white"
+              className="text-[var(--color-text-2)] transition hover:text-[var(--color-text)]"
               aria-label="Cerrar sesión"
             >
               <LogOut size={16} strokeWidth={1.6} />
@@ -136,8 +142,16 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </aside>
 
-      <div className="flex min-h-screen flex-1 flex-col">
-        <main className="flex-1 bg-[#0d0d0d] px-6 py-6">{children}</main>
+      <div
+        className="flex min-h-screen flex-1 flex-col bg-[var(--color-bg)] text-[var(--color-text)]"
+        style={{ minHeight: '100vh', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)' }}
+      >
+        <main
+          className="flex-1 bg-[var(--color-bg)] px-6 py-6 text-[var(--color-text)]"
+          style={{ flex: 1, minHeight: '100vh', height: '100vh', overflowY: 'auto', background: 'var(--color-bg)', color: 'var(--color-text)' }}
+        >
+          {children}
+        </main>
       </div>
     </div>
   )
