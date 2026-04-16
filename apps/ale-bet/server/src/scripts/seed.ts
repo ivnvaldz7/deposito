@@ -162,41 +162,6 @@ async function main(): Promise<void> {
     }
   }
 
-  const clientes = [
-    {
-      nombre: 'Veterinaria Central',
-      contacto: 'María Gómez',
-      direccion: 'Av. Siempre Viva 123',
-    },
-    {
-      nombre: 'Agroinsumos Norte',
-      contacto: 'Juan Pérez',
-      direccion: 'Ruta 8 Km 55',
-    },
-  ]
-
-  for (const clienteInput of clientes) {
-    const existing = await prisma.cliente.findFirst({
-      where: { nombre: clienteInput.nombre },
-    })
-
-    if (existing) {
-      await prisma.cliente.update({
-        where: { id: existing.id },
-        data: {
-          contacto: clienteInput.contacto,
-          direccion: clienteInput.direccion,
-          activo: true,
-        },
-      })
-      continue
-    }
-
-    await prisma.cliente.create({
-      data: clienteInput,
-    })
-  }
-
   console.log('Seed de Ale-Bet completado')
 }
 

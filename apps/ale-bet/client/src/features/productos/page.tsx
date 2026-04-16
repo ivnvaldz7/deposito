@@ -95,9 +95,9 @@ function parseNonNegativeNumber(value: string): number {
 
 function metricCard(label: string, value: number, accentClass?: string) {
   return (
-    <div className="rounded-[8px] border border-[#1e1e1e] bg-[#111111] px-4 py-[14px]">
-      <p className="text-[10px] uppercase tracking-[0.8px] text-[#6b7280]">{label}</p>
-      <p className={`mt-2 text-[22px] font-bold text-white ${accentClass ?? ''}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>
+    <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-[14px] shadow-[0_14px_36px_rgba(0,0,0,0.14)]">
+      <p className="text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">{label}</p>
+      <p className={`mt-2 text-[22px] font-bold text-[var(--color-text)] ${accentClass ?? ''}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>
         {value}
       </p>
     </div>
@@ -374,36 +374,36 @@ export function ProductosPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-[#6b7280]">Cargando productos...</p>
+  if (loading) return <p className="text-sm text-[var(--color-text-2)]">Cargando productos...</p>
 
   return (
-    <div className="space-y-6 bg-[#0d0d0d] font-[Inter] text-white">
+    <div className="space-y-6 font-[Inter] text-[var(--color-text)]">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="text-[22px] font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>Productos</h1>
-          <p className="mt-1 text-[12px] text-[#6b7280]">Catálogo y control de stock mínimo</p>
+          <h1 className="text-[22px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Productos</h1>
+          <p className="mt-1 text-[12px] text-[var(--color-text-2)]">Catálogo y control de stock mínimo</p>
         </div>
         <button
           type="button"
           onClick={openCreateProductModal}
-          className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d]"
+          className="rounded-[8px] bg-[var(--color-accent)] px-4 py-[9px] text-[13px] font-semibold text-[#e8f5eb] transition hover:bg-[var(--color-accent-h)]"
           style={{ fontFamily: 'Montserrat, sans-serif' }}
         >
           + Nuevo producto
         </button>
       </div>
 
-      {error ? <p className="text-sm text-[#ef4444]">{error}</p> : null}
+      {error ? <p className="text-sm text-[var(--color-danger)]">{error}</p> : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {metricCard('Total productos', metrics.totalProductos)}
-        {metricCard('Stock crítico', metrics.stockCritico, 'text-[#ef4444]')}
+        {metricCard('Stock crítico', metrics.stockCritico, 'text-[var(--color-danger)]')}
         {metricCard('En armado hoy', metrics.enArmadoHoy)}
         {metricCard('Pedidos hoy', metrics.pedidosHoy)}
       </div>
 
       <div className="relative">
-        <svg aria-hidden="true" viewBox="0 0 24 24" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#4b5563]" fill="none" stroke="currentColor" strokeWidth="2">
+        <svg aria-hidden="true" viewBox="0 0 24 24" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--color-text-3)]" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="7" />
           <path d="m20 20-3.5-3.5" />
         </svg>
@@ -412,12 +412,12 @@ export function ProductosPage() {
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
           placeholder="Buscar por nombre o SKU..."
-          className="w-full rounded-[8px] border border-[#1e1e1e] bg-[#111111] px-3 py-[10px] pl-[38px] text-[13px] text-white outline-none placeholder:text-[#4b5563] focus:border-[#374151]"
+          className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[10px] pl-[38px] text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-3)] focus:border-[var(--color-text-3)]"
         />
       </div>
 
-      <div className="overflow-hidden rounded-[8px] border border-[#1e1e1e] bg-[#0d0d0d]">
-        <div className="grid grid-cols-[minmax(0,1fr)_180px_80px_40px] gap-4 px-4 py-3 text-[10px] uppercase tracking-[0.8px] text-[#4b5563]">
+      <div className="overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
+        <div className="grid grid-cols-[minmax(0,1fr)_180px_80px_40px] gap-4 border-b border-[var(--color-border)] px-4 py-3 text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
           <div>Producto &amp; lotes</div>
           <div>Estado de lotes</div>
           <div className="text-right">Unidades</div>
@@ -425,17 +425,17 @@ export function ProductosPage() {
         </div>
 
         {paginatedProductos.length === 0 ? (
-          <div className="px-4 py-8 text-center text-[13px] text-[#6b7280]">No se encontraron productos para '{searchTerm}'</div>
+          <div className="px-4 py-8 text-center text-[13px] text-[var(--color-text-2)]">No se encontraron productos para '{searchTerm}'</div>
         ) : (
           paginatedProductos.map((producto) => {
             const productLotes = producto.lotes ?? []
-            const stockColor = producto.stock === 0 || producto.stock < producto.stockMinimo ? 'text-[#ef4444]' : 'text-[#22c55e]'
+            const stockColor = producto.stock === 0 || producto.stock < producto.stockMinimo ? 'text-[var(--color-danger)]' : 'text-[#7ff6a1]'
 
             return (
-              <div key={producto.id} className="grid grid-cols-[minmax(0,1fr)_180px_80px_40px] gap-4 border-t border-[#161616] px-4 py-[14px] transition-colors hover:bg-[#111111]">
+              <div key={producto.id} className="grid grid-cols-[minmax(0,1fr)_180px_80px_40px] gap-4 border-t border-[var(--color-border)] px-4 py-[14px] transition-colors hover:bg-[rgba(255,255,255,0.02)]">
                 <div className="min-w-0">
-                  <p className="truncate text-[13px] font-semibold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>{producto.nombre}</p>
-                  <p className="mt-1 text-[11px] text-[#6b7280]">SKU {producto.sku} · mín. {producto.stockMinimo} u</p>
+                  <p className="truncate text-[13px] font-semibold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{producto.nombre}</p>
+                  <p className="mt-1 text-[11px] text-[var(--color-text-2)]">SKU {producto.sku} · mín. {producto.stockMinimo} u</p>
                 </div>
 
                 <div className="flex flex-wrap items-start gap-2">
@@ -444,41 +444,41 @@ export function ProductosPage() {
                       const loteBadgeLabel = lote.numero
 
                       return (
-                      <span key={lote.id} className="inline-flex items-center gap-2 rounded-[4px] border border-[#1e1e1e] bg-[#161616] px-2 py-[3px] text-[11px] text-[#9ca3af]">
+                      <span key={lote.id} className="inline-flex items-center gap-2 rounded-[4px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-2 py-[3px] text-[11px] text-[var(--color-text-2)]">
                         <span className="h-[6px] w-[6px] rounded-full" style={{ backgroundColor: getLoteDotColor(lote.unidades) }} />
-                        <span className="font-semibold text-white">{loteBadgeLabel}</span>
+                        <span className="font-semibold text-[var(--color-text)]">{loteBadgeLabel}</span>
                         <span>{lote.cajas} cj · {lote.sueltos} s</span>
                       </span>
                       )
                     })
                   ) : (
-                    <span className="inline-flex items-center rounded-[4px] border border-[#1e1e1e] bg-[#161616] px-2 py-[3px] text-[11px] text-[#4b5563]">— Agotado</span>
+                    <span className="inline-flex items-center rounded-[4px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-2 py-[3px] text-[11px] text-[var(--color-text-3)]">— Agotado</span>
                   )}
                 </div>
 
                 <div className="text-right">
                   <p className={`text-[24px] font-bold leading-none ${stockColor}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>{producto.stock}</p>
-                  <p className="mt-1 text-[10px] uppercase tracking-[0.8px] text-[#6b7280]">unidades</p>
-                  {producto.stock === 0 ? <p className="mt-1 text-[9px] font-bold text-[#ef4444]">SIN STOCK</p> : null}
-                  {producto.stock > 0 && producto.stock < producto.stockMinimo ? <p className="mt-1 text-[9px] font-bold text-[#ef4444]">POR DEBAJO</p> : null}
+                  <p className="mt-1 text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">unidades</p>
+                  {producto.stock === 0 ? <p className="mt-1 text-[9px] font-bold text-[var(--color-danger)]">SIN STOCK</p> : null}
+                  {producto.stock > 0 && producto.stock < producto.stockMinimo ? <p className="mt-1 text-[9px] font-bold text-[var(--color-danger)]">POR DEBAJO</p> : null}
                 </div>
 
                 <div className="relative flex justify-end">
                   <button
                     type="button"
                     onClick={() => setDropdownProductId((current) => (current === producto.id ? null : producto.id))}
-                    className="rounded-[6px] border border-[#1e1e1e] px-2 py-1 text-[#6b7280] transition hover:border-[#374151] hover:text-white"
+                    className="rounded-[6px] border border-[var(--color-border)] px-2 py-1 text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]"
                     aria-label={`Acciones para ${producto.nombre}`}
                   >
                     <MoreHorizontal size={14} />
                   </button>
 
                   {dropdownProductId === producto.id ? (
-                    <div className="absolute right-0 top-10 z-50 min-w-[160px] rounded-[8px] border border-[#2a2a2a] bg-[#1a1a1a] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.4)]">
-                      <button type="button" onClick={() => void loadLotes(producto)} className="block w-full rounded-[4px] px-3 py-2 text-left text-[13px] text-[#e5e7eb] transition hover:bg-[#2a2a2a]">Gestionar lotes</button>
-                      <button type="button" onClick={() => openEditProductModal(producto)} className="block w-full rounded-[4px] px-3 py-2 text-left text-[13px] text-[#e5e7eb] transition hover:bg-[#2a2a2a]">Editar producto</button>
-                      <div className="my-[4px] h-px bg-[#2a2a2a]" />
-                      <button type="button" onClick={() => void handleDeleteProducto(producto)} className="block w-full rounded-[4px] px-3 py-2 text-left text-[13px] text-[#ef4444] transition hover:bg-[#2d0a0a]">Eliminar</button>
+                    <div className="absolute right-0 top-10 z-50 min-w-[160px] rounded-[8px] border border-[var(--color-border)] bg-[var(--color-surface)] p-1 shadow-[0_12px_28px_rgba(0,0,0,0.22)]">
+                      <button type="button" onClick={() => void loadLotes(producto)} className="block w-full rounded-[4px] px-3 py-2 text-left text-[13px] text-[var(--color-text)] transition hover:bg-[rgba(255,255,255,0.02)]">Gestionar lotes</button>
+                      <button type="button" onClick={() => openEditProductModal(producto)} className="block w-full rounded-[4px] px-3 py-2 text-left text-[13px] text-[var(--color-text)] transition hover:bg-[rgba(255,255,255,0.02)]">Editar producto</button>
+                      <div className="my-[4px] h-px bg-[var(--color-border)]" />
+                      <button type="button" onClick={() => void handleDeleteProducto(producto)} className="block w-full rounded-[4px] px-3 py-2 text-left text-[13px] text-[var(--color-danger)] transition hover:bg-[rgba(239,68,68,0.08)]">Eliminar</button>
                     </div>
                   ) : null}
                 </div>
@@ -489,7 +489,7 @@ export function ProductosPage() {
       </div>
 
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <p className="text-[11px] text-[#6b7280]">Mostrando {showingFrom}–{showingTo} de {filteredProductos.length} productos</p>
+        <p className="text-[11px] text-[var(--color-text-2)]">Mostrando {showingFrom}–{showingTo} de {filteredProductos.length} productos</p>
         <div className="flex flex-wrap gap-2">
           {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => {
             const active = page === safePage
@@ -498,7 +498,7 @@ export function ProductosPage() {
                 key={page}
                 type="button"
                 onClick={() => setCurrentPage(page)}
-                className={`rounded-[6px] border px-[10px] py-[5px] text-[12px] ${active ? 'border-[#22c55e] bg-[#22c55e] text-[#0d0d0d]' : 'border-[#1e1e1e] bg-[#111111] text-[#9ca3af]'}`}
+                className={`rounded-[6px] border px-[10px] py-[5px] text-[12px] ${active ? 'border-[var(--color-accent)] bg-[var(--color-accent)] text-[#e8f5eb]' : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-2)]'}`}
                 style={active ? { fontFamily: 'Montserrat, sans-serif', fontWeight: 700 } : undefined}
               >
                 {page}
@@ -510,35 +510,35 @@ export function ProductosPage() {
 
       {showProductModal ? (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(0,0,0,0.75)] px-4 py-6">
-          <div className="w-full max-w-[520px] rounded-[12px] border border-[#1e1e1e] bg-[#111111]">
-            <div className="flex items-center justify-between border-b border-[#1e1e1e] px-5 py-4">
-              <h2 className="text-[16px] font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="w-full max-w-[520px] rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+              <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
                 {editingProductId ? 'Editar producto' : 'Nuevo producto'}
               </h2>
-              <button type="button" onClick={closeProductModal} className="rounded-[6px] border border-[#1e1e1e] px-[10px] py-1 text-[#6b7280] transition hover:border-[#374151] hover:text-white" aria-label="Cerrar modal">
+              <button type="button" onClick={closeProductModal} className="rounded-[6px] border border-[var(--color-border)] px-[10px] py-1 text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]" aria-label="Cerrar modal">
                 <X size={14} />
               </button>
             </div>
 
             <form className="space-y-4 px-5 py-5" onSubmit={(event) => void handleSaveProducto(event)}>
               <div>
-                <label className="mb-1 block text-[11px] text-[#6b7280]">Nombre del producto</label>
-                <input value={productForm.nombre} onChange={(event) => setProductForm({ ...productForm, nombre: event.target.value })} className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#161616] px-3 py-[9px] text-[13px] text-white outline-none focus:border-[#374151]" required />
+                <label className="mb-1 block text-[11px] text-[var(--color-text-2)]">Nombre del producto</label>
+                <input value={productForm.nombre} onChange={(event) => setProductForm({ ...productForm, nombre: event.target.value })} className="w-full rounded-[6px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-text-3)]" required />
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] text-[#6b7280]">SKU</label>
-                <input value={productForm.sku} onChange={(event) => setProductForm({ ...productForm, sku: event.target.value })} className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#161616] px-3 py-[9px] text-[13px] text-white outline-none focus:border-[#374151] disabled:opacity-60" required disabled={editingProductId !== null} />
+                <label className="mb-1 block text-[11px] text-[var(--color-text-2)]">SKU</label>
+                <input value={productForm.sku} onChange={(event) => setProductForm({ ...productForm, sku: event.target.value })} className="w-full rounded-[6px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-text-3)] disabled:opacity-60" required disabled={editingProductId !== null} />
               </div>
 
               <div>
-                <label className="mb-1 block text-[11px] text-[#6b7280]">Stock mínimo</label>
-                <input type="number" min={0} value={productForm.stockMinimo} onChange={(event) => setProductForm({ ...productForm, stockMinimo: Number(event.target.value) })} className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#161616] px-3 py-[9px] text-[13px] text-white outline-none focus:border-[#374151]" required />
+                <label className="mb-1 block text-[11px] text-[var(--color-text-2)]">Stock mínimo</label>
+                <input type="number" min={0} value={productForm.stockMinimo} onChange={(event) => setProductForm({ ...productForm, stockMinimo: Number(event.target.value) })} className="w-full rounded-[6px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-text-3)]" required />
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button type="button" onClick={closeProductModal} className="rounded-[6px] border border-[#1e1e1e] px-4 py-[9px] text-[13px] text-[#6b7280] transition hover:border-[#374151] hover:text-white">Cancelar</button>
-                <button type="submit" disabled={submittingProduct} className="rounded-[6px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d] disabled:opacity-60" style={{ fontFamily: 'Montserrat, sans-serif' }}>Guardar</button>
+                <button type="button" onClick={closeProductModal} className="rounded-[6px] border border-[var(--color-border)] px-4 py-[9px] text-[13px] text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]">Cancelar</button>
+                <button type="submit" disabled={submittingProduct} className="rounded-[6px] bg-[var(--color-accent)] px-4 py-[9px] text-[13px] font-semibold text-[#e8f5eb] disabled:opacity-60" style={{ fontFamily: 'Montserrat, sans-serif' }}>Guardar</button>
               </div>
             </form>
           </div>
@@ -547,69 +547,69 @@ export function ProductosPage() {
 
       {selectedProducto ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(0,0,0,0.75)] px-4 py-6">
-          <div className="w-full max-w-[560px] rounded-[12px] border border-[#1e1e1e] bg-[#111111]">
-            <div className="flex items-start justify-between border-b border-[#1e1e1e] px-5 py-4">
+          <div className="w-full max-w-[560px] rounded-[16px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+            <div className="flex items-start justify-between border-b border-[var(--color-border)] px-5 py-4">
               <div>
-                <h2 className="text-[16px] font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                <h2 className="text-[16px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
                   Lotes de {selectedProducto.nombre}
                 </h2>
-                <p className="mt-1 text-[11px] text-[#6b7280]">{activeLotes.length} lotes activos · {totalLoteUnits} u en total</p>
+                <p className="mt-1 text-[11px] text-[var(--color-text-2)]">{activeLotes.length} lotes activos · {totalLoteUnits} u en total</p>
               </div>
-              <button type="button" onClick={closeLotesModal} className="rounded-[6px] border border-[#1e1e1e] px-[10px] py-1 text-[#6b7280] transition hover:border-[#374151] hover:text-white" aria-label="Cerrar modal">
+              <button type="button" onClick={closeLotesModal} className="rounded-[6px] border border-[var(--color-border)] px-[10px] py-1 text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]" aria-label="Cerrar modal">
                 <X size={14} />
               </button>
             </div>
 
             <div className="max-h-[75vh] space-y-4 overflow-y-auto px-5 py-5">
-              {loadingLotes ? <p className="text-sm text-[#6b7280]">Cargando lotes...</p> : null}
-              {!loadingLotes && activeLotes.length === 0 ? <p className="text-sm text-[#6b7280]">Sin lotes activos para este producto.</p> : null}
+              {loadingLotes ? <p className="text-sm text-[var(--color-text-2)]">Cargando lotes...</p> : null}
+              {!loadingLotes && activeLotes.length === 0 ? <p className="text-sm text-[var(--color-text-2)]">Sin lotes activos para este producto.</p> : null}
 
               {activeLotes.map((lote) => (
-                <div key={lote.id} className="grid grid-cols-[minmax(0,1fr)_120px_90px_72px] items-center gap-4 rounded-[8px] border border-[#1e1e1e] bg-[#161616] px-4 py-[14px]">
+                <div key={lote.id} className="grid grid-cols-[minmax(0,1fr)_120px_90px_72px] items-center gap-4 rounded-[8px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-4 py-[14px]">
                   <div>
-                    <p className="text-[15px] font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>{lote.numero}</p>
-                    <p className="mt-1 text-[11px] text-[#6b7280]">Prod. {formatShortDate(lote.fechaProduccion)}</p>
+                    <p className="text-[15px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{lote.numero}</p>
+                    <p className="mt-1 text-[11px] text-[var(--color-text-2)]">Prod. {formatShortDate(lote.fechaProduccion)}</p>
                   </div>
                   <div className="text-center">
-                    <p className={`text-[28px] font-bold leading-none ${lote.unidades >= 100 ? 'text-[#22c55e]' : 'text-[#f59e0b]'}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>{lote.unidades}</p>
-                    <p className="mt-1 text-[11px] text-[#6b7280]">{lote.cajas} cj · {lote.sueltos} s</p>
+                    <p className={`text-[28px] font-bold leading-none ${lote.unidades >= 100 ? 'text-[#7ff6a1]' : 'text-[var(--color-warning)]'}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>{lote.unidades}</p>
+                    <p className="mt-1 text-[11px] text-[var(--color-text-2)]">{lote.cajas} cj · {lote.sueltos} s</p>
                   </div>
                   <div className="flex justify-center">
                     <span className={`rounded-[4px] px-2 py-1 text-[10px] font-semibold ${getExpirationTone(lote.fechaVencimiento)}`}>Vence {formatMonthYear(lote.fechaVencimiento)}</span>
                   </div>
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => openEditLoteForm(lote)} className="rounded-[5px] border border-[#1e1e1e] px-[7px] py-1 text-[12px] text-[#6b7280] transition hover:border-[#374151] hover:text-white"><Pencil size={12} /></button>
-                    <button type="button" onClick={() => setPendingDeleteLoteId((current) => current === lote.id ? null : lote.id)} className="rounded-[5px] border border-[#1e1e1e] px-[7px] py-1 text-[12px] text-[#6b7280] transition hover:border-[#7f1d1d] hover:text-[#ef4444]"><Trash2 size={12} /></button>
+                    <button type="button" onClick={() => openEditLoteForm(lote)} className="rounded-[5px] border border-[var(--color-border)] px-[7px] py-1 text-[12px] text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]"><Pencil size={12} /></button>
+                    <button type="button" onClick={() => setPendingDeleteLoteId((current) => current === lote.id ? null : lote.id)} className="rounded-[5px] border border-[var(--color-border)] px-[7px] py-1 text-[12px] text-[var(--color-text-2)] transition hover:border-[rgba(239,68,68,0.3)] hover:text-[var(--color-danger)]"><Trash2 size={12} /></button>
                   </div>
                   {pendingDeleteLoteId === lote.id ? (
-                    <div className="col-span-full rounded-[6px] border border-[#2a2a2a] bg-[#111111] px-3 py-3">
-                      <p className="text-[12px] text-[#e5e7eb]">¿Eliminar lote {lote.numero}?</p>
+                    <div className="col-span-full rounded-[6px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-3 py-3">
+                      <p className="text-[12px] text-[var(--color-text)]">¿Eliminar lote {lote.numero}?</p>
                       <div className="mt-3 flex justify-end gap-2">
-                        <button type="button" onClick={() => setPendingDeleteLoteId(null)} className="rounded-[6px] border border-[#1e1e1e] px-3 py-2 text-[12px] text-[#6b7280] transition hover:border-[#374151] hover:text-white">Cancelar</button>
-                        <button type="button" onClick={() => void handleDeleteLote(lote)} className="rounded-[6px] bg-[#ef4444] px-3 py-2 text-[12px] font-semibold text-white">Confirmar</button>
+                        <button type="button" onClick={() => setPendingDeleteLoteId(null)} className="rounded-[6px] border border-[var(--color-border)] px-3 py-2 text-[12px] text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]">Cancelar</button>
+                        <button type="button" onClick={() => void handleDeleteLote(lote)} className="rounded-[6px] bg-[var(--color-danger)] px-3 py-2 text-[12px] font-semibold text-white">Confirmar</button>
                       </div>
                     </div>
                   ) : null}
                 </div>
               ))}
 
-              <div className="space-y-4 border-t border-[#1e1e1e] pt-4">
+              <div className="space-y-4 border-t border-[var(--color-border)] pt-4">
                 <button
                   type="button"
                   onClick={openCreateLoteForm}
-                  className="w-full rounded-[8px] border border-dashed border-[#22c55e] bg-transparent px-4 py-[11px] text-[13px] font-semibold text-[#22c55e] transition hover:bg-[#052e16]"
+                  className="w-full rounded-[8px] border border-dashed border-[var(--color-accent)] bg-transparent px-4 py-[11px] text-[13px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]"
                   style={{ fontFamily: 'Montserrat, sans-serif' }}
                 >
                   + Agregar nuevo lote
                 </button>
 
                 {showAddLoteForm ? (
-                  <form className="space-y-4 rounded-[8px] border border-[#1e1e1e] bg-[#161616] p-4" onSubmit={(event) => void handleSaveLote(event)} noValidate>
+                  <form className="space-y-4 rounded-[8px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] p-4" onSubmit={(event) => void handleSaveLote(event)} noValidate>
                     <div className="flex items-center justify-between gap-4">
-                      <label className="text-[11px] text-[#6b7280]">Número de lote</label>
-                      <div className="inline-flex rounded-[6px] border border-[#1e1e1e] bg-[#111111] p-1 text-[11px]">
-                        <button type="button" onClick={() => !editingLote && setManualLoteNumber(false)} className={`rounded-[4px] px-3 py-1 ${!manualLoteNumber ? 'bg-[#22c55e] text-[#0d0d0d]' : 'text-[#6b7280]'}`} disabled={editingLote !== null}>Automático</button>
-                        <button type="button" onClick={() => setManualLoteNumber(true)} className={`rounded-[4px] px-3 py-1 ${manualLoteNumber ? 'bg-[#22c55e] text-[#0d0d0d]' : 'text-[#6b7280]'}`}>Manual</button>
+                      <label className="text-[11px] text-[var(--color-text-2)]">Número de lote</label>
+                      <div className="inline-flex rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-[11px]">
+                        <button type="button" onClick={() => !editingLote && setManualLoteNumber(false)} className={`rounded-[4px] px-3 py-1 ${!manualLoteNumber ? 'bg-[var(--color-accent)] text-[#e8f5eb]' : 'text-[var(--color-text-2)]'}`} disabled={editingLote !== null}>Automático</button>
+                        <button type="button" onClick={() => setManualLoteNumber(true)} className={`rounded-[4px] px-3 py-1 ${manualLoteNumber ? 'bg-[var(--color-accent)] text-[#e8f5eb]' : 'text-[var(--color-text-2)]'}`}>Manual</button>
                       </div>
                     </div>
 
@@ -619,24 +619,24 @@ export function ProductosPage() {
                       onChange={(event) => setLoteForm({ ...loteForm, numero: event.target.value })}
                       disabled={!manualLoteNumber || editingLote !== null}
                       placeholder={autoLoteNumber}
-                      className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#111111] px-3 py-[9px] text-[13px] text-white outline-none placeholder:text-[#4b5563] focus:border-[#374151] disabled:cursor-not-allowed disabled:opacity-70"
+                      className="w-full rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-3)] focus:border-[var(--color-text-3)] disabled:cursor-not-allowed disabled:opacity-70"
                     />
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className="mb-1 block text-[11px] text-[#6b7280]">Cajas</label>
-                        <input type="number" min={0} value={loteForm.cajas} onChange={(event) => setLoteForm({ ...loteForm, cajas: parseNonNegativeNumber(event.target.value) })} className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#111111] px-3 py-[9px] text-[13px] text-white outline-none focus:border-[#374151]" />
+                        <label className="mb-1 block text-[11px] text-[var(--color-text-2)]">Cajas</label>
+                        <input type="number" min={0} value={loteForm.cajas} onChange={(event) => setLoteForm({ ...loteForm, cajas: parseNonNegativeNumber(event.target.value) })} className="w-full rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-text-3)]" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-[11px] text-[#6b7280]">Sueltos</label>
-                        <input type="number" min={0} value={loteForm.sueltos} onChange={(event) => { setLoteForm({ ...loteForm, sueltos: parseNonNegativeNumber(event.target.value) }); setLoteFormError(null) }} className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#111111] px-3 py-[9px] text-[13px] text-white outline-none focus:border-[#374151]" />
-                        {loteFormError ? <p className="mt-1 text-[11px] text-[#ef4444]">{loteFormError}</p> : null}
+                        <label className="mb-1 block text-[11px] text-[var(--color-text-2)]">Sueltos</label>
+                        <input type="number" min={0} value={loteForm.sueltos} onChange={(event) => { setLoteForm({ ...loteForm, sueltos: parseNonNegativeNumber(event.target.value) }); setLoteFormError(null) }} className="w-full rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-text-3)]" />
+                        {loteFormError ? <p className="mt-1 text-[11px] text-[var(--color-danger)]">{loteFormError}</p> : null}
                       </div>
                     </div>
 
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className="mb-1 block text-[11px] text-[#6b7280]">Fecha de producción</label>
+                        <label className="mb-1 block text-[11px] text-[var(--color-text-2)]">Fecha de producción</label>
                         <input
                           type="date"
                           value={loteForm.fechaProduccion}
@@ -648,32 +648,32 @@ export function ProductosPage() {
                               fechaVencimiento: manualExpiry ? current.fechaVencimiento : addYears(fechaProduccion, 2),
                             }))
                           }}
-                          className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#111111] px-3 py-[9px] text-[13px] text-white outline-none focus:border-[#374151]"
+                          className="w-full rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-text-3)]"
                           required
                         />
                       </div>
                       <div>
                         <div className="mb-1 flex items-center justify-between gap-3">
-                          <label className="block text-[11px] text-[#6b7280]">Fecha de vencimiento</label>
-                          <button type="button" onClick={() => setManualExpiry((current) => !current)} className="text-[11px] text-[#6b7280] underline underline-offset-2">
+                          <label className="block text-[11px] text-[var(--color-text-2)]">Fecha de vencimiento</label>
+                          <button type="button" onClick={() => setManualExpiry((current) => !current)} className="text-[11px] text-[var(--color-text-2)] underline underline-offset-2">
                             {manualExpiry ? 'Usar automática' : 'Editar manualmente'}
                           </button>
                         </div>
-                        <input type="date" value={loteForm.fechaVencimiento} onChange={(event) => { setManualExpiry(true); setLoteForm({ ...loteForm, fechaVencimiento: event.target.value }) }} className="w-full rounded-[6px] border border-[#1e1e1e] bg-[#111111] px-3 py-[9px] text-[13px] text-white outline-none focus:border-[#374151]" required />
+                        <input type="date" value={loteForm.fechaVencimiento} onChange={(event) => { setManualExpiry(true); setLoteForm({ ...loteForm, fechaVencimiento: event.target.value }) }} className="w-full rounded-[6px] border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-[9px] text-[13px] text-[var(--color-text)] outline-none focus:border-[var(--color-text-3)]" required />
                       </div>
                     </div>
 
-                    <p className="text-[12px] text-[#6b7280]">{editingLote ? `Unidades actualizadas: ${incomingUnits} · Stock resultante: ${projectedStock}` : `Unidades a ingresar: ${incomingUnits} · Stock resultante: ${projectedStock}`}</p>
+                    <p className="text-[12px] text-[var(--color-text-2)]">{editingLote ? `Unidades actualizadas: ${incomingUnits} · Stock resultante: ${projectedStock}` : `Unidades a ingresar: ${incomingUnits} · Stock resultante: ${projectedStock}`}</p>
 
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
                         onClick={resetLoteForm}
-                        className="rounded-[6px] border border-[#1e1e1e] px-4 py-[9px] text-[13px] text-[#6b7280] transition hover:border-[#374151] hover:text-white"
+                        className="rounded-[6px] border border-[var(--color-border)] px-4 py-[9px] text-[13px] text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]"
                       >
                         Cancelar
                       </button>
-                      <button type="submit" disabled={submittingLote} className="rounded-[6px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d] disabled:opacity-60" style={{ fontFamily: 'Montserrat, sans-serif' }}>{editingLote ? 'Guardar cambios' : 'Guardar lote'}</button>
+                      <button type="submit" disabled={submittingLote} className="rounded-[6px] bg-[var(--color-accent)] px-4 py-[9px] text-[13px] font-semibold text-[#e8f5eb] disabled:opacity-60" style={{ fontFamily: 'Montserrat, sans-serif' }}>{editingLote ? 'Guardar cambios' : 'Guardar lote'}</button>
                     </div>
                   </form>
                 ) : null}

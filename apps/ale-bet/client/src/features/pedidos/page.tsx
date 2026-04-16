@@ -207,11 +207,11 @@ export function PedidosPage() {
   }
 
   if (loading) {
-    return <p className="text-sm text-[var(--on-surface-variant)]">Cargando pedidos...</p>
+    return <p className="text-sm text-[var(--color-text-2)]">Cargando pedidos...</p>
   }
 
   return (
-    <div className="space-y-6 bg-[#0d0d0d] text-white">
+    <div className="space-y-6 text-[var(--color-text)]">
       <Section
         title="Pedidos"
         description="Gestión comercial y de armado por rol."
@@ -220,7 +220,7 @@ export function PedidosPage() {
             <button
               type="button"
               onClick={() => setShowModal(true)}
-              className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d]"
+              className="rounded-[8px] bg-[var(--color-accent)] px-4 py-[9px] text-[13px] font-semibold text-[#e8f5eb] transition hover:bg-[var(--color-accent-h)]"
               style={{ fontFamily: 'Montserrat, sans-serif' }}
             >
               Nuevo pedido
@@ -228,12 +228,12 @@ export function PedidosPage() {
           ) : undefined
         }
       >
-        {error ? <p className="mb-4 text-sm text-rose-300">{error}</p> : null}
-        <div className="overflow-hidden rounded-[8px] border border-[#1e1e1e] bg-[#0d0d0d]">
+        {error ? <p className="mb-4 text-sm text-[var(--color-danger)]">{error}</p> : null}
+        <div className="overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
           {visiblePedidos.map((pedido) => (
             <div
               key={pedido.id}
-              className={`border-b border-[#161616] px-4 py-[14px] transition-colors hover:bg-[#111111] ${
+              className={`border-b border-[var(--color-border)] px-4 py-[14px] transition-colors hover:bg-[rgba(255,255,255,0.02)] ${
                 newPedidoId === pedido.id
                   ? 'alebet-enter-new'
                   : animatedPedidoId === pedido.id
@@ -245,8 +245,8 @@ export function PedidosPage() {
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="font-[Montserrat] text-lg font-semibold text-white">{pedido.numero}</p>
-                  <p className="text-sm text-[#6b7280]">
+                  <p className="font-[Montserrat] text-lg font-semibold text-[var(--color-text)]">{pedido.numero}</p>
+                  <p className="text-sm text-[var(--color-text-2)]">
                     {pedido.cliente.nombre} · {pedido.items.length} items
                   </p>
                 </div>
@@ -255,7 +255,7 @@ export function PedidosPage() {
                   <button
                     type="button"
                     onClick={() => setSelectedPedido(pedido)}
-                    className="rounded-[8px] border border-[#1e1e1e] px-3 py-2 text-sm text-white transition hover:border-[#2a2a2a] hover:bg-[#111111]"
+                    className="rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text)] transition hover:border-[var(--color-text-3)] hover:bg-[rgba(255,255,255,0.02)]"
                   >
                     Ver detalle
                   </button>
@@ -263,7 +263,7 @@ export function PedidosPage() {
                     <button
                       type="button"
                       onClick={() => void handleAprobarPedido(pedido.id)}
-                      className="rounded-[8px] border border-[#854f0b] bg-[#1c1a0a] px-3 py-2 text-sm text-[#f59e0b]"
+                      className="rounded-[8px] border border-[rgba(245,158,11,0.28)] bg-[rgba(245,158,11,0.12)] px-3 py-2 text-sm text-[var(--color-warning)]"
                     >
                       Aprobar
                     </button>
@@ -289,20 +289,20 @@ export function PedidosPage() {
                 </div>
               </div>
               {pendingCancelPedidoId === pedido.id ? (
-                <div className="mt-3 rounded-[6px] border border-[#2a2a2a] bg-[#111111] px-3 py-3">
-                  <p className="text-[12px] text-[#e5e7eb]">¿Cancelar pedido {pedido.numero}?</p>
+                <div className="mt-3 rounded-[8px] border border-[var(--color-border)] bg-[rgba(255,255,255,0.02)] px-3 py-3">
+                  <p className="text-[12px] text-[var(--color-text)]">¿Cancelar pedido {pedido.numero}?</p>
                   <div className="mt-3 flex justify-end gap-2">
                     <button
                       type="button"
                       onClick={() => setPendingCancelPedidoId(null)}
-                      className="rounded-[6px] border border-[#1e1e1e] px-3 py-2 text-[12px] text-[#6b7280] transition hover:border-[#374151] hover:text-white"
+                      className="rounded-[6px] border border-[var(--color-border)] px-3 py-2 text-[12px] text-[var(--color-text-2)] transition hover:border-[var(--color-text-3)] hover:text-[var(--color-text)]"
                     >
                       Cancelar
                     </button>
                     <button
                       type="button"
                       onClick={() => void handleCancelarPedido(pedido.id)}
-                      className="rounded-[6px] bg-[#ef4444] px-3 py-2 text-[12px] font-semibold text-white"
+                      className="rounded-[6px] bg-[var(--color-danger)] px-3 py-2 text-[12px] font-semibold text-white"
                     >
                       Confirmar
                     </button>
@@ -312,7 +312,7 @@ export function PedidosPage() {
             </div>
           ))}
           {visiblePedidos.length === 0 ? (
-            <p className="px-4 py-8 text-center text-[13px] text-[#6b7280]">No hay pedidos para mostrar.</p>
+            <p className="px-4 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay pedidos para mostrar.</p>
           ) : null}
         </div>
       </Section>
@@ -320,11 +320,11 @@ export function PedidosPage() {
       <Modal title="Nuevo pedido" open={showModal} onClose={() => setShowModal(false)}>
         <form className="space-y-4" onSubmit={(event) => void handleCreatePedido(event)}>
           <div>
-            <label className="mb-2 block text-sm text-[var(--on-surface-variant)]">Cliente</label>
+            <label className="mb-2 block text-sm text-[var(--color-text-2)]">Cliente</label>
             <select
               value={clienteId}
               onChange={(event) => setClienteId(event.target.value)}
-              className="w-full rounded-xl border border-white/8 bg-[var(--surface-lowest)] px-4 py-3"
+              className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)]"
               required
             >
               <option value="">Seleccionar</option>
@@ -345,7 +345,7 @@ export function PedidosPage() {
                 <select
                   value={item.productoId}
                   onChange={(event) => updateItem(index, 'productoId', event.target.value)}
-                  className="rounded-xl border border-white/8 bg-[var(--surface-lowest)] px-4 py-3"
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)]"
                   required
                 >
                   <option value="">Producto</option>
@@ -360,14 +360,14 @@ export function PedidosPage() {
                   min={1}
                   value={item.cantidad}
                   onChange={(event) => updateItem(index, 'cantidad', Number(event.target.value))}
-                  className="rounded-xl border border-white/8 bg-[var(--surface-lowest)] px-4 py-3"
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)]"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
-                  className="rounded-xl border border-white/8 px-3 py-3 text-sm text-[var(--on-surface-variant)] disabled:opacity-40"
+                  className="rounded-xl border border-[var(--color-border)] px-3 py-3 text-sm text-[var(--color-text-2)] disabled:opacity-40"
                 >
                   Quitar
                 </button>
@@ -379,14 +379,14 @@ export function PedidosPage() {
             <button
               type="button"
               onClick={addItem}
-              className="rounded-xl border border-white/8 px-4 py-2 text-sm"
+              className="rounded-xl border border-[var(--color-border)] px-4 py-2 text-sm text-[var(--color-text)] transition hover:border-[var(--color-text-3)]"
             >
               Agregar item
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d] disabled:opacity-60"
+              className="rounded-[8px] bg-[var(--color-accent)] px-4 py-[9px] text-[13px] font-semibold text-[#e8f5eb] disabled:opacity-60"
               style={{ fontFamily: 'Montserrat, sans-serif' }}
             >
               {submitting ? 'Guardando...' : 'Guardar pedido'}
@@ -402,9 +402,9 @@ export function PedidosPage() {
       >
         {selectedPedido ? (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-white/6 bg-[var(--surface-lowest)] p-4">
+            <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4">
               <p className="font-medium">{selectedPedido.cliente.nombre}</p>
-              <p className="text-sm text-[var(--on-surface-variant)]">
+              <p className="text-sm text-[var(--color-text-2)]">
                 Creado {new Date(selectedPedido.createdAt).toLocaleString('es-AR')}
               </p>
             </div>
@@ -412,11 +412,11 @@ export function PedidosPage() {
               {selectedPedido.items.map((item: PedidoItem) => (
                 <div
                   key={item.id}
-                  className="flex flex-col gap-3 rounded-2xl border border-white/6 bg-[var(--surface-lowest)] p-4 md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 md:flex-row md:items-center md:justify-between"
                 >
                   <div>
                     <p className="font-medium">{item.producto.nombre}</p>
-                    <p className="text-sm text-[var(--on-surface-variant)]">
+                    <p className="text-sm text-[var(--color-text-2)]">
                       {item.cantidad} unidades
                     </p>
                   </div>

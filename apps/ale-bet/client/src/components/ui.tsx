@@ -12,14 +12,14 @@ export function Section({
   action?: ReactNode
 }) {
   return (
-    <section className="space-y-4">
-      <div className="mb-4 flex items-start justify-between gap-4">
+    <section className="space-y-5">
+      <div className="mb-2 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-[22px] font-bold text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <h2 className="text-[24px] font-bold tracking-[-0.02em] text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
             {title}
           </h2>
           {description ? (
-            <p className="mt-1 text-[12px] text-[#6b7280]">{description}</p>
+            <p className="mt-1 text-[13px] text-[var(--color-text-2)]">{description}</p>
           ) : null}
         </div>
         {action}
@@ -39,12 +39,12 @@ export function StatCard({
   accent?: string
 }) {
   return (
-    <div className="rounded-[8px] border border-[#1e1e1e] bg-[#111111] px-4 py-[14px]">
-      <p className="text-[10px] uppercase tracking-[0.8px] text-[#6b7280]">
+    <div className="app-panel rounded-[12px] px-5 py-4">
+      <p className="text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
         {label}
       </p>
       <p
-        className={`mt-2 text-[22px] font-bold text-white ${accent}`}
+        className={`mt-2 text-[24px] font-bold leading-none text-[var(--color-text)] ${accent}`}
         style={{ fontFamily: 'Montserrat, sans-serif' }}
       >
         {value}
@@ -63,7 +63,7 @@ export function StatusChip({ label, tone }: { label: string; tone: 'green' | 'sl
   }
 
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${tones[tone]}`}>
+    <span className={`inline-flex rounded-full border border-white/6 px-2.5 py-1 text-[11px] font-medium ${tones[tone]}`}>
       {label}
     </span>
   )

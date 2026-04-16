@@ -65,7 +65,7 @@ export function ClientesPage() {
   }
 
   return (
-    <div className="space-y-6 bg-[#0d0d0d] text-white">
+    <div className="space-y-6 text-[var(--color-text)]">
       <Section
         title="Clientes"
         description="Base comercial y de distribución."
@@ -77,23 +77,23 @@ export function ClientesPage() {
               setForm(emptyCliente)
               setOpen(true)
             }}
-            className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d]"
+            className="rounded-[8px] bg-[var(--color-accent)] px-4 py-[9px] text-[13px] font-semibold text-[#e8f5eb] transition hover:bg-[var(--color-accent-h)]"
             style={{ fontFamily: 'Montserrat, sans-serif' }}
           >
             Nuevo cliente
           </button>
         }
       >
-        {error ? <p className="mb-4 text-sm text-rose-300">{error}</p> : null}
-        <div className="bg-[#0d0d0d]">
+        {error ? <p className="mb-4 text-sm text-[var(--color-danger)]">{error}</p> : null}
+        <div className="overflow-hidden rounded-[10px] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[0_16px_40px_rgba(0,0,0,0.12)]">
           {clientes.map((cliente) => (
             <div
               key={cliente.id}
-              className="flex flex-col gap-3 border-b border-[#161616] px-4 py-[14px] transition-colors hover:bg-[#111111] md:flex-row md:items-center md:justify-between"
+              className="flex flex-col gap-3 border-b border-[var(--color-border)] px-4 py-[14px] transition-colors hover:bg-[rgba(255,255,255,0.02)] md:flex-row md:items-center md:justify-between"
             >
               <div>
-                <p className="font-medium text-white" style={{ fontFamily: 'Montserrat, sans-serif' }}>{cliente.nombre}</p>
-                <p className="text-sm text-[#6b7280]">
+                <p className="font-medium text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{cliente.nombre}</p>
+                <p className="text-sm text-[var(--color-text-2)]">
                   {cliente.contacto ?? 'Sin contacto'} · {cliente.direccion ?? 'Sin dirección'}
                 </p>
               </div>
@@ -114,7 +114,7 @@ export function ClientesPage() {
                       })
                       setOpen(true)
                     }}
-                    className="rounded-[8px] border border-[#1e1e1e] px-3 py-2 text-sm text-white transition hover:border-[#2a2a2a] hover:bg-[#111111]"
+                    className="rounded-[8px] border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text)] transition hover:border-[var(--color-text-3)] hover:bg-[rgba(255,255,255,0.02)]"
                   >
                     Editar
                   </button>
@@ -122,7 +122,7 @@ export function ClientesPage() {
               </div>
             </div>
           ))}
-          {clientes.length === 0 ? <p className="px-4 py-8 text-center text-[13px] text-[#6b7280]">No hay clientes para mostrar.</p> : null}
+          {clientes.length === 0 ? <p className="px-4 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay clientes para mostrar.</p> : null}
         </div>
       </Section>
 
@@ -136,24 +136,24 @@ export function ClientesPage() {
             value={form.nombre}
             onChange={(event) => setForm({ ...form, nombre: event.target.value })}
             placeholder="Nombre"
-            className="w-full rounded-xl border border-white/8 bg-[var(--surface-lowest)] px-4 py-3"
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)]"
             required
           />
           <input
             value={form.contacto}
             onChange={(event) => setForm({ ...form, contacto: event.target.value })}
             placeholder="Contacto"
-            className="w-full rounded-xl border border-white/8 bg-[var(--surface-lowest)] px-4 py-3"
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)]"
           />
           <input
             value={form.direccion}
             onChange={(event) => setForm({ ...form, direccion: event.target.value })}
             placeholder="Dirección"
-            className="w-full rounded-xl border border-white/8 bg-[var(--surface-lowest)] px-4 py-3"
+            className="w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)]"
           />
           <button
             type="submit"
-            className="rounded-[8px] bg-[#22c55e] px-4 py-[9px] text-[13px] font-semibold text-[#0d0d0d]"
+            className="rounded-[8px] bg-[var(--color-accent)] px-4 py-[9px] text-[13px] font-semibold text-[#e8f5eb] transition hover:bg-[var(--color-accent-h)]"
             style={{ fontFamily: 'Montserrat, sans-serif' }}
           >
             Guardar

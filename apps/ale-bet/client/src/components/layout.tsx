@@ -89,29 +89,29 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div
-      className="min-h-screen bg-[var(--color-bg)] text-[var(--color-text)] md:flex"
-      style={{ minHeight: '100vh', height: '100vh', overflow: 'hidden', background: 'var(--color-bg)' }}
+      className="layout-root flex min-h-screen text-[var(--color-text)]"
+      style={{ minHeight: '100vh', height: '100vh', overflow: 'hidden', background: 'transparent' }}
     >
-      <aside className="hidden min-h-screen w-60 shrink-0 border-r border-[var(--color-border)] bg-[var(--color-surface)] md:flex md:flex-col">
-        <div className="border-b border-[var(--color-border)] px-6 py-5">
+      <aside className="hidden min-h-screen w-56 shrink-0 border-r border-[var(--color-border-soft)] bg-[linear-gradient(180deg,rgba(24,29,24,0.98)_0%,rgba(20,24,20,0.98)_100%)] md:flex md:flex-col">
+        <div className="border-b border-[var(--color-border-soft)] px-7 py-5">
           <span
             className="font-bold text-[var(--color-accent)]"
-            style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '15px', letterSpacing: '1px' }}
+            style={{ fontFamily: 'Montserrat, sans-serif', fontSize: '15px', letterSpacing: '0.8px' }}
           >
             logística
           </span>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-1.5 px-3 py-4">
           {visibleItems.map(({ path, label, icon: Icon }) => (
             <NavLink
               key={path}
               to={path}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded px-3 py-2.5 text-sm font-semibold transition-colors ${
+                `flex items-center gap-3 rounded-lg px-4 py-2.5 text-[14px] font-semibold transition-colors ${
                   isActive
-                    ? 'bg-[var(--color-accent-bg)] text-[var(--color-text)]'
-                    : 'text-[var(--color-text-2)] hover:bg-[var(--color-accent-bg)] hover:text-[var(--color-text)]'
+                    ? 'border border-[var(--color-border-soft)] bg-[rgba(255,255,255,0.03)] text-[var(--color-text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]'
+                    : 'text-[var(--color-text-2)] hover:bg-[rgba(255,255,255,0.02)] hover:text-[var(--color-text)]'
                 }`
               }
             >
@@ -121,9 +121,9 @@ export function Layout({ children }: LayoutProps) {
           ))}
         </nav>
 
-        <div className="border-t border-[var(--color-border)] px-4 py-[14px]">
+        <div className="border-t border-[var(--color-border-soft)] px-4 py-[14px]">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-accent-bg)] text-[11px] font-semibold text-[var(--color-text-3)]">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-border-soft)] bg-[rgba(26,107,53,0.12)] text-[11px] font-semibold text-[var(--color-text-2)]">
               {getInitials(user?.nombre ?? '')}
             </span>
             <div className="min-w-0 flex-1">
@@ -143,12 +143,12 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       <div
-        className="flex min-h-screen flex-1 flex-col bg-[var(--color-bg)] text-[var(--color-text)]"
-        style={{ minHeight: '100vh', height: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)' }}
+        className="layout-content flex flex-1 flex-col"
+        style={{ minHeight: '100vh', height: '100vh', background: 'transparent' }}
       >
         <main
-          className="flex-1 bg-[var(--color-bg)] px-6 py-6 text-[var(--color-text)]"
-          style={{ flex: 1, minHeight: '100vh', height: '100vh', overflowY: 'auto', background: 'var(--color-bg)', color: 'var(--color-text)' }}
+          className="layout-main flex-1 px-6 py-7 text-[var(--color-text)] md:px-8"
+          style={{ flex: 1, minHeight: '100vh', height: '100vh', overflowY: 'auto', background: 'transparent' }}
         >
           {children}
         </main>

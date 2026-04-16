@@ -8558,16 +8558,16 @@ export namespace Prisma {
 
   export type ClienteWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    nombre?: string
     AND?: ClienteWhereInput | ClienteWhereInput[]
     OR?: ClienteWhereInput[]
     NOT?: ClienteWhereInput | ClienteWhereInput[]
-    nombre?: StringFilter<"Cliente"> | string
     contacto?: StringNullableFilter<"Cliente"> | string | null
     direccion?: StringNullableFilter<"Cliente"> | string | null
     activo?: BoolFilter<"Cliente"> | boolean
     createdAt?: DateTimeFilter<"Cliente"> | Date | string
     pedidos?: PedidoListRelationFilter
-  }, "id">
+  }, "id" | "nombre">
 
   export type ClienteOrderByWithAggregationInput = {
     id?: SortOrder
