@@ -2,7 +2,7 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestApp } from './helpers/create-test-app'
 
-type EstadoPedido = 'PENDIENTE' | 'EN_ARMADO' | 'COMPLETADO' | 'CANCELADO'
+type EstadoPedido = 'PENDIENTE' | 'APROBADO' | 'EN_ARMADO' | 'COMPLETADO' | 'CANCELADO'
 
 const mocks = vi.hoisted(() => {
   let pedidoCounter = 1
@@ -198,6 +198,7 @@ vi.mock('../middleware/auth', () => ({
 vi.mock('../generated/client', () => ({
   EstadoPedido: {
     PENDIENTE: 'PENDIENTE',
+    APROBADO: 'APROBADO',
     EN_ARMADO: 'EN_ARMADO',
     COMPLETADO: 'COMPLETADO',
     CANCELADO: 'CANCELADO',
@@ -259,27 +260,6 @@ describe('Pedidos Ale-Bet', () => {
   })
 
   it('armador toma y completa un pedido descontando stock FIFO', async () => {
-    mocks.state.pedidos.push({
-      id: 'pedido-1',
-      numero: 'P-20260412-0001',
-      clienteId: 'cliente-1',
-      vendedorId: 'vend-1',
-      armadorId: null,
-      estado: 'PENDIENTE',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      cliente: { id: 'cliente-1', nombre: 'Cliente Test' },
-      items: [
-        {
-          id: 'item-1',
-          pedidoId: 'pedido-1',
-          productoId: 'prod-1',
-          cantidad: 8,
-          completado: false,
-          producto: { id: 'prod-1', nombre: 'Amantina Premium', sku: 'AM' },
-        },
-      ],
-    })
     mocks.state.lotes.push(
       {
         id: 'lote-1',
@@ -299,8 +279,28 @@ describe('Pedidos Ale-Bet', () => {
       }
     )
 
+    const creado = await request(app)
+      .post('/api/pedidos')
+      .set('x-test-rol', 'vendedor')
+      .set('x-test-user-id', 'vend-1')
+      .send({
+        clienteId: 'cliente-1',
+        items: [{ productoId: 'prod-1', cantidad: 8 }],
+      })
+
+    expect(creado.status).toBe(201)
+    expect(creado.body.estado).toBe('PENDIENTE')
+
+    const aprobado = await request(app)
+      .put(`/api/pedidos/${creado.body.id}/aprobar`)
+      .set('x-test-rol', 'vendedor')
+      .set('x-test-user-id', 'vend-1')
+
+    expect(aprobado.status).toBe(200)
+    expect(aprobado.body.estado).toBe('APROBADO')
+
     const tomado = await request(app)
-      .put('/api/pedidos/pedido-1/tomar')
+      .put(`/api/pedidos/${creado.body.id}/tomar`)
       .set('x-test-rol', 'armador')
       .set('x-test-user-id', 'arm-1')
 
@@ -309,7 +309,7 @@ describe('Pedidos Ale-Bet', () => {
     expect(tomado.body.armadorId).toBe('arm-1')
 
     const completed = await request(app)
-      .put('/api/pedidos/pedido-1/items/item-1/completar')
+      .put(`/api/pedidos/${creado.body.id}/items/${creado.body.items[0].id}/completar`)
       .set('x-test-rol', 'armador')
       .set('x-test-user-id', 'arm-1')
 

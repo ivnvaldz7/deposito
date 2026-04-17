@@ -34,6 +34,10 @@ function buildLoteNumber(sku: string, sequence: number): string {
   return `${sku}${String(sequence).padStart(4, '0')}`
 }
 
+function isUniqueConstraintError(error: unknown): error is { code: string } {
+  return typeof error === 'object' && error !== null && 'code' in error && error.code === 'P2002'
+}
+
 async function getProductStock(productId: string): Promise<number> {
   const lotes = await prisma.lote.findMany({
     where: {
@@ -203,30 +207,41 @@ router.post('/:id/lotes', authenticate, requireRole('admin'), async (req, res) =
   const numero = parsed.data.numero ?? buildLoteNumber(producto.sku, sequence)
   const cantidad = calcularUnidades(parsed.data.cajas, parsed.data.sueltos)
 
-  const lote = await prisma.$transaction(async (tx) => {
-    const created = await tx.lote.create({
-      data: {
-        numero,
-        productoId: producto.id,
-        cajas: parsed.data.cajas,
-        sueltos: parsed.data.sueltos,
-        fechaProduccion,
-        fechaVencimiento,
-      },
-    })
+  let lote
 
-    await tx.movimientoStock.create({
-      data: {
-        productoId: producto.id,
-        cantidad,
-        tipo: TipoMovimiento.ENTRADA_MANUAL,
-        referencia: created.id,
-        usuarioId: authReq.user!.id,
-      },
-    })
+  try {
+    lote = await prisma.$transaction(async (tx) => {
+      const created = await tx.lote.create({
+        data: {
+          numero,
+          productoId: producto.id,
+          cajas: parsed.data.cajas,
+          sueltos: parsed.data.sueltos,
+          fechaProduccion,
+          fechaVencimiento,
+        },
+      })
 
-    return created
-  })
+      await tx.movimientoStock.create({
+        data: {
+          productoId: producto.id,
+          cantidad,
+          tipo: TipoMovimiento.ENTRADA_MANUAL,
+          referencia: created.id,
+          usuarioId: authReq.user!.id,
+        },
+      })
+
+      return created
+    })
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      res.status(409).json({ error: 'Ya existe un lote con ese número para este producto' })
+      return
+    }
+
+    throw error
+  }
 
   res.status(201).json({
     ...lote,
