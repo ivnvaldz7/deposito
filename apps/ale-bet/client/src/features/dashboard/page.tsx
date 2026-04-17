@@ -76,13 +76,18 @@ function MetricCard({
   value: number
   subtitle: string
   valueClassName: string
-  onClick: () => void
+  onClick?: () => void
 }) {
+  const clickable = typeof onClick === 'function'
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="app-panel rounded-[12px] px-5 py-5 text-left transition hover:border-[var(--color-text-3)] hover:translate-y-[-1px]"
+      className={`app-panel rounded-[12px] px-5 py-5 text-left transition ${
+        clickable ? 'cursor-pointer hover:border-[var(--color-text-3)] hover:translate-y-[-1px]' : 'cursor-default'
+      }`}
+      disabled={!clickable}
     >
       <p className="text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">{label}</p>
       <p className={`mt-4 text-[48px] font-bold leading-none ${valueClassName}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>
@@ -110,7 +115,7 @@ function PedidoRow({
           {pedido.clienteNombre}
         </p>
         <p className="mt-1 text-[10px] text-[var(--color-text-3)]">
-          {pedido.numero} · {pedido.cantidadItems} ítems
+          {pedido.numero} · {pedido.cantidadItems} items
         </p>
       </div>
 
@@ -233,7 +238,7 @@ export function DashboardPage() {
     return <p className="text-sm text-[var(--color-danger)]">{error ?? 'No se pudo cargar el dashboard'}</p>
   }
 
-  const stockRoute = user?.rol === 'admin' ? '/stock' : '/productos'
+  const isAdmin = user?.rol === 'admin'
 
   return (
     <div className="space-y-6 text-[var(--color-text)]">
@@ -250,28 +255,28 @@ export function DashboardPage() {
           value={data.stockCritico}
           subtitle="Productos por debajo del mínimo"
           valueClassName="text-[var(--color-danger)]"
-          onClick={() => navigate('/productos')}
+          onClick={isAdmin ? () => navigate('/productos') : undefined}
         />
         <MetricCard
           label="Pedidos hoy"
           value={data.pedidosHoy}
           subtitle="Pedidos creados en el día"
           valueClassName="text-[var(--color-text)]"
-          onClick={() => navigate('/pedidos')}
+          onClick={isAdmin ? () => navigate('/pedidos') : undefined}
         />
         <MetricCard
           label="En armado"
           value={data.enArmado}
           subtitle="Pedidos tomados por armado"
           valueClassName="text-[var(--color-warning)]"
-          onClick={() => navigate('/pedidos')}
+          onClick={isAdmin ? () => navigate('/pedidos') : undefined}
         />
         <MetricCard
           label="TOTAL PRODUCTOS"
           value={data.totalProductos}
           subtitle="en inventario"
           valueClassName="text-[var(--color-text)]"
-          onClick={() => navigate(stockRoute)}
+          onClick={isAdmin ? () => navigate('/stock') : undefined}
         />
       </div>
 
@@ -293,7 +298,7 @@ export function DashboardPage() {
 
         <div className="app-panel overflow-hidden rounded-[12px]">
           <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] gap-4 border-b border-[var(--color-border)] px-5 py-3 text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
-            <div>Pedido · Cliente</div>
+            <div>Cliente</div>
             <div>Vendedor</div>
             <div>Fecha</div>
             <div className="text-center">Estado</div>

@@ -5,11 +5,6 @@ import { calcularUnidades } from '../lib/constants'
 
 const router = Router()
 
-function startOfToday(): Date {
-  const now = new Date()
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate())
-}
-
 async function getPlatformUserNames(): Promise<Map<string, string>> {
   try {
     const { platformDb } = await import('@platform/db')
@@ -27,7 +22,10 @@ async function getPlatformUserNames(): Promise<Map<string, string>> {
 }
 
 router.get('/', authenticate, async (_req, res) => {
-  const today = startOfToday()
+  const hoy = new Date()
+  hoy.setHours(0, 0, 0, 0)
+  const mañana = new Date(hoy)
+  mañana.setDate(mañana.getDate() + 1)
 
   const [productos, pedidosHoy, enArmado, pedidosRecientes, users] = await Promise.all([
     prisma.producto.findMany({
@@ -46,7 +44,8 @@ router.get('/', authenticate, async (_req, res) => {
     prisma.pedido.count({
       where: {
         createdAt: {
-          gte: today,
+          gte: hoy,
+          lt: mañana,
         },
       },
     }),

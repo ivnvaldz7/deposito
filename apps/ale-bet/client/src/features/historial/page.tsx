@@ -45,6 +45,7 @@ const dateInputStyle = {
   padding: '8px 12px',
   fontSize: '13px',
   outline: 'none',
+  cursor: 'pointer',
   colorScheme: 'dark',
   width: '100%',
 } as const
@@ -222,7 +223,7 @@ export function HistorialPage() {
     return <p className="text-sm text-[var(--color-text-2)]">Cargando historial...</p>
   }
 
-  const gridTemplateColumns = isAdmin ? '1.5fr 1fr 1.5fr 1fr 1fr 1fr 100px' : '1.5fr 1fr 1.5fr 1fr 1fr 100px'
+  const gridTemplateColumns = isAdmin ? '1.7fr 1.5fr 1fr 1fr 1fr 100px' : '1.7fr 1.5fr 1fr 1fr 100px'
 
   return (
     <div className="space-y-6 text-[var(--color-text)]">
@@ -347,7 +348,6 @@ export function HistorialPage() {
             style={{ gridTemplateColumns }}
           >
             <div>Cliente</div>
-            <div>Número</div>
             <div>Productos</div>
             <div>Fecha</div>
             {isAdmin ? <div>Vendedor</div> : null}
@@ -365,9 +365,10 @@ export function HistorialPage() {
                 <p className="truncate text-[13px] font-semibold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
                   {pedido.clienteNombre}
                 </p>
+                <p className="mt-1 text-[12px] text-[var(--color-text-3)]">
+                  {pedido.numero} · {pedido.items.length} items
+                </p>
               </div>
-
-              <div className="text-[12px] text-[var(--color-text-3)]">{pedido.numero}</div>
 
               <div>{renderProductos(pedido.items)}</div>
 
