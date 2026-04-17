@@ -8,8 +8,24 @@ import {
   type EstadoPedido,
 } from '../generated/client'
 import { MAX_SUELTOS, UNIDADES_POR_CAJA, calcularUnidades } from '../lib/constants'
+import { sseManager } from '../lib/sse-manager'
 
 const router = Router()
+
+interface PedidoAprobadoEvent {
+  pedidoId: string
+  numero: string
+  clienteNombre: string
+  cantidadItems: number
+  timestamp: string
+}
+
+interface PedidoCompletadoEvent {
+  pedidoId: string
+  numero: string
+  clienteNombre: string
+  timestamp: string
+}
 
 const pedidoSchema = z.object({
   clienteId: z.string().min(1),
@@ -296,6 +312,17 @@ router.put('/:id/aprobar', authenticate, requireRole('admin', 'vendedor'), async
     },
   })
 
+  const aprobadoEvent: PedidoAprobadoEvent = {
+    pedidoId: updated.id,
+    numero: updated.numero,
+    clienteNombre: updated.cliente.nombre,
+    cantidadItems: updated.items.length,
+    timestamp: new Date().toISOString(),
+  }
+
+  sseManager.emitToRole('armador', 'pedido:aprobado', aprobadoEvent)
+  sseManager.emitToRole('admin', 'pedido:aprobado', aprobadoEvent)
+
   const [enrichedPedido] = await enrichPedidos([updated])
   res.json(enrichedPedido)
 })
@@ -418,6 +445,18 @@ router.put(
 
         return refreshed
       })
+
+      if (result.estado === 'COMPLETADO') {
+        const completadoEvent: PedidoCompletadoEvent = {
+          pedidoId: result.id,
+          numero: result.numero,
+          clienteNombre: result.cliente.nombre,
+          timestamp: new Date().toISOString(),
+        }
+
+        sseManager.emitToUser(result.vendedorId, 'pedido:completado', completadoEvent)
+        sseManager.emitToRole('admin', 'pedido:completado', completadoEvent)
+      }
 
       const [enrichedPedido] = await enrichPedidos([result])
       res.json(enrichedPedido)

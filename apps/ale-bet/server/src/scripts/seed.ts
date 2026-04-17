@@ -1,79 +1,8 @@
 import 'dotenv/config'
-import { AppId, platformDb } from '@platform/db'
-import { hashPassword } from '@platform/core'
 import { VENCIMIENTO_DEFAULT_AÑOS } from '../lib/constants'
 import { prisma } from '../lib/prisma'
 
-async function ensurePlatformUser(input: {
-  email: string
-  nombre: string
-  password: string
-  rol: 'admin' | 'vendedor' | 'armador'
-}): Promise<void> {
-  const password = await hashPassword(input.password)
-  const existing = await platformDb.platformUser.findUnique({
-    where: { email: input.email },
-  })
-
-  const user = existing
-    ? await platformDb.platformUser.update({
-        where: { id: existing.id },
-        data: {
-          nombre: input.nombre,
-          password,
-          activo: true,
-        },
-      })
-    : await platformDb.platformUser.create({
-        data: {
-          email: input.email,
-          nombre: input.nombre,
-          password,
-        },
-      })
-
-  await platformDb.appAccess.upsert({
-    where: {
-      userId_app: {
-        userId: user.id,
-        app: AppId.ale_bet,
-      },
-    },
-    update: {
-      rol: input.rol,
-      activo: true,
-    },
-    create: {
-      userId: user.id,
-      app: AppId.ale_bet,
-      rol: input.rol,
-      activo: true,
-    },
-  })
-}
-
 async function main(): Promise<void> {
-  await ensurePlatformUser({
-    email: 'admin@alebet.com',
-    nombre: 'Admin Ale-Bet',
-    password: 'alebet123',
-    rol: 'admin',
-  })
-
-  await ensurePlatformUser({
-    email: 'vendedor@alebet.com',
-    nombre: 'Vendedor Ale-Bet',
-    password: 'alebet123',
-    rol: 'vendedor',
-  })
-
-  await ensurePlatformUser({
-    email: 'armador@alebet.com',
-    nombre: 'Armador Ale-Bet',
-    password: 'alebet123',
-    rol: 'armador',
-  })
-
   const now = new Date()
   const fechaVencimiento = new Date(now)
   fechaVencimiento.setFullYear(fechaVencimiento.getFullYear() + VENCIMIENTO_DEFAULT_AÑOS)
@@ -172,5 +101,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect()
-    await platformDb.$disconnect()
   })

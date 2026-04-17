@@ -13,7 +13,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 interface NewPedidoItem {
   productoId: string
-  cantidad: number
+  cantidad: number | ''
 }
 
 function estadoLabel(estado: Pedido['estado']): string {
@@ -55,7 +55,7 @@ export function PedidosPage() {
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [clienteId, setClienteId] = useState('')
-  const [items, setItems] = useState<NewPedidoItem[]>([{ productoId: '', cantidad: 1 }])
+  const [items, setItems] = useState<NewPedidoItem[]>([{ productoId: '', cantidad: '' }])
   const [error, setError] = useState<string | null>(null)
   const [pendingCancelPedidoId, setPendingCancelPedidoId] = useState<string | null>(null)
   const [animatedPedidoId, setAnimatedPedidoId] = useState<string | null>(null)
@@ -97,6 +97,18 @@ export function PedidosPage() {
   }, [])
 
   useEffect(() => {
+    const handler = () => {
+      void loadData()
+    }
+
+    window.addEventListener('alebet:refresh', handler)
+
+    return () => {
+      window.removeEventListener('alebet:refresh', handler)
+    }
+  }, [])
+
+  useEffect(() => {
     const state = location.state as { openPedidoId?: string } | null
     if (!state?.openPedidoId) {
       return
@@ -118,7 +130,11 @@ export function PedidosPage() {
     return pedidos
   }, [pedidos, user])
 
-  function updateItem(index: number, field: keyof NewPedidoItem, value: string | number): void {
+  function updateItem(
+    index: number,
+    field: keyof NewPedidoItem,
+    value: string | number | ''
+  ): void {
     setItems((current) =>
       current.map((item, itemIndex) =>
         itemIndex === index ? { ...item, [field]: value } : item
@@ -127,7 +143,7 @@ export function PedidosPage() {
   }
 
   function addItem(): void {
-    setItems((current) => [...current, { productoId: '', cantidad: 1 }])
+    setItems((current) => [...current, { productoId: '', cantidad: '' }])
   }
 
   function removeItem(index: number): void {
@@ -158,17 +174,38 @@ export function PedidosPage() {
     setError(null)
 
     try {
+      const normalizedItems = items.map((item) => ({
+        productoId: item.productoId.trim(),
+        cantidad: typeof item.cantidad === 'number' ? item.cantidad : 0,
+      }))
+
+      if (!clienteId) {
+        throw new Error('Debe seleccionar un cliente')
+      }
+
+      if (normalizedItems.length === 0) {
+        throw new Error('Debe agregar al menos un producto')
+      }
+
+      if (normalizedItems.some((item) => !item.productoId)) {
+        throw new Error('Todos los items deben tener un producto seleccionado')
+      }
+
+      if (normalizedItems.some((item) => !Number.isInteger(item.cantidad) || item.cantidad < 1)) {
+        throw new Error('Todas las cantidades deben ser enteros mayores a 0')
+      }
+
       const created = await apiRequest<Pedido>('/api/pedidos', {
         method: 'POST',
         body: JSON.stringify({
           clienteId,
-          items: items.filter((item) => item.productoId),
+          items: normalizedItems,
         }),
       })
 
       setShowModal(false)
       setClienteId('')
-      setItems([{ productoId: '', cantidad: 1 }])
+      setItems([{ productoId: '', cantidad: '' }])
       await loadData()
       triggerNewPedido(created.id)
     } catch (submitError) {
@@ -245,9 +282,9 @@ export function PedidosPage() {
             >
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <p className="font-[Montserrat] text-lg font-semibold text-[var(--color-text)]">{pedido.numero}</p>
+                  <p className="font-[Montserrat] text-lg font-semibold text-[var(--color-text)]">{pedido.cliente.nombre}</p>
                   <p className="text-sm text-[var(--color-text-2)]">
-                    {pedido.cliente.nombre} · {pedido.items.length} items
+                    {pedido.numero} · {pedido.items.length} items
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -340,7 +377,7 @@ export function PedidosPage() {
             {items.map((item, index) => (
               <div
                 key={`${index}-${item.productoId}`}
-                className="grid gap-3 md:grid-cols-[1fr_140px_110px]"
+                className="grid gap-3 md:grid-cols-[minmax(0,1fr)_120px_88px]"
               >
                 <select
                   value={item.productoId}
@@ -358,8 +395,18 @@ export function PedidosPage() {
                 <input
                   type="number"
                   min={1}
+                  step={1}
                   value={item.cantidad}
-                  onChange={(event) => updateItem(index, 'cantidad', Number(event.target.value))}
+                  onChange={(event) => {
+                    const nextValue = event.target.value
+
+                    updateItem(
+                      index,
+                      'cantidad',
+                      nextValue === '' ? '' : parseInt(nextValue, 10) || ''
+                    )
+                  }}
+                  placeholder="Cantidad"
                   className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-[var(--color-text)]"
                   required
                 />
@@ -367,7 +414,7 @@ export function PedidosPage() {
                   type="button"
                   onClick={() => removeItem(index)}
                   disabled={items.length === 1}
-                  className="rounded-xl border border-[var(--color-border)] px-3 py-3 text-sm text-[var(--color-text-2)] disabled:opacity-40"
+                  className="w-full rounded-xl border border-[var(--color-border)] px-3 py-3 text-sm text-[var(--color-text-2)] disabled:opacity-40"
                 >
                   Quitar
                 </button>

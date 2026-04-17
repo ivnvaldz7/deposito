@@ -98,6 +98,22 @@ export interface DashboardOverview {
   pedidosRecientes: DashboardPedidoReciente[]
 }
 
+export interface HistorialPedidoItem {
+  productoNombre: string
+  cantidad: number
+}
+
+export interface HistorialPedido {
+  id: string
+  numero: string
+  estado: Pedido['estado']
+  createdAt: string
+  clienteNombre: string
+  vendedorNombre: string
+  armadorNombre: string | null
+  items: HistorialPedidoItem[]
+}
+
 interface ApiOptions extends RequestInit {}
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -119,6 +135,19 @@ async function parseResponse<T>(response: Response): Promise<T> {
   }
 
   return (await response.json()) as T
+}
+
+async function handleErrorResponse(response: Response): Promise<never> {
+  const data = (await response.json().catch(() => null)) as
+    | { error?: string }
+    | null
+
+  if (response.status === 401) {
+    removeToken()
+    window.location.assign('/login')
+  }
+
+  throw new Error(data?.error ?? 'Error del servidor')
 }
 
 export async function apiRequest<T>(
@@ -145,4 +174,30 @@ export async function apiRequest<T>(
   })
 
   return parseResponse<T>(response)
+}
+
+export async function apiBlobRequest(
+  input: string,
+  options: ApiOptions = {},
+  authenticated = true
+): Promise<Blob> {
+  const headers = new Headers(options.headers)
+
+  if (authenticated) {
+    const token = getToken()
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+  }
+
+  const response = await fetch(input, {
+    ...options,
+    headers,
+  })
+
+  if (!response.ok) {
+    return handleErrorResponse(response)
+  }
+
+  return response.blob()
 }

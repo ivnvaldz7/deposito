@@ -3,6 +3,7 @@ import { Layout } from '@/components/layout'
 import { LoginPage } from '@/features/auth-login'
 import { ClientesPage } from '@/features/clientes/page'
 import { DashboardPage } from '@/features/dashboard/page'
+import { HistorialPage } from '@/features/historial/page'
 import { PedidosPage } from '@/features/pedidos/page'
 import { ProductosPage } from '@/features/productos/page'
 import { StockPage } from '@/features/stock/page'
@@ -44,9 +45,12 @@ export default function App() {
         <Route path="/pedidos" element={<PedidosPage />} />
         <Route element={<RoleGuard roles={['admin', 'vendedor']} />}>
           <Route path="/clientes" element={<ClientesPage />} />
+          <Route path="/historial" element={<HistorialPage />} />
+        </Route>
+        <Route element={<RoleGuard roles={['admin', 'vendedor']} />}>
+          <Route path="/productos" element={<ProductosPage />} />
         </Route>
         <Route element={<RoleGuard roles={['admin']} />}>
-          <Route path="/productos" element={<ProductosPage />} />
           <Route path="/stock" element={<StockPage />} />
         </Route>
       </Route>

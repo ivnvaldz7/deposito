@@ -1,16 +1,24 @@
-import { useEffect, type ReactNode } from 'react'
-import { LogOut, Boxes, ClipboardList, LayoutDashboard, Package2, Users } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { LogOut, Boxes, ClipboardList, History, LayoutDashboard, Package2, Users } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { removeToken } from '@/lib/auth'
 import { useAuthStore } from '@/stores/auth-store'
+import { Toast } from '@/components/Toast'
+import { useSSE } from '@/hooks/useSSE'
 
 interface LayoutProps {
   children: ReactNode
 }
 
+interface ToastState {
+  message: string
+  type: 'info' | 'success'
+}
+
 const navItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/pedidos', label: 'Pedidos', icon: ClipboardList },
+  { path: '/historial', label: 'Historial', icon: History },
   { path: '/clientes', label: 'Clientes', icon: Users },
   { path: '/productos', label: 'Productos', icon: Package2 },
   { path: '/stock', label: 'Stock', icon: Boxes },
@@ -34,6 +42,7 @@ export function Layout({ children }: LayoutProps) {
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+  const [toast, setToast] = useState<ToastState | null>(null)
 
   useEffect(() => {
     const linkId = 'ale-bet-fonts'
@@ -69,12 +78,42 @@ export function Layout({ children }: LayoutProps) {
     }
   }, [])
 
+  useSSE({
+    onPedidoAprobado: (data) => {
+      if (user?.rol === 'armador' || user?.rol === 'admin') {
+        setToast({
+          message: `Nuevo pedido listo para armar: ${data.numero}`,
+          type: 'info',
+        })
+      }
+    },
+    onPedidoCompletado: (data) => {
+      if (user?.rol === 'vendedor' || user?.rol === 'admin') {
+        setToast({
+          message: `Pedido ${data.numero} completado y listo para salir`,
+          type: 'success',
+        })
+      }
+    },
+    onRefresh: () => {
+      window.dispatchEvent(new CustomEvent('alebet:refresh'))
+    },
+  })
+
   const visibleItems = navItems.filter((item) => {
-    if (item.path === '/productos' || item.path === '/stock') {
+    if (item.path === '/productos') {
+      return user?.rol === 'admin' || user?.rol === 'vendedor'
+    }
+
+    if (item.path === '/stock') {
       return user?.rol === 'admin'
     }
 
     if (item.path === '/clientes') {
+      return user?.rol === 'admin' || user?.rol === 'vendedor'
+    }
+
+    if (item.path === '/historial') {
       return user?.rol === 'admin' || user?.rol === 'vendedor'
     }
 
@@ -153,6 +192,14 @@ export function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+
+      {toast ? (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      ) : null}
     </div>
   )
 }

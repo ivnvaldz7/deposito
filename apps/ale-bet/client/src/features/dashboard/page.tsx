@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiRequest, type DashboardOverview, type DashboardPedidoReciente, type Pedido } from '@/lib/api'
+import { useAuthStore } from '@/stores/auth-store'
 
 function formatDashboardDate(dateString: string): string {
   const date = new Date(dateString)
@@ -106,10 +107,10 @@ function PedidoRow({
     <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] items-center gap-4 border-b border-[var(--color-border)] px-5 py-4">
       <div className="min-w-0">
         <p className="truncate text-[12px] font-semibold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-          {pedido.numero}
+          {pedido.clienteNombre}
         </p>
         <p className="mt-1 text-[10px] text-[var(--color-text-3)]">
-          {pedido.clienteNombre} · {pedido.cantidadItems} ítems
+          {pedido.numero} · {pedido.cantidadItems} ítems
         </p>
       </div>
 
@@ -169,28 +170,41 @@ function PedidoRow({
 export function DashboardPage() {
   const location = useLocation()
   const navigate = useNavigate()
+  const user = useAuthStore((state) => state.user)
   const [data, setData] = useState<DashboardOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [animatedPedidoId, setAnimatedPedidoId] = useState<string | null>(null)
   const [animatedTone, setAnimatedTone] = useState<'success' | 'danger' | null>(null)
 
-  useEffect(() => {
-    async function load(): Promise<void> {
-      setLoading(true)
-      setError(null)
+  async function loadData(): Promise<void> {
+    setLoading(true)
+    setError(null)
 
-      try {
-        const response = await apiRequest<DashboardOverview>('/api/dashboard')
-        setData(response)
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : 'No se pudo cargar el dashboard')
-      } finally {
-        setLoading(false)
-      }
+    try {
+      const response = await apiRequest<DashboardOverview>('/api/dashboard')
+      setData(response)
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : 'No se pudo cargar el dashboard')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    void loadData()
+  }, [])
+
+  useEffect(() => {
+    const handler = () => {
+      void loadData()
     }
 
-    void load()
+    window.addEventListener('alebet:refresh', handler)
+
+    return () => {
+      window.removeEventListener('alebet:refresh', handler)
+    }
   }, [])
 
   useEffect(() => {
@@ -218,6 +232,8 @@ export function DashboardPage() {
   if (error || !data) {
     return <p className="text-sm text-[var(--color-danger)]">{error ?? 'No se pudo cargar el dashboard'}</p>
   }
+
+  const stockRoute = user?.rol === 'admin' ? '/stock' : '/productos'
 
   return (
     <div className="space-y-6 text-[var(--color-text)]">
@@ -255,7 +271,7 @@ export function DashboardPage() {
           value={data.totalProductos}
           subtitle="en inventario"
           valueClassName="text-[var(--color-text)]"
-          onClick={() => navigate('/stock')}
+          onClick={() => navigate(stockRoute)}
         />
       </div>
 
