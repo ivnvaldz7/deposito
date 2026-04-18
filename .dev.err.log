@@ -1,0 +1,4 @@
+• turbo 2.9.6
+ ERROR  @platform/ale-bet-server#dev: command (C:\Users\Usuario\Desktop\platform\apps\ale-bet\server) C:\Program Files\nodejs\npm.cmd run dev exited (-1073741510)
+^C^C: command  exited (1)
+^C^C
