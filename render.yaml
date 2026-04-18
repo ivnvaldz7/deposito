@@ -14,6 +14,8 @@ services:
         sync: false
       - key: PLATFORM_JWT_SECRET
         sync: false
+      - key: FRONTEND_URL
+        value: https://deposito-client.vercel.app
 
   - type: web
     name: deposito-server
@@ -32,6 +34,8 @@ services:
         sync: false
       - key: PLATFORM_JWT_SECRET
         sync: false
+      - key: FRONTEND_URL
+        value: https://deposito-client.vercel.app
 
   - type: web
     name: admin-server
@@ -50,3 +54,5 @@ services:
         value: admin@platform.local
       - key: ADMIN_PASSWORD
         sync: false
+      - key: FRONTEND_URL
+        value: https://deposito-client.vercel.app

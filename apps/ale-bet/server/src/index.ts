@@ -13,12 +13,29 @@ import historialRoutes from './routes/historial'
 const app = express()
 const port = Number(process.env.PORT ?? 3003)
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL ?? 'http://localhost:5175',
-    credentials: false,
-  })
-)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
+  'http://localhost:5179',
+  'http://localhost:5180',
+  'https://deposito-client.vercel.app',
+  process.env.FRONTEND_URL,
+].filter(Boolean)
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true
+}))
 app.use(express.json())
 
 app.get('/api/health', (_req, res) => {
