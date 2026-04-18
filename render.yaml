@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: alebet-server
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npx prisma generate --schema=packages/db/prisma/schema.prisma && npx prisma generate --schema=apps/ale-bet/server/prisma/schema.prisma && npm run build --workspace=packages/platform-core && npm run build --workspace=apps/ale-bet/server
+    startCommand: node apps/ale-bet/server/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: PLATFORM_DATABASE_URL
+        sync: false
+      - key: PLATFORM_JWT_SECRET
+        sync: false
+
+  - type: web
+    name: deposito-server
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npx prisma generate --schema=packages/db/prisma/schema.prisma && npx prisma@6 generate --schema=apps/deposito/server/prisma/schema.prisma && npm run build --workspace=packages/platform-core && npm run build --workspace=apps/deposito/server
+    startCommand: node apps/deposito/server/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: PLATFORM_DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PLATFORM_JWT_SECRET
+        sync: false
+
+  - type: web
+    name: admin-server
+    runtime: node
+    rootDir: .
+    buildCommand: npm install && npx prisma generate --schema=packages/db/prisma/schema.prisma && npm run build --workspace=packages/platform-core && npm run build --workspace=apps/admin/server
+    startCommand: node apps/admin/server/dist/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PLATFORM_DATABASE_URL
+        sync: false
+      - key: PLATFORM_JWT_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@platform.local
+      - key: ADMIN_PASSWORD
+        sync: false
