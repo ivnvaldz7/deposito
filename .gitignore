@@ -6,3 +6,9 @@ dist
 build
 .next
 coverage
+*.log
+.dev.out.log
+.dev.err.log
+**/node_modules
+**/.env
+!**/.env.example
