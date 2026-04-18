@@ -6,7 +6,7 @@ import {
   TipoMovimiento,
   type Prisma,
   type EstadoPedido,
-} from '../generated/client'
+} from '@prisma/client'
 import { MAX_SUELTOS, UNIDADES_POR_CAJA, calcularUnidades } from '../lib/constants'
 import { sseManager } from '../lib/sse-manager'
 

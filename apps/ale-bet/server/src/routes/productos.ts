@@ -7,7 +7,7 @@ import {
   calcularUnidades,
 } from '../lib/constants'
 import { authenticate, requireRole, type AuthRequest } from '../middleware/auth'
-import { TipoMovimiento } from '../generated/client'
+import { TipoMovimiento } from '@prisma/client'
 
 const router = Router()
 

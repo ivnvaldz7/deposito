@@ -314,7 +314,7 @@ vi.mock('../middleware/auth', () => ({
       next()
     },
 }))
-vi.mock('../generated/client', () => ({
+vi.mock('@prisma/client', () => ({
   EstadoPedido: {
     PENDIENTE: 'PENDIENTE',
     APROBADO: 'APROBADO',

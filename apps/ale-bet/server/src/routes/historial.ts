@@ -2,7 +2,7 @@ import { Router } from 'express'
 import ExcelJS from 'exceljs'
 import { prisma } from '../lib/prisma'
 import { authenticate, requireApp, type AuthRequest } from '../middleware/auth'
-import { type EstadoPedido, type Prisma } from '../generated/client'
+import { type EstadoPedido, type Prisma } from '@prisma/client'
 
 const router = Router()
 
