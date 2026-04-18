@@ -1,7 +1,10 @@
 {
   "name": "@platform/core",
   "version": "0.0.1",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "@platform/db": "*",
     "@types/bcryptjs": "^2.4.0",
