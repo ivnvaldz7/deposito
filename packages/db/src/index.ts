@@ -1,6 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from './generated/client'
-export { PrismaClient, AppId } from './generated/client'
+import { PrismaClient } from './generated/client/index.js'
+export { PrismaClient, AppId } from './generated/client/index.js'
 
 const globalForPrisma = globalThis as unknown as {
   platformDb: PrismaClient | undefined
@@ -26,4 +26,4 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.platformDb = platformDb
 }
 
-export type { PlatformUser, AppAccess, AppId as AppIdType } from './generated/client'
+export type { PlatformUser, AppAccess, AppId as AppIdType } from './generated/client/index.js'
