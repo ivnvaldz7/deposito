@@ -1,5 +1,9 @@
 import abLogo from './assets/alebet.svg'
 
+const ALEBET_URL = import.meta.env.VITE_ALEBET_URL || 'http://localhost:5175'
+const ADMIN_URL = import.meta.env.VITE_ADMIN_URL || 'http://localhost:5174'
+const DEPOSITO_URL = import.meta.env.VITE_DEPOSITO_URL || 'http://localhost:5173'
+
 export default function App() {
   return (
     <main className="portal-shell">
@@ -12,7 +16,7 @@ export default function App() {
             className="portal-card"
             style={{ animationDelay: '800ms' }}
             onClick={() => {
-              window.location.href = 'http://localhost:5175'
+              window.location.href = ALEBET_URL
             }}
           >
             <h2 className="portal-card-title">logística</h2>
@@ -25,7 +29,7 @@ export default function App() {
             className="portal-card"
             style={{ animationDelay: '950ms' }}
             onClick={() => {
-              window.location.href = 'http://localhost:5174'
+              window.location.href = ADMIN_URL
             }}
           >
             <h2 className="portal-card-title">admin</h2>
@@ -38,7 +42,7 @@ export default function App() {
             className="portal-card"
             style={{ animationDelay: '1100ms' }}
             onClick={() => {
-              window.location.href = 'http://localhost:5173'
+              window.location.href = DEPOSITO_URL
             }}
           >
             <h2 className="portal-card-title">depósito</h2>

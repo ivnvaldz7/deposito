@@ -1,6 +1,8 @@
 import { useEffect, useEffectEvent } from 'react'
 import { getToken, removeToken } from '@/lib/auth'
 
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
 export interface PedidoAprobadoNotification {
   pedidoId: string
   numero: string
@@ -72,7 +74,7 @@ export function useSSE(options: SSEOptions): void {
     }
 
     const controller = new AbortController()
-    const url = '/api/notificaciones/stream'
+    const url = `${BASE_URL}/api/notificaciones/stream`
 
     async function connect(): Promise<void> {
       try {

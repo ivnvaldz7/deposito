@@ -3,6 +3,8 @@ import { useAuthStore } from '@/stores/auth-store'
 import { useNotificationsStore } from '@/stores/notifications-store'
 import { toast } from '@/lib/toast'
 
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
 const MAX_RETRIES = 5
 const BACKOFF_DELAYS = [5_000, 10_000, 20_000, 40_000, 60_000] as const
 
@@ -26,7 +28,7 @@ type TicketResult =
 
 async function fetchTicket(token: string): Promise<TicketResult> {
   try {
-    const res = await fetch('/api/events/auth', {
+    const res = await fetch(`${BASE_URL}/api/events/auth`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -75,7 +77,7 @@ export function useSSE() {
         return
       }
 
-      es = new EventSource(`/api/events?ticket=${result.ticket}`)
+      es = new EventSource(`${BASE_URL}/api/events?ticket=${result.ticket}`)
 
       es.onmessage = (event: MessageEvent<string>) => {
         retryCount = 0 // reset backoff en mensaje exitoso

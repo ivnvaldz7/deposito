@@ -1,5 +1,7 @@
 import { getToken, removeToken } from './auth'
 
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
 export interface AuthUser {
   id: string
   email: string
@@ -168,7 +170,7 @@ export async function apiRequest<T>(
     }
   }
 
-  const response = await fetch(input, {
+  const response = await fetch(`${BASE_URL}${input}`, {
     ...options,
     headers,
   })
@@ -190,7 +192,7 @@ export async function apiBlobRequest(
     }
   }
 
-  const response = await fetch(input, {
+  const response = await fetch(`${BASE_URL}${input}`, {
     ...options,
     headers,
   })

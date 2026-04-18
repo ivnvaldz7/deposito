@@ -7,6 +7,8 @@ import { useAuthStore } from '@/stores/auth-store'
 import { toast } from '@/lib/toast'
 import { PageHeader } from '@/components/layout/page-header'
 
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
 interface MetricasData {
   totalIngresos: number
   totalEgresos: number
@@ -289,7 +291,7 @@ export function MetricasPage() {
     setExporting(true)
     try {
       const qs = buildQS()
-      const url = `/api/metricas/exportar-pdf${qs ? `?${qs}` : ''}`
+      const url = `${BASE_URL}/api/metricas/exportar-pdf${qs ? `?${qs}` : ''}`
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })

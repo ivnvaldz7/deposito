@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-const API_BASE_URL = '/api'
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
+function buildApiUrl(path: string): string {
+  return `${BASE_URL}/api${path}`
+}
 
 export interface AuthUser {
   id?: string
@@ -43,7 +47,7 @@ export const useAuthStore = create<AuthState>()(
 
         refreshBootstrapPromise = (async () => {
           try {
-            const res = await fetch(`${API_BASE_URL}/auth/refresh`, {
+            const res = await fetch(buildApiUrl('/auth/refresh'), {
               method: 'POST',
               credentials: 'include',
             })

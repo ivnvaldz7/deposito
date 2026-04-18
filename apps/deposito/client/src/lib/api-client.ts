@@ -1,6 +1,10 @@
 import { useAuthStore, type AuthUser } from '@/stores/auth-store'
 
-const BASE_URL = '/api'
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
+function buildApiUrl(path: string): string {
+  return `${BASE_URL}/api${path}`
+}
 
 export class ApiError extends Error {
   constructor(
@@ -29,7 +33,7 @@ async function refreshAccessToken(): Promise<string | null> {
 
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      const res = await fetch(buildApiUrl('/auth/refresh'), {
         method: 'POST',
         credentials: 'include',
       })
@@ -68,7 +72,7 @@ async function request<T>(
     headers['Authorization'] = `Bearer ${activeToken}`
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(buildApiUrl(path), {
     ...options,
     credentials: 'include',
     headers: { ...headers, ...(options.headers as Record<string, string> | undefined) },

@@ -8,6 +8,8 @@ import { useAuthStore } from '@/stores/auth-store'
 import { useCommandPaletteStore } from '@/stores/command-palette-store'
 import { apiClient } from '@/lib/api-client'
 
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Droga {
@@ -444,7 +446,7 @@ export function CommandPalette() {
     if (params.desde) qs.set('desde', params.desde)
     if (params.hasta) qs.set('hasta', params.hasta)
     if (params.categoria) qs.set('categoria', params.categoria)
-    const url = `/api/metricas/exportar-pdf${qs.toString() ? `?${qs.toString()}` : ''}`
+    const url = `${BASE_URL}/api/metricas/exportar-pdf${qs.toString() ? `?${qs.toString()}` : ''}`
     fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.blob())
       .then((blob) => {

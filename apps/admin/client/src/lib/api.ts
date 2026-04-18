@@ -1,5 +1,7 @@
 import { getToken, removeToken } from './auth'
 
+const BASE_URL = import.meta.env.VITE_API_URL || ''
+
 export type AppId = 'deposito' | 'ale_bet'
 
 export interface AppAccess {
@@ -60,7 +62,7 @@ export async function apiRequest<T>(
     }
   }
 
-  const response = await fetch(input, {
+  const response = await fetch(`${BASE_URL}${input}`, {
     ...options,
     headers,
   })
