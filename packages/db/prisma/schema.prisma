@@ -15,6 +15,7 @@ model PlatformUser {
   nombre    String
   password  String
   activo    Boolean     @default(true)
+  estado    String      @default("pending")
   isPlatformAdmin Boolean @default(false)
   appAccess AppAccess[]
   createdAt DateTime    @default(now())
@@ -39,6 +40,8 @@ model AppAccess {
 enum AppId {
   deposito
   ale_bet
+  portal
+  admin
 
   @@schema("platform")
 }

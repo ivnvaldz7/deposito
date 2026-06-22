@@ -1,0 +1,16 @@
+import { Router } from 'express'
+import loginRoutes from './login'
+import callbackRoutes from './callback'
+import refreshRoutes from './refresh'
+import logoutRoutes from './logout'
+import meRoutes from './me'
+
+const router = Router()
+
+router.use(loginRoutes)
+router.use(callbackRoutes)
+router.use(refreshRoutes)
+router.use(logoutRoutes)
+router.use(meRoutes)
+
+export default router

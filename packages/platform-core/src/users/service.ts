@@ -119,6 +119,6 @@ export async function deactivateUser(
 ): Promise<PlatformUser> {
   return db.platformUser.update({
     where: { id: userId },
-    data: { activo: false },
+    data: { activo: false, estado: 'disabled' },
   })
 }

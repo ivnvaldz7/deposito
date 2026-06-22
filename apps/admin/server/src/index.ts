@@ -4,7 +4,7 @@ import express, { type NextFunction, type Request, type Response } from 'express
 import { AppId, platformDb } from '@platform/db'
 import { createUser, getUserByEmail } from '@platform/core'
 import authRoutes from './routes/auth'
-import userRoutes from './routes/users'
+import { createAdminRoutes } from './routes/index'
 
 const app = express()
 const port = Number(process.env.PORT ?? 3001)
@@ -39,7 +39,7 @@ app.get('/health', (_req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
-app.use('/api/users', userRoutes)
+app.use('/api', createAdminRoutes())
 
 if (process.env.NODE_ENV !== 'production') {
   app.post('/api/seed', async (_req, res) => {
