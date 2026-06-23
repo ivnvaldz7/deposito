@@ -12,6 +12,7 @@ import NoAccessPage from '@/modules/auth/NoAccessPage'
 const AppSelector = lazy(() => import('@/modules/app-selector/AppSelector'))
 const AdminModule = lazy(() => import('@/modules/admin/App'))
 const DepositoModule = lazy(() => import('@/modules/deposito/App'))
+const AleBetModule = lazy(() => import('@/modules/ale-bet/App'))
 
 function NavigateBasedOnAccess() {
   const { token, user } = useAuthStore()
@@ -45,14 +46,6 @@ function LoadingShell() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian-900">
       <p className="text-gray-400">Cargando…</p>
-    </div>
-  )
-}
-
-function AleBetPlaceholder() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-obsidian-900">
-      <p className="text-emerald-400">Módulo Ale·Bet</p>
     </div>
   )
 }
@@ -107,7 +100,7 @@ export function AppRouter() {
         element={
           <ProtectedRoute app="ale-bet">
             <Suspense fallback={<LoadingShell />}>
-              <AleBetPlaceholder />
+              <AleBetModule />
             </Suspense>
           </ProtectedRoute>
         }

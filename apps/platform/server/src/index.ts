@@ -3,6 +3,7 @@ import cors from 'cors'
 import authRoutes from './routes/auth/index'
 import { createAdminRoutes } from './routes/admin/index'
 import { createDepositoRoutes } from '../../../deposito/server/src/routes/index'
+import { createAleBetRoutes } from './routes/ale-bet/index'
 import { verifyToken } from './middlewares/verify-token'
 
 const app = express()
@@ -45,7 +46,7 @@ app.use('/api/admin', verifyToken, createAdminRoutes())
 
 // Module routes
 app.use('/api/deposito', verifyToken, createDepositoRoutes())
-// app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
+app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
 
 // Error handler
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

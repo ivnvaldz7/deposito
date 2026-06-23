@@ -126,6 +126,7 @@ exports.Prisma.PlatformUserScalarFieldEnum = {
   nombre: 'nombre',
   password: 'password',
   activo: 'activo',
+  estado: 'estado',
   isPlatformAdmin: 'isPlatformAdmin',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -140,6 +141,67 @@ exports.Prisma.AppAccessScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ProductoScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  sku: 'sku',
+  stockMinimo: 'stockMinimo',
+  activo: 'activo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LoteScalarFieldEnum = {
+  id: 'id',
+  numero: 'numero',
+  productoId: 'productoId',
+  cajas: 'cajas',
+  sueltos: 'sueltos',
+  fechaProduccion: 'fechaProduccion',
+  fechaVencimiento: 'fechaVencimiento',
+  activo: 'activo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ClienteScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  contacto: 'contacto',
+  direccion: 'direccion',
+  activo: 'activo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PedidoScalarFieldEnum = {
+  id: 'id',
+  numero: 'numero',
+  clienteId: 'clienteId',
+  vendedorId: 'vendedorId',
+  armadorId: 'armadorId',
+  estado: 'estado',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ItemPedidoScalarFieldEnum = {
+  id: 'id',
+  pedidoId: 'pedidoId',
+  productoId: 'productoId',
+  cantidad: 'cantidad',
+  completado: 'completado',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.MovimientoStockScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  cantidad: 'cantidad',
+  tipo: 'tipo',
+  referencia: 'referencia',
+  usuarioId: 'usuarioId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -149,14 +211,41 @@ exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
 };
+
+exports.Prisma.NullsOrder = {
+  first: 'first',
+  last: 'last'
+};
 exports.AppId = exports.$Enums.AppId = {
   deposito: 'deposito',
-  ale_bet: 'ale_bet'
+  ale_bet: 'ale_bet',
+  portal: 'portal',
+  admin: 'admin'
+};
+
+exports.EstadoPedido = exports.$Enums.EstadoPedido = {
+  PENDIENTE: 'PENDIENTE',
+  APROBADO: 'APROBADO',
+  EN_ARMADO: 'EN_ARMADO',
+  COMPLETADO: 'COMPLETADO',
+  CANCELADO: 'CANCELADO'
+};
+
+exports.TipoMovimiento = exports.$Enums.TipoMovimiento = {
+  ENTRADA_MANUAL: 'ENTRADA_MANUAL',
+  SALIDA_PEDIDO: 'SALIDA_PEDIDO',
+  AJUSTE: 'AJUSTE'
 };
 
 exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
-  AppAccess: 'AppAccess'
+  AppAccess: 'AppAccess',
+  Producto: 'Producto',
+  Lote: 'Lote',
+  Cliente: 'Cliente',
+  Pedido: 'Pedido',
+  ItemPedido: 'ItemPedido',
+  MovimientoStock: 'MovimientoStock'
 };
 
 /**

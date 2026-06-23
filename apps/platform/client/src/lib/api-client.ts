@@ -106,4 +106,26 @@ export const apiClient = {
 
   del: <T>(path: string, token?: string | null) =>
     request<T>(path, { method: 'DELETE' }, token),
+
+  /** Download a blob (eg. Excel export) */
+  getBlob: async (path: string): Promise<Blob> => {
+    const token = useAuthStore.getState().token
+    const headers: Record<string, string> = {}
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const res = await fetch(buildApiUrl(path), {
+      method: 'GET',
+      credentials: 'include',
+      headers,
+    })
+
+    if (!res.ok) {
+      throw await parseError(res)
+    }
+
+    return res.blob()
+  },
 }
