@@ -202,6 +202,141 @@ exports.Prisma.MovimientoStockScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.UserScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  passwordHash: 'passwordHash',
+  name: 'name',
+  role: 'role',
+  platformUserId: 'platformUserId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ActaScalarFieldEnum = {
+  id: 'id',
+  fecha: 'fecha',
+  createdBy: 'createdBy',
+  estado: 'estado',
+  notas: 'notas',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ActaItemScalarFieldEnum = {
+  id: 'id',
+  actaId: 'actaId',
+  productoId: 'productoId',
+  categoria: 'categoria',
+  productoNombre: 'productoNombre',
+  lote: 'lote',
+  vencimiento: 'vencimiento',
+  temperaturaTransporte: 'temperaturaTransporte',
+  condicionEmbalaje: 'condicionEmbalaje',
+  observacionesCalidad: 'observacionesCalidad',
+  aprobadoCalidad: 'aprobadoCalidad',
+  cantidadIngresada: 'cantidadIngresada',
+  cantidadDistribuida: 'cantidadDistribuida',
+  mercado: 'mercado',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.InventarioDrogaScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  nombre: 'nombre',
+  lote: 'lote',
+  vencimiento: 'vencimiento',
+  cantidad: 'cantidad',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventarioEstucheScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  articulo: 'articulo',
+  mercado: 'mercado',
+  cantidad: 'cantidad',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventarioEtiquetaScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  articulo: 'articulo',
+  mercado: 'mercado',
+  cantidad: 'cantidad',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.InventarioFrascoScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  articulo: 'articulo',
+  unidadesPorCaja: 'unidadesPorCaja',
+  cantidadCajas: 'cantidadCajas',
+  total: 'total',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.MovimientoScalarFieldEnum = {
+  id: 'id',
+  tipo: 'tipo',
+  categoria: 'categoria',
+  productoNombre: 'productoNombre',
+  lote: 'lote',
+  cantidad: 'cantidad',
+  referenciaId: 'referenciaId',
+  referenciaTipo: 'referenciaTipo',
+  justificacion: 'justificacion',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.InsumoPendienteScalarFieldEnum = {
+  id: 'id',
+  categoria: 'categoria',
+  articulo: 'articulo',
+  cantidad: 'cantidad',
+  destino: 'destino',
+  estado: 'estado',
+  fechaEnvio: 'fechaEnvio',
+  fechaRetornoEstimada: 'fechaRetornoEstimada',
+  fechaRecibido: 'fechaRecibido',
+  notas: 'notas',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.OrdenProduccionScalarFieldEnum = {
+  id: 'id',
+  solicitanteId: 'solicitanteId',
+  aprobadoPor: 'aprobadoPor',
+  productoId: 'productoId',
+  categoria: 'categoria',
+  productoNombre: 'productoNombre',
+  mercado: 'mercado',
+  cantidad: 'cantidad',
+  urgencia: 'urgencia',
+  estado: 'estado',
+  motivoRechazo: 'motivoRechazo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.DepositoProductoScalarFieldEnum = {
+  id: 'id',
+  nombreBase: 'nombreBase',
+  volumen: 'volumen',
+  unidad: 'unidad',
+  variante: 'variante',
+  categoria: 'categoria',
+  nombreCompleto: 'nombreCompleto',
+  activo: 'activo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -237,6 +372,70 @@ exports.TipoMovimiento = exports.$Enums.TipoMovimiento = {
   AJUSTE: 'AJUSTE'
 };
 
+exports.Role = exports.$Enums.Role = {
+  encargado: 'encargado',
+  observador: 'observador',
+  solicitante: 'solicitante'
+};
+
+exports.EstadoActa = exports.$Enums.EstadoActa = {
+  pendiente: 'pendiente',
+  parcial: 'parcial',
+  completada: 'completada'
+};
+
+exports.Categoria = exports.$Enums.Categoria = {
+  droga: 'droga',
+  estuche: 'estuche',
+  etiqueta: 'etiqueta',
+  frasco: 'frasco'
+};
+
+exports.CondicionEmbalaje = exports.$Enums.CondicionEmbalaje = {
+  bueno: 'bueno',
+  regular: 'regular',
+  malo: 'malo'
+};
+
+exports.Mercado = exports.$Enums.Mercado = {
+  argentina: 'argentina',
+  colombia: 'colombia',
+  mexico: 'mexico',
+  ecuador: 'ecuador',
+  bolivia: 'bolivia',
+  paraguay: 'paraguay',
+  no_exportable: 'no_exportable'
+};
+
+exports.DepositoTipoMovimiento = exports.$Enums.DepositoTipoMovimiento = {
+  ingreso_acta: 'ingreso_acta',
+  egreso_orden: 'egreso_orden',
+  ajuste_manual: 'ajuste_manual'
+};
+
+exports.RefTipo = exports.$Enums.RefTipo = {
+  acta_item: 'acta_item',
+  orden: 'orden'
+};
+
+exports.EstadoPendiente = exports.$Enums.EstadoPendiente = {
+  en_esterilizacion: 'en_esterilizacion',
+  recibido: 'recibido'
+};
+
+exports.Urgencia = exports.$Enums.Urgencia = {
+  normal: 'normal',
+  urgente: 'urgente'
+};
+
+exports.EstadoOrden = exports.$Enums.EstadoOrden = {
+  solicitada: 'solicitada',
+  aprobada: 'aprobada',
+  ejecutada: 'ejecutada',
+  completada: 'completada',
+  rechazada: 'rechazada'
+};
+
 exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
   AppAccess: 'AppAccess',
@@ -245,7 +444,18 @@ exports.Prisma.ModelName = {
   Cliente: 'Cliente',
   Pedido: 'Pedido',
   ItemPedido: 'ItemPedido',
-  MovimientoStock: 'MovimientoStock'
+  MovimientoStock: 'MovimientoStock',
+  User: 'User',
+  Acta: 'Acta',
+  ActaItem: 'ActaItem',
+  InventarioDroga: 'InventarioDroga',
+  InventarioEstuche: 'InventarioEstuche',
+  InventarioEtiqueta: 'InventarioEtiqueta',
+  InventarioFrasco: 'InventarioFrasco',
+  Movimiento: 'Movimiento',
+  InsumoPendiente: 'InsumoPendiente',
+  OrdenProduccion: 'OrdenProduccion',
+  DepositoProducto: 'DepositoProducto'
 };
 
 /**

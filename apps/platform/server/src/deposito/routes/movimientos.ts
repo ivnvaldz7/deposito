@@ -22,7 +22,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
     where.productoNombre = { contains: producto.trim(), mode: 'insensitive' }
   }
 
-  const createdAtFilter: Prisma.DateTimeFilter<'Movimiento'> = {}
+  const createdAtFilter: Prisma.DateTimeFilter<"Movimiento"> = {}
   if (desde && typeof desde === 'string') {
     createdAtFilter.gte = new Date(desde + 'T00:00:00.000Z')
   }

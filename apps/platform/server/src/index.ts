@@ -3,15 +3,8 @@ import cors from 'cors'
 import authRoutes from './routes/auth/index'
 import { createAdminRoutes } from './routes/admin/index'
 import { createAleBetRoutes } from './routes/ale-bet/index'
+import { createDepositoRoutes } from './deposito/routes/index'
 import { verifyToken } from './middlewares/verify-token'
-
-// Dynamic require para deposito routes — evita que tsc siga el import chain
-// hacia el schema legacy de deposito que tiene tipos @prisma/client incompatibles
-function createDepositoRoutes(): express.Router {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const mod = require('../../../deposito/server/src/routes/index')
-  return mod.createDepositoRoutes()
-}
 
 const app = express()
 const PORT = process.env.PORT ?? 3000

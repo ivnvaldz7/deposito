@@ -1,25 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from './generated/client/index.js'
-export {
-  PrismaClient,
-  AppId,
-  EstadoPedido,
-  TipoMovimiento,
-  type Prisma,
-} from './generated/client/index.js'
-export type {
-  PlatformUser,
-  AppAccess,
-  AppId as AppIdType,
-  Producto,
-  Lote,
-  Cliente,
-  Pedido,
-  ItemPedido,
-  MovimientoStock,
-  EstadoPedido as EstadoPedidoType,
-  TipoMovimiento as TipoMovimientoType,
-} from './generated/client/index.js'
+export * from './generated/client/index.js'
 
 const globalForPrisma = globalThis as unknown as {
   platformDb: PrismaClient | undefined

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { CondicionEmbalaje, Mercado } from '@platform/db'
 import { prisma } from '../lib/prisma'
-import { authenticate, AuthRequest } from '../middleware/auth'
+import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
 import { sseManager } from '../lib/sse-manager'
 import { generarLote } from '../lib/lote-generator'
@@ -109,7 +109,7 @@ router.post(
   '/',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const result = crearActaSchema.safeParse(req.body)
     if (!result.success) {
       res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() })
@@ -120,7 +120,7 @@ router.post(
 
     try {
       const currentUser = await prisma.user.findUnique({
-        where: { id: req.user!.id },
+        where: { id: req.depositoUser!.id },
         select: { id: true, name: true },
       })
 
@@ -212,7 +212,7 @@ router.post(
       let productoId: string | undefined = result.data.productoId
       let productoNombre = result.data.productoNombre
       if (productoId) {
-        const producto = await prisma.producto.findUnique({ where: { id: productoId } })
+        const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
         if (!producto || producto.categoria !== categoria) {
           res.status(400).json({ message: 'DepositoProducto no encontrado en el catálogo o categoría incorrecta' })
           return
@@ -258,7 +258,7 @@ router.put(
   '/:id/items/:itemId/aprobar-calidad',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const actaId = req.params['id'] as string
     const itemId = req.params['itemId'] as string
 
@@ -289,7 +289,7 @@ router.post(
   '/:id/items/:itemId/distribuir',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const actaId = req.params['id'] as string
     const itemId = req.params['itemId'] as string
 
@@ -430,7 +430,7 @@ router.post(
             cantidad,
             referenciaId: itemId,
             referenciaTipo: 'acta_item',
-            createdBy: req.user!.id,
+            createdBy: req.depositoUser!.id,
           },
         })
 

@@ -1,8 +1,8 @@
-import { Router, Response } from 'express'
+import { Request,  Router, Response  } from 'express'
 import { z } from 'zod'
 import { Mercado } from '@platform/db'
 import { prisma } from '../lib/prisma'
-import { authenticate, AuthRequest } from '../middleware/auth'
+import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
 import { sseManager, STOCK_BAJO_THRESHOLD, STOCK_BAJO_FRASCOS_THRESHOLD } from '../lib/sse-manager'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
@@ -72,7 +72,7 @@ router.post(
   '/',
   authenticate,
   requireRole('solicitante', 'encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const result = crearOrdenSchema.safeParse(req.body)
     if (!result.success) {
       res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() })
@@ -89,7 +89,7 @@ router.post(
 
     // Si viene productoId, validar en catálogo y usar nombreCompleto
     if (productoId) {
-      const producto = await prisma.producto.findUnique({ where: { id: productoId } })
+      const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
       if (!producto || producto.categoria !== categoria) {
         res.status(400).json({ message: 'DepositoProducto no encontrado en el catálogo o categoría incorrecta' })
         return
@@ -100,7 +100,7 @@ router.post(
     try {
       const orden = await prisma.ordenProduccion.create({
         data: {
-          solicitanteId: req.user!.id,
+          solicitanteId: req.depositoUser!.id,
           productoId: productoId ?? null,
           categoria,
           productoNombre,
@@ -117,13 +117,13 @@ router.post(
       sseManager.broadcastToRoles(
         {
           tipo: 'orden_creada',
-          mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad}) — ${req.user!.name}`,
+          mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad}) — ${req.depositoUser!.name}`,
           datos: {
             ordenId: orden.id,
             producto: productoNombre,
             cantidad,
             urgencia,
-            solicitante: req.user!.name,
+            solicitante: req.depositoUser!.name,
           },
           timestamp: new Date().toISOString(),
         },
@@ -142,15 +142,15 @@ router.post(
 router.get(
   '/',
   authenticate,
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const { estado } = req.query
 
     const estadoFilter = typeof estado === 'string' ? estado : undefined
 
     // Solicitante solo ve sus propias órdenes
     const roleFilter =
-      req.user?.role === 'solicitante'
-        ? { solicitanteId: req.user.id }
+      req.depositoUser?.role === 'solicitante'
+        ? { solicitanteId: req.depositoUser.id }
         : {}
 
     const estadoWhere = estadoFilter ? { estado: estadoFilter as never } : {}
@@ -176,7 +176,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
     try {
@@ -194,7 +194,7 @@ router.get(
       }
 
       // Solicitante solo puede ver sus propias órdenes
-      if (req.user?.role === 'solicitante' && orden.solicitanteId !== req.user.id) {
+      if (req.depositoUser?.role === 'solicitante' && orden.solicitanteId !== req.depositoUser.id) {
         res.status(403).json({ message: 'No autorizado' })
         return
       }
@@ -212,7 +212,7 @@ router.put(
   '/:id/aprobar',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
     try {
@@ -232,7 +232,7 @@ router.put(
 
       const updated = await prisma.ordenProduccion.update({
         where: { id },
-        data: { estado: 'aprobada', aprobadoPor: req.user!.id },
+        data: { estado: 'aprobada', aprobadoPor: req.depositoUser!.id },
         include: {
           solicitante: { select: { id: true, name: true, role: true } },
           aprobador: { select: { id: true, name: true } },
@@ -243,7 +243,7 @@ router.put(
         {
           tipo: 'orden_actualizada',
           mensaje: `Tu orden de ${updated.productoNombre} fue aprobada`,
-          datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'aprobada', aprobadoPor: req.user!.name },
+          datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'aprobada', aprobadoPor: req.depositoUser!.name },
           timestamp: new Date().toISOString(),
         },
         updated.solicitanteId
@@ -262,7 +262,7 @@ router.put(
   '/:id/ejecutar',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
     try {
@@ -327,7 +327,7 @@ router.put(
                 cantidad: -decrementado,
                 referenciaId: orden.id,
                 referenciaTipo: 'orden',
-                createdBy: req.user!.id,
+                createdBy: req.depositoUser!.id,
               },
             })
           }
@@ -394,7 +394,7 @@ router.put(
               cantidad: -cantidad,
               referenciaId: orden.id,
               referenciaTipo: 'orden',
-              createdBy: req.user!.id,
+              createdBy: req.depositoUser!.id,
             },
           })
         }
@@ -452,7 +452,7 @@ router.put(
   '/:id/rechazar',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
     const result = rechazarSchema.safeParse(req.body)
@@ -477,7 +477,7 @@ router.put(
         data: {
           estado: 'rechazada',
           motivoRechazo: result.data.motivoRechazo,
-          aprobadoPor: req.user!.id,
+          aprobadoPor: req.depositoUser!.id,
         },
         include: {
           solicitante: { select: { id: true, name: true, role: true } },
@@ -508,7 +508,7 @@ router.put(
   '/:id/completar',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
     try {

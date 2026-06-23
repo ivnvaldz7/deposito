@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { EstadoPendiente } from '@platform/db'
 import { prisma } from '../lib/prisma'
-import { authenticate, AuthRequest } from '../middleware/auth'
+import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
 
 const router = Router()
@@ -62,7 +62,7 @@ router.post(
   '/',
   authenticate,
   requireRole('encargado'),
-  async (req: AuthRequest, res: Response): Promise<void> => {
+  async (req: Request, res: Response): Promise<void> => {
     const result = crearPendienteSchema.safeParse(req.body)
     if (!result.success) {
       res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() })
@@ -82,7 +82,7 @@ router.post(
             ? new Date(fechaRetornoEstimada + 'T00:00:00.000Z')
             : null,
           notas: notas ?? null,
-          createdBy: req.user!.id,
+          createdBy: req.depositoUser!.id,
         },
         include,
       })

@@ -10,8 +10,8 @@ const router = Router()
 type MovimientoReporte = Awaited<ReturnType<typeof loadMovimientos>>[number]
 type PdfDoc = InstanceType<typeof PDFDocument>
 
-function buildDateFilter(desde?: string, hasta?: string): Prisma.DateTimeFilter<'Movimiento'> | undefined {
-  const f: Prisma.DateTimeFilter<'Movimiento'> = {}
+function buildDateFilter(desde?: string, hasta?: string): any | undefined {
+  const f: any = {}
   if (desde) f.gte = new Date(desde + 'T00:00:00.000Z')
   if (hasta) f.lte = new Date(hasta + 'T23:59:59.999Z')
   return f.gte ?? f.lte ? f : undefined
@@ -36,12 +36,12 @@ function buildMovimientoWhere(filters: {
   hasta?: string
   categoria?: string
   producto?: string
-}): Prisma.MovimientoWhereInput {
-  const where: Prisma.MovimientoWhereInput = {}
+}): any {
+  const where: any = {}
   const dateFilter = buildDateFilter(filters.desde, filters.hasta)
 
   if (dateFilter) where.createdAt = dateFilter
-  if (filters.categoria) where.categoria = filters.categoria as Prisma.MovimientoWhereInput['categoria']
+  if (filters.categoria) where.categoria = filters.categoria as any['categoria']
   if (filters.producto) {
     where.productoNombre = { equals: filters.producto, mode: 'insensitive' }
   }
@@ -49,7 +49,7 @@ function buildMovimientoWhere(filters: {
   return where
 }
 
-async function loadMovimientos(where: Prisma.MovimientoWhereInput) {
+async function loadMovimientos(where: any) {
   return prisma.movimiento.findMany({
     where,
     include: { user: { select: { name: true } } },

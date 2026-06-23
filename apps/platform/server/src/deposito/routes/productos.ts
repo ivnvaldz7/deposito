@@ -34,7 +34,7 @@ const crearProductoSchema = z.object({
 router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
   const { categoria, buscar } = req.query
 
-  const where: Prisma.ProductoWhereInput = { activo: true }
+  const where: any = { activo: true }
 
   if (typeof categoria === 'string' && CATEGORIAS.includes(categoria as Categoria)) {
     where.categoria = categoria as Categoria
@@ -45,7 +45,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
   }
 
   try {
-    const productos = await prisma.producto.findMany({
+    const productos = await prisma.depositoProducto.findMany({
       where,
       orderBy: { nombreCompleto: 'asc' },
       select: {
@@ -81,7 +81,7 @@ router.post(
     const { nombreBase, volumen, unidad, variante, categoria, nombreCompleto } = result.data
 
     try {
-      const existing = await prisma.producto.findUnique({
+      const existing = await prisma.depositoProducto.findUnique({
         where: { nombreCompleto_categoria: { nombreCompleto, categoria } },
       })
       if (existing) {
@@ -89,7 +89,7 @@ router.post(
         return
       }
 
-      const producto = await prisma.producto.create({
+      const producto = await prisma.depositoProducto.create({
         data: {
           nombreBase,
           volumen: volumen != null ? new Prisma.Decimal(volumen) : null,
