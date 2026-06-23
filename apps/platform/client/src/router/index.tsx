@@ -8,8 +8,9 @@ import LoginPage from '@/modules/auth/LoginPage'
 import GoogleCallbackHandler from '@/modules/auth/GoogleCallbackHandler'
 import NoAccessPage from '@/modules/auth/NoAccessPage'
 
-// Lazy-loaded modules (will be built in Phases 3-5)
+// Lazy-loaded modules
 const AppSelector = lazy(() => import('@/modules/app-selector/AppSelector'))
+const AdminModule = lazy(() => import('@/modules/admin/App'))
 
 function NavigateBasedOnAccess() {
   const { token, user } = useAuthStore()
@@ -98,7 +99,7 @@ export function AppRouter() {
         element={
           <AdminRoute>
             <Suspense fallback={<LoadingShell />}>
-              <AdminPlaceholder />
+              <AdminModule />
             </Suspense>
           </AdminRoute>
         }
