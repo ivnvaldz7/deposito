@@ -1,0 +1,682 @@
+import { useState, useEffect } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Plus, Check, X, ChevronDown } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
+import { apiClient, ApiError } from '@/lib/api-client'
+import { toast } from '../../lib/toast'
+import { ProductoSelector } from '../../components/ProductoSelector'
+import { PageHeader } from '../../components/layout/PageHeader'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from '../../components/ui/Dialog'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
+type EstadoOrden = 'solicitada' | 'aprobada' | 'ejecutada' | 'completada' | 'rechazada'
+type Urgencia = 'normal' | 'urgente'
+
+interface OrdenProduccion {
+  id: string
+  categoria: Categoria
+  productoNombre: string
+  mercado: Mercado | null
+  cantidad: number
+  urgencia: Urgencia
+  estado: EstadoOrden
+  motivoRechazo: string | null
+  createdAt: string
+  updatedAt: string
+  solicitante: { id: string; name: string; role: string }
+  aprobador: { id: string; name: string } | null
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const CATEGORIA_LABELS: Record<Categoria, string> = {
+  droga: 'Droga',
+  estuche: 'Estuche',
+  etiqueta: 'Etiqueta',
+  frasco: 'Frasco',
+}
+
+const MERCADO_LABELS: Record<Mercado, string> = {
+  argentina: 'Argentina',
+  colombia: 'Colombia',
+  mexico: 'México',
+  ecuador: 'Ecuador',
+  bolivia: 'Bolivia',
+  paraguay: 'Paraguay',
+  no_exportable: 'No exportable',
+}
+
+const MERCADOS = Object.keys(MERCADO_LABELS) as Mercado[]
+
+function needsMercado(cat: Categoria) {
+  return cat === 'estuche' || cat === 'etiqueta'
+}
+
+function formatFecha(iso: string): string {
+  return new Date(iso).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
+}
+
+// ─── Chips ────────────────────────────────────────────────────────────────────
+
+const ESTADO_STYLES: Record<EstadoOrden, React.CSSProperties> = {
+  solicitada: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
+  aprobada:   { color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' },
+  ejecutada:  { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
+  completada: { color: '#00802f', backgroundColor: 'rgba(0,128,47,0.12)' },
+  rechazada:  { color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' },
+}
+
+const ESTADO_LABELS: Record<EstadoOrden, string> = {
+  solicitada: 'Solicitada',
+  aprobada: 'Aprobada',
+  ejecutada: 'Ejecutada',
+  completada: 'Completada',
+  rechazada: 'Rechazada',
+}
+
+function EstadoChip({ estado }: { estado: EstadoOrden }) {
+  return (
+    <span
+      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+      style={ESTADO_STYLES[estado]}
+    >
+      {ESTADO_LABELS[estado]}
+    </span>
+  )
+}
+
+function UrgenciaChip({ urgencia }: { urgencia: Urgencia }) {
+  if (urgencia === 'normal') return null
+  return (
+    <span
+      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 animate-pulse"
+      style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}
+    >
+      Urgente
+    </span>
+  )
+}
+
+// ─── Modal Nueva Orden ────────────────────────────────────────────────────────
+
+const nuevaOrdenSchema = z.object({
+  categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+  productoId: z.string().uuid().optional(),
+  productoNombre: z.string().min(2, 'Seleccioná un producto'),
+  mercado: z.string().optional(),
+  cantidad: z
+    .string()
+    .min(1, 'Requerido')
+    .refine((v) => Number.isInteger(Number(v)) && Number(v) > 0, 'Debe ser un entero positivo'),
+  urgencia: z.enum(['normal', 'urgente']),
+})
+
+type NuevaOrdenForm = z.infer<typeof nuevaOrdenSchema>
+
+function NuevaOrdenModal({
+  onCreated,
+  open,
+  onOpenChange,
+}: {
+  onCreated: (o: OrdenProduccion) => void
+  open: boolean
+  onOpenChange: (next: boolean) => void
+}) {
+  const [serverError, setServerError] = useState<string | null>(null)
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<NuevaOrdenForm>({
+    resolver: zodResolver(nuevaOrdenSchema),
+    defaultValues: { categoria: 'droga', productoId: undefined, productoNombre: '', mercado: '', cantidad: '', urgencia: 'normal' },
+  })
+
+  const categoria = useWatch({ control, name: 'categoria' })
+  const productoId = useWatch({ control, name: 'productoId' })
+  const productoNombre = useWatch({ control, name: 'productoNombre' })
+  useEffect(() => {
+    if (!open) return
+    setValue('productoId', undefined)
+    setValue('productoNombre', '')
+    setValue('mercado', '')
+  }, [categoria, open, setValue])
+
+  async function onSubmit(data: NuevaOrdenForm) {
+    setServerError(null)
+    if (needsMercado(data.categoria) && !data.mercado) {
+      setServerError('Seleccioná el mercado')
+      return
+    }
+    try {
+      const body: Record<string, unknown> = {
+        categoria: data.categoria,
+        productoNombre: data.productoNombre,
+        cantidad: Number(data.cantidad),
+        urgencia: data.urgencia,
+      }
+      if (data.productoId) {
+        body.productoId = data.productoId
+      }
+      if (needsMercado(data.categoria) && data.mercado) {
+        body.mercado = data.mercado
+      }
+      const orden = await apiClient.post<OrdenProduccion>('/ordenes', body)
+      onCreated(orden)
+      toast.info(`Orden creada para "${orden.productoNombre}".`)
+      reset()
+      onOpenChange(false)
+    } catch (err) {
+      setServerError(err instanceof ApiError ? err.message : 'Error al crear la orden')
+    }
+  }
+
+  function handleOpenChange(next: boolean) {
+    if (!next) { reset(); setServerError(null) }
+    onOpenChange(next)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Nueva orden de producción</DialogTitle>
+          <DialogDescription>
+            Solicitá insumos al encargado. La orden quedará pendiente de aprobación.
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+          {/* Categoría */}
+          <div className="space-y-1">
+            <label htmlFor="orden-categoria" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+              Categoría
+            </label>
+            <select id="orden-categoria" {...register('categoria')} className="input-field">
+              <option value="droga">Droga</option>
+              <option value="estuche">Estuche</option>
+              <option value="etiqueta">Etiqueta</option>
+              <option value="frasco">Frasco</option>
+            </select>
+          </div>
+
+          {/* Producto (fuzzy search) */}
+          <div className="space-y-1">
+            <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+              Producto
+            </label>
+            <ProductoSelector
+              key={`${categoria}-${productoId ?? 'empty'}`}
+              categoria={categoria}
+              displayValue={productoNombre}
+              onChange={(id, nombre) => {
+                setValue('productoId', id || undefined, { shouldValidate: true })
+                setValue('productoNombre', nombre, { shouldValidate: true })
+              }}
+              placeholder={`Buscá un ${CATEGORIA_LABELS[categoria].toLowerCase()}...`}
+            />
+            {errors.productoNombre && (
+              <p className="font-body text-error text-xs">{errors.productoNombre.message}</p>
+            )}
+          </div>
+
+          {/* Mercado (solo estuche/etiqueta) */}
+          {needsMercado(categoria) && (
+            <div className="space-y-1">
+              <label htmlFor="orden-mercado" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                Mercado
+              </label>
+              <select id="orden-mercado" {...register('mercado')} className="input-field">
+                <option value="">Seleccioná mercado</option>
+                {MERCADOS.map((m) => (
+                  <option key={m} value={m}>{MERCADO_LABELS[m]}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Cantidad */}
+          <div className="space-y-1">
+            <label htmlFor="orden-cantidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+              Cantidad
+            </label>
+            <input
+              id="orden-cantidad"
+              {...register('cantidad')}
+              type="number"
+              min="1"
+              placeholder="0"
+              className="input-field"
+            />
+            {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
+          </div>
+
+          {/* Urgencia */}
+          <div className="space-y-1">
+            <label htmlFor="orden-urgencia" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+              Urgencia
+            </label>
+            <select id="orden-urgencia" {...register('urgencia')} className="input-field">
+              <option value="normal">Normal</option>
+              <option value="urgente">Urgente</option>
+            </select>
+          </div>
+
+          {serverError && (
+            <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
+              {isSubmitting ? 'Enviando...' : 'Enviar orden'}
+            </button>
+            <DialogClose asChild>
+              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">
+                Cancelar
+              </button>
+            </DialogClose>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ─── Modal Rechazar ───────────────────────────────────────────────────────────
+
+function RechazarModal({
+  orden,
+  onRechazada,
+}: {
+  orden: OrdenProduccion
+  onRechazada: (o: OrdenProduccion) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [motivo, setMotivo] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function handleRechazar() {
+    if (motivo.trim().length < 5) {
+      setError('El motivo debe tener al menos 5 caracteres')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const updated = await apiClient.put<OrdenProduccion>(
+        `/ordenes/${orden.id}/rechazar`,
+        { motivoRechazo: motivo.trim() }
+      )
+      onRechazada(updated)
+      toast.info(`Orden "${updated.productoNombre}" rechazada.`)
+      setOpen(false)
+      setMotivo('')
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Error al rechazar')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => { setOpen(true); setError(null) }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs transition-colors"
+        style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}
+      >
+        <X size={12} strokeWidth={2} />
+        Rechazar
+      </button>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setMotivo(''); setError(null) } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rechazar orden</DialogTitle>
+            <DialogDescription>
+              Ingresá el motivo del rechazo para que el solicitante pueda entender la decisión.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label htmlFor="motivo-rechazo" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                Motivo de rechazo
+              </label>
+              <textarea
+                id="motivo-rechazo"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                rows={3}
+                placeholder="Ej: Stock insuficiente en este momento..."
+                className="input-field resize-none"
+              />
+            </div>
+            {error && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{error}</div>}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={handleRechazar}
+                disabled={loading}
+                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors disabled:opacity-50"
+                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+              >
+                {loading ? 'Rechazando...' : 'Confirmar rechazo'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
+// ─── Orden card ───────────────────────────────────────────────────────────────
+
+function OrdenCard({
+  orden,
+  isEncargado,
+  onUpdated,
+}: {
+  orden: OrdenProduccion
+  isEncargado: boolean
+  onUpdated: (o: OrdenProduccion) => void
+}) {
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  async function handleAction(action: 'aprobar' | 'ejecutar' | 'completar') {
+    setActionLoading(action)
+    try {
+      const updated = await apiClient.put<OrdenProduccion>(
+        `/ordenes/${orden.id}/${action}`,
+        {}
+      )
+      onUpdated(updated)
+      if (action === 'aprobar') {
+        toast.success(`Orden "${updated.productoNombre}" aprobada.`)
+      } else if (action === 'ejecutar') {
+        toast.success(`Orden "${updated.productoNombre}" ejecutada.`)
+      } else {
+        toast.info(`Orden "${updated.productoNombre}" marcada como completada.`)
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Error al procesar la acción')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  const canAprobar = isEncargado && orden.estado === 'solicitada'
+  const canEjecutar = isEncargado && orden.estado === 'aprobada'
+  const canRechazar = isEncargado && (orden.estado === 'solicitada' || orden.estado === 'aprobada')
+  const canCompletar = isEncargado && orden.estado === 'ejecutada'
+
+  return (
+    <div className="bg-surface-low rounded px-4 py-4 space-y-3">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-body text-on-surface text-sm font-medium truncate">{orden.productoNombre}</p>
+          <p className="font-body text-on-surface-variant text-xs mt-0.5">
+            {CATEGORIA_LABELS[orden.categoria]}
+            {orden.mercado && ` · ${MERCADO_LABELS[orden.mercado]}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <UrgenciaChip urgencia={orden.urgencia} />
+          <EstadoChip estado={orden.estado} />
+        </div>
+      </div>
+
+      {/* Data */}
+      <div className="flex flex-wrap gap-x-6 gap-y-1">
+        <div>
+          <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">Cantidad</p>
+          <p className="font-body text-on-surface text-sm tabular-nums font-medium">{orden.cantidad}</p>
+        </div>
+        <div>
+          <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">Solicitante</p>
+          <p className="font-body text-on-surface text-sm">{orden.solicitante.name}</p>
+        </div>
+        <div>
+          <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">Fecha</p>
+          <p className="font-body text-on-surface text-sm tabular-nums">{formatFecha(orden.createdAt)}</p>
+        </div>
+        {orden.aprobador && (
+          <div>
+            <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest">
+              {orden.estado === 'rechazada' ? 'Rechazada por' : 'Aprobada por'}
+            </p>
+            <p className="font-body text-on-surface text-sm">{orden.aprobador.name}</p>
+          </div>
+        )}
+      </div>
+
+      {orden.motivoRechazo && (
+        <div className="rounded px-3 py-2" style={{ backgroundColor: 'rgba(239,68,68,0.07)' }}>
+          <p className="font-body text-xs" style={{ color: '#ef4444' }}>
+            <span className="font-semibold">Motivo: </span>
+            {orden.motivoRechazo}
+          </p>
+        </div>
+      )}
+
+      {/* Actions */}
+      {isEncargado && (canAprobar || canEjecutar || canCompletar || canRechazar) && (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {canAprobar && (
+            <button
+              type="button"
+              onClick={() => handleAction('aprobar')}
+              disabled={actionLoading === 'aprobar'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
+              style={{ color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' }}
+            >
+              <Check size={12} strokeWidth={2} />
+              {actionLoading === 'aprobar' ? 'Aprobando...' : 'Aprobar'}
+            </button>
+          )}
+          {canEjecutar && (
+            <button
+              type="button"
+              onClick={() => handleAction('ejecutar')}
+              disabled={actionLoading === 'ejecutar'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
+              style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+            >
+              <Check size={12} strokeWidth={2} />
+              {actionLoading === 'ejecutar' ? 'Ejecutando...' : 'Ejecutar'}
+            </button>
+          )}
+          {canCompletar && (
+            <button
+              type="button"
+              onClick={() => handleAction('completar')}
+              disabled={actionLoading === 'completar'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-high hover:bg-surface-bright transition-colors disabled:opacity-50"
+            >
+              {actionLoading === 'completar' ? 'Completando...' : 'Marcar completada'}
+            </button>
+          )}
+          {canRechazar && (
+            <RechazarModal orden={orden} onRechazada={onUpdated} />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Filtro de estado ─────────────────────────────────────────────────────────
+
+const TODOS_LOS_ESTADOS: EstadoOrden[] = ['solicitada', 'aprobada', 'ejecutada', 'completada', 'rechazada']
+
+function FiltroEstado({
+  value,
+  onChange,
+}: {
+  value: EstadoOrden | 'todas'
+  onChange: (v: EstadoOrden | 'todas') => void
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <label htmlFor="filtro-estado" className="sr-only">Filtrar por estado</label>
+      <div className="relative">
+        <select
+          id="filtro-estado"
+          value={value}
+          onChange={(e) => onChange(e.target.value as EstadoOrden | 'todas')}
+          className="appearance-none bg-surface-high text-on-surface font-body text-sm rounded px-3 py-1.5 pr-8 border-0 outline-none focus:ring-1 focus:ring-primary"
+        >
+          <option value="todas">Todas</option>
+          {TODOS_LOS_ESTADOS.map((e) => (
+            <option key={e} value={e}>{ESTADO_LABELS[e]}</option>
+          ))}
+        </select>
+        <ChevronDown size={14} strokeWidth={1.5} className="absolute right-2 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ─────────────────────────────────────────────────────────────────
+
+export default function OrdenesPage() {
+  const user = useAuthStore((s) => s.user)
+  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
+  const isSolicitante = user?.role === 'solicitante'
+  const canCreate = isEncargado || isSolicitante
+
+  const [ordenes, setOrdenes] = useState<OrdenProduccion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [filtroEstado, setFiltroEstado] = useState<EstadoOrden | 'todas'>('todas')
+  const [nuevaOrdenOpen, setNuevaOrdenOpen] = useState(false)
+
+  useEffect(() => {
+    const query = filtroEstado !== 'todas' ? `?estado=${filtroEstado}` : ''
+
+    async function load() {
+      setLoading(true)
+      try {
+        const data = await apiClient.get<OrdenProduccion[]>(`/ordenes${query}`)
+        setOrdenes(data)
+        setError(null)
+      } catch {
+        setError('No se pudo cargar las órdenes')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
+  }, [filtroEstado])
+
+  function handleCreated(o: OrdenProduccion) {
+    setOrdenes((prev) => [o, ...prev])
+  }
+
+  function handleUpdated(o: OrdenProduccion) {
+    setOrdenes((prev) => prev.map((x) => (x.id === o.id ? o : x)))
+  }
+
+  const urgentes = ordenes.filter((o) => o.urgencia === 'urgente')
+  const pendientesAprobacion = ordenes.filter((o) => o.estado === 'solicitada').length
+  const ordenesOrdenadas = [...ordenes].sort((a, b) => {
+    const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    if (dateDiff !== 0) return dateDiff
+    if (a.estado === b.estado) return 0
+    if (a.estado === 'solicitada') return -1
+    if (b.estado === 'solicitada') return 1
+    return 0
+  })
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="ÓRDENES"
+        stats={[
+          { label: 'órdenes', value: loading ? '...' : ordenes.length },
+          { label: 'urgentes', value: loading ? '...' : urgentes.length, warning: urgentes.length > 0 && !loading },
+          { label: 'por aprobar', value: loading ? '...' : pendientesAprobacion, warning: pendientesAprobacion > 0 && !loading },
+        ]}
+        primaryAction={
+          canCreate
+            ? {
+                label: 'Nueva orden',
+                onClick: () => setNuevaOrdenOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
+      >
+        <FiltroEstado value={filtroEstado} onChange={setFiltroEstado} />
+      </PageHeader>
+
+      {canCreate ? (
+        <NuevaOrdenModal
+          onCreated={handleCreated}
+          open={nuevaOrdenOpen}
+          onOpenChange={setNuevaOrdenOpen}
+        />
+      ) : null}
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center py-20">
+          <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error}</p>
+        </div>
+      ) : ordenesOrdenadas.length === 0 ? (
+        <div className="flex items-center justify-center py-20">
+          <p className="font-body text-on-surface-variant text-sm">
+            {filtroEstado !== 'todas'
+              ? `No hay órdenes en estado "${ESTADO_LABELS[filtroEstado]}".`
+              : 'No hay órdenes registradas.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {ordenesOrdenadas.map((o) => (
+            <OrdenCard
+              key={o.id}
+              orden={o}
+              isEncargado={isEncargado}
+              onUpdated={handleUpdated}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

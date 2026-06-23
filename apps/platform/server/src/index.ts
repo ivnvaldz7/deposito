@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import authRoutes from './routes/auth/index'
 import { createAdminRoutes } from './routes/admin/index'
+import { createDepositoRoutes } from '../../../deposito/server/src/routes/index'
 import { verifyToken } from './middlewares/verify-token'
 
 const app = express()
@@ -42,8 +43,8 @@ app.use('/api/auth', authRoutes)
 // Module routes (JWT required)
 app.use('/api/admin', verifyToken, createAdminRoutes())
 
-// Deposito and Ale-Bet routes — uncomment when modules are migrated:
-// app.use('/api/deposito', verifyToken, createDepositoRoutes())
+// Module routes
+app.use('/api/deposito', verifyToken, createDepositoRoutes())
 // app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
 
 // Error handler

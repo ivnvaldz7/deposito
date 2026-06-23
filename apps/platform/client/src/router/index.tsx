@@ -11,6 +11,7 @@ import NoAccessPage from '@/modules/auth/NoAccessPage'
 // Lazy-loaded modules
 const AppSelector = lazy(() => import('@/modules/app-selector/AppSelector'))
 const AdminModule = lazy(() => import('@/modules/admin/App'))
+const DepositoModule = lazy(() => import('@/modules/deposito/App'))
 
 function NavigateBasedOnAccess() {
   const { token, user } = useAuthStore()
@@ -48,27 +49,10 @@ function LoadingShell() {
   )
 }
 
-// Placeholder components for modules not yet migrated
-function DepositoPlaceholder() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-obsidian-900">
-      <p className="text-emerald-400">Módulo Depósito</p>
-    </div>
-  )
-}
-
 function AleBetPlaceholder() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian-900">
       <p className="text-emerald-400">Módulo Ale·Bet</p>
-    </div>
-  )
-}
-
-function AdminPlaceholder() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-obsidian-900">
-      <p className="text-emerald-400">Módulo Admin</p>
     </div>
   )
 }
@@ -111,7 +95,7 @@ export function AppRouter() {
         element={
           <ProtectedRoute app="deposito">
             <Suspense fallback={<LoadingShell />}>
-              <DepositoPlaceholder />
+              <DepositoModule />
             </Suspense>
           </ProtectedRoute>
         }

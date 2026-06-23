@@ -57,7 +57,10 @@ describe('Auth Flow Integration', () => {
   })
 
   it('callback handler with valid token calls /me and redirects single-app user to their app', async () => {
-    mockFetch.mockResolvedValue(createJsonResponse(singleAppUser))
+    // Mock initial /me call
+    mockFetch.mockResolvedValueOnce(createJsonResponse(singleAppUser))
+    // Mock subsequent API calls from DashboardPage (acta stats, movimientos, etc.)
+    mockFetch.mockResolvedValue(createJsonResponse([]))
 
     render(
       <MemoryRouter initialEntries={['/auth/google/callback?token=valid123']}>
@@ -71,7 +74,10 @@ describe('Auth Flow Integration', () => {
 
     expect(useAuthStore.getState().token).toBe('valid123')
     // User should have deposito active — redirect goes to /deposito
-    expect(screen.getByText(/módulo depósito/i)).toBeInTheDocument()
+    // Sidebar logo with "depósito" confirms the module rendered
+    await waitFor(() => {
+      expect(screen.getByText('depósito')).toBeInTheDocument()
+    })
   })
 
   it('callback handler with valid token — multi-app user without lastApp — shows selector', async () => {
@@ -94,7 +100,10 @@ describe('Auth Flow Integration', () => {
   })
 
   it('callback handler with valid token — multi-app user with valid lastApp — direct redirect', async () => {
-    mockFetch.mockResolvedValue(createJsonResponse(multiAppUser))
+    // Mock initial /me call
+    mockFetch.mockResolvedValueOnce(createJsonResponse(multiAppUser))
+    // Mock subsequent API calls from DashboardPage
+    mockFetch.mockResolvedValue(createJsonResponse([]))
     useAppStore.setState({ lastApp: 'deposito' })
 
     render(
@@ -108,8 +117,9 @@ describe('Auth Flow Integration', () => {
     })
 
     // Has lastApp=deposito and deposito is in user's apps → direct redirect
+    // Sidebar logo with "depósito" confirms the module rendered
     await waitFor(() => {
-      expect(screen.getByText(/módulo depósito/i)).toBeInTheDocument()
+      expect(screen.getByText('depósito')).toBeInTheDocument()
     })
   })
 
@@ -143,6 +153,8 @@ describe('Auth Flow Integration', () => {
 
   it('authenticated user with correct app access sees the app content', () => {
     useAuthStore.setState({ token: 't', user: singleAppUser, authResolved: true })
+    // Mock API calls from DashboardPage
+    mockFetch.mockResolvedValue(createJsonResponse([]))
 
     render(
       <MemoryRouter initialEntries={['/deposito']}>
@@ -150,11 +162,14 @@ describe('Auth Flow Integration', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText(/módulo depósito/i)).toBeInTheDocument()
+    // Sidebar logo confirms the module rendered
+    expect(screen.getByText('depósito')).toBeInTheDocument()
   })
 
   it('single-app user at root / gets auto-redirected to their app', () => {
     useAuthStore.setState({ token: 't', user: singleAppUser, authResolved: true })
+    // Mock API calls from DashboardPage
+    mockFetch.mockResolvedValue(createJsonResponse([]))
 
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -162,7 +177,8 @@ describe('Auth Flow Integration', () => {
       </MemoryRouter>,
     )
 
-    expect(screen.getByText(/módulo depósito/i)).toBeInTheDocument()
+    // Sidebar logo confirms redirect to /deposito
+    expect(screen.getByText('depósito')).toBeInTheDocument()
   })
 
   it('redirects unauthenticated user from root to login', () => {
