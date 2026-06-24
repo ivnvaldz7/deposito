@@ -15,5 +15,12 @@
     "typecheck": {
       "dependsOn": ["^typecheck"]
     }
-  }
+  },
+  "globalEnv": [
+    "PLATFORM_DATABASE_URL",
+    "PLATFORM_JWT_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_REDIRECT_URI"
+  ]
 }
