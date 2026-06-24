@@ -4,7 +4,6 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "npx prisma@6 generate && tsc",
     "test": "vitest run",
     "start": "node dist/index.js",
     "db:migrate": "prisma migrate dev",
