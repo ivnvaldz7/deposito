@@ -12,9 +12,9 @@ export interface RefreshTokenPayload {
 }
 
 function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET
+  const secret = process.env.PLATFORM_JWT_SECRET
   if (!secret) {
-    console.error('❌ JWT_SECRET no configurado. Agregalo a server/.env')
+    console.error('❌ PLATFORM_JWT_SECRET no configurado. Agregalo a server/.env')
     process.exit(1)
   }
   return secret
