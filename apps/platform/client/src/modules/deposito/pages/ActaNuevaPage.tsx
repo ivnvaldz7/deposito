@@ -6,9 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronRight, Plus, Check, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { ProductoSelector } from '../../components/ProductoSelector'
-import type { Acta, ActaItem, Categoria, CondicionEmbalaje, Mercado } from '../../lib/actas-types'
+import { toast } from '../lib/toast'
+import { ProductoSelector } from '../components/ProductoSelector'
+import type { Acta, ActaItem, Categoria, CondicionEmbalaje, Mercado } from '../lib/actas-types'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

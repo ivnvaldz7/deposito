@@ -13,6 +13,7 @@ export interface AppAccess {
 }
 
 export interface PlatformUser {
+  id?: string
   sub: string
   email: string
   name: string

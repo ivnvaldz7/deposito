@@ -7,15 +7,15 @@ import Fuse from 'fuse.js'
 import { Check, ChevronDown, PackagePlus, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { PageHeader } from '../../components/layout/PageHeader'
+import { toast } from '../lib/toast'
+import { PageHeader } from '../components/layout/PageHeader'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '../../components/ui/Dialog'
+} from '../components/ui/Dialog'
 
 type EstadoPendiente = 'en_esterilizacion' | 'recibido'
 

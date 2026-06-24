@@ -6,15 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { fetchCatalogoProductos } from '../../lib/catalogo-productos'
-import { sortByArticulo } from '../../lib/sort-utils'
-import { InlineNumberEditor } from '../../components/inventory-shared/inline-number-editor'
-import { MercadoChip } from '../../components/inventory-shared/mercado-chip'
-import { MercadoFilter } from '../../components/inventory-shared/mercado-filter'
-import { EmptyState, ErrorState, LoadingState } from '../../components/inventory-shared/inventory-states'
-import { MERCADOS, type Mercado } from '../../components/inventory-shared/mercados'
-import { StockChip } from '../../components/inventory-shared/stock-chip'
+import { toast } from '../lib/toast'
+import { fetchCatalogoProductos } from '../lib/catalogo-productos'
+import { sortByArticulo } from '../lib/sort-utils'
+import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
+import { MercadoChip } from '../components/inventory-shared/mercado-chip'
+import { MercadoFilter } from '../components/inventory-shared/mercado-filter'
+import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
+import { MERCADOS, type Mercado } from '../components/inventory-shared/mercados'
+import { StockChip } from '../components/inventory-shared/stock-chip'
 import {
   Table,
   TableHeader,
@@ -22,7 +22,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '../../components/ui/Table'
+} from '../components/ui/Table'
 import {
   Dialog,
   DialogContent,
@@ -30,8 +30,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from '../../components/ui/Dialog'
-import { PageHeader } from '../../components/layout/PageHeader'
+} from '../components/ui/Dialog'
+import { PageHeader } from '../components/layout/PageHeader'
 
 interface Etiqueta {
   id: string

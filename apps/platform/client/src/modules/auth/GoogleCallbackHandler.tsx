@@ -32,7 +32,7 @@ export default function GoogleCallbackHandler() {
           navigate('/login?error=unauthorized', { replace: true })
           return
         }
-        const user = await res.json()
+        const user = await res.json() as import('@/stores/auth-store').PlatformUser
         login(token, user)
 
         // Determine redirect based on user's apps

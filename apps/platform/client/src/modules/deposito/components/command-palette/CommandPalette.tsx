@@ -143,8 +143,8 @@ export function CommandPalette() {
   const [metricResult, setMetricResult] = useState<MetricQueryResult | null>(null)
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false)
 
-  const fuseRef = useRef<Fuse<{ id: string; nombreCompleto: string }>>(
-    new Fuse([], { keys: ['nombreCompleto'], threshold: 0.4 })
+  const fuseRef = useRef<Fuse<any>>(
+    new Fuse<any>([], { keys: ['nombreCompleto'], threshold: 0.4 })
   )
 
   useEffect(() => {

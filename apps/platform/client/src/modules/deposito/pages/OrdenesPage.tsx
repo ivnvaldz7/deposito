@@ -5,9 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Check, X, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { ProductoSelector } from '../../components/ProductoSelector'
-import { PageHeader } from '../../components/layout/PageHeader'
+import { toast } from '../lib/toast'
+import { ProductoSelector } from '../components/ProductoSelector'
+import { PageHeader } from '../components/layout/PageHeader'
 import {
   Dialog,
   DialogContent,
@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from '../../components/ui/Dialog'
+} from '../components/ui/Dialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -571,7 +571,7 @@ function FiltroEstado({
 export default function OrdenesPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
-  const isSolicitante = user?.role === 'solicitante'
+  const isSolicitante = user?.apps?.['deposito']?.rol === 'solicitante'
   const canCreate = isEncargado || isSolicitante
 
   const [ordenes, setOrdenes] = useState<OrdenProduccion[]>([])

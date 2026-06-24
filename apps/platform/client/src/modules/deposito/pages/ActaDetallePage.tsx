@@ -3,9 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { EstadoChip } from '../../components/EstadoChip'
-import type { Acta, ActaItem } from '../../lib/actas-types'
+import { toast } from '../lib/toast'
+import { EstadoChip } from '../components/EstadoChip'
+import type { Acta, ActaItem } from '../lib/actas-types'
 
 function formatFecha(iso: string): string {
   const d = new Date(iso)

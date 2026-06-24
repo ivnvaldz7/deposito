@@ -6,6 +6,7 @@ const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
 // We import after stubbing fetch
+import type { ApiError as ApiErrorType } from '../api-client'
 const { apiClient, ApiError } = await import('../api-client')
 
 function createJsonResponse(data: unknown, status = 200) {
@@ -73,7 +74,7 @@ describe('apiClient', () => {
         await apiClient.get('/deposito/productos/999')
       } catch (e) {
         expect(e).toBeInstanceOf(ApiError)
-        expect((e as ApiError).status).toBe(404)
+        expect((e as ApiErrorType).status).toBe(404)
       }
     })
 

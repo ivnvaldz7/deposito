@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient } from '@/lib/api-client'
-import { PageHeader } from '../../components/layout/PageHeader'
+import { PageHeader } from '../components/layout/PageHeader'
 import {
   Table,
   TableHeader,
@@ -11,9 +11,9 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '../../components/ui/Table'
-import { EstadoChip } from '../../components/EstadoChip'
-import type { ActaListItem } from '../../lib/actas-types'
+} from '../components/ui/Table'
+import { EstadoChip } from '../components/EstadoChip'
+import type { ActaListItem } from '../lib/actas-types'
 
 function formatFecha(iso: string): string {
   const d = new Date(iso)

@@ -4,8 +4,8 @@ import { TrendingUp, TrendingDown, Scale, Activity, FileDown, BarChart2, Search,
 import Fuse from 'fuse.js'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'
-import { toast } from '../../lib/toast'
-import { PageHeader } from '../../components/layout/PageHeader'
+import { toast } from '../lib/toast'
+import { PageHeader } from '../components/layout/PageHeader'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 

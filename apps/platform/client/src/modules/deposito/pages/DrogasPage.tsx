@@ -6,9 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2, CalendarClock } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { fetchCatalogoProductos } from '../../lib/catalogo-productos'
-import { EmptyState, ErrorState, LoadingState } from '../../components/inventory-shared/inventory-states'
+import { toast } from '../lib/toast'
+import { fetchCatalogoProductos } from '../lib/catalogo-productos'
+import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import {
   Dialog,
   DialogContent,
@@ -16,8 +16,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from '../../components/ui/Dialog'
-import { PageHeader } from '../../components/layout/PageHeader'
+} from '../components/ui/Dialog'
+import { PageHeader } from '../components/layout/PageHeader'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -5,8 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { PageHeader } from '../../components/layout/PageHeader'
+import { toast } from '../lib/toast'
+import { PageHeader } from '../components/layout/PageHeader'
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from '../../components/ui/Dialog'
+} from '../components/ui/Dialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

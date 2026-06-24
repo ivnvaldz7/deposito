@@ -6,11 +6,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { apiClient, ApiError } from '@/lib/api-client'
-import { toast } from '../../lib/toast'
-import { fetchCatalogoProductos } from '../../lib/catalogo-productos'
-import { InlineNumberEditor } from '../../components/inventory-shared/inline-number-editor'
-import { EmptyState, ErrorState, LoadingState } from '../../components/inventory-shared/inventory-states'
-import { sortByArticulo } from '../../lib/sort-utils'
+import { toast } from '../lib/toast'
+import { fetchCatalogoProductos } from '../lib/catalogo-productos'
+import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
+import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
+import { sortByArticulo } from '../lib/sort-utils'
 import {
   Table,
   TableHeader,
@@ -18,7 +18,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '../../components/ui/Table'
+} from '../components/ui/Table'
 import {
   Dialog,
   DialogContent,
@@ -26,8 +26,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from '../../components/ui/Dialog'
-import { PageHeader } from '../../components/layout/PageHeader'
+} from '../components/ui/Dialog'
+import { PageHeader } from '../components/layout/PageHeader'
 
 interface Frasco {
   id: string

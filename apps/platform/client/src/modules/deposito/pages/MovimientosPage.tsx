@@ -9,7 +9,7 @@ import {
   TableRow,
   TableHead,
   TableCell,
-} from '../../components/ui/Table'
+} from '../components/ui/Table'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
