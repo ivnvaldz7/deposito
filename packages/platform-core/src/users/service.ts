@@ -1,6 +1,6 @@
 import type {
   AppAccess,
-  AppIdType as AppId,
+  AppId,
   PlatformUser,
   PrismaClient,
 } from '@platform/db'
