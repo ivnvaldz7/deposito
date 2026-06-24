@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api-client'
+import { api } from './api'
 
 export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
 
@@ -11,5 +11,5 @@ export interface CatalogoProducto {
 export async function fetchCatalogoProductos(
   categoria: CategoriaProducto
 ): Promise<CatalogoProducto[]> {
-  return apiClient.get<CatalogoProducto[]>(`/productos?categoria=${categoria}`)
+  return api.get<CatalogoProducto[]>(`/productos?categoria=${categoria}`)
 }

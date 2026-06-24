@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
@@ -96,7 +96,7 @@ function AgregarEtiquetaModal({
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const etiqueta = await apiClient.post<Etiqueta>(
+      const etiqueta = await api.post<Etiqueta>(
         '/etiquetas',
         { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) },
       )
@@ -189,7 +189,7 @@ function EditarEtiquetaModal({ etiqueta, onUpdated, onClose }: { etiqueta: Etiqu
   async function onSubmit(data: EditarFormData) {
     setServerError(null)
     try {
-      const updated = await apiClient.put<Etiqueta>(`/etiquetas/${etiqueta.id}`, { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) })
+      const updated = await api.put<Etiqueta>(`/etiquetas/${etiqueta.id}`, { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) })
       onUpdated(updated)
       if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
       else toast.info(`Etiqueta "${updated.articulo}" actualizada.`)
@@ -240,7 +240,7 @@ function CantidadCell({ etiqueta, onUpdated }: { etiqueta: Etiqueta; onUpdated: 
     <InlineNumberEditor
       value={etiqueta.cantidad} label="cantidad"
       onSave={async (nextValue) => {
-        const updated = await apiClient.put<Etiqueta>(`/etiquetas/${etiqueta.id}`, { cantidad: nextValue })
+        const updated = await api.put<Etiqueta>(`/etiquetas/${etiqueta.id}`, { cantidad: nextValue })
         onUpdated(updated)
         if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
         else toast.info(`Stock de "${updated.articulo}" actualizado.`)
@@ -263,7 +263,7 @@ export default function EtiquetasPage() {
   const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
-    apiClient.get<Etiqueta[]>('/etiquetas').then((list) => setAllEtiquetas(sortEtiquetas(list))).catch(() => setError('No se pudo cargar las etiquetas')).finally(() => setLoading(false))
+    api.get<Etiqueta[]>('/etiquetas').then((list) => setAllEtiquetas(sortEtiquetas(list))).catch(() => setError('No se pudo cargar las etiquetas')).finally(() => setLoading(false))
     fetchCatalogoProductos('etiqueta').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
@@ -284,7 +284,7 @@ export default function EtiquetasPage() {
   async function handleDelete(id: string) {
     setDeletingId(id)
     try {
-      await apiClient.del<void>(`/etiquetas/${id}`)
+      await api.del<void>(`/etiquetas/${id}`)
       const etiqueta = allEtiquetas.find((e) => e.id === id)
       setAllEtiquetas((prev) => prev.filter((e) => e.id !== id))
       toast.success(etiqueta ? `Etiqueta "${etiqueta.articulo}" eliminada.` : 'Etiqueta eliminada.')

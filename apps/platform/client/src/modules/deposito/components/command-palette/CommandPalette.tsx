@@ -6,7 +6,7 @@ import { Command } from 'cmdk'
 import { Search, Clock, Eye, FilePlus, History, FlaskConical, Package, Tag, Box, BarChart2, FileDown, ExternalLink } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
-import { apiClient } from '@/lib/api-client'
+import { api } from '../../lib/api'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -116,7 +116,7 @@ function parseMetricQuery(q: string): MetricQueryParams | null {
 async function fetchMetrics(params: MetricQueryParams): Promise<MetricQueryResult> {
   const qs = new URLSearchParams({ desde: params.desde, hasta: params.hasta })
   if (params.categoria) qs.set('categoria', params.categoria)
-  const data = await apiClient.get<MetricQueryResult>(`/metricas/resumen?${qs.toString()}`)
+  const data = await api.get<MetricQueryResult>(`/metricas/resumen?${qs.toString()}`)
   return { ...data, params }
 }
 
@@ -150,10 +150,10 @@ export function CommandPalette() {
   useEffect(() => {
     if (!token) return
     Promise.all([
-      apiClient.get<Droga[]>('/productos?categoria=droga'),
-      apiClient.get<Estuche[]>('/productos?categoria=estuche'),
-      apiClient.get<Etiqueta[]>('/productos?categoria=etiqueta'),
-      apiClient.get<Frasco[]>('/productos?categoria=frasco'),
+      api.get<Droga[]>('/productos?categoria=droga'),
+      api.get<Estuche[]>('/productos?categoria=estuche'),
+      api.get<Etiqueta[]>('/productos?categoria=etiqueta'),
+      api.get<Frasco[]>('/productos?categoria=frasco'),
     ])
       .then(([drogas, estuches, etiquetas, frascos]) => {
         const all = [...drogas, ...estuches, ...etiquetas, ...frascos]

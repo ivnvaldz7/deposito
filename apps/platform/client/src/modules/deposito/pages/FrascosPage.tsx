@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
@@ -70,7 +70,7 @@ function AgregarFrascoModal({ onCreated, open, onOpenChange }: { onCreated: (f: 
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const frasco = await apiClient.post<Frasco>('/frascos', { articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
+      const frasco = await api.post<Frasco>('/frascos', { articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
       onCreated(frasco)
       if (frasco.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${frasco.articulo}" quedó con stock bajo (${frasco.cantidadCajas} cajas).`)
       else toast.success(`Frasco "${frasco.articulo}" agregado.`)
@@ -134,7 +134,7 @@ function EditarFrascoModal({ frasco, onUpdated, onClose }: { frasco: Frasco; onU
   async function onSubmit(data: EditarFormData) {
     setServerError(null)
     try {
-      const updated = await apiClient.put<Frasco>(`/frascos/${frasco.id}`, { articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
+      const updated = await api.put<Frasco>(`/frascos/${frasco.id}`, { articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
       onUpdated(updated)
       if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
       else toast.info(`Frasco "${updated.articulo}" actualizado.`)
@@ -167,7 +167,7 @@ function EditarFrascoModal({ frasco, onUpdated, onClose }: { frasco: Frasco; onU
 function CajasCell({ frasco, onUpdated }: { frasco: Frasco; onUpdated: (f: Frasco) => void }) {
   return (
     <InlineNumberEditor value={frasco.cantidadCajas} label="Cajas" onSave={async (nextValue) => {
-      const updated = await apiClient.put<Frasco>(`/frascos/${frasco.id}`, { cantidadCajas: nextValue })
+      const updated = await api.put<Frasco>(`/frascos/${frasco.id}`, { cantidadCajas: nextValue })
       onUpdated(updated)
       if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
       else toast.info(`Stock de cajas para "${updated.articulo}" actualizado.`)
@@ -188,7 +188,7 @@ export default function FrascosPage() {
   const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
-    apiClient.get<Frasco[]>('/frascos').then((list) => setFrascos(sortFrascos(list))).catch(() => setError('No se pudo cargar los frascos')).finally(() => setLoading(false))
+    api.get<Frasco[]>('/frascos').then((list) => setFrascos(sortFrascos(list))).catch(() => setError('No se pudo cargar los frascos')).finally(() => setLoading(false))
     fetchCatalogoProductos('frasco').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
@@ -206,7 +206,7 @@ export default function FrascosPage() {
   async function handleDelete(id: string) {
     setDeletingId(id)
     try {
-      await apiClient.del<void>(`/frascos/${id}`)
+      await api.del<void>(`/frascos/${id}`)
       const frasco = frascos.find((f) => f.id === id)
       setFrascos((prev) => prev.filter((f) => f.id !== id))
       toast.success(frasco ? `Frasco "${frasco.articulo}" eliminado.` : 'Frasco eliminado.')

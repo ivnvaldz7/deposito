@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2, CalendarClock } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
@@ -155,7 +155,7 @@ function AgregarDrogaModal({
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const droga = await apiClient.post<DrogaRecord>(
+      const droga = await api.post<DrogaRecord>(
         '/drogas',
         {
           nombre: data.nombre,
@@ -281,7 +281,7 @@ export default function DrogasPage() {
   const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
-    apiClient
+    api
       .get<DrogaRecord[]>('/drogas')
       .then(setRecords)
       .catch(() => setError('No se pudo cargar el inventario'))
@@ -317,7 +317,7 @@ export default function DrogasPage() {
   async function handleDelete(id: string, nombre: string) {
     setDeletingId(id)
     try {
-      await apiClient.del<void>(`/drogas/${id}`)
+      await api.del<void>(`/drogas/${id}`)
       setRecords((prev) => prev.filter((r) => r.id !== id))
       toast.success(`Droga "${nombre}" eliminada.`)
     } catch {

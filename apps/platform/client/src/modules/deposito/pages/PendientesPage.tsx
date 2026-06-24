@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Fuse from 'fuse.js'
 import { Check, ChevronDown, PackagePlus, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
@@ -250,7 +250,7 @@ function EnviarModal({
     async function loadFrascos() {
       setLoadingFrascos(true)
       try {
-        const data = await apiClient.get<Frasco[]>('/frascos')
+        const data = await api.get<Frasco[]>('/frascos')
         if (!cancelled) {
           setFrascos(data)
         }
@@ -308,7 +308,7 @@ function EnviarModal({
       if (data.fechaRetornoEstimada) body.fechaRetornoEstimada = data.fechaRetornoEstimada
       if (data.notas?.trim()) body.notas = data.notas.trim()
 
-      const pendiente = await apiClient.post<InsumoPendiente>('/pendientes', body)
+      const pendiente = await api.post<InsumoPendiente>('/pendientes', body)
       onCreated(pendiente)
       toast.info(`Pendiente creado para "${pendiente.articulo}".`)
       handleOpenChange(false)
@@ -513,7 +513,7 @@ function RecibirModal({
     }
 
     try {
-      const response = await apiClient.put<RecibirPendienteResponse>(
+      const response = await api.put<RecibirPendienteResponse>(
         `/pendientes/${pendiente.id}/recibir`,
         { cantidadRecibida: cantidad }
       )
@@ -702,7 +702,7 @@ export default function PendientesPage() {
   const [enviarOpen, setEnviarOpen] = useState(false)
 
   useEffect(() => {
-    apiClient
+    api
       .get<InsumoPendiente[]>('/pendientes')
       .then(setPendientes)
       .catch(() => setError('No se pudo cargar los pendientes'))

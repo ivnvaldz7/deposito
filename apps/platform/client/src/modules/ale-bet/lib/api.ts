@@ -107,7 +107,7 @@ export interface HistorialPedido {
 
 // ─── API calls ───────────────────────────────────────────────────────────────
 
-const BASE = '/api/ale-bet'
+const BASE = '/ale-bet'
 
 export const aleBetApi = {
   // Dashboard

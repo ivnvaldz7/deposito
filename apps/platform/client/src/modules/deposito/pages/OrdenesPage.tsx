@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Check, X, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { ProductoSelector } from '../components/ProductoSelector'
 import { PageHeader } from '../components/layout/PageHeader'
@@ -181,7 +181,7 @@ function NuevaOrdenModal({
       if (needsMercado(data.categoria) && data.mercado) {
         body.mercado = data.mercado
       }
-      const orden = await apiClient.post<OrdenProduccion>('/ordenes', body)
+      const orden = await api.post<OrdenProduccion>('/ordenes', body)
       onCreated(orden)
       toast.info(`Orden creada para "${orden.productoNombre}".`)
       reset()
@@ -324,7 +324,7 @@ function RechazarModal({
     setLoading(true)
     setError(null)
     try {
-      const updated = await apiClient.put<OrdenProduccion>(
+      const updated = await api.put<OrdenProduccion>(
         `/ordenes/${orden.id}/rechazar`,
         { motivoRechazo: motivo.trim() }
       )
@@ -414,7 +414,7 @@ function OrdenCard({
   async function handleAction(action: 'aprobar' | 'ejecutar' | 'completar') {
     setActionLoading(action)
     try {
-      const updated = await apiClient.put<OrdenProduccion>(
+      const updated = await api.put<OrdenProduccion>(
         `/ordenes/${orden.id}/${action}`,
         {}
       )
@@ -586,7 +586,7 @@ export default function OrdenesPage() {
     async function load() {
       setLoading(true)
       try {
-        const data = await apiClient.get<OrdenProduccion[]>(`/ordenes${query}`)
+        const data = await api.get<OrdenProduccion[]>(`/ordenes${query}`)
         setOrdenes(data)
         setError(null)
       } catch {

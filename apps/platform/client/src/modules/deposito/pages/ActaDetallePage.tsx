@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { EstadoChip } from '../components/EstadoChip'
 import type { Acta, ActaItem } from '../lib/actas-types'
@@ -86,7 +86,7 @@ function ItemRow({
   useEffect(() => {
     if (!distributing || item.categoria !== 'droga') return
     setLoadingLotes(true)
-    apiClient
+    api
       .get<DrogaLote[]>(`/drogas?nombre=${encodeURIComponent(item.productoNombre)}`)
       .then((data) => {
         const sorted = [...data].sort((a, b) => {
@@ -113,7 +113,7 @@ function ItemRow({
   async function handleAprobarCalidad() {
     setApprovingQuality(true)
     try {
-      const updated = await apiClient.put<ActaItem>(
+      const updated = await api.put<ActaItem>(
         `/actas/${actaId}/items/${item.id}/aprobar-calidad`,
         undefined
       )
@@ -152,7 +152,7 @@ function ItemRow({
           payload.justificacion = justificacion.trim()
         }
       }
-      const res = await apiClient.post<{ item: ActaItem }>(
+      const res = await api.post<{ item: ActaItem }>(
         `/actas/${actaId}/items/${item.id}/distribuir`,
         payload
       )
@@ -406,7 +406,7 @@ export default function ActaDetallePage() {
 
   const load = useCallback(() => {
     if (!id) return
-    apiClient
+    api
       .get<Acta>(`/actas/${id}`)
       .then((data) => {
         setActa(data)

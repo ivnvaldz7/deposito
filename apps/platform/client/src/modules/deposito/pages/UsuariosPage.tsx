@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
@@ -74,7 +74,7 @@ function RoleSelector({
     if (role === currentRole) return
     setSaving(true)
     try {
-      const updated = await apiClient.put<Usuario>(`/users/${userId}`, { role })
+      const updated = await api.put<Usuario>(`/users/${userId}`, { role })
       onUpdated(updated)
       toast.info(`Rol actualizado para "${updated.name}".`)
     } catch {
@@ -136,7 +136,7 @@ function CrearUsuarioModal({
   async function onSubmit(data: CrearFormData) {
     setServerError(null)
     try {
-      const result = await apiClient.post<{ token: string; user: Usuario }>(
+      const result = await api.post<{ token: string; user: Usuario }>(
         '/auth/register',
         data
       )
@@ -263,7 +263,7 @@ function DeleteButton({
     setDeleting(true)
     setError(null)
     try {
-      await apiClient.del<void>(`/users/${usuario.id}`)
+      await api.del<void>(`/users/${usuario.id}`)
       onDeleted(usuario.id)
       toast.success(`Usuario "${usuario.name}" eliminado.`)
       setOpen(false)
@@ -332,7 +332,7 @@ export default function UsuariosPage() {
   const [crearOpen, setCrearOpen] = useState(false)
 
   useEffect(() => {
-    apiClient
+    api
       .get<Usuario[]>('/users')
       .then((list) => setUsuarios(list))
       .catch(() => setError('No se pudo cargar la lista de usuarios'))

@@ -1,5 +1,20 @@
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('@prisma/client', () => ({
+  PrismaClient: class {},
+  Mercado: {
+    argentina: 'argentina',
+    colombia: 'colombia',
+    mexico: 'mexico',
+    ecuador: 'ecuador',
+    bolivia: 'bolivia',
+    paraguay: 'paraguay',
+    no_exportable: 'no_exportable'
+  },
+  Prisma: {}
+}))
+
 import { buildCatalogoCanonico } from '../../prisma/seed'
 import { createTestApp } from './helpers/create-test-app'
 
@@ -29,7 +44,7 @@ const mocks = vi.hoisted(() => {
   }
 
   const prisma = {
-    producto: {
+    depositoProducto: {
       findMany: vi.fn(async ({ where }: any) =>
         state.productos.filter((producto) => {
           if (where?.activo != null && producto.activo !== where.activo) return false
@@ -63,14 +78,13 @@ const mocks = vi.hoisted(() => {
 
   function reset() {
     state.productos = baseCatalog.map((producto) => ({ ...producto }))
-    prisma.producto.findMany.mockClear()
-    prisma.producto.findUnique.mockClear()
-    prisma.producto.create.mockClear()
+    prisma.depositoProducto.findMany.mockClear()
+    prisma.depositoProducto.findUnique.mockClear()
+    prisma.depositoProducto.create.mockClear()
   }
 
   return { prisma, state, reset }
 })
-
 vi.mock('../lib/prisma', () => ({ prisma: mocks.prisma }))
 vi.mock('../middleware/auth', () => ({
   authenticate: (req: any, res: any, next: any) => {

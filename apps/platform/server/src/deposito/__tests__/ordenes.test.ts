@@ -2,6 +2,19 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestApp } from './helpers/create-test-app'
 
+vi.mock('@platform/db', () => ({
+  Mercado: {
+    argentina: 'argentina',
+    colombia: 'colombia',
+    mexico: 'mexico',
+    ecuador: 'ecuador',
+    bolivia: 'bolivia',
+    paraguay: 'paraguay',
+    no_exportable: 'no_exportable',
+  },
+  default: {},
+}))
+
 type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
 type EstadoOrden = 'solicitada' | 'aprobada' | 'ejecutada' | 'completada' | 'rechazada'
 

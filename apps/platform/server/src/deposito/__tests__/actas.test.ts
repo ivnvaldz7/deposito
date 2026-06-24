@@ -2,6 +2,24 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestApp } from './helpers/create-test-app'
 
+vi.mock('@platform/db', () => ({
+  Mercado: {
+    argentina: 'argentina',
+    colombia: 'colombia',
+    mexico: 'mexico',
+    ecuador: 'ecuador',
+    bolivia: 'bolivia',
+    paraguay: 'paraguay',
+    no_exportable: 'no_exportable',
+  },
+  CondicionEmbalaje: {
+    bueno: 'bueno',
+    regular: 'regular',
+    malo: 'malo',
+  },
+  default: {},
+}))
+
 type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
 type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
 type EstadoActa = 'pendiente' | 'parcial' | 'completada'
@@ -394,5 +412,27 @@ describe('Actas críticas', () => {
 
     expect(distribute.status).toBe(400)
     expect(distribute.body.message).toContain('inventario de estuche')
+  })
+
+  it('rechaza agregar item a un acta completada', async () => {
+    const acta = await request(app)
+      .post('/api/actas')
+      .set('x-test-role', 'encargado')
+      .send({ fecha: '2026-04-11' })
+
+    mocks.state.actas[0]!.estado = 'completada'
+
+    const item = await request(app)
+      .post(`/api/actas/${acta.body.id}/items`)
+      .set('x-test-role', 'encargado')
+      .send({
+        categoria: 'droga',
+        productoNombre: 'ATP',
+        lote: 'ATP-002',
+        cantidadIngresada: 10,
+      })
+
+    expect(item.status).toBe(400)
+    expect(item.body.message).toContain('completada')
   })
 })

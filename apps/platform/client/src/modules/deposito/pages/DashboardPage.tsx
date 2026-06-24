@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowRight } from 'lucide-react'
-import { apiClient } from '@/lib/api-client'
+import { api } from '../lib/api'
 
 type TipoMovimiento = 'ingreso_acta' | 'egreso_orden' | 'ajuste_manual'
 
@@ -222,7 +222,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    apiClient
+    api
       .get<DashboardStats>('/dashboard/stats')
       .then(setStats)
       .catch(() => setError('No se pudo cargar el dashboard'))

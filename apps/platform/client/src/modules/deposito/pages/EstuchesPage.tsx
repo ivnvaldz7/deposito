@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
@@ -102,7 +102,7 @@ function AgregarEstucheModal({
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const estuche = await apiClient.post<Estuche>(
+      const estuche = await api.post<Estuche>(
         '/estuches',
         { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) },
       )
@@ -260,7 +260,7 @@ function EditarEstucheModal({
   async function onSubmit(data: EditarFormData) {
     setServerError(null)
     try {
-      const updated = await apiClient.put<Estuche>(
+      const updated = await api.put<Estuche>(
         `/estuches/${estuche.id}`,
         { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) },
       )
@@ -348,7 +348,7 @@ function CantidadCell({
       value={estuche.cantidad}
       label="cantidad"
       onSave={async (nextValue) => {
-        const updated = await apiClient.put<Estuche>(
+        const updated = await api.put<Estuche>(
           `/estuches/${estuche.id}`,
           { cantidad: nextValue },
         )
@@ -382,7 +382,7 @@ export default function EstuchesPage() {
   const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
-    apiClient
+    api
       .get<Estuche[]>('/estuches')
       .then((list) => setAllEstuches(sortEstuches(list)))
       .catch(() => setError('No se pudo cargar los estuches'))
@@ -430,7 +430,7 @@ export default function EstuchesPage() {
   async function handleDelete(id: string) {
     setDeletingId(id)
     try {
-      await apiClient.del<void>(`/estuches/${id}`)
+      await api.del<void>(`/estuches/${id}`)
       const estuche = allEstuches.find((e) => e.id === id)
       setAllEstuches((prev) => prev.filter((e) => e.id !== id))
       toast.success(estuche ? `Estuche "${estuche.articulo}" eliminado.` : 'Estuche eliminado.')

@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronRight, Plus, Check, ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient, ApiError } from '@/lib/api-client'
+import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { ProductoSelector } from '../components/ProductoSelector'
 import type { Acta, ActaItem, Categoria, CondicionEmbalaje, Mercado } from '../lib/actas-types'
@@ -93,7 +93,7 @@ function Paso1({
   async function onSubmit(data: Paso1Data) {
     setServerError(null)
     try {
-      const acta = await apiClient.post<Acta>(
+      const acta = await api.post<Acta>(
         '/actas',
         { fecha: data.fecha, notas: data.notas || undefined }
       )
@@ -304,7 +304,7 @@ function Paso2({
   async function onSubmit(data: ItemFormData) {
     setServerError(null)
     try {
-      const item = await apiClient.post<ActaItem>(
+      const item = await api.post<ActaItem>(
         `/actas/${actaId}/items`,
         {
           categoria: data.categoria,
@@ -738,7 +738,7 @@ function Paso3({
 
     setSaving(true)
     try {
-      const res = await apiClient.post<{ item: ActaItem }>(
+      const res = await api.post<{ item: ActaItem }>(
         `/actas/${actaId}/items/${item.id}/distribuir`,
         { cantidad: num }
       )

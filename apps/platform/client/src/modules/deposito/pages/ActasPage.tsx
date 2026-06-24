@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient } from '@/lib/api-client'
+import { api } from '../lib/api'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
   Table,
@@ -50,7 +50,7 @@ export default function ActasPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    apiClient
+    api
       .get<ActaListItem[]>('/actas')
       .then(setActas)
       .catch(() => setError('No se pudo cargar las actas'))

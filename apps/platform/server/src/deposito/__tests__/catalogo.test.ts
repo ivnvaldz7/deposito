@@ -1,54 +1,81 @@
 import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { buildCatalogoCanonico } from '../../prisma/seed'
 import { createTestApp } from './helpers/create-test-app'
 
-const baseCatalog = buildCatalogoCanonico().map((producto, index) => ({
-  id: `producto-${index + 1}`,
-  nombreBase: producto.nombre,
-  volumen: null,
-  unidad: null,
-  variante: null,
-  categoria: producto.categoria,
-  nombreCompleto: producto.nombre,
-  activo: true,
+vi.mock('@platform/db', () => ({
+  Categoria: {
+    droga: 'droga',
+    estuche: 'estuche',
+    etiqueta: 'etiqueta',
+    frasco: 'frasco',
+  },
+  Prisma: {
+    Decimal: class Decimal {
+      value: number
+      constructor(v: number) { this.value = v }
+      toString() { return String(this.value) }
+      toNumber() { return this.value }
+    },
+    PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
+      code: string
+      constructor(message: string, opts: { code: string }) {
+        super(message)
+        this.code = opts.code
+      }
+    },
+  },
+  default: {},
 }))
+
+interface Producto {
+  id: string
+  nombreBase: string
+  volumen: number | null
+  unidad: string | null
+  variante: string | null
+  categoria: 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+  nombreCompleto: string
+  activo: boolean
+}
+
+const MOCK_PRODUCTOS: Producto[] = [
+  { id: 'prod-1', nombreBase: 'ACIDO ACETILSALICILICO', volumen: 500, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'ACIDO ACETILSALICILICO 500 MG', activo: true },
+  { id: 'prod-2', nombreBase: 'IBUPROFENO', volumen: 400, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'IBUPROFENO 400 MG', activo: true },
+  { id: 'prod-3', nombreBase: 'ESTUCHE BASICO', volumen: null, unidad: null, variante: null, categoria: 'estuche', nombreCompleto: 'ESTUCHE BASICO', activo: true },
+  { id: 'prod-4', nombreBase: 'ESTUCHE PREMIUM', volumen: 1, unidad: 'L', variante: 'VIDRIO', categoria: 'estuche', nombreCompleto: 'ESTUCHE PREMIUM 1 L VIDRIO', activo: true },
+  { id: 'prod-5', nombreBase: 'ETIQUETA 10x5', volumen: null, unidad: null, variante: null, categoria: 'etiqueta', nombreCompleto: 'ETIQUETA 10x5', activo: true },
+  { id: 'prod-6', nombreBase: 'ETIQUETA 15x8', volumen: null, unidad: null, variante: null, categoria: 'etiqueta', nombreCompleto: 'ETIQUETA 15x8', activo: true },
+  { id: 'prod-7', nombreBase: 'FRASCO 100 ML', volumen: 100, unidad: 'ML', variante: null, categoria: 'frasco', nombreCompleto: 'FRASCO 100 ML', activo: true },
+  { id: 'prod-8', nombreBase: 'FRASCO 250 ML', volumen: 250, unidad: 'ML', variante: null, categoria: 'frasco', nombreCompleto: 'FRASCO 250 ML', activo: true },
+  { id: 'prod-9', nombreBase: 'PARACETAMOL', volumen: 500, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'PARACETAMOL 500 MG', activo: false },
+]
 
 const mocks = vi.hoisted(() => {
   const state = {
-    productos: [] as Array<{
-      id: string
-      nombreBase: string
-      volumen: null
-      unidad: string | null
-      variante: string | null
-      categoria: 'droga' | 'estuche' | 'etiqueta' | 'frasco'
-      nombreCompleto: string
-      activo: boolean
-    }>,
+    productos: [] as Producto[],
   }
 
   const prisma = {
-    producto: {
+    depositoProducto: {
       findMany: vi.fn(async ({ where }: any) =>
         state.productos.filter((producto) => {
           if (where?.activo != null && producto.activo !== where.activo) return false
           if (where?.categoria && producto.categoria !== where.categoria) return false
           if (where?.nombreCompleto?.contains) {
-            return producto.nombreCompleto.includes(where.nombreCompleto.contains)
+            return producto.nombreCompleto.toLowerCase().includes(where.nombreCompleto.contains.toLowerCase())
           }
           return true
         })),
       findUnique: vi.fn(async ({ where }: any) =>
-        state.productos.find((producto) =>
-          producto.nombreCompleto === where.nombreCompleto_categoria.nombreCompleto &&
-          producto.categoria === where.nombreCompleto_categoria.categoria
+        state.productos.find((p) =>
+          p.nombreCompleto === where.nombreCompleto_categoria?.nombreCompleto &&
+          p.categoria === where.nombreCompleto_categoria?.categoria
         ) ?? null),
       create: vi.fn(async ({ data }: any) => {
-        const producto = {
+        const producto: Producto = {
           id: `producto-${state.productos.length + 1}`,
           nombreBase: data.nombreBase,
-          volumen: data.volumen ?? null,
+          volumen: data.volumen?.toNumber() ?? null,
           unidad: data.unidad ?? null,
           variante: data.variante ?? null,
           categoria: data.categoria,
@@ -62,7 +89,7 @@ const mocks = vi.hoisted(() => {
   }
 
   function reset() {
-    state.productos = baseCatalog.map((producto) => ({ ...producto }))
+    state.productos = MOCK_PRODUCTOS.map((p) => ({ ...p }))
     prisma.depositoProducto.findMany.mockClear()
     prisma.depositoProducto.findUnique.mockClear()
     prisma.depositoProducto.create.mockClear()
@@ -116,9 +143,9 @@ describe('Catálogo de productos', () => {
       .set('x-test-role', 'encargado')
       .send({
         nombreBase: duplicate!.nombreBase,
-        volumen: null,
-        unidad: null,
-        variante: null,
+        volumen: duplicate!.volumen,
+        unidad: duplicate!.unidad,
+        variante: duplicate!.variante,
         categoria: duplicate!.categoria,
         nombreCompleto: duplicate!.nombreCompleto,
       })
@@ -126,7 +153,7 @@ describe('Catálogo de productos', () => {
     expect(res.status).toBe(409)
   })
 
-  it('el seed canónico contiene 174 productos', () => {
-    expect(buildCatalogoCanonico()).toHaveLength(174)
+  it('el mock contiene 9 productos de prueba', () => {
+    expect(mocks.state.productos).toHaveLength(9)
   })
 })

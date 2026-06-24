@@ -89,7 +89,7 @@ router.post(
 
     // Si viene productoId, validar en catálogo y usar nombreCompleto
     if (productoId) {
-      const producto = await prisma.producto.findUnique({ where: { id: productoId } })
+      const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
       if (!producto || producto.categoria !== categoria) {
         res.status(400).json({ message: 'DepositoProducto no encontrado en el catálogo o categoría incorrecta' })
         return

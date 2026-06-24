@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Scale, Activity, FileDown, BarChart2, Search, Check } from 'lucide-react'
 import Fuse from 'fuse.js'
-import { apiClient } from '@/lib/api-client'
+import { api } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { toast } from '../lib/toast'
 import { PageHeader } from '../components/layout/PageHeader'
@@ -252,7 +252,7 @@ export default function MetricasPage() {
       setData(null)
       try {
         const qs = buildQS()
-        const result = await apiClient.get<MetricasData>(`/metricas${qs ? `?${qs}` : ''}`)
+        const result = await api.get<MetricasData>(`/metricas${qs ? `?${qs}` : ''}`)
         setData(result)
       } catch {
         toast.error('Error al cargar métricas')
@@ -272,7 +272,7 @@ export default function MetricasPage() {
         if (hasta) params.set('hasta', hasta)
         if (productoQuery.trim()) params.set('producto', productoQuery.trim())
 
-        const movimientos = await apiClient.get<MovimientoListItem[]>(
+        const movimientos = await api.get<MovimientoListItem[]>(
           `/movimientos${params.toString() ? `?${params.toString()}` : ''}`
         )
 

@@ -25,6 +25,7 @@ const mocks = vi.hoisted(() => {
       updatedAt: Date
     }>,
     inventarioEstuches: [] as Array<{ id: string; productoId: string | null; articulo: string; mercado: Mercado; cantidad: number }>,
+    inventarioFrascos: [] as Array<{ id: string; productoId: string | null; articulo: string; cantidadCajas: number; unidadesPorCaja: number }>,
     movimientos: [] as Array<Record<string, unknown>>,
   }
 
@@ -112,10 +113,21 @@ const mocks = vi.hoisted(() => {
   }
 
   prisma.inventarioFrasco = {
-    findFirst: vi.fn(async () => null),
-    findMany: vi.fn(async () => []),
-    findUnique: vi.fn(async () => null),
-    update: vi.fn(),
+    findFirst: vi.fn(async ({ where }: any) =>
+      state.inventarioFrascos.find((row) =>
+        where.productoId == null || row.productoId === where.productoId
+      ) ?? null),
+    findMany: vi.fn(async () => state.inventarioFrascos),
+    findUnique: vi.fn(async ({ where }: any) =>
+      state.inventarioFrascos.find((row) => row.articulo === where.articulo) ?? null),
+    update: vi.fn(async ({ where, data }: any) => {
+      const row = state.inventarioFrascos.find((inv) => inv.id === where.id)
+      if (!row) throw new Error('Inventario no encontrado')
+      if (data.cantidadCajas !== undefined) {
+        row.cantidadCajas = data.cantidadCajas
+      }
+      return row
+    }),
   }
 
   prisma.movimiento = {
@@ -125,7 +137,7 @@ const mocks = vi.hoisted(() => {
     }),
   }
 
-  prisma.producto = {
+  prisma.depositoProducto = {
     findUnique: vi.fn(async () => null),
   }
 
@@ -135,6 +147,7 @@ const mocks = vi.hoisted(() => {
     idCounter = 1
     state.ordenes.length = 0
     state.inventarioEstuches.length = 0
+    state.inventarioFrascos.length = 0
     state.movimientos.length = 0
     Object.values(prisma).forEach((value) => {
       if (value && typeof value === 'object') {
@@ -345,5 +358,133 @@ describe('Órdenes de producción críticas', () => {
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(1)
     expect(res.body[0]?.solicitanteId).toBe('sol-1')
+  })
+
+  it('GET /api/ordenes/:id devuelve la orden si es solicitante y le pertenece', async () => {
+    mocks.state.ordenes.push({
+      id: 'orden-1',
+      solicitanteId: 'sol-1',
+      aprobadoPor: null,
+      productoId: null,
+      categoria: 'estuche',
+      productoNombre: 'AMANTINA 500 ML',
+      mercado: 'argentina',
+      cantidad: 1,
+      urgencia: 'normal',
+      estado: 'solicitada',
+      motivoRechazo: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const res = await request(app)
+      .get('/api/ordenes/orden-1')
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+
+    expect(res.status).toBe(200)
+    expect(res.body.id).toBe('orden-1')
+  })
+
+  it('GET /api/ordenes/:id da 403 si es solicitante y no le pertenece', async () => {
+    mocks.state.ordenes.push({
+      id: 'orden-1',
+      solicitanteId: 'sol-2',
+      aprobadoPor: null,
+      productoId: null,
+      categoria: 'estuche',
+      productoNombre: 'AMANTINA 500 ML',
+      mercado: 'argentina',
+      cantidad: 1,
+      urgencia: 'normal',
+      estado: 'solicitada',
+      motivoRechazo: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const res = await request(app)
+      .get('/api/ordenes/orden-1')
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+
+    expect(res.status).toBe(403)
+  })
+
+  it('ejecutar orden de droga descuenta lotes usando FIFO', async () => {
+    mocks.state.ordenes.push({
+      id: 'orden-droga-1',
+      solicitanteId: 'sol-1',
+      aprobadoPor: 'enc-1',
+      productoId: null,
+      categoria: 'droga',
+      productoNombre: 'ACIDO CITRICO',
+      mercado: null,
+      cantidad: 15,
+      urgencia: 'normal',
+      estado: 'aprobada',
+      motivoRechazo: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    mocks.prisma.inventarioDroga.findMany.mockResolvedValue([
+      { id: 'lote-a', nombre: 'ACIDO CITRICO', lote: 'A', vencimiento: new Date('2027-01-01'), cantidad: 10 },
+      { id: 'lote-b', nombre: 'ACIDO CITRICO', lote: 'B', vencimiento: new Date('2026-06-01'), cantidad: 10 },
+    ])
+
+    const res = await request(app)
+      .put('/api/ordenes/orden-droga-1/ejecutar')
+      .set('x-test-role', 'encargado')
+      .set('x-test-user-id', 'enc-1')
+
+    expect(res.status).toBe(200)
+    // El lote B tiene vencimiento anterior (2026-06-01 < 2027-01-01), debe usarse primero y descontar sus 10 unidades
+    expect(mocks.prisma.inventarioDroga.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'lote-b' },
+      data: { cantidad: { decrement: 10 } }
+    }))
+    // Luego lote A debe descontar las 5 restantes
+    expect(mocks.prisma.inventarioDroga.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'lote-a' },
+      data: { cantidad: { decrement: 5 } }
+    }))
+  })
+
+  it('ejecutar orden de frasco actualiza cajas y unidades totales', async () => {
+    mocks.state.ordenes.push({
+      id: 'orden-frasco-1',
+      solicitanteId: 'sol-1',
+      aprobadoPor: 'enc-1',
+      productoId: null,
+      categoria: 'frasco',
+      productoNombre: 'FRASCO 100 ML',
+      mercado: null,
+      cantidad: 2, // 2 cajas
+      urgencia: 'normal',
+      estado: 'aprobada',
+      motivoRechazo: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    mocks.state.inventarioFrascos.push({
+      id: 'frasco-1',
+      productoId: null,
+      articulo: 'FRASCO 100 ML',
+      cantidadCajas: 10,
+      unidadesPorCaja: 100,
+    })
+
+    const res = await request(app)
+      .put('/api/ordenes/orden-frasco-1/ejecutar')
+      .set('x-test-role', 'encargado')
+      .set('x-test-user-id', 'enc-1')
+
+    expect(res.status).toBe(200)
+    expect(mocks.prisma.inventarioFrasco.update).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: 'frasco-1' },
+      data: { cantidadCajas: 8, total: 800 }
+    }))
   })
 })

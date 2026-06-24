@@ -208,6 +208,11 @@ router.post(
         return
       }
 
+      if (actaExists.estado === 'completada') {
+        res.status(400).json({ message: 'No se pueden agregar ítems a un acta completada' })
+        return
+      }
+
       // Si viene productoId, validar en catálogo y usar nombreCompleto como nombre canónico
       let productoId: string | undefined = result.data.productoId
       let productoNombre = result.data.productoNombre

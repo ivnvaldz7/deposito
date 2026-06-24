@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
-import { apiClient } from '@/lib/api-client'
+import { api } from '../lib/api'
 import {
   Table,
   TableHeader,
@@ -209,7 +209,7 @@ export default function MovimientosPage() {
       if (filters.hasta) params.set('hasta', filters.hasta)
       const qs = params.toString()
       try {
-        const data = await apiClient.get<Movimiento[]>(`/movimientos${qs ? `?${qs}` : ''}`)
+        const data = await api.get<Movimiento[]>(`/movimientos${qs ? `?${qs}` : ''}`)
         setMovimientos(data)
       } catch {
         setError('No se pudo cargar los movimientos')

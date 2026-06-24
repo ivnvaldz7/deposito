@@ -5,26 +5,17 @@ import { createAdminRoutes } from './routes/admin/index'
 import { createAleBetRoutes } from './routes/ale-bet/index'
 import { createDepositoRoutes } from './deposito/routes/index'
 import { verifyToken } from './middlewares/verify-token'
+import { createBootstrapRoutes } from './routes/bootstrap/index'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
 
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  'http://localhost:5176',
-  'http://localhost:5177',
-  'http://localhost:5178',
-  'http://localhost:5179',
-  'http://localhost:5180',
-  'https://deposito-client.vercel.app',
-  process.env.FRONTEND_URL,
-].filter(Boolean)
+const localhostRegex = /^http:\/\/localhost(:\d+)?$/
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+    // Permitir requests sin origin (móvil, postman, etc.) y localhost con cualquier puerto
+    if (!origin || localhostRegex.test(origin) || origin === process.env.FRONTEND_URL) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))
@@ -40,6 +31,9 @@ app.get('/api/health', (_req, res) => {
 
 // Auth routes (public — no JWT required)
 app.use('/api/auth', authRoutes)
+
+// Bootstrap route (gated por env vars, no requiere JWT)
+app.use('/api', createBootstrapRoutes())
 
 // Module routes (JWT required)
 app.use('/api/admin', verifyToken, createAdminRoutes())

@@ -1,58 +1,34 @@
+# 🚨 DEPRECATED: Los servers legacy (alebet-server, deposito-server, admin-server)
+# fueron reemplazados por el unified platform server (@platform/server).
+# El deploy unificado se maneja via apps/platform/server/railway.json.
+#
+# Mantenido solo como referencia. No usar para deploys nuevos.
+
 services:
   - type: web
-    name: alebet-server
+    name: platform-server
     runtime: node
     rootDir: .
-    buildCommand: npm install && npx prisma generate --schema=packages/db/prisma/schema.prisma && npx prisma generate --schema=apps/ale-bet/server/prisma/schema.prisma && npm run build --workspace=packages/platform-core && npm run build --workspace=apps/ale-bet/server
-    startCommand: node apps/ale-bet/server/dist/index.js
+    buildCommand: cd apps/platform/server && npm install && npx prisma generate --schema=../../packages/db/prisma/schema.prisma && npm run build
+    startCommand: node apps/platform/server/dist/index.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
-        sync: false
       - key: PLATFORM_DATABASE_URL
         sync: false
       - key: PLATFORM_JWT_SECRET
         sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://tu-dominio/api/auth/google/callback
       - key: FRONTEND_URL
-        value: https://deposito-client.vercel.app
-
-  - type: web
-    name: deposito-server
-    runtime: node
-    rootDir: .
-    buildCommand: npm install && npx prisma generate --schema=packages/db/prisma/schema.prisma && npx prisma@6 generate --schema=apps/deposito/server/prisma/schema.prisma && npm run build --workspace=packages/platform-core && npm run build --workspace=apps/deposito/server
-    startCommand: node apps/deposito/server/dist/index.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: DATABASE_URL
-        sync: false
-      - key: PLATFORM_DATABASE_URL
-        sync: false
-      - key: JWT_SECRET
-        sync: false
-      - key: PLATFORM_JWT_SECRET
-        sync: false
-      - key: FRONTEND_URL
-        value: https://deposito-client.vercel.app
-
-  - type: web
-    name: admin-server
-    runtime: node
-    rootDir: .
-    buildCommand: npm install && npx prisma generate --schema=packages/db/prisma/schema.prisma && npm run build --workspace=packages/platform-core && npm run build --workspace=apps/admin/server
-    startCommand: node apps/admin/server/dist/index.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PLATFORM_DATABASE_URL
-        sync: false
-      - key: PLATFORM_JWT_SECRET
-        sync: false
-      - key: ADMIN_EMAIL
-        value: admin@platform.local
+        value: https://tu-frontend.vercel.app
+      - key: BOOTSTRAP_ADMIN_EMAIL
+        value: ivnvaldz@gmail.com
       - key: ADMIN_PASSWORD
         sync: false
-      - key: FRONTEND_URL
-        value: https://deposito-client.vercel.app
+      - key: BOOTSTRAP_KEY
+        sync: false

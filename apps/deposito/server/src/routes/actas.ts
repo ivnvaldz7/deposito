@@ -212,7 +212,7 @@ router.post(
       let productoId: string | undefined = result.data.productoId
       let productoNombre = result.data.productoNombre
       if (productoId) {
-        const producto = await prisma.producto.findUnique({ where: { id: productoId } })
+        const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
         if (!producto || producto.categoria !== categoria) {
           res.status(400).json({ message: 'DepositoProducto no encontrado en el catálogo o categoría incorrecta' })
           return
