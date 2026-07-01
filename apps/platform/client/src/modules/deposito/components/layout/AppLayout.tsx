@@ -1,10 +1,9 @@
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { CommandPalette } from '../command-palette/CommandPalette'
-import { useSSE } from '../../hooks/use-sse'
+import { ActivityFeed } from '@/components/notifications/ActivityFeed'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  useSSE()
 
   return (
     <div className="flex min-h-screen bg-surface">

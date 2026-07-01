@@ -6,7 +6,7 @@ import jwt from 'jsonwebtoken'
 // ──────────────────────────────────────────────────
 // Hoisted mocks
 // ──────────────────────────────────────────────────
-const { mockDb, mockSseManager } = vi.hoisted(() => ({
+const { mockDb, mockSseManager, mockEventBus } = vi.hoisted(() => ({
   mockDb: {
     producto: {
       findMany: vi.fn(),
@@ -52,6 +52,10 @@ const { mockDb, mockSseManager } = vi.hoisted(() => ({
     emitToUser: vi.fn(),
     addClient: vi.fn(),
     removeClient: vi.fn(),
+  },
+  mockEventBus: {
+    on: vi.fn().mockReturnValue(vi.fn()),
+    emit: vi.fn(),
   },
 }))
 
@@ -142,6 +146,7 @@ vi.mock('@platform/core', () => {
     deactivateUser: vi.fn(),
     hashPassword: vi.fn(),
     comparePassword: vi.fn(),
+    eventBus: mockEventBus,
   }
 })
 

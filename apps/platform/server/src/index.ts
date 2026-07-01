@@ -1,11 +1,14 @@
 import express from 'express'
 import cors from 'cors'
 import authRoutes from './routes/auth/index'
+import notificationRoutes from './routes/notifications/index'
 import { createAdminRoutes } from './routes/admin/index'
 import { createAleBetRoutes } from './routes/ale-bet/index'
 import { createDepositoRoutes } from './deposito/routes/index'
 import { verifyToken } from './middlewares/verify-token'
 import { createBootstrapRoutes } from './routes/bootstrap/index'
+import { eventBus, createNotificationHandler } from '@platform/core'
+import { platformDb } from '@platform/db'
 
 const app = express()
 const PORT = process.env.PORT ?? 3000
@@ -36,9 +39,8 @@ app.use('/api/auth', authRoutes)
 app.use('/api', createBootstrapRoutes())
 
 // Module routes (JWT required)
+app.use('/api/notifications', verifyToken, notificationRoutes)
 app.use('/api/admin', verifyToken, createAdminRoutes())
-
-// Module routes
 app.use('/api/deposito', verifyToken, createDepositoRoutes())
 app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
 
@@ -48,6 +50,23 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   console.error('Error:', err)
   res.status(500).json({ error: message })
 })
+
+// Wire notification persistence to event bus
+eventBus.on(createNotificationHandler(platformDb as any))
+
+// Purge notifications older than 30 days every 6 hours
+const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000
+setInterval(async () => {
+  try {
+    const { purgeOlderThan } = await import('@platform/core')
+    const count = await purgeOlderThan(platformDb as any, 30)
+    if (count > 0) {
+      console.log(`[notifications] Purged ${count} notifications older than 30 days`)
+    }
+  } catch (err) {
+    console.error('[notifications] Purge error:', err)
+  }
+}, PURGE_INTERVAL_MS)
 
 app.listen(PORT, () => {
   console.log(`Platform server running on http://localhost:${PORT}`)

@@ -1,4 +1,5 @@
 import type { Response } from 'express'
+import { eventBus } from '@platform/core'
 
 export interface SSEClient {
   userId: string
@@ -72,3 +73,18 @@ class SSEManager {
 }
 
 export const sseManager = new SSEManager()
+
+// Bridge: reenvía eventos del EventBus central a los clientes legacy conectados
+eventBus.on((event) => {
+  if (event.app === 'ale_bet') {
+    const data = { link: event.link, titulo: event.titulo, ...event.metadata }
+    if (event.userId) {
+      sseManager.emitToUser(event.userId, event.tipo, data)
+    }
+    if (event.roles) {
+      for (const rol of event.roles) {
+        sseManager.emitToRole(rol, event.tipo, data)
+      }
+    }
+  }
+})

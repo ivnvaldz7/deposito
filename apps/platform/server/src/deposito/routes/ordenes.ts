@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
 import { sseManager, STOCK_BAJO_THRESHOLD, STOCK_BAJO_FRASCOS_THRESHOLD } from '../lib/sse-manager'
+import { eventBus } from '@platform/core'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
 
 const router = Router()
@@ -129,6 +130,14 @@ router.post(
         },
         ['encargado']
       )
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'orden_creada',
+        titulo: 'Orden de producción',
+        mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad})`,
+        link: `/deposito/ordenes/${orden.id}`,
+        timestamp: new Date().toISOString(),
+      })
 
       res.status(201).json(orden)
     } catch {
@@ -248,6 +257,15 @@ router.put(
         },
         updated.solicitanteId
       )
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'orden_actualizada',
+        titulo: 'Orden aprobada',
+        mensaje: `Orden de ${updated.productoNombre} aprobada`,
+        userId: updated.solicitanteId,
+        link: `/deposito/ordenes/${updated.id}`,
+        timestamp: new Date().toISOString(),
+      })
 
       res.json(updated)
     } catch {
@@ -417,6 +435,13 @@ router.put(
         datos: { producto: orden.productoNombre, categoria: orden.categoria, cantidad: orden.cantidad, tipo: 'egreso' },
         timestamp: ts,
       })
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'stock_actualizado',
+        titulo: 'Stock actualizado',
+        mensaje: `Stock de ${orden.productoNombre} actualizado (−${orden.cantidad})`,
+        timestamp: ts,
+      })
 
       sseManager.broadcastToUser(
         {
@@ -427,6 +452,15 @@ router.put(
         },
         updated.solicitanteId
       )
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'orden_actualizada',
+        titulo: 'Orden ejecutada',
+        mensaje: `Orden de ${orden.productoNombre} ejecutada`,
+        userId: updated.solicitanteId,
+        link: `/deposito/ordenes/${updated.id}`,
+        timestamp: ts,
+      })
 
       const nuevoStock = await checkStockBajo(orden.categoria, orden.productoNombre, orden.mercado)
       if (nuevoStock !== null) {
@@ -434,6 +468,14 @@ router.put(
           tipo: 'stock_bajo',
           mensaje: `Stock bajo: ${orden.productoNombre} (${nuevoStock} restantes)`,
           datos: { producto: orden.productoNombre, categoria: orden.categoria, cantidad: nuevoStock },
+          timestamp: ts,
+        })
+        eventBus.emit({
+          app: 'deposito',
+          tipo: 'stock_bajo',
+          titulo: 'Stock bajo',
+          mensaje: `Stock bajo: ${orden.productoNombre} (${nuevoStock} restantes)`,
+          link: `/deposito/drogas`,
           timestamp: ts,
         })
       }
@@ -494,6 +536,15 @@ router.put(
         },
         updated.solicitanteId
       )
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'orden_actualizada',
+        titulo: 'Orden rechazada',
+        mensaje: `Orden de ${updated.productoNombre} rechazada`,
+        userId: updated.solicitanteId,
+        link: `/deposito/ordenes/${updated.id}`,
+        timestamp: new Date().toISOString(),
+      })
 
       res.json(updated)
     } catch {
@@ -540,6 +591,15 @@ router.put(
         },
         updated.solicitanteId
       )
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'orden_actualizada',
+        titulo: 'Orden completada',
+        mensaje: `Orden de ${updated.productoNombre} completada`,
+        userId: updated.solicitanteId,
+        link: `/deposito/ordenes/${updated.id}`,
+        timestamp: new Date().toISOString(),
+      })
 
       res.json(updated)
     } catch {

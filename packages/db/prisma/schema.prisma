@@ -37,6 +37,22 @@ model AppAccess {
   @@schema("platform")
 }
 
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  app       AppId
+  tipo      String
+  titulo    String
+  mensaje   String
+  leida     Boolean  @default(false)
+  link      String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, leida, createdAt])
+  @@schema("platform")
+}
+
 enum AppId {
   deposito
   ale_bet

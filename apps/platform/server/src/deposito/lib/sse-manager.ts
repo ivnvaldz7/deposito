@@ -1,5 +1,6 @@
 import { Response } from 'express'
 import { randomUUID } from 'crypto'
+import { eventBus } from '@platform/core'
 
 export interface SSEEvent {
   tipo: string
@@ -63,3 +64,15 @@ class SSEManager {
 }
 
 export const sseManager = new SSEManager()
+
+// Bridge: reenvía eventos del EventBus central a los clientes legacy conectados
+eventBus.on((event) => {
+  if (event.app === 'deposito') {
+    sseManager.broadcastGlobal({
+      tipo: event.tipo,
+      mensaje: event.mensaje,
+      datos: { link: event.link, titulo: event.titulo, ...event.metadata },
+      timestamp: event.timestamp,
+    })
+  }
+})

@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
 import { sseManager } from '../lib/sse-manager'
+import { eventBus } from '@platform/core'
 import { generarLote } from '../lib/lote-generator'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
 
@@ -143,6 +144,14 @@ router.post(
         tipo: 'ingreso_creado',
         mensaje: `Nuevo acta de ingreso creada por ${currentUser.name}`,
         datos: { actaId: acta.id, fecha, createdBy: currentUser.name },
+        timestamp: new Date().toISOString(),
+      })
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'ingreso_creado',
+        titulo: 'Acta de ingreso',
+        mensaje: `Nuevo acta de ingreso creada por ${currentUser.name}`,
+        link: `/deposito/actas/${acta.id}`,
         timestamp: new Date().toISOString(),
       })
 
@@ -479,6 +488,13 @@ router.post(
         },
         timestamp: new Date().toISOString(),
       })
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'stock_actualizado',
+        titulo: 'Stock actualizado',
+        mensaje: `Stock de ${updatedItem.productoNombre} actualizado (+${cantidad})`,
+        timestamp: new Date().toISOString(),
+      })
 
       // Emitir vencimiento_proximo si droga con vencimiento en <30 días
       if (updatedItem.categoria === 'droga' && updatedItem.vencimiento) {
@@ -495,6 +511,14 @@ router.post(
               vencimiento: updatedItem.vencimiento,
               diasRestantes,
             },
+            timestamp: new Date().toISOString(),
+          })
+          eventBus.emit({
+            app: 'deposito',
+            tipo: 'vencimiento_proximo',
+            titulo: 'Vencimiento próximo',
+            mensaje: `"${updatedItem.productoNombre}" (lote ${updatedItem.lote}) vence en ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}`,
+            link: `/deposito/drogas`,
             timestamp: new Date().toISOString(),
           })
         }

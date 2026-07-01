@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter } from 'react-router-dom'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '@/lib/query-client'
 import { AppRouter } from '@/router'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -24,10 +26,12 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthBootstrap>
-        <AppRouter />
-      </AuthBootstrap>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthBootstrap>
+          <AppRouter />
+        </AuthBootstrap>
+      </BrowserRouter>
+    </QueryClientProvider>
   )
 }

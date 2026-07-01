@@ -22,3 +22,4 @@ export {
   updateAppAccess,
   deactivateUser,
 } from './users/service'
+export * from './notifications'

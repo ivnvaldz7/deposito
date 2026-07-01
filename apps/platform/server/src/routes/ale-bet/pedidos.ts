@@ -5,6 +5,7 @@ import type { JwtPayload } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { MAX_SUELTOS, UNIDADES_POR_CAJA, calcularUnidades } from './constants'
 import { sseManager } from './sse-manager'
+import { eventBus } from '@platform/core'
 
 const router = Router()
 
@@ -283,6 +284,14 @@ router.put('/:id/aprobar', requireApp('ale_bet', ['admin', 'vendedor']), async (
 
   sseManager.emitToRole('armador', 'pedido:aprobado', aprobadoEvent)
   sseManager.emitToRole('admin', 'pedido:aprobado', aprobadoEvent)
+  eventBus.emit({
+    app: 'ale_bet',
+    tipo: 'pedido:aprobado',
+    titulo: 'Pedido aprobado',
+    mensaje: `Pedido #${updated.numero} de ${updated.cliente.nombre} aprobado`,
+    link: `/ale-bet/pedidos/${updated.id}`,
+    timestamp: new Date().toISOString(),
+  })
 
   const [enrichedPedido] = await enrichPedidos([updated])
   res.json(enrichedPedido)
@@ -389,6 +398,14 @@ router.put('/:id/items/:itemId/completar', requireApp('ale_bet', ['admin', 'arma
 
       sseManager.emitToUser(result.vendedorId, 'pedido:completado', completadoEvent)
       sseManager.emitToRole('admin', 'pedido:completado', completadoEvent)
+      eventBus.emit({
+        app: 'ale_bet',
+        tipo: 'pedido:completado',
+        titulo: 'Pedido completado',
+        mensaje: `Pedido #${result.numero} de ${result.cliente.nombre} completado`,
+        link: `/ale-bet/pedidos/${result.id}`,
+        timestamp: new Date().toISOString(),
+      })
     }
 
     const [enrichedPedido] = await enrichPedidos([result])
