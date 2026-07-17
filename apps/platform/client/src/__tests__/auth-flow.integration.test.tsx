@@ -1,9 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAppStore } from '@/stores/app-store'
 import { AppRouter } from '@/router'
+
+/** Reads the current location — useful for asserting navigation inside MemoryRouter. */
+function CurrentPath({ onPath }: { onPath: (path: string) => void }) {
+  onPath(useLocation().pathname)
+  return null
+}
 
 // Mock fetch globally for integration tests
 const mockFetch = vi.fn()
@@ -62,9 +68,11 @@ describe('Auth Flow Integration', () => {
     // Mock subsequent API calls from DashboardPage (acta stats, movimientos, etc.)
     mockFetch.mockResolvedValue(createJsonResponse([]))
 
+    let currentPath = ''
     render(
       <MemoryRouter initialEntries={['/auth/google/callback?token=valid123']}>
         <AppRouter />
+        <CurrentPath onPath={(p) => { currentPath = p }} />
       </MemoryRouter>,
     )
 
@@ -73,10 +81,10 @@ describe('Auth Flow Integration', () => {
     })
 
     expect(useAuthStore.getState().token).toBe('valid123')
-    // User should have deposito active — redirect goes to /deposito
-    // Sidebar logo with "depósito" confirms the module rendered
+    // Single-app user redirects to /deposito. The lazy module rendering is
+    // covered by the "authenticated user with correct app access" test below.
     await waitFor(() => {
-      expect(screen.getByText('depósito')).toBeInTheDocument()
+      expect(currentPath).toBe('/deposito')
     })
   })
 
@@ -106,9 +114,11 @@ describe('Auth Flow Integration', () => {
     mockFetch.mockResolvedValue(createJsonResponse([]))
     useAppStore.setState({ lastApp: 'deposito' })
 
+    let currentPath = ''
     render(
       <MemoryRouter initialEntries={['/auth/google/callback?token=multi123']}>
         <AppRouter />
+        <CurrentPath onPath={(p) => { currentPath = p }} />
       </MemoryRouter>,
     )
 
@@ -117,9 +127,8 @@ describe('Auth Flow Integration', () => {
     })
 
     // Has lastApp=deposito and deposito is in user's apps → direct redirect
-    // Sidebar logo with "depósito" confirms the module rendered
     await waitFor(() => {
-      expect(screen.getByText('depósito')).toBeInTheDocument()
+      expect(currentPath).toBe('/deposito')
     })
   })
 
@@ -151,7 +160,7 @@ describe('Auth Flow Integration', () => {
     })
   })
 
-  it('authenticated user with correct app access sees the app content', () => {
+  it('authenticated user with correct app access sees the app content', async () => {
     useAuthStore.setState({ token: 't', user: singleAppUser, authResolved: true })
     // Mock API calls from DashboardPage
     mockFetch.mockResolvedValue(createJsonResponse([]))
@@ -163,10 +172,12 @@ describe('Auth Flow Integration', () => {
     )
 
     // Sidebar logo confirms the module rendered
-    expect(screen.getByText('depósito')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('depósito')).toBeInTheDocument()
+    })
   })
 
-  it('single-app user at root / gets auto-redirected to their app', () => {
+  it('single-app user at root / gets auto-redirected to their app', async () => {
     useAuthStore.setState({ token: 't', user: singleAppUser, authResolved: true })
     // Mock API calls from DashboardPage
     mockFetch.mockResolvedValue(createJsonResponse([]))
@@ -178,7 +189,9 @@ describe('Auth Flow Integration', () => {
     )
 
     // Sidebar logo confirms redirect to /deposito
-    expect(screen.getByText('depósito')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText('depósito')).toBeInTheDocument()
+    })
   })
 
   it('redirects unauthenticated user from root to login', () => {
