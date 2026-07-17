@@ -183,7 +183,7 @@ export default function HistorialPage() {
                   <td className="px-5 py-4 text-[var(--color-text-3)]">{p.armadorNombre ?? '—'}</td>
                   <td className="px-5 py-4 text-right text-[var(--color-text-3)]">{p.items.length}</td>
                   <td className="px-5 py-4 text-[var(--color-text-3)]">
-                    {new Date(p.createdAt).toLocaleDateString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                    {new Date(p.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
                   </td>
                   <td className="px-5 py-4 text-center">
                     <span
