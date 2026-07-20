@@ -564,10 +564,8 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
         .send({ email: 'admin@example.com' })
 
       expect(res.status).toBe(200)
-      expect(res.body.token).toBeDefined()
-      expect(res.body.refreshToken).toBeDefined()
-      expect(res.body.user.email).toBe('admin@example.com')
-      expect(res.body.user.apps.deposito).toBeDefined()
+      expect(res.body.redirectUrl).toBeDefined()
+      expect(res.body.redirectUrl).toContain('/auth/google/callback?token=')
     })
 
     it('returns 400 without email', async () => {

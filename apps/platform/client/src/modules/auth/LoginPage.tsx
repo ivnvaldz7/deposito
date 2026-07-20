@@ -1,6 +1,4 @@
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '@/stores/auth-store'
-import { useAppStore } from '@/stores/app-store'
+import { useSearchParams } from 'react-router-dom'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 const IS_DEV = import.meta.env.DEV
@@ -19,10 +17,6 @@ const DEV_USERS = [
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
   const error = searchParams.get('error')
-  const navigate = useNavigate()
-  const login = useAuthStore((s) => s.login)
-  const setLastApp = useAppStore((s) => s.setLastApp)
-  const lastApp = useAppStore((s) => s.lastApp)
 
   const handleGoogleLogin = () => {
     window.location.href = `${API_URL}/api/auth/google`
@@ -33,7 +27,6 @@ export default function LoginPage() {
       const res = await fetch(`${API_URL}/api/auth/dev-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ email }),
       })
 
@@ -44,25 +37,8 @@ export default function LoginPage() {
       }
 
       const data = await res.json()
-      login(data.token, data.user)
-
-      const activeApps = Object.entries(data.user.apps ?? {})
-        .filter(([_, a]) => a.activo)
-        .map(([app]) => app)
-
-      if (activeApps.length === 0) {
-        navigate('/no-access', { replace: true })
-      } else if (activeApps.length === 1) {
-        const target = activeApps[0]
-        setLastApp(target)
-        navigate(`/${target}`, { replace: true })
-      } else {
-        if (lastApp && activeApps.includes(lastApp)) {
-          navigate(`/${lastApp}`, { replace: true })
-        } else {
-          navigate('/app-selector', { replace: true })
-        }
-      }
+      // Redirect through the real callback flow (same path as Google OAuth)
+      window.location.href = data.redirectUrl
     } catch {
       alert('Error al iniciar sesión')
     }

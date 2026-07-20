@@ -11,7 +11,7 @@ function setRefreshTokenCookie(res: any, refreshToken: string): void {
   res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict' as const,
+    sameSite: 'lax' as const,
     maxAge: REFRESH_COOKIE_MAX_AGE_MS,
     path: '/api/auth',
   })
@@ -21,7 +21,8 @@ function setRefreshTokenCookie(res: any, refreshToken: string): void {
  * POST /api/auth/dev-login
  *
  * Dev-only: bypass Google OAuth for local development.
- * Signs a JWT and sets the refresh cookie for the given user email.
+ * Redirects to the frontend callback with a signed token,
+ * exactly like the real Google OAuth callback does.
  *
  * Only works when NODE_ENV !== 'production'.
  */
@@ -74,15 +75,10 @@ router.post('/dev-login', async (req, res) => {
   const refreshToken = signRefreshToken(platformUser.id)
   setRefreshTokenCookie(res, refreshToken)
 
+  // Respond with the redirect URL so the frontend can navigate
+  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5176'
   res.json({
-    token: accessToken,
-    user: {
-      sub: platformUser.id,
-      email: platformUser.email,
-      name: platformUser.nombre,
-      apps,
-      isPlatformAdmin: platformUser.isPlatformAdmin ?? false,
-    },
+    redirectUrl: `${frontendUrl}/auth/google/callback?token=${accessToken}`,
   })
 })
 
