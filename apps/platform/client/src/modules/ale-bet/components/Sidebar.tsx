@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
+import { AppWindow } from 'lucide-react'
 
 const navItems = [
   { path: '/ale-bet/dashboard', label: 'Dashboard', icon: '◉' },
@@ -27,6 +28,20 @@ export default function Sidebar() {
       </div>
 
       <nav className="space-y-1">
+        <NavLink
+          to="/app-selector"
+          className={({ isActive }) =>
+            `flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[12px] font-medium transition ${
+              isActive
+                ? 'bg-[rgba(26,107,53,0.16)] text-[#7ff6a1]'
+                : 'text-[#7ff6a1] hover:bg-[var(--color-bg)] hover:text-[#7ff6a1]'
+            }`
+          }
+        >
+          <AppWindow size={14} strokeWidth={1.5} />
+          Cambiar app
+        </NavLink>
+        <div className="my-2 border-t border-[var(--color-border)]" />
         {visibleItems.map((item) => (
           <NavLink
             key={item.path}

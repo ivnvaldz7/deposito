@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, FlaskConical, Package, Tag, Box, PackagePlus, BookOpen, ArrowLeftRight, Clock, Users, ClipboardList, BarChart2, LogOut, Moon, Sun } from 'lucide-react'
+import { LayoutDashboard, FlaskConical, Package, Tag, Box, PackagePlus, BookOpen, ArrowLeftRight, Clock, Users, ClipboardList, BarChart2, LogOut, Moon, Sun, AppWindow } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { apiClient } from '@/lib/api-client'
 import { getStoredTheme, setTheme, type ThemeMode } from '../../lib/theme'
@@ -54,6 +54,21 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1">
+        <NavLink
+          to="/app-selector"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded font-heading font-semibold text-sm transition-colors mb-2',
+              isActive
+                ? 'bg-surface-high text-on-surface'
+                : 'text-primary hover:bg-surface-bright hover:text-primary-container'
+            )
+          }
+        >
+          <AppWindow size={16} strokeWidth={1.5} />
+          Cambiar app
+        </NavLink>
+        <div className="border-t border-outline-variant/15 my-2" />
         {navItems.map(({ path, label, icon: Icon }) => (
           <NavLink
             key={path}
