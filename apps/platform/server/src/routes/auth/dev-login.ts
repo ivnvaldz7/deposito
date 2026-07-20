@@ -4,11 +4,24 @@ import { getUserByEmail, signAccessToken, signRefreshToken } from '@platform/cor
 
 const router = Router()
 
+const REFRESH_COOKIE_NAME = 'platform_refresh_token'
+const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+function setRefreshTokenCookie(res: any, refreshToken: string): void {
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict' as const,
+    maxAge: REFRESH_COOKIE_MAX_AGE_MS,
+    path: '/api/auth',
+  })
+}
+
 /**
  * POST /api/auth/dev-login
  *
  * Dev-only: bypass Google OAuth for local development.
- * Returns a signed JWT for the given user email.
+ * Signs a JWT and sets the refresh cookie for the given user email.
  *
  * Only works when NODE_ENV !== 'production'.
  */
@@ -59,10 +72,10 @@ router.post('/dev-login', async (req, res) => {
   })
 
   const refreshToken = signRefreshToken(platformUser.id)
+  setRefreshTokenCookie(res, refreshToken)
 
   res.json({
     token: accessToken,
-    refreshToken,
     user: {
       sub: platformUser.id,
       email: platformUser.email,
