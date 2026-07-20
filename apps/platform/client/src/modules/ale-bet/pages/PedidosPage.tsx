@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { aleBetApi, type Pedido, type Cliente, type Producto, type PedidoItem } from '../lib/api'
+import { aleBetApi, type Pedido, type Cliente, type Producto } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { Badge } from '@/components/ui/Badge'
 
 const ESTADO_PRIORITY: Record<Pedido['estado'], number> = {
   APROBADO: 0,
@@ -11,33 +12,14 @@ const ESTADO_PRIORITY: Record<Pedido['estado'], number> = {
   CANCELADO: 4,
 }
 
-function getEstadoBadge(estado: Pedido['estado']) {
-  const map: Record<Pedido['estado'], { bg: string; color: string; border: string }> = {
-    PENDIENTE: { bg: 'rgba(116,121,111,0.14)', color: '#bccbb8', border: 'rgba(116,121,111,0.28)' },
-    APROBADO: { bg: 'rgba(245,158,11,0.12)', color: '#f59e0b', border: 'rgba(245,158,11,0.28)' },
-    EN_ARMADO: { bg: 'rgba(96,165,250,0.12)', color: '#93c5fd', border: 'rgba(96,165,250,0.28)' },
-    COMPLETADO: { bg: 'rgba(26,107,53,0.1)', color: '#bccbb8', border: 'rgba(26,107,53,0.22)' },
-    CANCELADO: { bg: 'rgba(239,68,68,0.08)', color: '#d6a8a8', border: 'rgba(239,68,68,0.2)' },
+function getEstadoVariant(estado: Pedido['estado']): 'default' | 'success' | 'warning' | 'error' | 'info' {
+  switch (estado) {
+    case 'PENDIENTE': return 'default'
+    case 'APROBADO': return 'warning'
+    case 'EN_ARMADO': return 'info'
+    case 'COMPLETADO': return 'success'
+    case 'CANCELADO': return 'error'
   }
-  return map[estado]
-}
-
-function Badge({ estado }: { estado: Pedido['estado'] }) {
-  const s = getEstadoBadge(estado)
-  return (
-    <span
-      className="inline-flex items-center justify-center rounded-full text-[10px] font-semibold"
-      style={{
-        background: s.bg,
-        color: s.color,
-        border: `1px solid ${s.border}`,
-        width: '88px',
-        padding: '3px 0',
-      }}
-    >
-      {estado.replace('_', ' ')}
-    </span>
-  )
 }
 
 export default function PedidosPage() {
@@ -206,18 +188,18 @@ export default function PedidosPage() {
     return isAdmin || isVendedor
   }
 
-  if (loading) return <p className="text-sm text-[var(--color-text-2)]">Cargando pedidos...</p>
-  if (error) return <p className="text-sm text-[var(--color-danger)]">{error}</p>
+  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
+  if (error) return <p className="font-body text-sm text-error">{error}</p>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.03em] text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Pedidos</h1>
-          <p className="text-[13px] text-[var(--color-text-2)]">Gestión de pedidos y armado</p>
+          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Pedidos</h1>
+          <p className="font-body text-[13px] text-on-surface-variant">Gestión de pedidos y armado</p>
         </div>
         {canCreate() && (
-          <button onClick={openCreateModal} className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]">
+          <button onClick={openCreateModal} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
             + Nuevo pedido
           </button>
         )}
@@ -227,7 +209,7 @@ export default function PedidosPage() {
         <select
           value={estadoFilter}
           onChange={(e) => setEstadoFilter(e.target.value)}
-          className="rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+          className="input-field max-w-xs"
         >
           <option value="">Todos los estados</option>
           <option value="PENDIENTE">Pendiente</option>
@@ -238,13 +220,13 @@ export default function PedidosPage() {
         </select>
       </div>
 
-      <div className="app-panel overflow-hidden rounded-[12px]">
+      <div className="bg-surface-container-high rounded-xl overflow-hidden">
         {pedidos.length === 0 ? (
-          <p className="px-5 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay pedidos.</p>
+          <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay pedidos.</p>
         ) : (
-          <table className="w-full text-left text-[12px]">
+          <table className="w-full text-left font-body text-[12px]">
             <thead>
-              <tr className="border-b border-[var(--color-border)] text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
                 <th className="px-5 py-3 font-medium">N°</th>
                 <th className="px-5 py-3 font-medium">Cliente</th>
                 <th className="px-5 py-3 font-medium">Estado</th>
@@ -257,22 +239,22 @@ export default function PedidosPage() {
             <tbody>
               {pedidos.map((p) => {
                 const isExpanded = expandedId === p.id
-                const badge = getEstadoBadge(p.estado)
+                const variant = getEstadoVariant(p.estado)
                 return (
-                  <tr key={p.id} className="border-b border-[var(--color-border)] last:border-0">
-                    <td className="px-5 py-4 font-semibold text-[var(--color-text)]">{p.numero}</td>
-                    <td className="px-5 py-4 text-[var(--color-text)]">{p.cliente.nombre}</td>
-                    <td className="px-5 py-4"><Badge estado={p.estado} /></td>
-                    <td className="px-5 py-4 text-[var(--color-text-3)]">{p.vendedorNombre ?? '—'}</td>
-                    <td className="px-5 py-4 text-center text-[var(--color-text-3)]">{p.items.length}</td>
-                    <td className="px-5 py-4 text-center text-[var(--color-text-3)]">
+                  <tr key={p.id} className="border-b border-white/10 last:border-0">
+                    <td className="px-5 py-4 font-semibold text-on-surface">{p.numero}</td>
+                    <td className="px-5 py-4 text-on-surface">{p.cliente.nombre}</td>
+                    <td className="px-5 py-4"><Badge variant={getEstadoVariant(p.estado)} className="w-[88px] justify-center">{p.estado.replace('_', ' ')}</Badge></td>
+                    <td className="px-5 py-4 text-outline">{p.vendedorNombre ?? '—'}</td>
+                    <td className="px-5 py-4 text-center text-outline">{p.items.length}</td>
+                    <td className="px-5 py-4 text-center text-outline">
                       {new Date(p.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
                     </td>
                     <td className="px-5 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                          className="text-[11px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]"
+                          className="font-body text-[11px] text-outline transition hover:text-on-surface"
                         >
                           {isExpanded ? 'Cerrar' : 'Ver'}
                         </button>
@@ -290,16 +272,22 @@ export default function PedidosPage() {
       {pedidos.filter((p) => expandedId === p.id).map((p) => (
         <div
           key={`detail-${p.id}`}
-          className="app-panel -mt-4 rounded-[12px]"
-          style={{ borderLeft: `3px solid ${getEstadoBadge(p.estado).color}` }}
+          className="bg-surface-container-high rounded-xl -mt-4"
+          style={{ borderLeft: `3px solid ${
+            p.estado === 'PENDIENTE' ? 'var(--color-on-surface-variant)' :
+            p.estado === 'APROBADO' ? 'var(--color-warning)' :
+            p.estado === 'EN_ARMADO' ? 'var(--color-primary)' :
+            p.estado === 'COMPLETADO' ? 'var(--color-success)' :
+            'var(--color-error)'
+          }` }}
         >
           <div className="space-y-4 p-5">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[14px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                <p className="font-heading text-[14px] font-bold text-on-surface">
                   {p.numero} — {p.cliente.nombre}
                 </p>
-                <p className="mt-1 text-[11px] text-[var(--color-text-3)]">
+                <p className="mt-1 font-body text-[11px] text-outline">
                   Vendedor: {p.vendedorNombre ?? '—'}{p.armadorNombre ? ` | Armador: ${p.armadorNombre}` : ''}
                 </p>
               </div>
@@ -307,7 +295,7 @@ export default function PedidosPage() {
                 {canAprobar(p) && (
                   <button
                     onClick={() => handleAprobar(p.id)}
-                    className="rounded-full border border-[rgba(245,158,11,0.4)] px-3 py-[6px] text-[11px] font-semibold text-[#f59e0b] transition hover:bg-[rgba(245,158,11,0.12)]"
+                    className="rounded-full border border-warning/40 px-3 py-[6px] font-body text-[11px] font-semibold text-warning transition hover:bg-warning/20"
                   >
                     Aprobar
                   </button>
@@ -315,7 +303,7 @@ export default function PedidosPage() {
                 {canTomar(p) && (
                   <button
                     onClick={() => handleTomar(p.id)}
-                    className="rounded-full border border-[rgba(96,165,250,0.4)] px-3 py-[6px] text-[11px] font-semibold text-[#93c5fd] transition hover:bg-[rgba(96,165,250,0.12)]"
+                    className="rounded-full border border-primary/40 px-3 py-[6px] font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
                   >
                     Tomar
                   </button>
@@ -323,7 +311,7 @@ export default function PedidosPage() {
                 {canCancelar(p) && (
                   <button
                     onClick={() => handleCancelar(p.id)}
-                    className="rounded-full border border-[rgba(239,68,68,0.3)] px-3 py-[6px] text-[11px] font-semibold text-[#d6a8a8] transition hover:bg-[rgba(239,68,68,0.08)]"
+                    className="rounded-full border border-error/30 px-3 py-[6px] font-body text-[11px] font-semibold text-error transition hover:bg-error/10"
                   >
                     Cancelar
                   </button>
@@ -331,10 +319,10 @@ export default function PedidosPage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[8px] border border-[var(--color-border)]">
-              <table className="w-full text-left text-[12px]">
+            <div className="overflow-hidden rounded-lg border border-white/10">
+              <table className="w-full text-left font-body text-[12px]">
                 <thead>
-                  <tr className="border-b border-[var(--color-border)] text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
+                  <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
                     <th className="px-4 py-2.5 font-medium">Producto</th>
                     <th className="px-4 py-2.5 font-medium text-right">Cantidad</th>
                     <th className="px-4 py-2.5 font-medium text-center">Completado</th>
@@ -342,9 +330,9 @@ export default function PedidosPage() {
                 </thead>
                 <tbody>
                   {p.items.map((item) => (
-                    <tr key={item.id} className="border-b border-[var(--color-border)] last:border-0">
-                      <td className="px-4 py-3 font-medium text-[var(--color-text)]">{item.producto.nombre}</td>
-                      <td className="px-4 py-3 text-right text-[var(--color-text-3)]">{item.cantidad}</td>
+                    <tr key={item.id} className="border-b border-white/10 last:border-0">
+                      <td className="px-4 py-3 font-medium text-on-surface">{item.producto.nombre}</td>
+                      <td className="px-4 py-3 text-right text-outline">{item.cantidad}</td>
                       <td className="px-4 py-3 text-center">
                         {canCompletarItems(p) ? (
                           <label className="inline-flex cursor-pointer items-center gap-2">
@@ -352,14 +340,14 @@ export default function PedidosPage() {
                               type="checkbox"
                               checked={item.completado}
                               onChange={() => handleCompletarItem(p.id, item.id)}
-                              className="h-4 w-4 rounded border-[var(--color-border)] bg-[var(--color-bg)] text-[var(--color-accent)] accent-[var(--color-accent)]"
+                              className="h-4 w-4 rounded border-white/10 bg-surface-container text-primary accent-primary"
                             />
-                            <span className={`text-[11px] ${item.completado ? 'text-[#7ff6a1]' : 'text-[var(--color-text-3)]'}`}>
+                            <span className={`font-body text-[11px] ${item.completado ? 'text-primary' : 'text-outline'}`}>
                               {item.completado ? 'Listo' : 'Pendiente'}
                             </span>
                           </label>
                         ) : (
-                          <span className={`text-[11px] ${item.completado ? 'text-[#7ff6a1]' : 'text-[var(--color-text-3)]'}`}>
+                          <span className={`font-body text-[11px] ${item.completado ? 'text-primary' : 'text-outline'}`}>
                             {item.completado ? 'Sí' : 'No'}
                           </span>
                         )}
@@ -376,17 +364,17 @@ export default function PedidosPage() {
       {/* Create modal */}
       {showCreate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreate(false)}>
-          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 text-[18px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-4 font-heading text-[18px] font-bold text-on-surface">
               Nuevo pedido
             </h2>
             <div className="space-y-4">
               <div>
-                <label className="text-[11px] text-[var(--color-text-3)]">Cliente</label>
+                <label className="font-body text-[11px] text-outline">Cliente</label>
                 <select
                   value={createForm.clienteId}
                   onChange={(e) => setCreateForm({ ...createForm, clienteId: e.target.value })}
-                  className="mt-1 w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+                  className="input-field mt-1"
                 >
                   <option value="">Seleccionar cliente</option>
                   {clientes.map((c) => (
@@ -397,11 +385,11 @@ export default function PedidosPage() {
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <label className="text-[11px] text-[var(--color-text-3)]">Items</label>
+                  <label className="font-body text-[11px] text-outline">Items</label>
                   <button
                     type="button"
                     onClick={addItemRow}
-                    className="text-[11px] font-medium text-[var(--color-accent)] transition hover:underline"
+                    className="font-body text-[11px] font-medium text-primary transition hover:underline"
                   >
                     + Agregar item
                   </button>
@@ -413,7 +401,7 @@ export default function PedidosPage() {
                         <select
                           value={item.productoId}
                           onChange={(e) => updateItem(idx, 'productoId', e.target.value)}
-                          className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+                          className="input-field"
                         >
                           <option value="">Producto</option>
                           {productos.map((pr) => (
@@ -427,14 +415,14 @@ export default function PedidosPage() {
                           min={1}
                           value={item.cantidad}
                           onChange={(e) => updateItem(idx, 'cantidad', Math.max(1, Number(e.target.value)))}
-                          className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+                          className="input-field"
                         />
                       </div>
                       {createForm.items.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeItemRow(idx)}
-                          className="mb-0.5 text-[13px] text-[var(--color-danger)] transition hover:opacity-80"
+                          className="mb-0.5 font-body text-[13px] text-error transition hover:opacity-80"
                         >
                           ✕
                         </button>
@@ -447,14 +435,14 @@ export default function PedidosPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   onClick={() => setShowCreate(false)}
-                  className="rounded-full border border-[var(--color-border)] px-4 py-2 text-[12px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]"
+                  className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleCreate}
                   disabled={saving}
-                  className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)] disabled:opacity-50"
+                  className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
                 >
                   {saving ? 'Guardando...' : 'Crear pedido'}
                 </button>
