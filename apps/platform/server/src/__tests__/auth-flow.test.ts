@@ -535,7 +535,86 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
   })
 
   // ────────────────────────────────────────────────
-  // 10. Logout
+  // 10. Dev-login bypass
+  // ────────────────────────────────────────────────
+  describe('POST /api/auth/dev-login — local dev bypass', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      app = createTestApp()
+    })
+
+    it('with valid email returns token and user', async () => {
+      const user = {
+        id: 'user_dev_001',
+        email: 'admin@example.com',
+        nombre: 'Admin',
+        activo: true,
+        estado: 'active' as const,
+        isPlatformAdmin: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        appAccess: [
+          { app: 'deposito', rol: 'admin', activo: true, userId: 'user_dev_001' },
+        ],
+      }
+      mockGetUserByEmail.mockResolvedValue(user)
+
+      const res = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'admin@example.com' })
+
+      expect(res.status).toBe(200)
+      expect(res.body.token).toBeDefined()
+      expect(res.body.refreshToken).toBeDefined()
+      expect(res.body.user.email).toBe('admin@example.com')
+      expect(res.body.user.apps.deposito).toBeDefined()
+    })
+
+    it('returns 400 without email', async () => {
+      const res = await request(app)
+        .post('/api/auth/dev-login')
+        .send({})
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toMatch(/email/i)
+    })
+
+    it('returns 404 for unknown email', async () => {
+      mockGetUserByEmail.mockResolvedValue(null)
+
+      const res = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'no-existe@test.com' })
+
+      expect(res.status).toBe(404)
+      expect(res.body.error).toMatch(/no encontrado/i)
+    })
+
+    it('returns 401 for disabled user', async () => {
+      const disabledUser = {
+        id: 'user_disabled_002',
+        email: 'disabled@test.com',
+        nombre: 'Disabled',
+        activo: false,
+        estado: 'disabled' as const,
+        isPlatformAdmin: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        appAccess: [],
+      }
+      mockGetUserByEmail.mockResolvedValue(disabledUser)
+
+      const res = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'disabled@test.com' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toMatch(/deshabilitad/i)
+    })
+  })
+
+  // ────────────────────────────────────────────────
+  // 11. Logout
   // ────────────────────────────────────────────────
   describe('POST /api/auth/logout — Logout', () => {
     it('clears refresh cookie and returns 204', async () => {
