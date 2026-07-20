@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { aleBetApi, type Cliente } from '../lib/api'
+import { Badge } from '@/components/ui/Badge'
 
 export default function ClientesPage() {
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -50,28 +51,28 @@ export default function ClientesPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-[var(--color-text-2)]">Cargando clientes...</p>
-  if (error) return <p className="text-sm text-[var(--color-danger)]">{error}</p>
+  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando clientes...</p>
+  if (error) return <p className="font-body text-sm text-error">{error}</p>
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.03em] text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Clientes</h1>
-          <p className="text-[13px] text-[var(--color-text-2)]">Gestión de clientes</p>
+          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Clientes</h1>
+          <p className="font-body text-[13px] text-on-surface-variant">Gestión de clientes</p>
         </div>
-        <button onClick={openCreate} className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]">
+        <button onClick={openCreate} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
           + Nuevo cliente
         </button>
       </div>
 
-      <div className="app-panel overflow-hidden rounded-[12px]">
+      <div className="bg-surface-container-high rounded-xl overflow-hidden">
         {clientes.length === 0 ? (
-          <p className="px-5 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay clientes.</p>
+          <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay clientes.</p>
         ) : (
-          <table className="w-full text-left text-[12px]">
+          <table className="w-full text-left font-body text-[12px]">
             <thead>
-              <tr className="border-b border-[var(--color-border)] text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
                 <th className="px-5 py-3 font-medium">Nombre</th>
                 <th className="px-5 py-3 font-medium">Contacto</th>
                 <th className="px-5 py-3 font-medium">Dirección</th>
@@ -81,17 +82,15 @@ export default function ClientesPage() {
             </thead>
             <tbody>
               {clientes.map((c) => (
-                <tr key={c.id} className="border-b border-[var(--color-border)] last:border-0">
-                  <td className="px-5 py-4 font-semibold text-[var(--color-text)]">{c.nombre}</td>
-                  <td className="px-5 py-4 text-[var(--color-text-3)]">{c.contacto ?? '—'}</td>
-                  <td className="px-5 py-4 text-[var(--color-text-3)]">{c.direccion ?? '—'}</td>
+                <tr key={c.id} className="border-b border-white/10 last:border-0">
+                  <td className="px-5 py-4 font-semibold text-on-surface">{c.nombre}</td>
+                  <td className="px-5 py-4 text-outline">{c.contacto ?? '—'}</td>
+                  <td className="px-5 py-4 text-outline">{c.direccion ?? '—'}</td>
                   <td className="px-5 py-4 text-center">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${c.activo ? 'bg-[rgba(26,107,53,0.16)] text-[#7ff6a1]' : 'bg-[rgba(239,68,68,0.08)] text-[#d6a8a8]'}`}>
-                      {c.activo ? 'Activo' : 'Inactivo'}
-                    </span>
+                    <Badge variant={c.activo ? 'success' : 'error'}>{c.activo ? 'Activo' : 'Inactivo'}</Badge>
                   </td>
                   <td className="px-5 py-4 text-center">
-                    <button onClick={() => openEdit(c)} className="text-[11px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]">
+                    <button onClick={() => openEdit(c)} className="font-body text-[11px] text-outline transition hover:text-on-surface">
                       Editar
                     </button>
                   </td>
@@ -105,8 +104,8 @@ export default function ClientesPage() {
       {/* Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-md rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 text-[18px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="w-full max-w-md rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-4 font-heading text-[18px] font-bold text-on-surface">
               {editing ? 'Editar cliente' : 'Nuevo cliente'}
             </h2>
             <div className="space-y-4">
@@ -114,25 +113,25 @@ export default function ClientesPage() {
                 placeholder="Nombre"
                 value={form.nombre}
                 onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+                className="input-field"
               />
               <input
                 placeholder="Contacto (opcional)"
                 value={form.contacto}
                 onChange={(e) => setForm({ ...form, contacto: e.target.value })}
-                className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+                className="input-field"
               />
               <input
                 placeholder="Dirección (opcional)"
                 value={form.direccion}
                 onChange={(e) => setForm({ ...form, direccion: e.target.value })}
-                className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+                className="input-field"
               />
               <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-[12px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]">
+                <button onClick={() => setShowModal(false)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">
                   Cancelar
                 </button>
-                <button onClick={handleSave} className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]">
+                <button onClick={handleSave} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
                   {editing ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
