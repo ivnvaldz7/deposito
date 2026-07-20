@@ -1,18 +1,70 @@
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '@/stores/auth-store'
+import { useAppStore } from '@/stores/app-store'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
+const IS_DEV = import.meta.env.DEV
 
 const ERROR_MESSAGES: Record<string, string> = {
   unauthorized: 'Usuario no autorizado. Contactá al administrador.',
   disabled: 'Cuenta deshabilitada. Contactá al administrador.',
 }
 
+const DEV_USERS = [
+  { email: 'admin@example.com', label: 'Admin' },
+  { email: 'encargado@deposito.com', label: 'Encargado Depósito' },
+  { email: 'observador@ale-bet.com', label: 'Observador Ale-Bet' },
+]
+
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
   const error = searchParams.get('error')
+  const navigate = useNavigate()
+  const login = useAuthStore((s) => s.login)
+  const setLastApp = useAppStore((s) => s.setLastApp)
+  const lastApp = useAppStore((s) => s.lastApp)
 
   const handleGoogleLogin = () => {
     window.location.href = `${API_URL}/api/auth/google`
+  }
+
+  const handleDevLogin = async (email: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/auth/dev-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Error de conexión' }))
+        alert(err.error)
+        return
+      }
+
+      const data = await res.json()
+      login(data.token, data.user)
+
+      const activeApps = Object.entries(data.user.apps ?? {})
+        .filter(([_, a]) => a.activo)
+        .map(([app]) => app)
+
+      if (activeApps.length === 0) {
+        navigate('/no-access', { replace: true })
+      } else if (activeApps.length === 1) {
+        const target = activeApps[0]
+        setLastApp(target)
+        navigate(`/${target}`, { replace: true })
+      } else {
+        if (lastApp && activeApps.includes(lastApp)) {
+          navigate(`/${lastApp}`, { replace: true })
+        } else {
+          navigate('/app-selector', { replace: true })
+        }
+      }
+    } catch {
+      alert('Error al iniciar sesión')
+    }
   }
 
   return (
@@ -68,6 +120,30 @@ export default function LoginPage() {
           </svg>
           Iniciar sesión con Google
         </button>
+
+        {IS_DEV && (
+          <>
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-obsidian-600" />
+              <span className="text-xs text-gray-500">DEV</span>
+              <div className="h-px flex-1 bg-obsidian-600" />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs text-gray-500">Inicio rápido (desarrollo):</p>
+              {DEV_USERS.map((user) => (
+                <button
+                  key={user.email}
+                  type="button"
+                  onClick={() => handleDevLogin(user.email)}
+                  className="w-full rounded-md border border-obsidian-600 px-4 py-2 text-sm text-gray-300 transition-colors hover:border-emerald-600 hover:text-emerald-400"
+                >
+                  {user.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
