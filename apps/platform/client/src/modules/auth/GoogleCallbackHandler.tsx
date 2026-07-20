@@ -8,7 +8,6 @@ export default function GoogleCallbackHandler() {
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
   const setLastApp = useAppStore((s) => s.setLastApp)
-  const lastApp = useAppStore((s) => s.lastApp)
   const calledRef = useRef(false)
 
   useEffect(() => {
@@ -47,12 +46,8 @@ export default function GoogleCallbackHandler() {
           setLastApp(target)
           navigate(`/${target}`, { replace: true })
         } else {
-          // Multiple apps — check lastApp
-          if (lastApp && activeApps.includes(lastApp)) {
-            navigate(`/${lastApp}`, { replace: true })
-          } else {
-            navigate('/app-selector', { replace: true })
-          }
+          // Multiple apps — siempre al selector en login inicial
+          navigate('/app-selector', { replace: true })
         }
       } catch {
         navigate('/login?error=unauthorized', { replace: true })
@@ -60,7 +55,7 @@ export default function GoogleCallbackHandler() {
     }
 
     initAuth()
-  }, [searchParams, navigate, login, setLastApp, lastApp])
+  }, [searchParams, navigate, login, setLastApp])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-obsidian-900">

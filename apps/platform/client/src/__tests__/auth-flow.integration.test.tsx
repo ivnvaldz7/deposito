@@ -107,10 +107,8 @@ describe('Auth Flow Integration', () => {
     })
   })
 
-  it('callback handler with valid token — multi-app user with valid lastApp — direct redirect', async () => {
-    // Mock initial /me call
+  it('callback handler with valid token — multi-app user always goes to selector regardless of lastApp', async () => {
     mockFetch.mockResolvedValueOnce(createJsonResponse(multiAppUser))
-    // Mock subsequent API calls from DashboardPage
     mockFetch.mockResolvedValue(createJsonResponse([]))
     useAppStore.setState({ lastApp: 'deposito' })
 
@@ -126,9 +124,9 @@ describe('Auth Flow Integration', () => {
       expect(useAuthStore.getState().user?.email).toBe('multi@test.com')
     })
 
-    // Has lastApp=deposito and deposito is in user's apps → direct redirect
+    // Multi-app user siempre va al selector al hacer login, ignores lastApp
     await waitFor(() => {
-      expect(currentPath).toBe('/deposito')
+      expect(currentPath).toBe('/app-selector')
     })
   })
 
@@ -160,10 +158,8 @@ describe('Auth Flow Integration', () => {
     })
   })
 
-  it('authenticated user with correct app access sees the app content', async () => {
+  it('authenticated user with correct app access resolves the correct route', async () => {
     useAuthStore.setState({ token: 't', user: singleAppUser, authResolved: true })
-    // Mock API calls from DashboardPage
-    mockFetch.mockResolvedValue(createJsonResponse([]))
 
     let currentPath = ''
     render(
@@ -173,19 +169,14 @@ describe('Auth Flow Integration', () => {
       </MemoryRouter>,
     )
 
-    // Route resolved to /deposito (the lazy module can't render in jsdom,
-    // so we assert the route + Suspense fallback instead of module content)
+    // El index de DepositoModule redirige a /deposito/dashboard
     await waitFor(() => {
-      expect(currentPath).toBe('/deposito')
+      expect(currentPath).toBe('/deposito/dashboard')
     })
-
-    expect(screen.getByText('Cargando…')).toBeInTheDocument()
   })
 
   it('single-app user at root / gets auto-redirected to their app', async () => {
     useAuthStore.setState({ token: 't', user: singleAppUser, authResolved: true })
-    // Mock API calls from DashboardPage
-    mockFetch.mockResolvedValue(createJsonResponse([]))
 
     let currentPath = ''
     render(
@@ -195,13 +186,10 @@ describe('Auth Flow Integration', () => {
       </MemoryRouter>,
     )
 
-    // Auto-redirect to /deposito (the lazy module can't render in jsdom,
-    // so we assert the route + Suspense fallback instead of module content)
+    // NavigateBasedOnAccess redirige a /deposito, el index del modulo va a dashboard
     await waitFor(() => {
-      expect(currentPath).toBe('/deposito')
+      expect(currentPath).toBe('/deposito/dashboard')
     })
-
-    expect(screen.getByText('Cargando…')).toBeInTheDocument()
   })
 
   it('redirects unauthenticated user from root to login', () => {
