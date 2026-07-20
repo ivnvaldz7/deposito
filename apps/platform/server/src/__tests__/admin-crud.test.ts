@@ -303,6 +303,31 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
       expect(res.status).toBe(401)
       expect(res.body.error).toBe('Token requerido')
     })
+
+    it('returns 500 when listUsers throws', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockCore.listUsers.mockRejectedValue(new Error('DB error'))
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .get('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBe('DB error')
+    })
+
+    it('returns 500 when admin user lookup throws', async () => {
+      mockGetUserById.mockRejectedValue(new Error('DB error'))
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .get('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBe('DB error')
+    })
   })
 
   // ────────────────────────────────────────────────
@@ -366,6 +391,71 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
       expect(res.status).toBe(400)
       expect(res.body.error).toContain('obligatorios')
     })
+
+    it('returns 500 when getUserByEmail throws', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockGetUserByEmail.mockRejectedValue(new Error('DB error'))
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ email: 'test@test.com', nombre: 'Test', password: '123456' })
+
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBe('DB error')
+    })
+
+    it('returns 500 when createUser throws', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockGetUserByEmail.mockResolvedValue(null)
+      mockCore.createUser.mockRejectedValue(new Error('DB error'))
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ email: 'test@test.com', nombre: 'Test', password: '123456' })
+
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBe('DB error')
+    })
+
+    it('returns 400 when nombre is missing', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ email: 'test@test.com', password: '123456' })
+
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 with empty body', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({})
+
+      expect(res.status).toBe(400)
+    })
+
+    it('returns 400 with empty strings', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ email: '', nombre: '', password: '' })
+
+      expect(res.status).toBe(400)
+    })
   })
 
   // ────────────────────────────────────────────────
@@ -407,6 +497,20 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
       expect(res.status).toBe(400)
       expect(res.body.error).toContain('App inválida')
     })
+
+    it('returns 500 when updateAppAccess throws', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockCore.updateAppAccess.mockRejectedValue(new Error('DB error'))
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .put(`/api/admin/user_abc123/access`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ app: 'deposito', rol: 'admin', activo: true })
+
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBe('DB error')
+    })
   })
 
   // ────────────────────────────────────────────────
@@ -445,6 +549,56 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
 
       expect(res.status).toBe(400)
       expect(res.body.error).toContain('Estado inválido')
+    })
+
+    it('returns 500 when update throws', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockDb.platformDb.platformUser.update.mockRejectedValue(new Error('DB error'))
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .put(`/api/admin/user_abc123/status`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ activo: false })
+
+      expect(res.status).toBe(500)
+      expect(res.body.error).toBe('DB error')
+    })
+
+    it('with activo: true only returns 200 and updates only activo', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockDb.platformDb.platformUser.update.mockResolvedValue({ ...regularUser, activo: true })
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .put(`/api/admin/user_abc123/status`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ activo: true })
+
+      expect(res.status).toBe(200)
+      expect(mockDb.platformDb.platformUser.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ activo: true }),
+        })
+      )
+    })
+
+    it('with estado only returns 200 and updates only estado', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockDb.platformDb.platformUser.update.mockResolvedValue({ ...regularUser, estado: 'active' })
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .put(`/api/admin/user_abc123/status`)
+        .set('Authorization', `Bearer ${token}`)
+        .send({ estado: 'active' })
+
+      expect(res.status).toBe(200)
+      expect(mockDb.platformDb.platformUser.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ estado: 'active' }),
+        })
+      )
     })
   })
 })

@@ -23,14 +23,15 @@ const { mockDb, mockSseManager, mockEventBus } = vi.hoisted(() => ({
       update: vi.fn(),
       count: vi.fn(),
     },
+    itemPedido: {
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
     pedido: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
       create: vi.fn(),
-      update: vi.fn(),
-    },
-    itemPedido: {
-      findFirst: vi.fn(),
       update: vi.fn(),
     },
     movimientoStock: {
@@ -183,6 +184,8 @@ async function createTestApp(): Promise<Express> {
 describe('Ale-Bet Module', () => {
   beforeEach(() => {
     process.env.PLATFORM_JWT_SECRET = JWT_SECRET
+    vi.clearAllMocks()
+    mockDb.$transaction.mockImplementation(async (fn: Function) => fn(mockDb))
   })
 
   // ─── Productos ─────────────────────────────────
@@ -534,6 +537,400 @@ describe('Ale-Bet Module', () => {
         .expect(200)
 
       expect(mockSseManager.addClient).toHaveBeenCalledWith('user-1', 'admin', expect.any(Object))
+    })
+  })
+
+  // ─── Productos (Update) ─────────────────────────
+  describe('PUT /api/ale-bet/productos/:id', () => {
+    it('actualiza un producto y devuelve stock calculado', async () => {
+      mockDb.producto.update.mockResolvedValue({
+        id: 'prod-1',
+        nombre: 'Producto Modificado',
+        sku: 'SKU001',
+        stockMinimo: 10,
+        activo: true,
+      })
+      mockDb.lote.findMany.mockResolvedValue([
+        { cajas: 2, sueltos: 5 },
+      ])
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/productos/prod-1')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ nombre: 'Producto Modificado' })
+        .expect(200)
+
+      expect(res.body.nombre).toBe('Producto Modificado')
+      expect(res.body.stock).toBe(35)
+      expect(res.body.stockBajo).toBe(false)
+    })
+
+    it('devuelve 400 con nombre demasiado corto', async () => {
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/productos/prod-1')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ nombre: 'A' })
+        .expect(400)
+
+      expect(res.body.error).toBe('Datos inválidos')
+    })
+
+    it('devuelve 401 sin token', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .put('/api/ale-bet/productos/prod-1')
+        .send({ nombre: 'Test' })
+        .expect(401)
+    })
+
+    it('devuelve 403 con rol vendedor', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .put('/api/ale-bet/productos/prod-1')
+        .set('Authorization', `Bearer ${signVendedorToken()}`)
+        .send({ nombre: 'Test' })
+        .expect(403)
+    })
+  })
+
+  // ─── Lotes (Get) ────────────────────────────────
+  describe('GET /api/ale-bet/productos/:id/lotes', () => {
+    it('devuelve lotes con unidades calculadas', async () => {
+      mockDb.lote.findMany.mockResolvedValue([
+        { id: 'lote-1', numero: 'L001', productoId: 'prod-1', cajas: 2, sueltos: 5, activo: true, fechaProduccion: new Date(), fechaVencimiento: new Date() },
+        { id: 'lote-2', numero: 'L002', productoId: 'prod-1', cajas: 1, sueltos: 10, activo: true, fechaProduccion: new Date(), fechaVencimiento: new Date() },
+      ])
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .get('/api/ale-bet/productos/prod-1/lotes')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      expect(res.body).toHaveLength(2)
+      expect(res.body[0].unidades).toBe(35)
+      expect(res.body[1].unidades).toBe(25)
+    })
+
+    it('devuelve array vacío cuando no hay lotes', async () => {
+      mockDb.lote.findMany.mockResolvedValue([])
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .get('/api/ale-bet/productos/prod-1/lotes')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      expect(res.body).toEqual([])
+    })
+
+    it('devuelve 401 sin token', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .get('/api/ale-bet/productos/prod-1/lotes')
+        .expect(401)
+    })
+
+    it('devuelve 403 con rol vendedor', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .get('/api/ale-bet/productos/prod-1/lotes')
+        .set('Authorization', `Bearer ${signVendedorToken()}`)
+        .expect(403)
+    })
+  })
+
+  // ─── Lotes (Create) ─────────────────────────────
+  describe('POST /api/ale-bet/productos/:id/lotes', () => {
+    it('crea un lote y devuelve 201 con unidades', async () => {
+      mockDb.producto.findUnique.mockResolvedValue({ id: 'prod-1', sku: 'SKU001', nombre: 'Producto A', stockMinimo: 10, activo: true })
+      mockDb.lote.count.mockResolvedValue(0)
+      mockDb.lote.create.mockResolvedValue({
+        id: 'lote-new',
+        numero: 'SKU0010001',
+        productoId: 'prod-1',
+        cajas: 2,
+        sueltos: 5,
+        activo: true,
+        fechaProduccion: new Date('2026-01-01'),
+        fechaVencimiento: new Date('2028-01-01'),
+      })
+      mockDb.movimientoStock.create.mockResolvedValue({})
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .post('/api/ale-bet/productos/prod-1/lotes')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ cajas: 2, sueltos: 5, fechaProduccion: '2026-01-01T00:00:00.000Z' })
+        .expect(201)
+
+      expect(res.body.numero).toBe('SKU0010001')
+      expect(res.body.unidades).toBe(35)
+    })
+
+    it('devuelve 400 con cajas negativas', async () => {
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .post('/api/ale-bet/productos/prod-1/lotes')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ cajas: -1, sueltos: 5, fechaProduccion: '2026-01-01T00:00:00.000Z' })
+        .expect(400)
+
+      expect(res.body.error).toBe('Datos inválidos')
+    })
+
+    it('devuelve 404 cuando el producto no existe', async () => {
+      mockDb.producto.findUnique.mockResolvedValue(null)
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .post('/api/ale-bet/productos/prod-404/lotes')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ cajas: 2, sueltos: 5, fechaProduccion: '2026-01-01T00:00:00.000Z' })
+        .expect(404)
+
+      expect(res.body.error).toBe('Producto no encontrado')
+    })
+
+    it('devuelve 409 cuando el número de lote ya existe', async () => {
+      mockDb.producto.findUnique.mockResolvedValue({ id: 'prod-1', sku: 'SKU001', nombre: 'Producto A', stockMinimo: 10, activo: true })
+      mockDb.lote.count.mockResolvedValue(0)
+      const p2002Error = Object.assign(new Error('Unique constraint violation'), { code: 'P2002' })
+      mockDb.$transaction.mockRejectedValue(p2002Error)
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .post('/api/ale-bet/productos/prod-1/lotes')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ cajas: 2, sueltos: 5, fechaProduccion: '2026-01-01T00:00:00.000Z' })
+        .expect(409)
+
+      expect(res.body.error).toBe('Ya existe un lote con ese número para este producto')
+    })
+
+    it('devuelve 401 sin token', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .post('/api/ale-bet/productos/prod-1/lotes')
+        .send({ cajas: 2, sueltos: 5, fechaProduccion: '2026-01-01T00:00:00.000Z' })
+        .expect(401)
+    })
+
+    it('devuelve 403 con rol vendedor', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .post('/api/ale-bet/productos/prod-1/lotes')
+        .set('Authorization', `Bearer ${signVendedorToken()}`)
+        .send({ cajas: 2, sueltos: 5, fechaProduccion: '2026-01-01T00:00:00.000Z' })
+        .expect(403)
+    })
+  })
+
+  // ─── Pedidos (Completar Item) ───────────────────
+  describe('PUT /api/ale-bet/pedidos/:id/items/:itemId/completar', () => {
+    it('completa un item y devuelve el pedido actualizado', async () => {
+      mockDb.pedido.findUnique.mockResolvedValue({
+        id: 'pedido-1',
+        estado: 'EN_ARMADO',
+        items: [
+          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: false },
+          { id: 'item-2', productoId: 'prod-1', cantidad: 3, completado: false },
+        ],
+      })
+      mockDb.itemPedido.update.mockResolvedValue({ id: 'item-1', completado: true })
+      mockDb.pedido.findUniqueOrThrow.mockResolvedValue({
+        id: 'pedido-1',
+        estado: 'EN_ARMADO',
+        numero: 'P-001',
+        clienteId: 'cliente-1',
+        vendedorId: 'vendedor-1',
+        armadorId: null,
+        createdAt: new Date(),
+        cliente: { id: 'cliente-1', nombre: 'Cliente A' },
+        items: [
+          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: true, producto: { id: 'prod-1', nombre: 'Producto A' } },
+          { id: 'item-2', productoId: 'prod-1', cantidad: 3, completado: false, producto: { id: 'prod-1', nombre: 'Producto A' } },
+        ],
+      })
+      mockDb.platformUser.findMany.mockResolvedValue([
+        { id: 'vendedor-1', nombre: 'Vendedor Test' },
+      ])
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/pedidos/pedido-1/items/item-1/completar')
+        .set('Authorization', `Bearer ${signArmadorToken()}`)
+        .expect(200)
+
+      expect(res.body.id).toBe('pedido-1')
+      expect(res.body.estado).toBe('EN_ARMADO')
+    })
+
+    it('completa el último item y finaliza el pedido', async () => {
+      mockDb.pedido.findUnique.mockResolvedValue({
+        id: 'pedido-1',
+        estado: 'EN_ARMADO',
+        items: [
+          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: false },
+          { id: 'item-2', productoId: 'prod-2', cantidad: 3, completado: true },
+        ],
+      })
+      mockDb.itemPedido.update.mockResolvedValue({ id: 'item-1', completado: true })
+      mockDb.pedido.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'pedido-1',
+        estado: 'EN_ARMADO',
+        numero: 'P-001',
+        clienteId: 'cliente-1',
+        vendedorId: 'vendedor-1',
+        armadorId: null,
+        createdAt: new Date(),
+        cliente: { id: 'cliente-1', nombre: 'Cliente A' },
+        items: [
+          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: true, producto: { id: 'prod-1', nombre: 'Producto A' } },
+          { id: 'item-2', productoId: 'prod-2', cantidad: 3, completado: true, producto: { id: 'prod-2', nombre: 'Producto B' } },
+        ],
+      })
+      mockDb.lote.findMany.mockResolvedValue([
+        { id: 'lote-1', cajas: 1, sueltos: 0, activo: true, fechaVencimiento: new Date('2027-01-01') },
+      ])
+      mockDb.lote.update.mockResolvedValue({})
+      mockDb.movimientoStock.create.mockResolvedValue({})
+      mockDb.pedido.update.mockResolvedValue({
+        id: 'pedido-1',
+        estado: 'COMPLETADO',
+        numero: 'P-001',
+        clienteId: 'cliente-1',
+        vendedorId: 'vendedor-1',
+        armadorId: null,
+        createdAt: new Date(),
+        cliente: { id: 'cliente-1', nombre: 'Cliente A' },
+        items: [
+          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: true, producto: { id: 'prod-1', nombre: 'Producto A' } },
+          { id: 'item-2', productoId: 'prod-2', cantidad: 3, completado: true, producto: { id: 'prod-2', nombre: 'Producto B' } },
+        ],
+      })
+      mockDb.platformUser.findMany.mockResolvedValue([
+        { id: 'vendedor-1', nombre: 'Vendedor Test' },
+      ])
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/pedidos/pedido-1/items/item-1/completar')
+        .set('Authorization', `Bearer ${signArmadorToken()}`)
+        .expect(200)
+
+      expect(res.body.estado).toBe('COMPLETADO')
+      expect(mockSseManager.emitToUser).toHaveBeenCalledWith(
+        'vendedor-1',
+        'pedido:completado',
+        expect.objectContaining({ pedidoId: 'pedido-1', numero: 'P-001', clienteNombre: 'Cliente A' })
+      )
+      expect(mockSseManager.emitToRole).toHaveBeenCalledWith(
+        'admin',
+        'pedido:completado',
+        expect.objectContaining({ pedidoId: 'pedido-1' })
+      )
+      expect(mockEventBus.emit).toHaveBeenCalledWith(
+        expect.objectContaining({ app: 'ale_bet', tipo: 'pedido:completado' })
+      )
+    })
+
+    it('devuelve 404 cuando el pedido no existe', async () => {
+      mockDb.pedido.findUnique.mockResolvedValue(null)
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/pedidos/pedido-404/items/item-1/completar')
+        .set('Authorization', `Bearer ${signArmadorToken()}`)
+        .expect(404)
+
+      expect(res.body.error).toBe('Pedido no encontrado')
+    })
+
+    it('devuelve 409 cuando el pedido no está EN_ARMADO', async () => {
+      mockDb.pedido.findUnique.mockResolvedValue({
+        id: 'pedido-1',
+        estado: 'PENDIENTE',
+        items: [{ id: 'item-1' }],
+      })
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/pedidos/pedido-1/items/item-1/completar')
+        .set('Authorization', `Bearer ${signArmadorToken()}`)
+        .expect(409)
+
+      expect(res.body.error).toBe('Solo se pueden completar items de un pedido en estado EN_ARMADO')
+    })
+
+    it('devuelve 404 cuando el item no existe en el pedido', async () => {
+      mockDb.pedido.findUnique.mockResolvedValue({
+        id: 'pedido-1',
+        estado: 'EN_ARMADO',
+        items: [{ id: 'item-2', productoId: 'prod-1', cantidad: 3, completado: false }],
+      })
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/pedidos/pedido-1/items/item-999/completar')
+        .set('Authorization', `Bearer ${signArmadorToken()}`)
+        .expect(404)
+
+      expect(res.body.error).toBe('Item no encontrado')
+    })
+
+    it('devuelve 409 cuando el stock es insuficiente', async () => {
+      mockDb.pedido.findUnique.mockResolvedValue({
+        id: 'pedido-1',
+        estado: 'EN_ARMADO',
+        items: [
+          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: false },
+          { id: 'item-2', productoId: 'prod-2', cantidad: 3, completado: true },
+        ],
+      })
+      mockDb.itemPedido.update.mockResolvedValue({ id: 'item-1', completado: true })
+      mockDb.pedido.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'pedido-1',
+        estado: 'EN_ARMADO',
+        numero: 'P-001',
+        clienteId: 'cliente-1',
+        vendedorId: 'vendedor-1',
+        armadorId: null,
+        createdAt: new Date(),
+        cliente: { id: 'cliente-1', nombre: 'Cliente A' },
+        items: [
+          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: true, producto: { id: 'prod-1', nombre: 'Producto A' } },
+          { id: 'item-2', productoId: 'prod-2', cantidad: 3, completado: true, producto: { id: 'prod-2', nombre: 'Producto B' } },
+        ],
+      })
+      mockDb.lote.findMany.mockResolvedValue([])
+      const app = await createTestApp()
+
+      const res = await request(app)
+        .put('/api/ale-bet/pedidos/pedido-1/items/item-1/completar')
+        .set('Authorization', `Bearer ${signArmadorToken()}`)
+        .expect(409)
+
+      expect(res.body.error).toBe('Stock insuficiente para completar el pedido')
+    })
+
+    it('devuelve 401 sin token', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .put('/api/ale-bet/pedidos/pedido-1/items/item-1/completar')
+        .expect(401)
+    })
+
+    it('devuelve 403 con rol vendedor', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .put('/api/ale-bet/pedidos/pedido-1/items/item-1/completar')
+        .set('Authorization', `Bearer ${signVendedorToken()}`)
+        .expect(403)
     })
   })
 })

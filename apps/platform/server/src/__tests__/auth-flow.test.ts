@@ -153,6 +153,42 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
     ],
   }
 
+  const disabledUser = {
+    id: 'user_disabled_001',
+    email: 'disabled@test.com',
+    nombre: 'Disabled User',
+    activo: false,
+    estado: 'disabled',
+    isPlatformAdmin: false,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    appAccess: [],
+  }
+
+  const pendingUser = {
+    id: 'user_pending_001',
+    email: 'pending@test.com',
+    nombre: 'Pending User',
+    activo: true,
+    estado: 'pending',
+    isPlatformAdmin: false,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    appAccess: [],
+  }
+
+  const inactiveUser = {
+    id: 'user_inactive_001',
+    email: 'inactive@test.com',
+    nombre: 'Inactive User',
+    activo: false,
+    estado: 'active',
+    isPlatformAdmin: false,
+    createdAt: new Date('2026-01-01'),
+    updatedAt: new Date('2026-01-01'),
+    appAccess: [],
+  }
+
   beforeEach(() => {
     process.env.PLATFORM_JWT_SECRET = 'test-secret-for-jwt-min-32-chars!!'
     process.env.FRONTEND_URL = 'http://localhost:5176'
@@ -187,6 +223,16 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
       expect(res.headers.location).toContain('accounts.google.com')
       expect(res.headers.location).toContain('client_id=test-client-id')
       expect(mockGoogleStrategy.getAuthUrl).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns 500 when getAuthUrl throws', async () => {
+      mockGoogleStrategy.getAuthUrl.mockRejectedValue(new Error('OAuth error'))
+
+      const res = await request(app)
+        .get('/api/auth/google')
+
+      expect(res.status).toBe(500)
+      expect(res.body.error).toMatch(/Error al iniciar autenticación/i)
     })
   })
 
@@ -279,6 +325,68 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
       expect(res.status).toBe(302)
       expect(res.headers.location).toContain('/login?error=disabled')
     })
+
+    it('with pending user auto-activates and redirects with token', async () => {
+      const pendingFixture = {
+        id: 'user_pending_001',
+        email: 'pending@test.com',
+        nombre: 'Pending User',
+        activo: true,
+        estado: 'pending',
+        isPlatformAdmin: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        appAccess: [],
+      }
+      mockGoogleStrategy.exchangeCode.mockResolvedValue({
+        providerId: 'google_123',
+        email: 'pending@test.com',
+        name: 'Pending User',
+      })
+      mockGetUserByEmail.mockResolvedValue(pendingFixture)
+      mockDb.platformDb.platformUser.update.mockResolvedValue({
+        ...pendingFixture,
+        estado: 'active',
+      })
+
+      const res = await request(app)
+        .get('/api/auth/google/callback?code=valid_code')
+
+      expect(res.status).toBe(302)
+      expect(mockDb.platformDb.platformUser.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'user_pending_001' },
+          data: { estado: 'active' },
+        })
+      )
+      expect(res.header.location).toMatch(/token=/)
+    })
+
+    it('with activo: false and estado: active redirects to disabled', async () => {
+      const inactiveFixture = {
+        id: 'user_inactive_001',
+        email: 'inactive@test.com',
+        nombre: 'Inactive User',
+        activo: false,
+        estado: 'active',
+        isPlatformAdmin: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        appAccess: [],
+      }
+      mockGoogleStrategy.exchangeCode.mockResolvedValue({
+        providerId: 'google_456',
+        email: 'inactive@test.com',
+        name: 'Inactive User',
+      })
+      mockGetUserByEmail.mockResolvedValue(inactiveFixture)
+
+      const res = await request(app)
+        .get('/api/auth/google/callback?code=valid_code')
+
+      expect(res.status).toBe(302)
+      expect(res.header.location).toContain('error=disabled')
+    })
   })
 
   // ────────────────────────────────────────────────
@@ -331,6 +439,98 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
 
       expect(res.status).toBe(401)
       expect(res.body.error).toBe('Refresh token requerido')
+    })
+  })
+
+  describe('POST /api/auth/refresh — edge cases', () => {
+    beforeEach(() => {
+      vi.clearAllMocks()
+      app = createTestApp()
+    })
+
+    it('returns 401 when user is disabled (activo: false)', async () => {
+      const disabledUserFixture = {
+        id: 'user_disabled_001',
+        email: 'disabled@test.com',
+        nombre: 'Disabled User',
+        activo: false,
+        estado: 'active',
+        isPlatformAdmin: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        appAccess: [],
+      }
+      const token = jwt.sign(
+        { sub: 'user_disabled_001', type: 'refresh' },
+        process.env.PLATFORM_JWT_SECRET!,
+        { expiresIn: '7d' }
+      )
+      mockGetUserById.mockResolvedValue(disabledUserFixture)
+
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', `platform_refresh_token=${token}`)
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toMatch(/no encontrado/i)
+    })
+
+    it('returns 401 when user estado is disabled', async () => {
+      const disabledEstadoUser = {
+        id: 'user_disabled_002',
+        email: 'disabled2@test.com',
+        nombre: 'Disabled User 2',
+        activo: true,
+        estado: 'disabled',
+        isPlatformAdmin: false,
+        createdAt: new Date('2026-01-01'),
+        updatedAt: new Date('2026-01-01'),
+        appAccess: [],
+      }
+      const token = jwt.sign(
+        { sub: 'user_disabled_002', type: 'refresh' },
+        process.env.PLATFORM_JWT_SECRET!,
+        { expiresIn: '7d' }
+      )
+      mockGetUserById.mockResolvedValue(disabledEstadoUser)
+
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', `platform_refresh_token=${token}`)
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toMatch(/deshabilitad/i)
+    })
+
+    it('returns 401 when user not found in DB', async () => {
+      const token = jwt.sign(
+        { sub: 'user_gone_001', type: 'refresh' },
+        process.env.PLATFORM_JWT_SECRET!,
+        { expiresIn: '7d' }
+      )
+      mockGetUserById.mockResolvedValue(null)
+
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', `platform_refresh_token=${token}`)
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toMatch(/no encontrado/i)
+    })
+
+    it('returns 401 when getUserById throws (generic catch)', async () => {
+      const token = jwt.sign(
+        { sub: 'user_throw_001', type: 'refresh' },
+        process.env.PLATFORM_JWT_SECRET!,
+        { expiresIn: '7d' }
+      )
+      mockGetUserById.mockRejectedValue(new Error('DB connection lost'))
+
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', `platform_refresh_token=${token}`)
+
+      expect(res.status).toBe(401)
     })
   })
 
@@ -411,6 +611,22 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
 
       expect(res.status).toBe(401)
       expect(res.body.error).toBe('Token inválido o expirado')
+    })
+
+    it('with Basic auth returns 401', async () => {
+      const res = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', 'Basic dGVzdDpwYXNz')
+
+      expect(res.status).toBe(401)
+    })
+
+    it('with empty Bearer token returns 401', async () => {
+      const res = await request(app)
+        .get('/api/auth/me')
+        .set('Authorization', 'Bearer   ')
+
+      expect(res.status).toBe(401)
     })
   })
 })
