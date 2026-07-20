@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { aleBetApi, type DashboardOverview, type DashboardPedidoReciente, type Pedido } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Badge } from '@/components/ui/Badge'
 
 function formatDashboardDate(dateString: string): string {
   const date = new Date(dateString)
@@ -32,18 +34,13 @@ function isAdminVendor(name: string): boolean {
   return name.includes('Admin') || name.includes('admin')
 }
 
-function getEstadoBadgeStyle(estado: Pedido['estado']) {
+function getEstadoBadgeVariant(estado: Pedido['estado']): 'default' | 'success' | 'warning' | 'error' | 'info' {
   switch (estado) {
-    case 'PENDIENTE':
-      return { background: 'rgba(116, 121, 111, 0.14)', color: '#bccbb8', border: '1px solid rgba(116, 121, 111, 0.28)' }
-    case 'APROBADO':
-      return { background: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.28)' }
-    case 'EN_ARMADO':
-      return { background: 'rgba(96, 165, 250, 0.12)', color: '#93c5fd', border: '1px solid rgba(96, 165, 250, 0.28)' }
-    case 'COMPLETADO':
-      return { background: 'rgba(26, 107, 53, 0.1)', color: '#bccbb8', border: '1px solid rgba(26, 107, 53, 0.22)' }
-    case 'CANCELADO':
-      return { background: 'rgba(239, 68, 68, 0.08)', color: '#d6a8a8', border: '1px solid rgba(239, 68, 68, 0.2)' }
+    case 'PENDIENTE': return 'default'
+    case 'APROBADO': return 'warning'
+    case 'EN_ARMADO': return 'info'
+    case 'COMPLETADO': return 'success'
+    case 'CANCELADO': return 'error'
   }
 }
 
@@ -55,57 +52,54 @@ function MetricCard({
   const clickable = typeof onClick === 'function'
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`app-panel rounded-[12px] px-5 py-5 text-left transition ${
-        clickable ? 'cursor-pointer hover:border-[var(--color-text-3)] hover:translate-y-[-1px]' : 'cursor-default'
-      }`}
-      disabled={!clickable}
+    <GlassCard
+      variant={valueClassName.includes('error') ? 'error' : valueClassName.includes('warning') ? 'warning' : 'default'}
+      hover={clickable}
+      className={clickable ? 'cursor-pointer' : ''}
     >
-      <p className="text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">{label}</p>
-      <p className={`mt-4 text-[48px] font-bold leading-none ${valueClassName}`} style={{ fontFamily: 'Montserrat, sans-serif' }}>
-        {value}
-      </p>
-      <p className="mt-3 max-w-[20ch] text-[11px] text-[var(--color-text-2)]">{subtitle}</p>
-    </button>
+      <div onClick={onClick} onKeyDown={clickable ? (e) => { if (e.key === 'Enter') onClick?.() } : undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}>
+        <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">{label}</p>
+        <p className={`mt-4 font-heading text-[48px] font-bold leading-none ${valueClassName}`}>
+          {value}
+        </p>
+        <p className="mt-3 max-w-[20ch] font-body text-[11px] text-on-surface-variant">{subtitle}</p>
+      </div>
+    </GlassCard>
   )
 }
 
 function PedidoRow({ pedido, onComplete }: { pedido: DashboardPedidoReciente; onComplete: (pedidoId: string) => void }) {
   const adminVendor = isAdminVendor(pedido.vendedorNombre)
-  const estadoBadgeStyle = getEstadoBadgeStyle(pedido.estado)
+  const variant = getEstadoBadgeVariant(pedido.estado)
 
   return (
-    <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] items-center gap-4 border-b border-[var(--color-border)] px-5 py-4">
+    <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] items-center gap-4 border-b border-white/10 px-5 py-4">
       <div className="min-w-0">
-        <p className="truncate text-[12px] font-semibold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <p className="truncate font-heading text-[12px] font-semibold text-on-surface">
           {pedido.clienteNombre}
         </p>
-        <p className="mt-1 text-[10px] text-[var(--color-text-3)]">{pedido.numero} · {pedido.cantidadItems} items</p>
+        <p className="mt-1 font-body text-[10px] text-outline">{pedido.numero} · {pedido.cantidadItems} items</p>
       </div>
       <div className="flex items-center gap-2">
         <span className={`inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] font-semibold ${
-          adminVendor ? 'border-[rgba(26,107,53,0.4)] bg-[rgba(26,107,53,0.16)] text-[#7ff6a1]' : 'border-[rgba(116,121,111,0.28)] bg-[rgba(116,121,111,0.14)] text-[#bccbb8]'
+          adminVendor ? 'border-primary/40 bg-primary/20 text-primary' : 'border-outline/30 bg-surface-variant text-on-surface-variant'
         }`}>
           {getInitials(pedido.vendedorNombre)}
         </span>
-        <span className={`truncate text-[11px] ${adminVendor ? 'font-bold text-[var(--color-text-2)]' : 'text-[var(--color-text-3)]'}`}>
+        <span className={`truncate font-body text-[11px] ${adminVendor ? 'font-bold text-on-surface-variant' : 'text-outline'}`}>
           {pedido.vendedorNombre}
         </span>
       </div>
-      <div className="text-[11px] text-[var(--color-text-3)]">{formatDashboardDate(pedido.createdAt)}</div>
+      <div className="font-body text-[11px] text-outline">{formatDashboardDate(pedido.createdAt)}</div>
       <div className="flex justify-center">
-        <span style={{ ...estadoBadgeStyle, fontSize: '10px', fontWeight: 600, padding: '3px 0', borderRadius: '999px', width: '88px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          {pedido.estado.replace('_', ' ')}
-        </span>
+        <Badge variant={variant} className="w-[88px] justify-center">{pedido.estado.replace('_', ' ')}</Badge>
       </div>
       <div className="flex justify-center">
         {pedido.estado === 'EN_ARMADO' ? (
           <button
             type="button"
             onClick={() => onComplete(pedido.id)}
-            className="w-[88px] rounded-full border border-[var(--color-accent)] px-3 py-[7px] text-[11px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]"
+            className="w-[88px] rounded-full border border-primary px-3 py-[7px] font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
           >
             Completar
           </button>
@@ -155,35 +149,35 @@ export default function DashboardPage() {
     return () => window.clearTimeout(id)
   }, [location.state])
 
-  if (loading) return <p className="text-sm text-[var(--color-text-2)]">Cargando dashboard...</p>
-  if (error || !data) return <p className="text-sm text-[var(--color-danger)]">{error ?? 'No se pudo cargar el dashboard'}</p>
+  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando dashboard...</p>
+  if (error || !data) return <p className="font-body text-sm text-error">{error ?? 'No se pudo cargar el dashboard'}</p>
 
   const isAdmin = user?.apps?.['ale-bet']?.rol === 'admin'
 
   return (
-    <div className="space-y-6 text-[var(--color-text)]">
+    <div className="space-y-6 text-on-surface">
       <div className="space-y-1">
-        <h1 className="text-[28px] font-bold tracking-[-0.03em] text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Dashboard</h1>
-        <p className="text-[13px] text-[var(--color-text-2)]">Vista operativa consolidada</p>
+        <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Dashboard</h1>
+        <p className="font-body text-[13px] text-on-surface-variant">Vista operativa consolidada</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-[var(--color-danger)]" onClick={isAdmin ? () => navigate('/ale-bet/productos') : undefined} />
-        <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-[var(--color-text)]" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
-        <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-[var(--color-warning)]" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
-        <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-[var(--color-text)]" onClick={isAdmin ? () => navigate('/ale-bet/stock') : undefined} />
+        <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={isAdmin ? () => navigate('/ale-bet/productos') : undefined} />
+        <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
+        <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
+        <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/stock') : undefined} />
       </div>
 
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-[24px] font-bold tracking-[-0.02em] text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Pedidos recientes</h2>
-          <button type="button" onClick={() => navigate('/ale-bet/pedidos')} className="text-[12px] font-medium text-[var(--color-text-2)] transition hover:text-[var(--color-text)]">
+          <h2 className="font-heading text-[24px] font-bold tracking-[-0.02em] text-on-surface">Pedidos recientes</h2>
+          <button type="button" onClick={() => navigate('/ale-bet/pedidos')} className="font-body text-[12px] font-medium text-on-surface-variant transition hover:text-on-surface">
             Ver todos →
           </button>
         </div>
 
-        <div className="app-panel overflow-hidden rounded-[12px]">
-          <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] gap-4 border-b border-[var(--color-border)] px-5 py-3 text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
+        <div className="bg-surface-container-high rounded-xl overflow-hidden">
+          <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] gap-4 border-b border-white/10 px-5 py-3 font-body text-[10px] uppercase tracking-[0.8px] text-outline">
             <div>Cliente</div>
             <div>Vendedor</div>
             <div>Fecha</div>
@@ -198,7 +192,7 @@ export default function DashboardPage() {
           ))}
 
           {data.pedidosRecientes.length === 0 && (
-            <p className="px-4 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay pedidos recientes.</p>
+            <p className="px-4 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay pedidos recientes.</p>
           )}
         </div>
       </section>
