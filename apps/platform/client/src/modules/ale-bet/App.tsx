@@ -12,17 +12,17 @@ const HistorialPage = lazy(() => import('./pages/HistorialPage'))
 function LoadingFallback() {
   return (
     <div className="flex items-center justify-center p-12">
-      <p className="text-sm text-[var(--color-text-2)]">Cargando...</p>
+      <p className="font-body text-sm text-on-surface-variant">Cargando...</p>
     </div>
   )
 }
 
 export default function AleBetModule() {
   return (
-    <div className="flex min-h-screen bg-[var(--color-bg)]">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className="flex flex-col flex-1 min-w-0">
-        <main className="flex-1 p-5 md:p-8">
+      <div className="flex flex-col flex-1 min-w-0 md:ml-72">
+        <main className="flex-1 p-margin-desktop overflow-y-auto">
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route index element={<Navigate to="dashboard" replace />} />
