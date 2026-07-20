@@ -91,8 +91,8 @@ export default function ProductosPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-[var(--color-text-2)]">Cargando productos...</p>
-  if (error) return <p className="text-sm text-[var(--color-danger)]">{error}</p>
+  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando productos...</p>
+  if (error) return <p className="font-body text-sm text-error">{error}</p>
 
   const filtered = productos.filter(
     (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
@@ -102,10 +102,10 @@ export default function ProductosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[28px] font-bold tracking-[-0.03em] text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>Productos</h1>
-          <p className="text-[13px] text-[var(--color-text-2)]">Gestión de productos y lotes</p>
+          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Productos</h1>
+          <p className="font-body text-[13px] text-on-surface-variant">Gestión de productos y lotes</p>
         </div>
-        <button onClick={openCreate} className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]">
+        <button onClick={openCreate} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
           + Nuevo producto
         </button>
       </div>
@@ -116,36 +116,36 @@ export default function ProductosPage() {
           placeholder="Buscar productos..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-sm rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]"
+          className="input-field max-w-sm"
         />
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="app-panel rounded-[12px] px-5 py-4">
-          <p className="text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">Total</p>
-          <p className="mt-1 text-[24px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>{productos.length}</p>
+        <div className="bg-surface-container-high rounded-xl px-5 py-4">
+          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Total</p>
+          <p className="mt-1 font-heading text-[24px] font-bold text-on-surface">{productos.length}</p>
         </div>
-        <div className="app-panel rounded-[12px] px-5 py-4">
-          <p className="text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">Stock bajo</p>
-          <p className="mt-1 text-[24px] font-bold text-[var(--color-danger)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <div className="bg-surface-container-high rounded-xl px-5 py-4">
+          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Stock bajo</p>
+          <p className="mt-1 font-heading text-[24px] font-bold text-error">
             {productos.filter((p) => p.stockBajo).length}
           </p>
         </div>
-        <div className="app-panel rounded-[12px] px-5 py-4">
-          <p className="text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">Stock total</p>
-          <p className="mt-1 text-[24px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+        <div className="bg-surface-container-high rounded-xl px-5 py-4">
+          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Stock total</p>
+          <p className="mt-1 font-heading text-[24px] font-bold text-on-surface">
             {productos.reduce((s, p) => s + p.stock, 0).toLocaleString()}
           </p>
         </div>
       </div>
 
-      <div className="app-panel overflow-hidden rounded-[12px]">
+      <div className="bg-surface-container-high rounded-xl overflow-hidden">
         {filtered.length === 0 ? (
-          <p className="px-5 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay productos.</p>
+          <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay productos.</p>
         ) : (
-          <table className="w-full text-left text-[12px]">
+          <table className="w-full text-left font-body text-[12px]">
             <thead>
-              <tr className="border-b border-[var(--color-border)] text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
+              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
                 <th className="px-5 py-3 font-medium">Producto</th>
                 <th className="px-5 py-3 font-medium">SKU</th>
                 <th className="px-5 py-3 font-medium text-right">Stock</th>
@@ -157,29 +157,29 @@ export default function ProductosPage() {
             </thead>
             <tbody>
               {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-[var(--color-border)] last:border-0">
-                  <td className="px-5 py-4 font-semibold text-[var(--color-text)]">{p.nombre}</td>
-                  <td className="px-5 py-4 text-[var(--color-text-3)]">{p.sku}</td>
-                  <td className="px-5 py-4 text-right font-medium" style={{ color: p.stockBajo ? 'var(--color-danger)' : 'var(--color-text)' }}>
+                <tr key={p.id} className="border-b border-white/10 last:border-0">
+                  <td className="px-5 py-4 font-semibold text-on-surface">{p.nombre}</td>
+                  <td className="px-5 py-4 text-outline">{p.sku}</td>
+                  <td className={`px-5 py-4 text-right font-medium ${p.stockBajo ? 'text-error' : 'text-on-surface'}`}>
                     {p.stock}
                   </td>
-                  <td className="px-5 py-4 text-right text-[var(--color-text-3)]">{p.stockMinimo}</td>
+                  <td className="px-5 py-4 text-right text-outline">{p.stockMinimo}</td>
                   <td className="px-5 py-4 text-center">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${p.stockBajo ? 'bg-[rgba(239,68,68,0.08)] text-[#d6a8a8]' : 'bg-[rgba(26,107,53,0.16)] text-[#7ff6a1]'}`}>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 font-heading font-semibold text-xs ${p.stockBajo ? 'bg-error/20 text-error' : 'bg-success/20 text-success'}`}>
                       {p.stockBajo ? 'Stock bajo' : 'OK'}
                     </span>
                   </td>
                   <td className="px-5 py-4 text-center">
-                    <button onClick={() => openLotes(p)} className="text-[11px] text-[var(--color-accent)] transition hover:underline">
+                    <button onClick={() => openLotes(p)} className="font-body text-[11px] text-primary transition hover:underline">
                       Ver lotes
                     </button>
                   </td>
                   <td className="px-5 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openEdit(p)} className="text-[11px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]">
+                      <button onClick={() => openEdit(p)} className="font-body text-[11px] text-outline transition hover:text-on-surface">
                         Editar
                       </button>
-                      <button onClick={() => handleDelete(p.id)} className="text-[11px] text-[var(--color-danger)] transition hover:opacity-80">
+                      <button onClick={() => handleDelete(p.id)} className="font-body text-[11px] text-error transition hover:opacity-80">
                         Eliminar
                       </button>
                     </div>
@@ -194,23 +194,23 @@ export default function ProductosPage() {
       {/* Producto modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-md rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 text-[18px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="w-full max-w-md rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-4 font-heading text-[18px] font-bold text-on-surface">
               {editing ? 'Editar producto' : 'Nuevo producto'}
             </h2>
             <div className="space-y-4">
               <input placeholder="Nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
-                className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]" />
+                className="input-field" />
               <input placeholder="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                className="w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]" />
+                className="input-field" />
               <div>
-                <label className="text-[11px] text-[var(--color-text-3)]">Stock mínimo</label>
+                <label className="font-body text-[11px] text-outline">Stock mínimo</label>
                 <input type="number" min={0} value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: Number(e.target.value) })}
-                  className="mt-1 w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]" />
+                  className="input-field mt-1" />
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-[12px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]">Cancelar</button>
-                <button onClick={handleSave} className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]">
+                <button onClick={() => setShowModal(false)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cancelar</button>
+                <button onClick={handleSave} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
                   {editing ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
@@ -222,18 +222,18 @@ export default function ProductosPage() {
       {/* Lotes modal */}
       {lotesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesModal(null)}>
-          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-1 text-[18px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-1 font-heading text-[18px] font-bold text-on-surface">
               Lotes: {lotesModal.producto.nombre}
             </h2>
-            <p className="mb-4 text-[12px] text-[var(--color-text-3)]">Stock total: {lotesModal.producto.stock} unidades</p>
+            <p className="mb-4 font-body text-[12px] text-outline">Stock total: {lotesModal.producto.stock} unidades</p>
 
             {lotesModal.lotes.length === 0 ? (
-              <p className="py-4 text-center text-[13px] text-[var(--color-text-2)]">Sin lotes registrados.</p>
+              <p className="py-4 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados.</p>
             ) : (
-              <table className="mb-6 w-full text-left text-[12px]">
+              <table className="mb-6 w-full text-left font-body text-[12px]">
                 <thead>
-                  <tr className="border-b border-[var(--color-border)] text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
+                  <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
                     <th className="pb-2 font-medium">Número</th>
                     <th className="pb-2 font-medium text-right">Cajas</th>
                     <th className="pb-2 font-medium text-right">Sueltos</th>
@@ -244,16 +244,16 @@ export default function ProductosPage() {
                 </thead>
                 <tbody>
                   {lotesModal.lotes.map((l) => (
-                    <tr key={l.id} className="border-b border-[var(--color-border)] last:border-0">
-                      <td className="py-3 font-medium text-[var(--color-text)]">{l.numero}</td>
-                      <td className="py-3 text-right text-[var(--color-text)]">{l.cajas}</td>
-                      <td className="py-3 text-right text-[var(--color-text)]">{l.sueltos}</td>
-                      <td className="py-3 text-right font-medium text-[var(--color-text)]">{l.unidades}</td>
-                      <td className="py-3 text-[var(--color-text-3)]">
+                    <tr key={l.id} className="border-b border-white/10 last:border-0">
+                      <td className="py-3 font-medium text-on-surface">{l.numero}</td>
+                      <td className="py-3 text-right text-on-surface">{l.cajas}</td>
+                      <td className="py-3 text-right text-on-surface">{l.sueltos}</td>
+                      <td className="py-3 text-right font-medium text-on-surface">{l.unidades}</td>
+                      <td className="py-3 text-outline">
                         {new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}
                       </td>
                       <td className="py-3 text-center">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] ${l.activo ? 'bg-[rgba(26,107,53,0.16)] text-[#7ff6a1]' : 'bg-[rgba(116,121,111,0.14)] text-[#bccbb8]'}`}>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 font-heading font-semibold text-xs ${l.activo ? 'bg-success/20 text-success' : 'bg-surface-highest text-on-surface-variant'}`}>
                           {l.activo ? 'Sí' : 'No'}
                         </span>
                       </td>
@@ -263,32 +263,32 @@ export default function ProductosPage() {
               </table>
             )}
 
-            <div className="border-t border-[var(--color-border)] pt-4">
-              <h3 className="mb-3 text-[14px] font-bold text-[var(--color-text)]">Agregar lote</h3>
+            <div className="border-t border-white/10 pt-4">
+              <h3 className="mb-3 font-heading text-[14px] font-bold text-on-surface">Agregar lote</h3>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-[11px] text-[var(--color-text-3)]">Cajas</label>
+                  <label className="font-body text-[11px] text-outline">Cajas</label>
                   <input type="number" min={0} value={loteForm.cajas} onChange={(e) => setLoteForm({ ...loteForm, cajas: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]" />
+                    className="input-field mt-1" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-[var(--color-text-3)]">Sueltos (máx {MAX_SUELTOS})</label>
+                  <label className="font-body text-[11px] text-outline">Sueltos (máx {MAX_SUELTOS})</label>
                   <input type="number" min={0} max={MAX_SUELTOS} value={loteForm.sueltos} onChange={(e) => setLoteForm({ ...loteForm, sueltos: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]" />
+                    className="input-field mt-1" />
                 </div>
                 <div>
-                  <label className="text-[11px] text-[var(--color-text-3)]">Fecha producción</label>
+                  <label className="font-body text-[11px] text-outline">Fecha producción</label>
                   <input type="date" value={loteForm.fechaProduccion} onChange={(e) => setLoteForm({ ...loteForm, fechaProduccion: e.target.value })}
-                    className="mt-1 w-full rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)]" />
+                    className="input-field mt-1" />
                 </div>
               </div>
-              <button onClick={handleAddLote} className="mt-3 rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)]">
+              <button onClick={handleAddLote} className="mt-3 rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
                 Agregar lote
               </button>
             </div>
 
             <div className="mt-4 flex justify-end">
-              <button onClick={() => setLotesModal(null)} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-[12px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]">Cerrar</button>
+              <button onClick={() => setLotesModal(null)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cerrar</button>
             </div>
           </div>
         </div>
