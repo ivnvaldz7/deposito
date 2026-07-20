@@ -33,6 +33,7 @@ router.post('/dev-login', async (req, res) => {
   }
 
   const { email } = req.body as { email?: string }
+  console.log('[dev-login] Request for:', email)
 
   if (!email) {
     res.status(400).json({ error: 'Email requerido' })

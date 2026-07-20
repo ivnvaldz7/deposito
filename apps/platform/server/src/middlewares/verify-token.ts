@@ -23,9 +23,11 @@ export function verifyToken(
   res: Response,
   next: NextFunction
 ): void {
-  const token = getBearerToken(req.headers.authorization)
+  const authHeader = req.headers.authorization
+  const token = getBearerToken(authHeader)
 
   if (!token) {
+    console.log('[verify-token] No token found in header:', authHeader ? authHeader.substring(0, 30) : '(no header)')
     res.status(401).json({ error: 'Token requerido' })
     return
   }
@@ -33,10 +35,12 @@ export function verifyToken(
   const payload = verifyAccessToken(token)
 
   if (!payload) {
+    console.log('[verify-token] verifyAccessToken returned null for token:', token.substring(0, 30) + '...')
     res.status(401).json({ error: 'Token inválido o expirado' })
     return
   }
 
+  console.log('[verify-token] Token verified for:', payload.email)
   req.user = payload
   next()
 }
