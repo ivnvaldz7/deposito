@@ -13,7 +13,8 @@
     "db:generate": "cd ../../packages/db && npx prisma generate",
     "db:create-superadmin": "tsx src/scripts/create-superadmin.ts",
     "db:seed-deposito": "tsx src/seed/seed-deposito.ts",
-    "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed-deposito && npm run db:create-superadmin"
+    "db:seed-ale-bet": "tsx src/seed/seed-ale-bet.ts",
+    "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed-deposito && npm run db:seed-ale-bet && npm run db:create-superadmin"
   },
   "dependencies": {
     "@platform/core": "*",
