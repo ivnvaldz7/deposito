@@ -39,15 +39,14 @@ const ROLE_LABELS: Record<Role, string> = {
 // ─── Role chip ────────────────────────────────────────────────────────────────
 
 function RoleChip({ role }: { role: Role }) {
-  const styles: Record<Role, React.CSSProperties> = {
-    encargado: { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
-    observador: { color: '#bccbb8', backgroundColor: 'rgba(188,203,184,0.10)' },
-    solicitante: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
+  const roleClasses: Record<Role, string> = {
+    encargado: 'text-success bg-success/10',
+    observador: 'text-on-surface-variant bg-surface-variant',
+    solicitante: 'text-warning bg-warning/10',
   }
   return (
     <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-      style={styles[role]}
+      className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 ${roleClasses[role]}`}
     >
       {ROLE_LABELS[role]}
     </span>
@@ -91,7 +90,7 @@ function RoleSelector({
       value={currentRole}
       onChange={handleChange}
       disabled={saving || isSelf}
-      className="bg-surface-high text-on-surface font-body text-sm rounded px-2 py-1 border-0 outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+      className="bg-surface-container-high text-on-surface font-body text-sm rounded px-2 py-1 border-0 outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
       aria-label="Cambiar rol"
     >
       <option value="encargado">Encargado</option>
@@ -235,7 +234,7 @@ function CrearUsuarioModal({
               {isSubmitting ? 'Creando...' : 'Crear usuario'}
             </button>
             <DialogClose asChild>
-              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">
+              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                 Cancelar
               </button>
             </DialogClose>
@@ -311,7 +310,7 @@ function DeleteButton({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
+            className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
           >
             Cancelar
           </button>
@@ -393,7 +392,7 @@ export default function UsuariosPage() {
       />
 
       {/* Desktop table */}
-      <div className="hidden md:block bg-surface-low rounded overflow-hidden">
+      <div className="hidden md:block bg-surface-container-low rounded overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="border-b border-outline-variant/15">
@@ -438,7 +437,7 @@ export default function UsuariosPage() {
       {/* Mobile cards */}
       <div className="md:hidden space-y-2">
         {usuarios.map((u) => (
-          <div key={u.id} className="bg-surface-low rounded px-4 py-3 space-y-2">
+          <div key={u.id} className="bg-surface-container-low rounded px-4 py-3 space-y-2">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-body text-on-surface text-sm font-medium">

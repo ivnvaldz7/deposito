@@ -34,14 +34,14 @@ interface DrogaLote {
 
 function ProgressBar({ distribuida, ingresada }: { distribuida: number; ingresada: number }) {
   const pct = ingresada === 0 ? 0 : Math.round((distribuida / ingresada) * 100)
-  const color = pct === 100 ? '#00AE42' : pct > 0 ? '#2196F3' : '#FF9800'
+  const barColor = pct === 100 ? 'bg-success' : pct > 0 ? 'bg-primary' : 'bg-warning'
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 h-1 bg-surface-high rounded-full overflow-hidden">
+      <div className="flex-1 h-1 bg-surface-container-high rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: color }}
+          className={`h-full rounded-full transition-all duration-500 ${barColor}`}
+          style={{ width: `${pct}%` }}
         />
       </div>
       <span className="font-body text-xs text-on-surface-variant tabular-nums shrink-0">
@@ -170,7 +170,7 @@ function ItemRow({
   }
 
   return (
-    <div className="bg-surface-low rounded px-4 py-4 space-y-3">
+    <div className="bg-surface-container-low rounded px-4 py-4 space-y-3">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <p className="font-body text-on-surface text-sm truncate">{item.productoNombre}</p>
@@ -183,27 +183,20 @@ function ItemRow({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {remaining === 0 && (
-            <span
-              className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
-              style={{ color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }}
-            >
+            <span className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded text-success bg-success/10">
               Distribuido
             </span>
           )}
           {remaining > 0 && item.cantidadDistribuida > 0 && (
             <span
-              className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
+              className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded text-primary bg-primary-container/10"
               title="Distribución parcial — quedan unidades por distribuir"
-              style={{ color: '#2196F3', backgroundColor: 'rgba(33,150,243,0.10)' }}
             >
               Parcial
             </span>
           )}
           {remaining > 0 && item.cantidadDistribuida === 0 && (
-            <span
-              className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
-              style={{ color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }}
-            >
+            <span className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded text-warning bg-warning/10">
               Pendiente
             </span>
           )}
@@ -214,8 +207,7 @@ function ItemRow({
                 setDistributing(true)
                 setError(null)
               }}
-              className="px-3 py-1 rounded font-heading font-semibold text-xs transition-colors"
-              style={{ background: 'rgba(84,225,109,0.15)', color: '#54e16d' }}
+              className="px-3 py-1 rounded font-heading font-semibold text-xs transition-colors bg-primary-container/20 text-primary"
             >
               Distribuir
             </button>
@@ -225,7 +217,7 @@ function ItemRow({
 
       <ProgressBar distribuida={item.cantidadDistribuida} ingresada={item.cantidadIngresada} />
 
-      <div className="bg-surface-high/40 rounded px-3 py-3 space-y-2">
+      <div className="bg-surface-container-high/40 rounded px-3 py-3 space-y-2">
         <div className="flex items-center justify-between gap-3">
           <p className="font-heading text-on-surface text-xs uppercase tracking-widest font-semibold">
             Control de Calidad
@@ -236,19 +228,17 @@ function ItemRow({
                 type="button"
                 onClick={handleAprobarCalidad}
                 disabled={approvingQuality}
-                className="px-3 py-1 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
-                style={{ background: 'rgba(84,225,109,0.15)', color: '#54e16d' }}
+                className="px-3 py-1 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50 bg-primary-container/20 text-primary"
               >
                 {approvingQuality ? 'Aprobando...' : 'Aprobar calidad'}
               </button>
             )}
             <span
-              className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
-              style={
+              className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded ${
                 item.aprobadoCalidad
-                  ? { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
-                  : { color: '#f44336', backgroundColor: 'rgba(244,67,54,0.10)' }
-              }
+                  ? 'text-success bg-success/10'
+                  : 'text-error bg-error/10'
+              }`}
             >
               {item.aprobadoCalidad ? 'Aprobado' : 'No aprobado'}
             </span>
@@ -310,11 +300,7 @@ function ItemRow({
               type="button"
               onClick={confirm}
               disabled={saving}
-              className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)',
-                color: '#003918',
-              }}
+              className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity bg-primary text-on-primary disabled:opacity-50"
             >
               {saving ? '...' : 'Confirmar'}
             </button>
@@ -459,7 +445,7 @@ export default function ActaDetallePage() {
         Volver a actas
       </button>
 
-      <div className="bg-surface-low rounded px-5 py-4 space-y-3">
+      <div className="bg-surface-container-low rounded px-5 py-4 space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-heading text-on-surface font-semibold text-xl">
@@ -478,7 +464,7 @@ export default function ActaDetallePage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="flex items-center justify-center h-24 bg-surface-low rounded">
+        <div className="flex items-center justify-center h-24 bg-surface-container-low rounded">
           <p className="font-body text-on-surface-variant text-sm">Sin items registrados.</p>
         </div>
       ) : (

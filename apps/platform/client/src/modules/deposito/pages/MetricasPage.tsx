@@ -52,7 +52,7 @@ function MetricCard({
   loading: boolean
 }) {
   return (
-    <div className="bg-surface-low rounded p-4 flex flex-col gap-2 shadow-[inset_0_0_0_1px_rgba(61,74,60,0.12)]">
+    <div className="bg-surface-container-low rounded p-4 flex flex-col gap-2 border border-white/5">
       <div className="flex items-center gap-2">
         <Icon size={14} strokeWidth={1.5} style={{ color }} />
         <span className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
@@ -60,7 +60,7 @@ function MetricCard({
         </span>
       </div>
       {loading ? (
-        <div className="h-7 w-24 bg-surface-high rounded animate-pulse" />
+        <div className="h-7 w-24 bg-surface-container-high rounded animate-pulse" />
       ) : (
         <p className="font-heading text-2xl font-bold text-on-surface tabular-nums">
           {value?.toLocaleString() ?? '—'}
@@ -81,14 +81,14 @@ function TopTable({
   loading: boolean
 }) {
   return (
-    <div className="bg-surface-low rounded p-4 shadow-[inset_0_0_0_1px_rgba(61,74,60,0.12)]">
+    <div className="bg-surface-container-low rounded p-4 border border-white/5">
       <h3 className="font-heading text-xs uppercase tracking-widest text-on-surface-variant mb-3">
         {title}
       </h3>
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-5 bg-surface-high rounded animate-pulse" />
+            <div key={i} className="h-5 bg-surface-container-high rounded animate-pulse" />
           ))}
         </div>
       ) : rows.length === 0 ? (
@@ -190,10 +190,10 @@ function ProductFilter({
           autoComplete="off"
         />
         {selected && query === selected && (
-          <Check size={14} strokeWidth={1.75} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#00AE42]" />
+          <Check size={14} strokeWidth={1.75} className="absolute right-3 top-1/2 -translate-y-1/2 text-success" />
         )}
         {open && results.length > 0 && (
-          <div className="absolute z-30 left-0 right-0 mt-1 rounded bg-surface-highest/95 backdrop-blur-[12px] shadow-lg overflow-hidden border border-outline-variant/15">
+          <div className="absolute z-30 left-0 right-0 mt-1 rounded bg-surface-container-highest/95 backdrop-blur-md shadow-lg overflow-hidden border border-outline-variant/15">
             {results.map((producto) => (
               <button
                 key={producto}
@@ -418,7 +418,7 @@ export default function MetricasPage() {
       </div>
 
       {!loading && data && data.ingresosPorCategoria.length > 0 && (
-        <div className="bg-surface-low rounded p-4 shadow-[inset_0_0_0_1px_rgba(61,74,60,0.12)]">
+        <div className="bg-surface-container-low rounded p-4 border border-white/5">
           <h3 className="font-heading text-xs uppercase tracking-widest text-on-surface-variant mb-3">
             Ingresos por categoría
           </h3>
@@ -435,7 +435,7 @@ export default function MetricasPage() {
                   if (producto) next.set('producto', producto)
                   navigate(`/metricas?${next.toString()}`)
                 }}
-                className="flex items-center gap-2 bg-surface-high rounded px-3 py-2 transition-colors hover:bg-surface-bright"
+                className="flex items-center gap-2 bg-surface-container-high rounded px-3 py-2 transition-colors hover:bg-surface-bright"
               >
                 <span className="font-heading text-xs uppercase tracking-wider text-on-surface-variant">
                   {CATEGORIA_LABELS[cat] ?? cat}
