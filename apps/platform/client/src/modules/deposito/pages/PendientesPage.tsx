@@ -56,12 +56,11 @@ function EstadoChip({ estado }: { estado: EstadoPendiente }) {
   const en = estado === 'en_esterilizacion'
   return (
     <span
-      className="inline-block shrink-0 rounded px-2 py-0.5 font-body text-xs font-medium"
-      style={
+      className={`inline-block shrink-0 rounded px-2 py-0.5 font-body text-xs font-medium ${
         en
-          ? { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }
-          : { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
-      }
+          ? 'text-warning bg-warning/10'
+          : 'text-success bg-success/10'
+      }`}
     >
       {en ? 'En esterilización' : 'Recibido'}
     </span>
@@ -171,8 +170,7 @@ function FrascoCombobox({
 
       {open && !loading && (
         <div
-          className="absolute z-20 mt-1 max-h-56 w-full overflow-hidden rounded bg-surface-highest/90 shadow-float"
-          style={{ backdropFilter: 'blur(12px)' }}
+          className="absolute z-20 mt-1 max-h-56 w-full overflow-hidden rounded bg-surface-container-highest/90 shadow-float backdrop-blur-md"
         >
           {results.length > 0 ? (
             <ul className="max-h-56 overflow-y-auto py-1">
@@ -351,12 +349,12 @@ function EnviarModal({
                 }}
               />
               {errors.articulo && (
-                <p className="font-body text-xs" style={{ color: '#FF9800' }}>{errors.articulo.message}</p>
+                <p className="font-body text-xs text-warning">{errors.articulo.message}</p>
               )}
             </div>
 
             {selectedFrasco && (
-              <div className="rounded bg-surface-low px-4 py-3">
+              <div className="rounded bg-surface-container-low px-4 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">
                   Referencia del inventario
                 </p>
@@ -379,7 +377,7 @@ function EnviarModal({
                 className="input-field w-full py-2 text-sm"
               />
               {errors.cantidad && (
-                <p className="font-body text-xs" style={{ color: '#FF9800' }}>{errors.cantidad.message}</p>
+                <p className="font-body text-xs text-warning">{errors.cantidad.message}</p>
               )}
             </div>
 
@@ -394,7 +392,7 @@ function EnviarModal({
                 className="input-field w-full py-2 text-sm"
               />
               {errors.destino && (
-                <p className="font-body text-xs" style={{ color: '#FF9800' }}>{errors.destino.message}</p>
+                <p className="font-body text-xs text-warning">{errors.destino.message}</p>
               )}
             </div>
 
@@ -410,7 +408,7 @@ function EnviarModal({
                   className="input-field w-full py-2 text-sm"
                 />
                 {errors.fechaEnvio && (
-                  <p className="font-body text-xs" style={{ color: '#FF9800' }}>{errors.fechaEnvio.message}</p>
+                  <p className="font-body text-xs text-warning">{errors.fechaEnvio.message}</p>
                 )}
               </div>
 
@@ -440,7 +438,7 @@ function EnviarModal({
             </div>
 
             {serverError && (
-              <p className="font-body text-xs" style={{ color: '#FF9800' }}>{serverError}</p>
+              <p className="font-body text-xs text-warning">{serverError}</p>
             )}
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -454,8 +452,7 @@ function EnviarModal({
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedFrasco}
-                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity disabled:opacity-50"
-                style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
               >
                 <Plus size={13} strokeWidth={2} />
                 {isSubmitting ? 'Guardando...' : 'Enviar'}
@@ -541,8 +538,7 @@ function RecibirModal({
       <button
         type="button"
         onClick={() => handleOpenChange(true)}
-        className="flex items-center gap-1.5 rounded px-3 py-1.5 font-heading text-xs font-semibold transition-opacity"
-        style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+        className="flex items-center gap-1.5 rounded px-3 py-1.5 font-heading text-xs font-semibold transition-opacity bg-primary text-on-primary"
       >
         <Check size={12} strokeWidth={2} />
         Marcar como recibido
@@ -559,19 +555,19 @@ function RecibirModal({
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded bg-surface-low px-3 py-3">
+              <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Enviadas</p>
                 <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
                   {pendiente.cantidad}
                 </p>
               </div>
-              <div className="rounded bg-surface-low px-3 py-3">
+              <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Recibidas</p>
                 <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
                   {Number.isFinite(cantidadRecibida) ? cantidadRecibida : 0}
                 </p>
               </div>
-              <div className="rounded bg-surface-low px-3 py-3">
+              <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Siguen afuera</p>
                 <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
                   {cantidadRestante}
@@ -593,14 +589,14 @@ function RecibirModal({
                 autoFocus
               />
               {errors.cantidadRecibida && (
-                <p className="font-body text-xs" style={{ color: '#FF9800' }}>
+                <p className="font-body text-xs text-warning">
                   {errors.cantidadRecibida.message}
                 </p>
               )}
             </div>
 
             {serverError && (
-              <p className="font-body text-xs" style={{ color: '#FF9800' }}>{serverError}</p>
+              <p className="font-body text-xs text-warning">{serverError}</p>
             )}
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -614,8 +610,7 @@ function RecibirModal({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity disabled:opacity-50"
-                style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
               >
                 <Check size={13} strokeWidth={2} />
                 {isSubmitting ? 'Guardando...' : 'Confirmar recepción'}
@@ -638,7 +633,7 @@ function PendienteCard({
   onCrearIngreso?: (p: InsumoPendiente) => void
 }) {
   return (
-    <div className="space-y-3 rounded bg-surface-low px-4 py-4">
+    <div className="space-y-3 rounded bg-surface-container-low px-4 py-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate font-body text-sm font-medium text-on-surface">{pendiente.articulo}</p>
@@ -680,7 +675,7 @@ function PendienteCard({
           <button
             type="button"
             onClick={() => onCrearIngreso(pendiente)}
-            className="flex items-center gap-1.5 rounded bg-surface-high px-3 py-1.5 font-heading text-xs font-semibold text-on-surface transition-colors hover:bg-surface-bright"
+            className="flex items-center gap-1.5 rounded bg-surface-container-high px-3 py-1.5 font-heading text-xs font-semibold text-on-surface transition-colors hover:bg-surface-bright"
           >
             <PackagePlus size={12} strokeWidth={1.5} />
             Crear ingreso
@@ -771,7 +766,7 @@ export default function PendientesPage() {
         </div>
       ) : error ? (
         <div className="flex h-48 items-center justify-center">
-          <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error}</p>
+          <p className="font-body text-sm text-warning">{error}</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -780,8 +775,7 @@ export default function PendientesPage() {
               En esterilización
               {enEsterilizacion.length > 0 && (
                 <span
-                  className="ml-2 inline-block rounded px-2 py-0.5 font-body text-xs font-medium"
-                  style={{ color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }}
+                  className="ml-2 inline-block rounded px-2 py-0.5 font-body text-xs font-medium text-warning bg-warning/10"
                 >
                   {enEsterilizacion.length}
                 </span>
@@ -789,7 +783,7 @@ export default function PendientesPage() {
             </h2>
 
             {enEsterilizacion.length === 0 ? (
-              <div className="rounded bg-surface-low px-4 py-8 text-center">
+              <div className="rounded bg-surface-container-low px-4 py-8 text-center">
                 <p className="font-body text-sm text-on-surface-variant">
                   No hay frascos en esterilización.
                 </p>
@@ -812,8 +806,7 @@ export default function PendientesPage() {
               Recibidos
               {recibidos.length > 0 && (
                 <span
-                  className="ml-2 inline-block rounded px-2 py-0.5 font-body text-xs font-medium"
-                  style={{ color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }}
+                  className="ml-2 inline-block rounded px-2 py-0.5 font-body text-xs font-medium text-success bg-success/10"
                 >
                   {recibidos.length}
                 </span>
@@ -821,7 +814,7 @@ export default function PendientesPage() {
             </h2>
 
             {recibidos.length === 0 ? (
-              <div className="rounded bg-surface-low px-4 py-8 text-center">
+              <div className="rounded bg-surface-container-low px-4 py-8 text-center">
                 <p className="font-body text-sm text-on-surface-variant">
                   No hay insumos recibidos todavía.
                 </p>

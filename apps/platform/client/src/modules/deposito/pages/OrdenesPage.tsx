@@ -74,12 +74,12 @@ function formatFecha(iso: string): string {
 
 // ─── Chips ────────────────────────────────────────────────────────────────────
 
-const ESTADO_STYLES: Record<EstadoOrden, React.CSSProperties> = {
-  solicitada: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
-  aprobada:   { color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' },
-  ejecutada:  { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
-  completada: { color: '#00802f', backgroundColor: 'rgba(0,128,47,0.12)' },
-  rechazada:  { color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' },
+const ESTADO_CLASSES: Record<EstadoOrden, string> = {
+  solicitada: 'text-warning bg-warning/10',
+  aprobada:   'text-primary bg-primary-container/10',
+  ejecutada:  'text-success bg-success/10',
+  completada: 'text-success bg-success/15',
+  rechazada:  'text-error bg-error/10',
 }
 
 const ESTADO_LABELS: Record<EstadoOrden, string> = {
@@ -93,8 +93,7 @@ const ESTADO_LABELS: Record<EstadoOrden, string> = {
 function EstadoChip({ estado }: { estado: EstadoOrden }) {
   return (
     <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-      style={ESTADO_STYLES[estado]}
+      className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 ${ESTADO_CLASSES[estado]}`}
     >
       {ESTADO_LABELS[estado]}
     </span>
@@ -105,8 +104,7 @@ function UrgenciaChip({ urgencia }: { urgencia: Urgencia }) {
   if (urgencia === 'normal') return null
   return (
     <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 animate-pulse"
-      style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}
+      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 animate-pulse text-error bg-error/10"
     >
       Urgente
     </span>
@@ -291,7 +289,7 @@ function NuevaOrdenModal({
               {isSubmitting ? 'Enviando...' : 'Enviar orden'}
             </button>
             <DialogClose asChild>
-              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">
+              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                 Cancelar
               </button>
             </DialogClose>
@@ -344,8 +342,7 @@ function RechazarModal({
       <button
         type="button"
         onClick={() => { setOpen(true); setError(null) }}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs transition-colors"
-        style={{ color: '#ef4444', backgroundColor: 'rgba(239,68,68,0.10)' }}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs transition-colors text-error bg-error/10"
       >
         <X size={12} strokeWidth={2} />
         Rechazar
@@ -378,15 +375,14 @@ function RechazarModal({
                 type="button"
                 onClick={handleRechazar}
                 disabled={loading}
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors disabled:opacity-50"
-                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors bg-error text-white disabled:opacity-50"
               >
                 {loading ? 'Rechazando...' : 'Confirmar rechazo'}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
+                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
               >
                 Cancelar
               </button>
@@ -439,7 +435,7 @@ function OrdenCard({
   const canCompletar = isEncargado && orden.estado === 'ejecutada'
 
   return (
-    <div className="bg-surface-low rounded px-4 py-4 space-y-3">
+    <div className="bg-surface-container-low rounded px-4 py-4 space-y-3">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -480,8 +476,8 @@ function OrdenCard({
       </div>
 
       {orden.motivoRechazo && (
-        <div className="rounded px-3 py-2" style={{ backgroundColor: 'rgba(239,68,68,0.07)' }}>
-          <p className="font-body text-xs" style={{ color: '#ef4444' }}>
+        <div className="rounded px-3 py-2 bg-error/5">
+          <p className="font-body text-xs text-error">
             <span className="font-semibold">Motivo: </span>
             {orden.motivoRechazo}
           </p>
@@ -496,8 +492,7 @@ function OrdenCard({
               type="button"
               onClick={() => handleAction('aprobar')}
               disabled={actionLoading === 'aprobar'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
-              style={{ color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity text-primary bg-primary-container/10"
             >
               <Check size={12} strokeWidth={2} />
               {actionLoading === 'aprobar' ? 'Aprobando...' : 'Aprobar'}
@@ -508,8 +503,7 @@ function OrdenCard({
               type="button"
               onClick={() => handleAction('ejecutar')}
               disabled={actionLoading === 'ejecutar'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
-              style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity bg-primary text-on-primary"
             >
               <Check size={12} strokeWidth={2} />
               {actionLoading === 'ejecutar' ? 'Ejecutando...' : 'Ejecutar'}
@@ -520,7 +514,7 @@ function OrdenCard({
               type="button"
               onClick={() => handleAction('completar')}
               disabled={actionLoading === 'completar'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-high hover:bg-surface-bright transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-container-high hover:bg-surface-bright transition-colors disabled:opacity-50"
             >
               {actionLoading === 'completar' ? 'Completando...' : 'Marcar completada'}
             </button>
@@ -553,7 +547,7 @@ function FiltroEstado({
           id="filtro-estado"
           value={value}
           onChange={(e) => onChange(e.target.value as EstadoOrden | 'todas')}
-          className="appearance-none bg-surface-high text-on-surface font-body text-sm rounded px-3 py-1.5 pr-8 border-0 outline-none focus:ring-1 focus:ring-primary"
+          className="appearance-none bg-surface-container-high text-on-surface font-body text-sm rounded px-3 py-1.5 pr-8 border-0 outline-none focus:ring-1 focus:ring-primary"
         >
           <option value="todas">Todas</option>
           {TODOS_LOS_ESTADOS.map((e) => (
@@ -655,7 +649,7 @@ export default function OrdenesPage() {
         </div>
       ) : error ? (
         <div className="flex items-center justify-center py-20">
-          <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error}</p>
+          <p className="font-body text-sm text-warning">{error}</p>
         </div>
       ) : ordenesOrdenadas.length === 0 ? (
         <div className="flex items-center justify-center py-20">
