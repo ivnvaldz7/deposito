@@ -105,7 +105,7 @@ function AgregarFrascoModal({ onCreated, open, onOpenChange }: { onCreated: (f: 
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
-            <DialogClose asChild><button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">Cancelar</button></DialogClose>
+            <DialogClose asChild><button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button></DialogClose>
           </div>
         </form>
       </DialogContent>
@@ -156,7 +156,7 @@ function EditarFrascoModal({ frasco, onUpdated, onClose }: { frasco: Frasco; onU
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">Cancelar</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
           </div>
         </form>
       </DialogContent>
@@ -233,7 +233,7 @@ export default function FrascosPage() {
       {filteredFrascos.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />
       : (
         <>
-          <div className="hidden md:block bg-surface-low rounded overflow-hidden">
+          <div className="hidden md:block bg-surface-container-low rounded overflow-hidden">
             <Table>
               <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-32 text-right">Unid/Caja</TableHead><TableHead className="w-32 text-right">Cajas</TableHead><TableHead className="w-36 text-right">Total uds</TableHead>{isEncargado && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
               <TableBody>
@@ -258,7 +258,7 @@ export default function FrascosPage() {
           </div>
           <div className="md:hidden space-y-2">
             {filteredFrascos.map((frasco) => (
-              <div key={frasco.id} className={`bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}>
+              <div key={frasco.id} className={`bg-surface-container-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}>
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(frasco)}</p>
                   <p className="font-body text-on-surface-variant text-xs mt-0.5 tabular-nums">{frasco.unidadesPorCaja} uds/caja · {frasco.cantidadCajas} cajas · <span className="text-on-surface font-medium">{frasco.total.toLocaleString()} total</span></p>
