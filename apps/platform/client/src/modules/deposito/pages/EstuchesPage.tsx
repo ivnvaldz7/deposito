@@ -163,11 +163,11 @@ function AgregarEstucheModal({
                   type="button"
                   onClick={() => setValue('mercado', value)}
                   className="px-3 py-1.5 rounded font-body text-xs transition-colors"
-                  style={
+                  className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${
                     mercadoVal === value
-                      ? { background: 'rgba(84,225,109,0.15)', color: '#54e16d' }
-                      : { background: 'var(--color-surface-high)', color: '#bccbb8' }
-                  }
+                      ? 'bg-primary-container/20 text-primary'
+                      : 'bg-surface-container-high text-on-surface-variant'
+                  }`}
                 >
                   {label}
                 </button>
@@ -205,7 +205,7 @@ function AgregarEstucheModal({
             <DialogClose asChild>
               <button
                 type="button"
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
+                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
               >
                 Cancelar
               </button>
@@ -300,11 +300,11 @@ function EditarEstucheModal({
                   type="button"
                   onClick={() => setValue('mercado', value)}
                   className="px-3 py-1.5 rounded font-body text-xs transition-colors"
-                  style={
+                  className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${
                     mercadoVal === value
-                      ? { background: 'rgba(84,225,109,0.15)', color: '#54e16d' }
-                      : { background: 'var(--color-surface-high)', color: '#bccbb8' }
-                  }
+                      ? 'bg-primary-container/20 text-primary'
+                      : 'bg-surface-container-high text-on-surface-variant'
+                  }`}
                 >
                   {label}
                 </button>
@@ -324,7 +324,7 @@ function EditarEstucheModal({
             <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
               {isSubmitting ? 'Guardando...' : 'Guardar'}
             </button>
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
               Cancelar
             </button>
           </div>
@@ -502,7 +502,7 @@ export default function EstuchesPage() {
         <EmptyState message={productoFiltro ? 'No se encontró ese estuche con los filtros aplicados.' : 'No hay estuches para este mercado.'} />
       ) : (
         <>
-          <div className="hidden md:block bg-surface-low rounded overflow-hidden">
+          <div className="hidden md:block bg-surface-container-low rounded overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -559,7 +559,7 @@ export default function EstuchesPage() {
             {estuches.map((estuche) => (
               <div
                 key={estuche.id}
-                className={`bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
+                className={`bg-surface-container-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(estuche)}</p>
