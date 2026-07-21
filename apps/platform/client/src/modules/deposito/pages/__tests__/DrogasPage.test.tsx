@@ -46,7 +46,7 @@ describe('DrogasPage', () => {
     vi.mocked(api.get).mockResolvedValue(createDrogaRecords())
     render(<MemoryRouter><DrogasPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('DROGAS')).toBeInTheDocument()
+      expect(screen.getByText('Inventario de Drogas')).toBeInTheDocument()
     })
     expect(screen.getByText('Paracetamol')).toBeInTheDocument()
     expect(screen.getByText('Ibuprofeno')).toBeInTheDocument()

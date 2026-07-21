@@ -65,13 +65,12 @@ describe('DashboardPage (Depósito)', () => {
       </MemoryRouter>,
     )
     await waitFor(() => {
-      expect(screen.getByText('Dashboard')).toBeInTheDocument()
+      expect(screen.getByText('Depósito')).toBeInTheDocument()
     })
-    expect(screen.getAllByText('12').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('8')).toBeInTheDocument()
-    expect(screen.getByText('15')).toBeInTheDocument()
-    expect(screen.getByText('6')).toBeInTheDocument()
-    expect(screen.getByText('Últimos Movimientos')).toBeInTheDocument()
+    expect(screen.getByText('41')).toBeInTheDocument()
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('5')).toBeInTheDocument()
+    expect(screen.getByText('Recent Movements')).toBeInTheDocument()
     expect(screen.getAllByText('Vitamina B12').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Paracetamol')).toBeInTheDocument()
   })
@@ -90,7 +89,7 @@ describe('DashboardPage (Depósito)', () => {
       </MemoryRouter>,
     )
     await waitFor(() => {
-      expect(screen.getByText('Stock Bajo')).toBeInTheDocument()
+      expect(screen.getByText('Critical Reorder Alerts')).toBeInTheDocument()
     })
   })
 })

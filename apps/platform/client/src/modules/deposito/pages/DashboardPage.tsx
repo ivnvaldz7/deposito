@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowRight } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Package, Pill, Box, Tag, Plus } from 'lucide-react'
+import { GlassCard } from '@/components/ui/GlassCard'
 import { api } from '../lib/api'
 
 type TipoMovimiento = 'ingreso_acta' | 'egreso_orden' | 'ajuste_manual'
@@ -62,26 +63,7 @@ interface DashboardStats {
   porVencer: DrogaPorVencer[]
 }
 
-interface InventorySummaryCardProps {
-  title: string
-  total: number
-  enStock: number
-  sinStock: number
-  stockBajo: number
-  stockBajoLabel: string
-  accentColor: string
-  onOpen: () => void
-}
-
-interface LowStockPanelProps {
-  title: string
-  hrefLabel: string
-  onOpen: () => void
-  threshold: string
-  children: ReactNode
-}
-
-type ChipTone = 'success' | 'warning' | 'neutral'
+// ─── Helpers ────────────────────────────────────────────────────────────────────
 
 function formatFecha(iso: string): string {
   const d = new Date(iso)
@@ -92,127 +74,94 @@ function formatMercado(mercado: string): string {
   return mercado.split('_').join(' ')
 }
 
-const TIPO_CONFIG: Record<TipoMovimiento, { label: string; color: string; bg: string }> = {
-  ingreso_acta: { label: 'Ingreso', color: '#00AE42', bg: 'rgba(0,174,66,0.10)' },
-  egreso_orden: { label: 'Egreso', color: '#FF9800', bg: 'rgba(255,152,0,0.10)' },
-  ajuste_manual: { label: 'Ajuste', color: '#2196F3', bg: 'rgba(33,150,243,0.10)' },
+const TIPO_CONFIG: Record<TipoMovimiento, { label: string; variant: 'primary' | 'error' | 'info' }> = {
+  ingreso_acta: { label: 'Ingreso', variant: 'primary' },
+  egreso_orden: { label: 'Egreso', variant: 'error' },
+  ajuste_manual: { label: 'Ajuste', variant: 'info' },
 }
 
-function TelemetryChip({
+// ─── Sub-components ─────────────────────────────────────────────────────────────
+
+function MetricCard({
   label,
   value,
-  tone,
+  icon: Icon,
+  variant = 'default',
 }: {
   label: string
   value: number | string
-  tone: ChipTone
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  variant?: 'default' | 'warning' | 'error'
 }) {
-  const styles: Record<ChipTone, { color: string; backgroundColor: string }> = {
-    success: { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
-    warning: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
-    neutral: { color: '#bccbb8', backgroundColor: 'rgba(188,203,184,0.10)' },
-  }
-
-  const toneStyle = styles[tone]
-
   return (
-    <span
-      className="inline-flex items-center gap-2 rounded px-2.5 py-1 font-body text-xs font-medium"
-      style={toneStyle}
-    >
-      <span>{label}</span>
-      <span className="tabular-nums">{value}</span>
-    </span>
+    <GlassCard variant={variant} className="flex flex-col justify-between">
+      <div className="flex justify-between items-start mb-md">
+        <span className="font-body text-sm text-on-surface-variant">{label}</span>
+        <Icon size={24} className="opacity-50" />
+      </div>
+      <div className="font-heading text-3xl font-bold text-on-surface tabular-nums">
+        {value}
+      </div>
+    </GlassCard>
   )
 }
 
 function TipoChip({ tipo }: { tipo: TipoMovimiento }) {
   const c = TIPO_CONFIG[tipo]
+  const colorMap = {
+    primary: 'bg-primary-container/20 text-primary',
+    error: 'bg-error-container/20 text-error',
+    info: 'bg-tertiary-container/20 text-tertiary',
+  }
   return (
-    <span
-      className="inline-block shrink-0 rounded px-2 py-0.5 font-body text-xs font-medium"
-      style={{ color: c.color, backgroundColor: c.bg }}
-    >
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${colorMap[c.variant]}`}>
       {c.label}
     </span>
   )
 }
 
-function InventorySummaryCard({
-  title,
-  total,
-  enStock,
-  sinStock,
-  stockBajo,
-  stockBajoLabel,
-  accentColor,
-  onOpen,
-}: InventorySummaryCardProps) {
+// ─── Stock Bajo Alert Card ──────────────────────────────────────────────────────
+
+function StockAlertCard({
+  icon: Icon,
+  productName,
+  category,
+  currentStock,
+  unit,
+  stockTone = 'tertiary',
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>
+  productName: string
+  category: string
+  currentStock: number
+  unit: string
+  stockTone?: 'tertiary' | 'error'
+}) {
   return (
-    <section className="rounded bg-surface-low p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">
-            {title}
-          </p>
-          <p
-            className="font-heading font-bold leading-none text-on-surface tabular-nums"
-            style={{ fontSize: '3.5rem', color: accentColor }}
-          >
-            {total}
-          </p>
+    <div className="bg-surface-container-high rounded-lg p-md border border-white/10 hover:border-primary transition-colors duration-300 group">
+      <div className="flex items-center space-x-4 mb-sm">
+        <div className={`w-10 h-10 rounded flex items-center justify-center ${stockTone === 'error' ? 'bg-error-container/20 text-error' : 'bg-tertiary-container/20 text-tertiary'}`}>
+          <Icon size={20} />
         </div>
-
-        <TelemetryChip
-          label="Stock bajo"
-          value={stockBajo}
-          tone={stockBajo > 0 ? 'warning' : 'neutral'}
-        />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-heading text-sm font-semibold text-on-surface truncate">{productName}</h3>
+          <p className="font-body text-xs text-on-surface-variant">{category}</p>
+        </div>
       </div>
-
-      <div className="mt-5 flex flex-wrap gap-2">
-        <TelemetryChip label="En stock" value={enStock} tone="success" />
-        <TelemetryChip label="Sin stock" value={sinStock} tone={sinStock > 0 ? 'warning' : 'neutral'} />
+      <div className="flex justify-between items-end mt-4">
+        <div>
+          <span className="font-body text-xs text-outline">Current Stock</span>
+          <div className={`font-heading text-xl font-bold tabular-nums ${stockTone === 'error' ? 'text-error' : 'text-tertiary'}`}>
+            {currentStock}{' '}
+            <span className="font-body text-sm text-on-surface-variant font-normal">{unit}</span>
+          </div>
+        </div>
       </div>
-
-      <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="font-body text-xs text-on-surface-variant">{stockBajoLabel}</p>
-        <button
-          onClick={onOpen}
-          className="flex items-center gap-1 font-body text-xs text-on-surface-variant transition-colors hover:text-on-surface"
-        >
-          Ver detalle
-          <ArrowRight size={12} strokeWidth={1.5} />
-        </button>
-      </div>
-    </section>
+    </div>
   )
 }
 
-function LowStockPanel({ title, hrefLabel, onOpen, threshold, children }: LowStockPanelProps) {
-  return (
-    <section className="rounded bg-surface-low p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h3 className="font-heading text-sm font-semibold uppercase tracking-widest text-on-surface">
-            {title}
-          </h3>
-          <p className="font-body text-xs text-on-surface-variant">{threshold}</p>
-        </div>
-
-        <button
-          onClick={onOpen}
-          className="flex items-center gap-1 font-body text-xs text-on-surface-variant transition-colors hover:text-on-surface"
-        >
-          {hrefLabel}
-          <ArrowRight size={12} strokeWidth={1.5} />
-        </button>
-      </div>
-
-      <div className="mt-4 space-y-2">{children}</div>
-    </section>
-  )
-}
+// ─── Main page ──────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -251,233 +200,175 @@ export default function DashboardPage() {
     stats.stockBajoEtiquetas.length > 0 ||
     stats.stockBajoFrascos.length > 0
 
+  const totalItems =
+    stats.totalDrogas + stats.totalEstuches + stats.totalEtiquetas + stats.totalFrascos
+
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="font-heading text-xl font-semibold text-on-surface">Dashboard</h1>
-        <p className="mt-0.5 font-body text-sm text-on-surface-variant">
-          Vista general del depósito por categoría
-        </p>
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-heading text-3xl font-bold text-primary tracking-tighter">Depósito</h1>
+          <p className="font-body text-base text-on-surface-variant mt-1">
+            Overview of current laboratory inventory and critical alerts.
+          </p>
+        </div>
+        <button
+          onClick={() => navigate('/deposito/ingresos/nueva')}
+          className="flex items-center gap-2 bg-primary-container text-white font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:bg-primary shadow-float"
+        >
+          <Plus size={18} />
+          <span>New Entry</span>
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
-        <InventorySummaryCard
-          title="Drogas"
-          total={stats.totalDrogas}
-          enStock={stats.drogasEnStock}
-          sinStock={stats.drogasSinStock}
-          stockBajo={stats.stockBajo.length}
-          stockBajoLabel="Alerta por cantidad menor a 10"
-          accentColor="var(--color-on-surface)"
-          onOpen={() => navigate('drogas')}
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
+        <MetricCard
+          label="Total Items"
+          value={totalItems.toLocaleString()}
+          icon={Package}
+          variant="default"
         />
-        <InventorySummaryCard
-          title="Estuches"
-          total={stats.totalEstuches}
-          enStock={stats.totalEstuches - stats.estuchesSinStock}
-          sinStock={stats.estuchesSinStock}
-          stockBajo={stats.stockBajoEstuches.length}
-          stockBajoLabel="Alerta por cantidad menor a 100"
-          accentColor="#54e16d"
-          onOpen={() => navigate('estuches')}
+        <MetricCard
+          label="Low Stock"
+          value={stats.stockBajo.length + stats.stockBajoEstuches.length + stats.stockBajoEtiquetas.length + stats.stockBajoFrascos.length}
+          icon={AlertTriangle}
+          variant="warning"
         />
-        <InventorySummaryCard
-          title="Etiquetas"
-          total={stats.totalEtiquetas}
-          enStock={stats.totalEtiquetas - stats.etiquetasSinStock}
-          sinStock={stats.etiquetasSinStock}
-          stockBajo={stats.stockBajoEtiquetas.length}
-          stockBajoLabel="Alerta por cantidad menor a 100"
-          accentColor="#9cf0ad"
-          onOpen={() => navigate('etiquetas')}
-        />
-        <InventorySummaryCard
-          title="Frascos"
-          total={stats.totalFrascos}
-          enStock={stats.totalFrascos - stats.frascosSinStock}
-          sinStock={stats.frascosSinStock}
-          stockBajo={stats.stockBajoFrascos.length}
-          stockBajoLabel="Alerta por menos de 5 cajas"
-          accentColor="#d4f7db"
-          onOpen={() => navigate('frascos')}
+        <MetricCard
+          label="Movements Today"
+          value={stats.movimientosHoy}
+          icon={ArrowRight}
+          variant={stats.movimientosHoy > 50 ? 'error' : 'default'}
         />
       </div>
 
-      {hayStockBajo && (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={14} strokeWidth={1.5} style={{ color: '#FF9800' }} />
-            <h2 className="font-heading text-sm font-semibold uppercase tracking-widest text-on-surface">
-              Stock Bajo
-            </h2>
+      {/* Middle Section (2 Columns) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-lg">
+        {/* Left Column (2/3) - Low Stock Alerts */}
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-md">
+            <h2 className="font-heading text-lg font-semibold text-on-surface">Critical Reorder Alerts</h2>
+            <button
+              onClick={() => navigate('/deposito/drogas')}
+              className="font-body text-xs text-primary hover:underline"
+            >
+              View All
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-            <LowStockPanel
-              title="Drogas"
-              hrefLabel="Ver drogas"
-              threshold="Productos con cantidad menor a 10"
-              onOpen={() => navigate('drogas')}
-            >
-              {stats.stockBajo.length === 0 ? (
-                <p className="font-body text-sm text-on-surface-variant">
-                  Sin alertas en esta categoría.
-                </p>
-              ) : (
-                stats.stockBajo.map((droga) => (
-                  <div
-                    key={droga.id}
-                    className="flex items-center justify-between gap-3 rounded bg-surface-high px-4 py-3"
-                  >
-                    <p className="min-w-0 flex-1 truncate font-body text-sm text-on-surface">
-                      {droga.nombre}
-                    </p>
-                    <TelemetryChip label="Stock" value={`${droga.cantidad} uds`} tone="warning" />
-                  </div>
-                ))
-              )}
-            </LowStockPanel>
-
-            <LowStockPanel
-              title="Estuches"
-              hrefLabel="Ver estuches"
-              threshold="Productos con cantidad menor a 100"
-              onOpen={() => navigate('estuches')}
-            >
-              {stats.stockBajoEstuches.length === 0 ? (
-                <p className="font-body text-sm text-on-surface-variant">
-                  Sin alertas en esta categoría.
-                </p>
-              ) : (
-                stats.stockBajoEstuches.map((estuche) => (
-                  <div
-                    key={estuche.id}
-                    className="flex items-center justify-between gap-3 rounded bg-surface-high px-4 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-body text-sm text-on-surface">{estuche.articulo}</p>
-                      <p className="mt-0.5 font-body text-xs uppercase tracking-widest text-on-surface-variant">
-                        {formatMercado(estuche.mercado)}
-                      </p>
-                    </div>
-                    <TelemetryChip label="Stock" value={`${estuche.cantidad} uds`} tone="warning" />
-                  </div>
-                ))
-              )}
-            </LowStockPanel>
-
-            <LowStockPanel
-              title="Etiquetas"
-              hrefLabel="Ver etiquetas"
-              threshold="Productos con cantidad menor a 100"
-              onOpen={() => navigate('etiquetas')}
-            >
-              {stats.stockBajoEtiquetas.length === 0 ? (
-                <p className="font-body text-sm text-on-surface-variant">
-                  Sin alertas en esta categoría.
-                </p>
-              ) : (
-                stats.stockBajoEtiquetas.map((etiqueta) => (
-                  <div
-                    key={etiqueta.id}
-                    className="flex items-center justify-between gap-3 rounded bg-surface-high px-4 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-body text-sm text-on-surface">{etiqueta.articulo}</p>
-                      <p className="mt-0.5 font-body text-xs uppercase tracking-widest text-on-surface-variant">
-                        {formatMercado(etiqueta.mercado)}
-                      </p>
-                    </div>
-                    <TelemetryChip label="Stock" value={`${etiqueta.cantidad} uds`} tone="warning" />
-                  </div>
-                ))
-              )}
-            </LowStockPanel>
-
-            <LowStockPanel
-              title="Frascos"
-              hrefLabel="Ver frascos"
-              threshold="Productos con menos de 5 cajas"
-              onOpen={() => navigate('frascos')}
-            >
-              {stats.stockBajoFrascos.length === 0 ? (
-                <p className="font-body text-sm text-on-surface-variant">
-                  Sin alertas en esta categoría.
-                </p>
-              ) : (
-                stats.stockBajoFrascos.map((frasco) => (
-                  <div
-                    key={frasco.id}
-                    className="flex items-center justify-between gap-3 rounded bg-surface-high px-4 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-body text-sm text-on-surface">{frasco.articulo}</p>
-                      <p className="mt-0.5 font-body text-xs uppercase tracking-widest text-on-surface-variant">
-                        {frasco.total} uds totales · {frasco.unidadesPorCaja} por caja
-                      </p>
-                    </div>
-                    <TelemetryChip label="Cajas" value={frasco.cantidadCajas} tone="warning" />
-                  </div>
-                ))
-              )}
-            </LowStockPanel>
-          </div>
-        </section>
-      )}
-
-      <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-sm font-semibold uppercase tracking-widest text-on-surface">
-            Últimos Movimientos
-          </h2>
-          <button
-            onClick={() => navigate('movimientos')}
-            className="flex items-center gap-1 font-body text-xs text-on-surface-variant transition-colors hover:text-on-surface"
-          >
-            Ver todos
-            <ArrowRight size={12} strokeWidth={1.5} />
-          </button>
+          {!hayStockBajo ? (
+            <div className="flex h-32 items-center justify-center rounded-xl bg-surface-container-high border border-white/10">
+              <p className="font-body text-sm text-on-surface-variant">
+                No hay alertas de stock bajo.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-md">
+              {/* Drogas bajo stock */}
+              {stats.stockBajo.slice(0, 4).map((droga) => (
+                <StockAlertCard
+                  key={droga.id}
+                  icon={Pill}
+                  productName={droga.nombre}
+                  category="Droga"
+                  currentStock={droga.cantidad}
+                  unit="uds"
+                  stockTone={droga.cantidad < 5 ? 'error' : 'tertiary'}
+                />
+              ))}
+              {/* Estuches bajo stock */}
+              {stats.stockBajoEstuches.slice(0, 2).map((estuche) => (
+                <StockAlertCard
+                  key={estuche.id}
+                  icon={Box}
+                  productName={estuche.articulo}
+                  category={`Estuche · ${formatMercado(estuche.mercado)}`}
+                  currentStock={estuche.cantidad}
+                  unit="uds"
+                />
+              ))}
+              {/* Etiquetas bajo stock */}
+              {stats.stockBajoEtiquetas.slice(0, 2).map((etiqueta) => (
+                <StockAlertCard
+                  key={etiqueta.id}
+                  icon={Tag}
+                  productName={etiqueta.articulo}
+                  category={`Etiqueta · ${formatMercado(etiqueta.mercado)}`}
+                  currentStock={etiqueta.cantidad}
+                  unit="uds"
+                />
+              ))}
+              {/* Frascos bajo stock */}
+              {stats.stockBajoFrascos.slice(0, 2).map((frasco) => (
+                <StockAlertCard
+                  key={frasco.id}
+                  icon={Package}
+                  productName={frasco.articulo}
+                  category={`Frasco · ${frasco.unidadesPorCaja} uds/caja`}
+                  currentStock={frasco.cantidadCajas}
+                  unit="cajas"
+                />
+              ))}
+            </div>
+          )}
         </div>
 
-        {stats.ultimosMovimientos.length === 0 ? (
-          <div className="flex h-24 items-center justify-center rounded bg-surface-low">
-            <p className="font-body text-sm text-on-surface-variant">
-              Sin movimientos registrados todavía.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded bg-surface-low">
-            {stats.ultimosMovimientos.map((mov, i) => (
-              <div
-                key={mov.id}
-                className={`flex items-center gap-4 px-4 py-3 ${
-                  i < stats.ultimosMovimientos.length - 1
-                    ? 'border-b border-outline-variant/10'
-                    : ''
-                }`}
-              >
-                <TipoChip tipo={mov.tipo} />
-                <p className="min-w-0 flex-1 truncate font-body text-sm text-on-surface">
-                  {mov.productoNombre}
-                </p>
-                <span
-                  className="shrink-0 font-body text-sm tabular-nums"
-                  style={{ color: mov.cantidad >= 0 ? '#00AE42' : '#FF9800' }}
+        {/* Right Column (1/3) - Recent Movements */}
+        <div className="lg:col-span-1">
+          <h2 className="font-heading text-lg font-semibold text-on-surface mb-md">Recent Movements</h2>
+          <div className="bg-surface-container-high rounded-xl border border-white/10 overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/5 bg-surface-container-low font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                  <th className="p-3 font-normal">Item</th>
+                  <th className="p-3 font-normal">Type</th>
+                  <th className="p-3 font-normal text-right">Qty</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono text-xs">
+                {stats.ultimosMovimientos.length === 0 ? (
+                  <tr>
+                    <td colSpan={3} className="p-6 text-center text-on-surface-variant font-body text-xs">
+                      Sin movimientos registrados.
+                    </td>
+                  </tr>
+                ) : (
+                  stats.ultimosMovimientos.slice(0, 6).map((mov) => (
+                    <tr
+                      key={mov.id}
+                      className="border-b border-white/5 hover:bg-surface-container-highest transition-colors duration-150 cursor-default group"
+                    >
+                      <td className="p-3 text-on-surface truncate max-w-[120px]" title={mov.productoNombre}>
+                        {mov.productoNombre}
+                      </td>
+                      <td className="p-3">
+                        <TipoChip tipo={mov.tipo} />
+                      </td>
+                      <td className="p-3 text-right font-bold group-hover:-translate-y-[1px] transition-transform"
+                        style={{ color: mov.cantidad >= 0 ? 'var(--color-primary)' : 'var(--color-error)' }}
+                      >
+                        {mov.cantidad >= 0 ? '+' : ''}{mov.cantidad}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            {stats.ultimosMovimientos.length > 0 && (
+              <div className="p-3 border-t border-white/5 text-center">
+                <button
+                  onClick={() => navigate('/deposito/movimientos')}
+                  className="font-body text-xs text-primary hover:underline"
                 >
-                  {mov.cantidad >= 0 ? '+' : ''}
-                  {mov.cantidad}
-                </span>
-                <span className="hidden shrink-0 font-body text-xs text-on-surface-variant sm:block">
-                  {formatFecha(mov.createdAt)}
-                </span>
-                <span className="hidden shrink-0 font-body text-xs text-on-surface-variant md:block">
-                  {mov.user.name}
-                </span>
+                  View Audit Log
+                </button>
               </div>
-            ))}
+            )}
           </div>
-        )}
-      </section>
+        </div>
+      </div>
     </div>
   )
 }

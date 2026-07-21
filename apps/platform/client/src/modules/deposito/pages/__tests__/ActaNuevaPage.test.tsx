@@ -28,19 +28,19 @@ describe('ActaNuevaPage', () => {
   it('renders form with step 1 visible', async () => {
     render(<MemoryRouter><ActaNuevaPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('Nueva Acta')).toBeInTheDocument()
+      expect(screen.getByText('Nueva Acta de Ingreso')).toBeInTheDocument()
     })
-    expect(screen.getByText('Datos del acta')).toBeInTheDocument()
-    expect(screen.getByLabelText('Fecha')).toBeInTheDocument()
-    expect(screen.getByText('Continuar')).toBeInTheDocument()
+    expect(screen.getByText('Cabecera')).toBeInTheDocument()
+    expect(screen.getByLabelText('Fecha de Recepción *')).toBeInTheDocument()
+    expect(screen.getByText('Siguiente: Ítems')).toBeInTheDocument()
   })
 
   it('shows validation error on empty submit', async () => {
     render(<MemoryRouter><ActaNuevaPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('Continuar')).toBeInTheDocument()
+      expect(screen.getByText('Siguiente: Ítems')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Continuar'))
+    fireEvent.click(screen.getByText('Siguiente: Ítems'))
     await waitFor(() => {
       expect(screen.queryByText('Completá la fecha del acta antes de continuar.')).toBeNull()
     })
@@ -59,9 +59,9 @@ describe('ActaNuevaPage', () => {
     })
     render(<MemoryRouter><ActaNuevaPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('Continuar')).toBeInTheDocument()
+      expect(screen.getByText('Siguiente: Ítems')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByText('Continuar'))
+    fireEvent.click(screen.getByText('Siguiente: Ítems'))
     await waitFor(() => {
       expect(api.post).toHaveBeenCalled()
     })

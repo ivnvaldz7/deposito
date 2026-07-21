@@ -1,14 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Trash2, CalendarClock } from 'lucide-react'
+import {
+  Plus, Trash2, CalendarClock, Search, Filter, Pill, FlaskConical,
+  Edit, Syringe,
+} from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import {
   Dialog,
   DialogContent,
@@ -17,7 +21,6 @@ import {
   DialogDescription,
   DialogClose,
 } from '../components/ui/Dialog'
-import { PageHeader } from '../components/layout/PageHeader'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,27 +76,37 @@ function normalizeProducto(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
 
+function getStatusVariant(cantidad: number): 'optimal' | 'low' | 'critical' {
+  if (cantidad < 5) return 'critical'
+  if (cantidad < STOCK_BAJO_THRESHOLD) return 'low'
+  return 'optimal'
+}
+
 // ─── Vencimiento chip ─────────────────────────────────────────────────────────
 
 function VencimientoChip({ vencimiento }: { vencimiento: string | null }) {
   if (!vencimiento) return null
   const dias = diasHastaVencimiento(vencimiento)
-  const fecha = new Date(vencimiento).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  const fecha = new Date(vencimiento).toLocaleDateString('es-AR', {
+    day: '2-digit', month: '2-digit', year: '2-digit',
+  })
 
-  let color = '#00AE42'
-  let bg = 'rgba(0,174,66,0.10)'
-  if (dias < 0) {
-    color = '#ef4444'; bg = 'rgba(239,68,68,0.10)'
-  } else if (dias <= VENCE_PRONTO_DIAS) {
-    color = '#ef4444'; bg = 'rgba(239,68,68,0.10)'
+  let variant: 'optimal' | 'warning' | 'error' = 'optimal'
+  if (dias < 0 || dias <= VENCE_PRONTO_DIAS) {
+    variant = 'error'
   } else if (dias <= VENCE_MEDIO_DIAS) {
-    color = '#FF9800'; bg = 'rgba(255,152,0,0.10)'
+    variant = 'warning'
   }
 
   return (
     <span
-      className="inline-flex items-center gap-1 font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-      style={{ color, backgroundColor: bg }}
+      className={`inline-flex items-center gap-1 font-body text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
+        variant === 'error'
+          ? 'bg-error-container/10 text-error'
+          : variant === 'warning'
+          ? 'bg-tertiary-container/10 text-tertiary'
+          : 'bg-primary-container/10 text-primary'
+      }`}
       title={dias < 0 ? 'VENCIDO' : `Vence en ${dias} días`}
     >
       <CalendarClock size={10} strokeWidth={1.5} />
@@ -102,22 +115,13 @@ function VencimientoChip({ vencimiento }: { vencimiento: string | null }) {
   )
 }
 
-// ─── Stock chip ───────────────────────────────────────────────────────────────
+// ─── Drug category icons ─────────────────────────────────────────────────────
 
-function StockStatusChip({ cantidad }: { cantidad: number }) {
-  const bajo = cantidad < STOCK_BAJO_THRESHOLD
-  return (
-    <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-      style={
-        bajo
-          ? { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }
-          : { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' }
-      }
-    >
-      {bajo ? 'Stock bajo' : 'Normal'}
-    </span>
-  )
+function DrugIcon({ nombre }: { nombre: string }) {
+  const lower = nombre.toLowerCase()
+  if (lower.includes('vacuna') || lower.includes('vaccine')) return <Syringe size={18} />
+  if (lower.includes('reagent') || lower.includes('reactivo')) return <FlaskConical size={18} />
+  return <Pill size={18} />
 }
 
 // ─── Agregar droga modal ──────────────────────────────────────────────────────
@@ -155,15 +159,12 @@ function AgregarDrogaModal({
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const droga = await api.post<DrogaRecord>(
-        '/drogas',
-        {
-          nombre: data.nombre,
-          cantidad: Number(data.cantidad),
-          ...(data.lote ? { lote: data.lote } : {}),
-          ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
-        }
-      )
+      const droga = await api.post<DrogaRecord>('/drogas', {
+        nombre: data.nombre,
+        cantidad: Number(data.cantidad),
+        ...(data.lote ? { lote: data.lote } : {}),
+        ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
+      })
       onCreated(droga)
       toast.success(`Droga "${droga.nombre}" agregada.`)
       reset()
@@ -272,6 +273,7 @@ export default function DrogasPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   const [records, setRecords] = useState<DrogaRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -279,6 +281,7 @@ export default function DrogasPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     api
@@ -303,12 +306,23 @@ export default function DrogasPage() {
       ),
     [records, catalogMap]
   )
+
   const productoFiltro = searchParams.get('producto') ?? ''
   const filteredGroups = useMemo(() => {
-    if (!productoFiltro) return groups
-    const target = normalizeProducto(productoFiltro)
-    return groups.filter((group) => normalizeProducto(group.nombre) === target)
-  }, [groups, productoFiltro])
+    if (productoFiltro) {
+      const target = normalizeProducto(productoFiltro)
+      return groups.filter((group) => normalizeProducto(group.nombre) === target)
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      return groups.filter(
+        (g) =>
+          g.nombre.toLowerCase().includes(q) ||
+          g.lotes.some((l) => l.lote?.toLowerCase().includes(q))
+      )
+    }
+    return groups
+  }, [groups, productoFiltro, searchQuery])
 
   function handleCreated(droga: DrogaRecord) {
     setRecords((prev) => [...prev, droga])
@@ -336,25 +350,46 @@ export default function DrogasPage() {
   ).length
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="DROGAS"
-        stats={[
-          { label: 'productos', value: groups.length },
-          { label: 'lotes', value: records.length },
-          { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
-          { label: 'vencen pronto', value: porVencerCount, warning: porVencerCount > 0 },
-        ]}
-        primaryAction={
-          isEncargado
-            ? {
-                label: 'Agregar droga',
-                onClick: () => setAgregarOpen(true),
-                icon: <Plus size={14} strokeWidth={2} />,
-              }
-            : undefined
-        }
-      />
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <header className="shrink-0 flex items-center justify-between mb-lg">
+        <div className="flex items-center gap-md">
+          <h1 className="font-heading text-xl font-semibold text-on-surface tracking-tight">
+            Inventario de Drogas
+          </h1>
+          <span className="bg-surface-variant text-on-surface-variant font-mono text-xs px-2 py-1 rounded-md border border-white/5">
+            Active: {groups.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-md">
+          {/* Search Input */}
+          <div className="relative group">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search ID, Lot, Name..."
+              className="w-64 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+            />
+          </div>
+          {/* Filter Button */}
+          <button className="flex items-center gap-2 bg-surface-container-high border border-outline-variant rounded-lg px-4 py-2 hover:bg-surface-variant transition-colors text-on-surface">
+            <Filter size={16} />
+            <span className="font-body text-xs font-semibold">Filter</span>
+          </button>
+          {/* Primary Action */}
+          {isEncargado && (
+            <button
+              onClick={() => setAgregarOpen(true)}
+              className="flex items-center gap-2 bg-primary text-on-primary rounded-lg px-4 py-2 font-body text-xs font-semibold scale-hover shadow-float"
+            >
+              <Plus size={16} />
+              <span>New Ingress</span>
+            </button>
+          )}
+        </div>
+      </header>
 
       {isEncargado ? (
         <AgregarDrogaModal
@@ -364,71 +399,104 @@ export default function DrogasPage() {
         />
       ) : null}
 
+      {/* Content */}
       {filteredGroups.length === 0 ? (
-        <EmptyState message={productoFiltro ? 'No se encontró esa droga en inventario.' : 'No hay drogas cargadas todavía.'} />
+        <EmptyState message={searchQuery ? 'No se encontró esa droga en inventario.' : 'No hay drogas cargadas todavía.'} />
       ) : (
-        <div className="space-y-2">
-          {filteredGroups.map((group) => (
-            <div
-              key={group.nombre}
-              className={`bg-surface-low rounded overflow-hidden ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
-            >
-              {/* Group header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/10">
-                <div className="flex items-center gap-3">
-                  <p className="font-heading font-semibold text-sm text-on-surface">{group.nombre}</p>
-                  <StockStatusChip cantidad={group.totalCantidad} />
-                </div>
-                <span className="font-body text-xs text-on-surface-variant tabular-nums">
-                  Total: <strong className="text-on-surface">{group.totalCantidad}</strong> uds
-                </span>
-              </div>
+        <div className="bg-surface-container rounded-xl border border-outline-variant shadow-float overflow-hidden flex flex-col">
+          {/* Table Header */}
+          <div className="grid grid-cols-12 gap-4 px-md py-sm border-b border-outline-variant bg-surface-container-low font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+            <div className="col-span-3">Drug Profile</div>
+            <div className="col-span-2">Lot Identifier</div>
+            <div className="col-span-2">Storage Location</div>
+            <div className="col-span-2 text-right">Quantity / Vol</div>
+            <div className="col-span-2 text-center">Status</div>
+            <div className="col-span-1 text-right">Actions</div>
+          </div>
 
-              {/* Lotes */}
-              {group.lotes.map((lote, idx) => (
-                <div
-                  key={lote.id}
-                  className={`flex items-center gap-3 px-4 py-2.5 ${
-                    idx < group.lotes.length - 1 ? 'border-b border-outline-variant/10' : ''
-                  }`}
-                >
-                  <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
-                    <span className="font-body text-xs text-on-surface-variant">
-                      {lote.lote ? (
-                        <>Lote <strong className="text-on-surface">{lote.lote}</strong></>
-                      ) : (
-                        <span className="italic">Sin lote</span>
-                      )}
+          {/* Table Body */}
+          <div className="flex flex-col">
+            {filteredGroups.map((group) => (
+              <div key={group.nombre} className="flex flex-col border-b border-outline-variant/50 last:border-0">
+                {/* Group Header */}
+                <div className="grid grid-cols-12 gap-4 px-md py-3 bg-surface-container-high/50 items-center">
+                  <div className="col-span-12 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded bg-surface-variant flex items-center justify-center border border-white/5">
+                      <DrugIcon nombre={group.nombre} />
+                    </div>
+                    <h3 className="font-heading text-sm font-semibold text-on-surface">{group.nombre}</h3>
+                    <span className="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono border border-white/5 uppercase tracking-wide">
+                      Drug
                     </span>
-                    <VencimientoChip vencimiento={lote.vencimiento} />
-                    <span className="font-body text-xs tabular-nums text-on-surface-variant">
-                      <strong className="text-on-surface">{lote.cantidad}</strong> uds
+                    <span className="font-body text-xs text-on-surface-variant ml-auto tabular-nums">
+                      Total: <strong className="text-on-surface">{group.totalCantidad}</strong> uds
                     </span>
                   </div>
-
-                  {isEncargado && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDelete(
-                            lote.id,
-                            `${lote.productoId ? (catalogMap[lote.productoId] ?? lote.nombre) : lote.nombre} (lote ${lote.lote ?? 'sin lote'})`
-                          )
-                        }
-                        disabled={deletingId === lote.id}
-                        className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
-                        title="Eliminar lote"
-                        aria-label={`Eliminar lote ${lote.lote ?? 'sin lote'} de ${lote.nombre}`}
-                      >
-                        <Trash2 size={13} strokeWidth={1.5} />
-                      </button>
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
-          ))}
+
+                {/* Batch Rows */}
+                {group.lotes.map((lote, idx) => {
+                  const displayName = lote.productoId
+                    ? (catalogMap[lote.productoId] ?? lote.nombre)
+                    : lote.nombre
+                  return (
+                    <div
+                      key={lote.id}
+                      className={`grid grid-cols-12 gap-4 px-md py-3 items-center cursor-default transition-all duration-200 hover:-translate-y-[2px] hover:bg-surface-variant/30 ${
+                        idx < group.lotes.length - 1 ? 'border-t border-outline-variant/30' : ''
+                      }`}
+                    >
+                      <div className="col-span-3 pl-11">
+                        <span className="font-mono text-xs text-on-surface-variant">
+                          Vial - {lote.cantidad}mL
+                        </span>
+                      </div>
+                      <div className="col-span-2 font-mono text-xs text-on-surface">
+                        {lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>}
+                      </div>
+                      <div className="col-span-2 font-body text-sm text-on-surface-variant flex items-center gap-1">
+                        <VencimientoChip vencimiento={lote.vencimiento} />
+                      </div>
+                      <div className="col-span-2 text-right font-mono text-xs text-on-surface font-medium">
+                        {lote.cantidad} vials
+                      </div>
+                      <div className="col-span-2 flex justify-center">
+                        <StatusBadge
+                          variant={getStatusVariant(lote.cantidad)}
+                          label={getStatusVariant(lote.cantidad) === 'optimal' ? 'Optimal' : getStatusVariant(lote.cantidad) === 'low' ? 'Low Stock' : 'Critical'}
+                          showDot={getStatusVariant(lote.cantidad) !== 'critical'}
+                        />
+                      </div>
+                      <div className="col-span-1 flex justify-end gap-2 text-on-surface-variant">
+                        {isEncargado && (
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(lote.id, `${displayName} (lote ${lote.lote ?? 'sin lote'})`)}
+                            disabled={deletingId === lote.id}
+                            className="hover:text-error transition-colors disabled:opacity-40"
+                            title="Eliminar lote"
+                            aria-label={`Eliminar lote ${lote.lote ?? 'sin lote'} de ${lote.nombre}`}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                        <button className="hover:text-primary transition-colors" title="Edit">
+                          <Edit size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="mt-4 flex justify-between items-center px-2 pb-2">
+            <span className="font-body text-xs text-on-surface-variant">
+              Showing {filteredGroups.length} of {groups.length} Active Records
+            </span>
+          </div>
         </div>
       )}
     </div>

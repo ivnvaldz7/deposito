@@ -2,14 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { api } from '../lib/api'
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '../components/ui/Table'
+import { ArrowDown, ArrowUp, Search, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,9 +25,7 @@ interface Movimiento {
 function formatFecha(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
+    day: '2-digit', month: '2-digit', year: 'numeric',
   })
 }
 
@@ -43,34 +34,34 @@ function formatHora(iso: string): string {
   return d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })
 }
 
-const TIPO_CONFIG: Record<TipoMovimiento, { label: string; color: string; bg: string }> = {
-  ingreso_acta:  { label: 'Ingreso Acta',  color: '#00AE42', bg: 'rgba(0,174,66,0.10)' },
-  egreso_orden:  { label: 'Egreso Orden',  color: '#FF9800', bg: 'rgba(255,152,0,0.10)' },
-  ajuste_manual: { label: 'Ajuste Manual', color: '#2196F3', bg: 'rgba(33,150,243,0.10)' },
+function formatFechaCompleta(iso: string): string {
+  return `${formatFecha(iso)} ${formatHora(iso)}`
+}
+
+const TIPO_CONFIG: Record<TipoMovimiento, { label: string; variant: 'primary' | 'error' | 'info' }> = {
+  ingreso_acta:  { label: 'Ingreso',  variant: 'primary' },
+  egreso_orden:  { label: 'Egreso',   variant: 'error' },
+  ajuste_manual: { label: 'Ajuste',   variant: 'info' },
 }
 
 // ─── Chips ────────────────────────────────────────────────────────────────────
 
-function TipoChip({ tipo }: { tipo: TipoMovimiento }) {
-  const c = TIPO_CONFIG[tipo]
-  return (
-    <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
-      style={{ color: c.color, backgroundColor: c.bg }}
-    >
-      {c.label}
-    </span>
-  )
+function DirectionIcon({ tipo }: { tipo: TipoMovimiento }) {
+  if (tipo === 'ingreso_acta') {
+    return <ArrowDown size={20} className="text-primary" strokeWidth={2} />
+  }
+  return <ArrowUp size={20} className="text-tertiary" strokeWidth={2} />
 }
 
-function CantidadCell({ cantidad }: { cantidad: number }) {
-  const positive = cantidad >= 0
+function CantidadCell({ cantidad, tipo }: { cantidad: number; tipo: TipoMovimiento }) {
+  const color = tipo === 'ingreso_acta' ? 'var(--color-primary)' : 'var(--color-tertiary)'
+  const prefix = tipo === 'ingreso_acta' ? '+' : '-'
   return (
     <span
-      className="font-body text-sm tabular-nums font-medium"
-      style={{ color: positive ? '#00AE42' : '#FF9800' }}
+      className="font-mono text-sm font-bold tabular-nums"
+      style={{ color }}
     >
-      {positive ? '+' : ''}{cantidad}
+      {prefix}{Math.abs(cantidad)}
     </span>
   )
 }
@@ -101,66 +92,71 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
     }, 350)
   }
 
+  const hasFilters = filters.tipo || filters.producto || filters.desde || filters.hasta
+
   return (
-    <div className="flex flex-wrap gap-3 items-end">
-      <div className="space-y-1">
-        <label htmlFor="movimientos-tipo" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-          Tipo
+    <div className="bg-surface-container-high rounded-lg p-md border border-white/10 flex flex-wrap gap-md items-end">
+      {/* Product Search */}
+      <div className="flex-1 min-w-[200px]">
+        <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
+          Product Search
+        </label>
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
+          <input
+            type="text"
+            value={productoLocal}
+            onChange={(e) => handleProductoChange(e.target.value)}
+            placeholder="Scan or type ID..."
+            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-[36px] pr-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-xs outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Movement Type */}
+      <div className="w-[180px]">
+        <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
+          Movement Type
         </label>
         <select
-          id="movimientos-tipo"
           value={filters.tipo}
           onChange={(e) => onChange({ ...filters, tipo: e.target.value })}
-          className="input-field w-44 py-2 text-sm cursor-pointer"
+          className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-body text-sm outline-none appearance-none"
         >
-          <option value="">Todos</option>
-          <option value="ingreso_acta">Ingreso Acta</option>
-          <option value="egreso_orden">Egreso Orden</option>
-          <option value="ajuste_manual">Ajuste Manual</option>
+          <option value="">All Types</option>
+          <option value="ingreso_acta">Ingress</option>
+          <option value="egreso_orden">Egress</option>
+          <option value="ajuste_manual">Adjustment</option>
         </select>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="movimientos-producto" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-          Producto
+      {/* Date Range */}
+      <div className="w-[220px]">
+        <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
+          Date Range
         </label>
-        <input
-          id="movimientos-producto"
-          type="text"
-          value={productoLocal}
-          onChange={(e) => handleProductoChange(e.target.value)}
-          placeholder="Buscar producto..."
-          className="input-field w-52 py-2 text-sm"
-        />
+        <div className="flex items-center bg-surface-container border border-outline-variant rounded-lg px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all gap-2">
+          <Calendar size={16} className="text-outline shrink-0" />
+          <input
+            type="date"
+            value={filters.desde}
+            onChange={(e) => onChange({ ...filters, desde: e.target.value })}
+            className="bg-transparent border-none p-0 text-on-surface font-body text-sm outline-none w-full [color-scheme:dark]"
+            placeholder="Desde"
+          />
+          <span className="text-outline">—</span>
+          <input
+            type="date"
+            value={filters.hasta}
+            onChange={(e) => onChange({ ...filters, hasta: e.target.value })}
+            className="bg-transparent border-none p-0 text-on-surface font-body text-sm outline-none w-full [color-scheme:dark]"
+            placeholder="Hasta"
+          />
+        </div>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="movimientos-desde" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-          Desde
-        </label>
-        <input
-          id="movimientos-desde"
-          type="date"
-          value={filters.desde}
-          onChange={(e) => onChange({ ...filters, desde: e.target.value })}
-          className="input-field w-40 py-2 text-sm"
-        />
-      </div>
-
-      <div className="space-y-1">
-        <label htmlFor="movimientos-hasta" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-          Hasta
-        </label>
-        <input
-          id="movimientos-hasta"
-          type="date"
-          value={filters.hasta}
-          onChange={(e) => onChange({ ...filters, hasta: e.target.value })}
-          className="input-field w-40 py-2 text-sm"
-        />
-      </div>
-
-      {(filters.tipo || filters.producto || filters.desde || filters.hasta) && (
+      {/* Clear */}
+      {hasFilters && (
         <button
           onClick={() => {
             setProductoLocal('')
@@ -168,7 +164,7 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
           }}
           className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors py-2"
         >
-          Limpiar filtros
+          Clear filters
         </button>
       )}
     </div>
@@ -190,6 +186,9 @@ export default function MovimientosPage() {
     desde: '',
     hasta: '',
   })
+
+  const [currentPage, setCurrentPage] = useState(1)
+  const perPage = 20
 
   useEffect(() => {
     setFilters((prev) => ({
@@ -220,12 +219,27 @@ export default function MovimientosPage() {
     void load()
   }, [filters.tipo, filters.producto, filters.desde, filters.hasta])
 
+  // Pagination
+  const totalPages = Math.ceil(movimientos.length / perPage)
+  const paginatedMovs = movimientos.slice(
+    (currentPage - 1) * perPage,
+    currentPage * perPage,
+  )
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filters])
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col h-full space-y-lg">
+      {/* Header */}
       <div>
-        <h1 className="font-heading text-on-surface font-semibold text-xl">Movimientos</h1>
-        <p className="font-body text-on-surface-variant text-sm mt-0.5">
-          Historial de auditoría
+        <h1 className="font-heading text-2xl font-semibold text-on-surface tracking-tight">
+          Auditoría de Movimientos
+        </h1>
+        <p className="font-body text-sm text-on-surface-variant mt-1">
+          Registro inmutable de transacciones del depósito central.
           {!loading && !error && (
             <span className="ml-1">· {movimientos.length} registros</span>
           )}
@@ -243,78 +257,120 @@ export default function MovimientosPage() {
           <p className="font-body text-error text-sm">{error}</p>
         </div>
       ) : movimientos.length === 0 ? (
-        <div className="flex items-center justify-center h-48 bg-surface-low rounded">
+        <div className="flex items-center justify-center h-48 rounded-lg bg-surface-container-high border border-white/10">
           <p className="font-body text-on-surface-variant text-sm">
             Sin movimientos para los filtros aplicados.
           </p>
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-surface-low rounded overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Producto</TableHead>
-                  <TableHead className="w-24">Cantidad</TableHead>
-                  <TableHead className="w-28">Referencia</TableHead>
-                  <TableHead>Usuario</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {movimientos.map((mov) => (
-                  <TableRow key={mov.id}>
-                    <TableCell>
-                      <p className="font-body text-on-surface text-sm tabular-nums">
-                        {formatFecha(mov.createdAt)}
-                      </p>
-                      <p className="font-body text-on-surface-variant text-xs tabular-nums">
-                        {formatHora(mov.createdAt)}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <TipoChip tipo={mov.tipo} />
-                    </TableCell>
-                    <TableCell className="font-body text-on-surface text-sm max-w-xs truncate">
-                      {mov.productoNombre}
-                    </TableCell>
-                    <TableCell>
-                      <CantidadCell cantidad={mov.cantidad} />
-                    </TableCell>
-                    <TableCell className="font-body text-on-surface-variant text-xs tabular-nums">
-                      {mov.referenciaId ? mov.referenciaId.slice(0, 8) + '…' : '—'}
-                    </TableCell>
-                    <TableCell className="font-body text-on-surface-variant text-sm">
-                      {mov.user.name}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-surface-container border border-white/10 rounded-xl overflow-hidden flex-1 shadow-float">
+            <table className="w-full text-left border-collapse font-mono text-xs">
+              <thead className="bg-surface-container-highest border-b border-white/10">
+                <tr>
+                  <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-12 text-center">Dir</th>
+                  <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-32">Tx ID</th>
+                  <th className="p-sm font-body text-xs font-semibold text-on-surface-variant">Product / Item</th>
+                  <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-48">Date &amp; Time</th>
+                  <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-24 text-right">Qty</th>
+                  <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-24 text-center">User</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {paginatedMovs.map((mov) => {
+                  const isFlagged = mov.justificacion?.toLowerCase().includes('discrepanc') ?? false
+                  return (
+                    <tr
+                      key={mov.id}
+                      className={`hover:-translate-y-[2px] hover:bg-surface-variant/30 transition-transform cursor-default group ${
+                        isFlagged ? 'border-l-2 border-l-error bg-error-container/5' : ''
+                      }`}
+                    >
+                      <td className="p-sm text-center">
+                        <DirectionIcon tipo={mov.tipo} />
+                      </td>
+                      <td className={`p-sm ${isFlagged ? 'text-error' : 'text-outline'}`}>
+                        <span className="font-mono text-xs">TX-{mov.id.slice(0, 5).toUpperCase()}</span>
+                      </td>
+                      <td className="p-sm">
+                        <div className={`font-body text-sm font-medium group-hover:text-primary transition-colors ${isFlagged ? 'text-error' : 'text-on-surface'} flex items-center gap-2`}>
+                          {mov.productoNombre}
+                          {isFlagged && (
+                            <span className="px-1.5 py-0.5 rounded bg-error-container text-on-error-container text-[10px] uppercase font-bold tracking-wider flex items-center gap-1">
+                              <AlertTriangle size={10} />
+                              Flagged
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-outline-variant mt-0.5">
+                          {mov.categoria} · Ref: {mov.referenciaId ? mov.referenciaId.slice(0, 8) : '—'}
+                        </div>
+                      </td>
+                      <td className="p-sm text-on-surface-variant font-mono text-xs">
+                        {formatFechaCompleta(mov.createdAt)}
+                      </td>
+                      <td className="p-sm text-right">
+                        <CantidadCell cantidad={mov.cantidad} tipo={mov.tipo} />
+                      </td>
+                      <td className="p-sm text-center text-outline font-mono text-xs">
+                        {mov.user.name.length > 4
+                          ? mov.user.name.split(' ').map((n) => n[0]).join('').slice(0, 3).toUpperCase()
+                          : mov.user.name}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            <div className="border-t border-white/10 p-sm flex items-center justify-between bg-surface-container-low">
+              <span className="font-mono text-xs text-outline-variant">
+                Showing {(currentPage - 1) * perPage + 1}–{Math.min(currentPage * perPage, movimientos.length)} of {movimientos.length} entries
+              </span>
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-variant disabled:opacity-50 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages || totalPages === 0}
+                  className="w-8 h-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-variant disabled:opacity-50 transition-colors"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
           </div>
 
+          {/* Mobile Card Layout */}
           <div className="md:hidden space-y-2">
-            {movimientos.map((mov) => (
+            {paginatedMovs.map((mov) => (
               <div
                 key={mov.id}
-                className="bg-surface-low rounded px-4 py-3 space-y-2"
+                className="bg-surface-container-high rounded-xl border border-white/10 px-4 py-3 space-y-2"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <TipoChip tipo={mov.tipo} />
-                  <span className="font-body text-xs text-on-surface-variant tabular-nums">
-                    {formatFecha(mov.createdAt)} {formatHora(mov.createdAt)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <DirectionIcon tipo={mov.tipo} />
+                    <span className="font-mono text-xs text-outline">
+                      TX-{mov.id.slice(0, 5).toUpperCase()}
+                    </span>
+                  </div>
+                  <CantidadCell cantidad={mov.cantidad} tipo={mov.tipo} />
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-body text-on-surface text-sm flex-1 truncate min-w-0">
-                    {mov.productoNombre}
-                  </p>
-                  <CantidadCell cantidad={mov.cantidad} />
-                </div>
-                <p className="font-body text-on-surface-variant text-xs">
-                  {mov.user.name}
+                <p className="font-body text-on-surface text-sm font-medium">
+                  {mov.productoNombre}
                 </p>
+                <div className="flex items-center justify-between text-xs text-on-surface-variant">
+                  <span>{formatFechaCompleta(mov.createdAt)}</span>
+                  <span className="font-mono text-outline">{mov.user.name}</span>
+                </div>
               </div>
             ))}
           </div>

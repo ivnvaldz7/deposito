@@ -38,7 +38,7 @@ describe('MovimientosPage', () => {
     vi.mocked(api.get).mockResolvedValue(createMovimientoList())
     render(<MemoryRouter><MovimientosPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('Movimientos')).toBeInTheDocument()
+      expect(screen.getByText('Auditoría de Movimientos')).toBeInTheDocument()
     })
     expect(screen.getAllByText('Vitamina B12').length).toBeGreaterThanOrEqual(1)
   })

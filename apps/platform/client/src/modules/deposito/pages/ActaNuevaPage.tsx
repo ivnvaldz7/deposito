@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronRight, Plus, Check, ArrowLeft } from 'lucide-react'
+import { ChevronRight, Plus, Check, ArrowLeft, ArrowRight, FileText, Calendar, Building2, Truck, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
@@ -20,52 +20,57 @@ function currentMonthISO(): string {
   return new Date().toISOString().slice(0, 7)
 }
 
-// ─── Step indicator ───────────────────────────────────────────────────────────
+// ─── Step indicator (Stitch design) ───────────────────────────────────────────
 
-const STEPS = ['Datos del acta', 'Agregar items', 'Distribuir']
+const STEPS = [
+  { label: 'Cabecera', subtitle: 'Datos del acta' },
+  { label: 'Ítems', subtitle: 'Agregar items' },
+  { label: 'Revisión', subtitle: 'Distribuir' },
+]
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center gap-2 mb-8">
-      {STEPS.map((label, i) => {
-        const num = i + 1
-        const done = num < current
-        const active = num === current
-        return (
-          <div key={i} className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <div
-                className="flex items-center justify-center w-6 h-6 rounded font-heading font-semibold text-xs shrink-0"
-                style={{
-                  background: done
-                    ? 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)'
-                    : active
-                    ? 'rgba(84,225,109,0.15)'
-                    : 'transparent',
-                  color: done ? '#003918' : active ? '#54e16d' : '#bccbb8',
-                  border: !done && !active ? '1px solid rgba(61,74,60,0.4)' : 'none',
-                }}
-              >
-                {done ? <Check size={12} strokeWidth={2.5} /> : num}
-              </div>
-              <span
-                className="font-body text-xs hidden sm:block"
-                style={{ color: active ? '#e2ece0' : '#bccbb8' }}
-              >
-                {label}
+    <div className="max-w-4xl mx-auto mb-xl">
+      <div className="flex items-center justify-between relative">
+        {/* Connecting Lines */}
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-[2px] bg-surface-container-high -z-10" />
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] bg-primary-container -z-10 transition-all duration-300"
+          style={{ width: `${((current - 1) / (STEPS.length - 1)) * 100}%` }}
+        />
+
+        {STEPS.map((step, i) => {
+          const num = i + 1
+          const done = num < current
+          const active = num === current
+
+          return (
+            <div key={i} className="flex flex-col items-center gap-1 relative bg-background px-2">
+              {done ? (
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-[0_0_15px_rgba(163,209,182,0.3)]">
+                  <Check size={18} className="text-on-primary" strokeWidth={2.5} />
+                </div>
+              ) : active ? (
+                <div className="w-10 h-10 rounded-full bg-surface border-2 border-primary-container flex items-center justify-center shadow-[0_0_15px_rgba(163,209,182,0.3)] relative">
+                  <div className="w-3 h-3 rounded-full bg-primary-container animate-pulse" style={{ animation: 'pulse-dot 2s ease-in-out infinite' }} />
+                </div>
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-surface-container-high border-2 border-surface-variant flex items-center justify-center text-on-surface-variant font-mono text-sm font-semibold">
+                  {num}
+                </div>
+              )}
+              <span className={`font-body text-xs font-semibold ${active ? 'text-primary' : 'text-on-surface-variant'}`}>
+                {step.label}
               </span>
             </div>
-            {i < STEPS.length - 1 && (
-              <ChevronRight size={14} strokeWidth={1.5} className="text-outline-variant shrink-0" />
-            )}
-          </div>
-        )
-      })}
+          )
+        })}
+      </div>
     </div>
   )
 }
 
-// ─── Step 1: datos del acta ───────────────────────────────────────────────────
+// ─── Step 1: datos del acta (Cabecera) ────────────────────────────────────────
 
 const paso1Schema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
@@ -76,8 +81,10 @@ type Paso1Data = z.infer<typeof paso1Schema>
 
 function Paso1({
   onCreated,
+  onCancel,
 }: {
   onCreated: (acta: Acta) => void
+  onCancel: () => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -93,10 +100,7 @@ function Paso1({
   async function onSubmit(data: Paso1Data) {
     setServerError(null)
     try {
-      const acta = await api.post<Acta>(
-        '/actas',
-        { fecha: data.fecha, notas: data.notas || undefined }
-      )
+      const acta = await api.post<Acta>('/actas', { fecha: data.fecha, notas: data.notas || undefined })
       onCreated(acta)
       toast.info('Acta creada. Ya podés cargar los items.')
     } catch (err) {
@@ -105,55 +109,130 @@ function Paso1({
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, () => toast.error('Completá la fecha del acta antes de continuar.'))} noValidate className="space-y-5 max-w-md">
-      <div className="space-y-1">
-        <label htmlFor="acta-fecha" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-          Fecha
-        </label>
-        <input
-          id="acta-fecha"
-          {...register('fecha')}
-          type="date"
-          className="input-field"
-          autoFocus
-        />
-        {errors.fecha && (
-          <p className="font-body text-error text-xs">{errors.fecha.message}</p>
-        )}
-      </div>
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-surface-container border border-primary-container/30 rounded-xl shadow-float overflow-hidden relative">
+        {/* Gradient top border */}
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-container to-transparent opacity-50" />
 
-      <div className="space-y-1">
-        <label htmlFor="acta-notas" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-          Notas{' '}
-          <span className="normal-case tracking-normal opacity-60">(opcional)</span>
-        </label>
-        <textarea
-          id="acta-notas"
-          {...register('notas')}
-          rows={3}
-          placeholder="Observaciones del acta..."
-          className="input-field resize-none"
-        />
-        {errors.notas && (
-          <p className="font-body text-error text-xs">{errors.notas.message}</p>
-        )}
-      </div>
+        <div className="p-lg">
+          <div className="mb-lg">
+            <h2 className="font-heading text-lg font-semibold text-on-surface mb-1">Datos del Remito</h2>
+            <p className="font-body text-sm text-on-surface-variant">
+              Complete la información general del ingreso de mercadería.
+            </p>
+          </div>
 
-      {serverError && (
-        <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">
-          {serverError}
+          <form onSubmit={handleSubmit(onSubmit, () => toast.error('Completá la fecha del acta antes de continuar.'))} noValidate className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+            {/* Invoice / Remito */}
+            <div className="flex flex-col gap-1 col-span-1">
+              <label htmlFor="acta-remito" className="font-body text-xs font-medium text-on-surface-variant">
+                Nº de Remito / Factura *
+              </label>
+              <div className="relative">
+                <FileText size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  id="acta-remito"
+                  type="text"
+                  placeholder="Ej: R-0001-000456"
+                  className="input-field pl-10"
+                  disabled
+                />
+              </div>
+            </div>
+
+            {/* Date */}
+            <div className="flex flex-col gap-1 col-span-1">
+              <label htmlFor="acta-fecha" className="font-body text-xs font-medium text-on-surface-variant">
+                Fecha de Recepción *
+              </label>
+              <div className="relative">
+                <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input
+                  id="acta-fecha"
+                  {...register('fecha')}
+                  type="date"
+                  className="input-field pl-10 [color-scheme:dark]"
+                  autoFocus
+                />
+              </div>
+              {errors.fecha && (
+                <p className="font-body text-error text-xs">{errors.fecha.message}</p>
+              )}
+            </div>
+
+            {/* Provider (simulated) */}
+            <div className="flex flex-col gap-1 col-span-1 md:col-span-2">
+              <label className="font-body text-xs font-medium text-on-surface-variant">
+                Proveedor *
+              </label>
+              <div className="relative">
+                <Building2 size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <select className="input-field pl-10 appearance-none" disabled>
+                  <option>Seleccione un proveedor...</option>
+                </select>
+                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
+              </div>
+            </div>
+
+            {/* Transport (simulated) */}
+            <div className="flex flex-col gap-1 col-span-1 md:col-span-2">
+              <label className="font-body text-xs font-medium text-on-surface-variant">
+                Empresa de Transporte <span className="font-normal opacity-60">(Opcional)</span>
+              </label>
+              <div className="relative">
+                <Truck size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+                <input type="text" placeholder="Nombre del transporte o chofer" className="input-field pl-10" disabled />
+              </div>
+            </div>
+
+            {/* Observations */}
+            <div className="flex flex-col gap-1 col-span-1 md:col-span-2">
+              <label htmlFor="acta-notas" className="font-body text-xs font-medium text-on-surface-variant">
+                Observaciones <span className="font-normal opacity-60">(Opcional)</span>
+              </label>
+              <div className="relative">
+                <textarea
+                  id="acta-notas"
+                  {...register('notas')}
+                  rows={3}
+                  placeholder="Detalles sobre el estado del empaque, temperatura de llegada, etc."
+                  className="input-field resize-none"
+                />
+              </div>
+              {errors.notas && (
+                <p className="font-body text-error text-xs">{errors.notas.message}</p>
+              )}
+            </div>
+
+            {serverError && (
+              <div className="col-span-full bg-error/10 text-error font-body text-sm px-4 py-3 rounded">
+                {serverError}
+              </div>
+            )}
+          </form>
         </div>
-      )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="btn-primary flex items-center justify-center gap-2 py-2.5 text-sm"
-      >
-        {isSubmitting ? 'Creando...' : 'Continuar'}
-        {!isSubmitting && <ChevronRight size={14} strokeWidth={2} />}
-      </button>
-    </form>
+        {/* Action Footer */}
+        <div className="bg-surface-container-low border-t border-white/5 p-md flex items-center justify-between">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-lg py-2 rounded-lg font-body text-sm text-on-surface-variant hover:bg-surface-variant transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+            className="px-lg py-2 rounded-lg bg-primary-container text-on-primary-container font-body text-sm font-semibold flex items-center gap-2 scale-hover transition-transform shadow-[0_0_15px_rgba(163,209,182,0.2)]"
+          >
+            {isSubmitting ? 'Creando...' : 'Siguiente: Ítems'}
+            {!isSubmitting && <ArrowRight size={18} />}
+          </button>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -169,19 +248,11 @@ const MERCADOS_CONFIG: { value: Mercado; label: string; color: string }[] = [
   { value: 'no_exportable', label: 'No exportable', color: '#757575' },
 ]
 
-// ─── Droga autocomplete ───────────────────────────────────────────────────────
-
-const CONDICION_EMBALAJE_OPTIONS: {
-  value: CondicionEmbalaje
-  label: string
-  color: string
-}[] = [
+const CONDICION_EMBALAJE_OPTIONS: { value: CondicionEmbalaje; label: string; color: string }[] = [
   { value: 'bueno', label: 'Bueno', color: '#00AE42' },
   { value: 'regular', label: 'Regular', color: '#FF9800' },
   { value: 'malo', label: 'Malo', color: '#F44336' },
 ]
-
-// ─── Step 2: agregar items ────────────────────────────────────────────────────
 
 const CATEGORIAS: { value: Categoria; label: string }[] = [
   { value: 'droga',    label: 'Droga' },
@@ -189,6 +260,8 @@ const CATEGORIAS: { value: Categoria; label: string }[] = [
   { value: 'etiqueta', label: 'Etiqueta' },
   { value: 'frasco',   label: 'Frasco' },
 ]
+
+// ─── Step 2: agregar items ────────────────────────────────────────────────────
 
 const itemSchema = z
   .object({
@@ -304,26 +377,25 @@ function Paso2({
   async function onSubmit(data: ItemFormData) {
     setServerError(null)
     try {
-      const item = await api.post<ActaItem>(
-        `/actas/${actaId}/items`,
-        {
-          categoria: data.categoria,
-          ...(data.productoId ? { productoId: data.productoId } : {}),
-          productoNombre: data.productoNombre,
-          ...(data.categoria === 'droga' ? { lote: data.lote } : {}),
-          cantidadIngresada: Number(data.cantidadIngresada),
-          ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
-          ...(data.temperaturaTransporte?.trim()
-            ? { temperaturaTransporte: data.temperaturaTransporte.trim() }
-            : {}),
-          ...(data.condicionEmbalaje ? { condicionEmbalaje: data.condicionEmbalaje } : {}),
-          ...(data.observacionesCalidad?.trim()
-            ? { observacionesCalidad: data.observacionesCalidad.trim() }
-            : {}),
-          aprobadoCalidad: data.aprobadoCalidad,
-          ...((data.categoria === 'estuche' || data.categoria === 'etiqueta') && data.mercado ? { mercado: data.mercado } : {}),
-        }
-      )
+      const item = await api.post<ActaItem>(`/actas/${actaId}/items`, {
+        categoria: data.categoria,
+        ...(data.productoId ? { productoId: data.productoId } : {}),
+        productoNombre: data.productoNombre,
+        ...(data.categoria === 'droga' ? { lote: data.lote } : {}),
+        cantidadIngresada: Number(data.cantidadIngresada),
+        ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
+        ...(data.temperaturaTransporte?.trim()
+          ? { temperaturaTransporte: data.temperaturaTransporte.trim() }
+          : {}),
+        ...(data.condicionEmbalaje ? { condicionEmbalaje: data.condicionEmbalaje } : {}),
+        ...(data.observacionesCalidad?.trim()
+          ? { observacionesCalidad: data.observacionesCalidad.trim() }
+          : {}),
+        aprobadoCalidad: data.aprobadoCalidad,
+        ...((data.categoria === 'estuche' || data.categoria === 'etiqueta') && data.mercado
+          ? { mercado: data.mercado }
+          : {}),
+      })
       onItemAdded(item)
       toast.info(`Item "${item.productoNombre}" agregado al acta.`)
       reset({
@@ -346,332 +418,343 @@ function Paso2({
   }
 
   return (
-    <div className="space-y-8 max-w-lg">
-      <form onSubmit={handleSubmit(onSubmit, () => toast.error('Completá categoría, producto y cantidad antes de agregar el item.'))} noValidate className="space-y-4">
-        {/* Categoría */}
-        <div className="space-y-1">
-          <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-            Categoría
-          </label>
-          <div className="flex gap-2 flex-wrap">
-            {CATEGORIAS.map(({ value, label }) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => {
-                  setValue('categoria', value)
-                  setValue('productoId', undefined)
-                  setValue('productoNombre', '')
-                  setValue('mercado', undefined)
-                }}
-                className="px-3 py-1.5 rounded font-body text-sm transition-colors"
-                style={
-                  categoria === value
-                    ? { background: 'rgba(84,225,109,0.15)', color: '#54e16d' }
-                    : { background: 'var(--color-surface-high)', color: '#bccbb8' }
-                }
-              >
-                {label}
-              </button>
-            ))}
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-surface-container border border-primary-container/30 rounded-xl shadow-float overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-container to-transparent opacity-50" />
+
+        <div className="p-lg space-y-6">
+          <div>
+            <h2 className="font-heading text-lg font-semibold text-on-surface mb-1">Agregar Ítems</h2>
+            <p className="font-body text-sm text-on-surface-variant">
+              Seleccioná el producto y completá los datos del lote.
+            </p>
           </div>
-        </div>
 
-        {/* Producto — catálogo centralizado */}
-        <div className="space-y-1">
-          <label htmlFor="acta-item-producto" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-            Producto
-          </label>
-          <ProductoSelector
-            key={`${categoria}-${selectedProductoId ?? 'empty'}`}
-            id="acta-item-producto"
-            categoria={categoria}
-            displayValue={productoNombre}
-            onChange={(id, nombre) => {
-              setValue('productoId', id || undefined, { shouldValidate: true })
-              setValue('productoNombre', nombre, { shouldValidate: true })
-            }}
-          />
-          {errors.productoNombre && (
-            <p className="font-body text-error text-xs">{errors.productoNombre.message}</p>
-          )}
-        </div>
-
-        {/* Mercado — para estuches y etiquetas */}
-        {(categoria === 'estuche' || categoria === 'etiqueta') && (
-          <div className="space-y-1">
-            <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Mercado
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {MERCADOS_CONFIG.map(({ value, label, color }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setValue('mercado', value, { shouldValidate: true })}
-                  className="px-3 py-1.5 rounded font-body text-xs transition-colors"
-                  style={
-                    mercado === value
-                      ? { background: `${color}26`, color, border: `1px solid ${color}40` }
-                      : { background: 'var(--color-surface-high)', color: '#bccbb8', border: '1px solid transparent' }
-                  }
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {errors.mercado && (
-              <p className="font-body text-error text-xs">{errors.mercado.message}</p>
-            )}
-          </div>
-        )}
-
-        {/* Lote + Cantidad */}
-        <div className="grid grid-cols-2 gap-3">
-          {categoria === 'droga' ? (
+          <form onSubmit={handleSubmit(onSubmit, () => toast.error('Completá categoría, producto y cantidad antes de agregar el item.'))} noValidate className="space-y-4 max-w-lg">
+            {/* Categoría */}
             <div className="space-y-1">
-              <label htmlFor="acta-item-lote" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                Lote
+              <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                Categoría
               </label>
-              <input
-                id="acta-item-lote"
-                {...register('lote')}
-                type="text"
-                placeholder="Ej: L240901"
-                className="input-field"
+              <div className="flex gap-2 flex-wrap">
+                {CATEGORIAS.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setValue('categoria', value)
+                      setValue('productoId', undefined)
+                      setValue('productoNombre', '')
+                      setValue('mercado', undefined)
+                    }}
+                    className={`px-3 py-1.5 rounded-lg font-body text-sm transition-colors ${
+                      categoria === value
+                        ? 'bg-primary-container/20 text-primary border border-primary-container/30'
+                        : 'bg-surface-container-high text-on-surface-variant border border-white/10 hover:border-primary/30'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Producto */}
+            <div className="space-y-1">
+              <label htmlFor="acta-item-producto" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                Producto
+              </label>
+              <ProductoSelector
+                key={`${categoria}-${selectedProductoId ?? 'empty'}`}
+                id="acta-item-producto"
+                categoria={categoria}
+                displayValue={productoNombre}
+                onChange={(id, nombre) => {
+                  setValue('productoId', id || undefined, { shouldValidate: true })
+                  setValue('productoNombre', nombre, { shouldValidate: true })
+                }}
               />
-              {errors.lote && (
-                <p className="font-body text-error text-xs">{errors.lote.message}</p>
+              {errors.productoNombre && (
+                <p className="font-body text-error text-xs">{errors.productoNombre.message}</p>
               )}
             </div>
-          ) : (
-            <div className="space-y-1">
-              <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                Lote
-              </label>
-              <div className="bg-surface-low rounded px-3 py-2.5 font-body text-xs text-on-surface-variant leading-relaxed">
-                <span>Se asignará automáticamente</span>
-                <br />
-                <span className="font-mono" style={{ color: '#54e16d99' }}>
-                  {categoria === 'estuche'
-                    ? 'EST-XXXX'
-                    : categoria === 'etiqueta'
-                    ? 'ETQ-XXXX'
-                    : 'FRA-XXXX'}
-                </span>
-              </div>
-            </div>
-          )}
-          <div className="space-y-1">
-            <label htmlFor="acta-item-cantidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              {categoria === 'frasco' ? 'Cajas' : 'Cantidad'}
-            </label>
-            <input
-              id="acta-item-cantidad"
-              {...register('cantidadIngresada')}
-              type="number"
-              min="1"
-              placeholder="0"
-              className="input-field"
-            />
-            {errors.cantidadIngresada && (
-              <p className="font-body text-error text-xs">{errors.cantidadIngresada.message}</p>
-            )}
-          </div>
-        </div>
 
-        {/* Vencimiento — solo para drogas */}
-        {categoria === 'droga' && (
-          <div className="space-y-1">
-            <label htmlFor="acta-item-vencimiento" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Vencimiento
-            </label>
-            <input
-              id="acta-item-vencimiento"
-              {...register('vencimiento')}
-              type="month"
-              className="input-field"
-            />
-            <p className="font-body text-on-surface-variant text-xs">Mes y año. Se guardará el último día del mes.</p>
-            {errors.vencimiento && (
-              <p className="font-body text-error text-xs">{errors.vencimiento.message}</p>
-            )}
-          </div>
-        )}
-
-        <div className="bg-surface-low rounded overflow-hidden">
-          <button
-            type="button"
-            onClick={() => setQualityOpen((current) => !current)}
-            className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-high"
-          >
-            <div>
-              <p className="font-heading text-on-surface text-sm font-semibold">
-                Control de Calidad
-              </p>
-              <p className="font-body text-on-surface-variant text-xs mt-0.5">
-                Transporte, embalaje, observaciones y aprobación
-              </p>
-            </div>
-            <ChevronRight
-              size={16}
-              strokeWidth={1.5}
-              className={`text-on-surface-variant transition-transform ${qualityOpen ? 'rotate-90' : ''}`}
-            />
-          </button>
-
-          {qualityOpen && (
-            <div className="px-4 pb-4 space-y-4 bg-surface-high/40">
-              <div className="space-y-1 pt-1">
-                <label htmlFor="acta-item-temperatura" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                  Temperatura de transporte
-                </label>
-                <input
-                  id="acta-item-temperatura"
-                  {...register('temperaturaTransporte')}
-                  type="text"
-                  placeholder="Ej: 2-8°C"
-                  className="input-field"
-                />
-                {errors.temperaturaTransporte && (
-                  <p className="font-body text-error text-xs">{errors.temperaturaTransporte.message}</p>
-                )}
-              </div>
-
+            {/* Mercado */}
+            {(categoria === 'estuche' || categoria === 'etiqueta') && (
               <div className="space-y-1">
-                <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                  Condición de embalaje
+                <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                  Mercado
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {CONDICION_EMBALAJE_OPTIONS.map(({ value, label, color }) => (
+                <div className="flex gap-2 flex-wrap">
+                  {MERCADOS_CONFIG.map(({ value, label, color }) => (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setValue('condicionEmbalaje', value, { shouldValidate: true })}
-                      className="px-3 py-1.5 rounded font-body text-xs transition-colors"
-                      style={
-                        condicionEmbalaje === value
-                          ? { background: `${color}1A`, color, boxShadow: `inset 0 0 0 1px ${color}40` }
-                          : { background: 'rgba(49,54,49,0.8)', color: '#bccbb8', boxShadow: 'inset 0 0 0 1px rgba(61,74,60,0.15)' }
-                      }
+                      onClick={() => setValue('mercado', value, { shouldValidate: true })}
+                      className={`px-3 py-1.5 rounded-lg font-body text-xs transition-colors border ${
+                        mercado === value
+                          ? 'border-primary-container/30 bg-primary-container/10 text-primary'
+                          : 'border-white/10 bg-surface-container-high text-on-surface-variant hover:border-primary/30'
+                      }`}
                     >
                       {label}
                     </button>
                   ))}
                 </div>
-                {errors.condicionEmbalaje && (
-                  <p className="font-body text-error text-xs">{errors.condicionEmbalaje.message}</p>
+                {errors.mercado && (
+                  <p className="font-body text-error text-xs">{errors.mercado.message}</p>
                 )}
               </div>
+            )}
 
-              <div className="space-y-1">
-                <label htmlFor="acta-item-observaciones-calidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                  Observaciones
-                </label>
-                <textarea
-                  id="acta-item-observaciones-calidad"
-                  {...register('observacionesCalidad')}
-                  rows={3}
-                  placeholder="Notas de recepción, embalaje o desvíos detectados..."
-                  className="input-field resize-none"
-                />
-                {errors.observacionesCalidad && (
-                  <p className="font-body text-error text-xs">{errors.observacionesCalidad.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                  Estado de calidad
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setValue('aprobadoCalidad', true, { shouldValidate: true })}
-                    className="px-3 py-2 rounded font-body text-sm transition-colors"
-                    style={
-                      aprobadoCalidad
-                        ? { background: 'rgba(0,174,66,0.10)', color: '#00AE42', boxShadow: 'inset 0 0 0 1px rgba(0,174,66,0.15)' }
-                        : { background: 'rgba(49,54,49,0.8)', color: '#bccbb8', boxShadow: 'inset 0 0 0 1px rgba(61,74,60,0.15)' }
-                    }
-                  >
-                    Aprobado
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setValue('aprobadoCalidad', false, { shouldValidate: true })}
-                    className="px-3 py-2 rounded font-body text-sm transition-colors"
-                    style={
-                      !aprobadoCalidad
-                        ? { background: 'rgba(244,67,54,0.10)', color: '#f44336', boxShadow: 'inset 0 0 0 1px rgba(244,67,54,0.15)' }
-                        : { background: 'rgba(49,54,49,0.8)', color: '#bccbb8', boxShadow: 'inset 0 0 0 1px rgba(61,74,60,0.15)' }
-                    }
-                  >
-                    No aprobado
-                  </button>
+            {/* Lote + Cantidad */}
+            <div className="grid grid-cols-2 gap-3">
+              {categoria === 'droga' ? (
+                <div className="space-y-1">
+                  <label htmlFor="acta-item-lote" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                    Lote
+                  </label>
+                  <input
+                    id="acta-item-lote"
+                    {...register('lote')}
+                    type="text"
+                    placeholder="Ej: L240901"
+                    className="input-field"
+                  />
+                  {errors.lote && (
+                    <p className="font-body text-error text-xs">{errors.lote.message}</p>
+                  )}
                 </div>
+              ) : (
+                <div className="space-y-1">
+                  <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                    Lote
+                  </label>
+                  <div className="bg-surface-container-high rounded-lg px-3 py-2.5 font-body text-xs text-on-surface-variant leading-relaxed border border-white/10">
+                    <span>Se asignará automáticamente</span>
+                    <br />
+                    <span className="font-mono text-primary/60">
+                      {categoria === 'estuche'
+                        ? 'EST-XXXX'
+                        : categoria === 'etiqueta'
+                        ? 'ETQ-XXXX'
+                        : 'FRA-XXXX'}
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="space-y-1">
+                <label htmlFor="acta-item-cantidad" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                  {categoria === 'frasco' ? 'Cajas' : 'Cantidad'}
+                </label>
+                <input
+                  id="acta-item-cantidad"
+                  {...register('cantidadIngresada')}
+                  type="number"
+                  min="1"
+                  placeholder="0"
+                  className="input-field"
+                />
+                {errors.cantidadIngresada && (
+                  <p className="font-body text-error text-xs">{errors.cantidadIngresada.message}</p>
+                )}
               </div>
+            </div>
+
+            {/* Vencimiento */}
+            {categoria === 'droga' && (
+              <div className="space-y-1">
+                <label htmlFor="acta-item-vencimiento" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                  Vencimiento
+                </label>
+                <input
+                  id="acta-item-vencimiento"
+                  {...register('vencimiento')}
+                  type="month"
+                  className="input-field"
+                />
+                <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                  Mes y año. Se guardará el último día del mes.
+                </p>
+                {errors.vencimiento && (
+                  <p className="font-body text-error text-xs">{errors.vencimiento.message}</p>
+                )}
+              </div>
+            )}
+
+            {/* Control de Calidad Accordion */}
+            <div className="bg-surface-container-high rounded-lg overflow-hidden border border-white/10">
+              <button
+                type="button"
+                onClick={() => setQualityOpen((current) => !current)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-variant/30"
+              >
+                <div>
+                  <p className="font-heading text-sm font-semibold text-on-surface">
+                    Control de Calidad
+                  </p>
+                  <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                    Transporte, embalaje, observaciones y aprobación
+                  </p>
+                </div>
+                <ChevronRight
+                  size={16}
+                  strokeWidth={1.5}
+                  className={`text-on-surface-variant transition-transform duration-200 ${qualityOpen ? 'rotate-90' : ''}`}
+                />
+              </button>
+
+              {qualityOpen && (
+                <div className="px-4 pb-4 space-y-4 border-t border-white/5 pt-4">
+                  <div className="space-y-1">
+                    <label htmlFor="acta-item-temperatura" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                      Temperatura de transporte
+                    </label>
+                    <input
+                      id="acta-item-temperatura"
+                      {...register('temperaturaTransporte')}
+                      type="text"
+                      placeholder="Ej: 2-8°C"
+                      className="input-field"
+                    />
+                    {errors.temperaturaTransporte && (
+                      <p className="font-body text-error text-xs">{errors.temperaturaTransporte.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                      Condición de embalaje
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {CONDICION_EMBALAJE_OPTIONS.map(({ value, label, color }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => setValue('condicionEmbalaje', value, { shouldValidate: true })}
+                          className={`px-3 py-1.5 rounded-lg font-body text-xs transition-colors border ${
+                            condicionEmbalaje === value
+                              ? 'border-primary-container/30 bg-primary-container/10 text-primary'
+                              : 'border-white/10 bg-surface-container-high text-on-surface-variant hover:border-primary/30'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {errors.condicionEmbalaje && (
+                      <p className="font-body text-error text-xs">{errors.condicionEmbalaje.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label htmlFor="acta-item-observaciones-calidad" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                      Observaciones
+                    </label>
+                    <textarea
+                      id="acta-item-observaciones-calidad"
+                      {...register('observacionesCalidad')}
+                      rows={3}
+                      placeholder="Notas de recepción, embalaje o desvíos detectados..."
+                      className="input-field resize-none"
+                    />
+                    {errors.observacionesCalidad && (
+                      <p className="font-body text-error text-xs">{errors.observacionesCalidad.message}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                      Estado de calidad
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setValue('aprobadoCalidad', true, { shouldValidate: true })}
+                        className={`px-3 py-2 rounded-lg font-body text-sm transition-colors border ${
+                          aprobadoCalidad
+                            ? 'bg-primary-container/10 text-primary border-primary-container/30'
+                            : 'border-white/10 text-on-surface-variant hover:border-primary/30'
+                        }`}
+                      >
+                        Aprobado
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setValue('aprobadoCalidad', false, { shouldValidate: true })}
+                        className={`px-3 py-2 rounded-lg font-body text-sm transition-colors border ${
+                          !aprobadoCalidad
+                            ? 'bg-error-container/10 text-error border-error-container/30'
+                            : 'border-white/10 text-on-surface-variant hover:border-primary/30'
+                        }`}
+                      >
+                        No aprobado
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {serverError && (
+              <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">
+                {serverError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary"
+            >
+              <Plus size={16} strokeWidth={2} />
+              {isSubmitting ? 'Agregando...' : 'Agregar item'}
+            </button>
+          </form>
+
+          {/* Items agregados */}
+          {items.length > 0 && (
+            <div className="space-y-3 pt-4 border-t border-white/5">
+              <p className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                Items agregados ({items.length})
+              </p>
+              <div className="space-y-2">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-surface-container-high rounded-lg px-4 py-3 flex items-center justify-between gap-4 border border-white/5"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-sm text-on-surface truncate font-medium">
+                        {item.productoNombre}
+                      </p>
+                      <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                        {CATEGORIAS.find((c) => c.value === item.categoria)?.label}
+                        {item.mercado
+                          ? ` · ${MERCADOS_CONFIG.find((m) => m.value === item.mercado)?.label ?? item.mercado}`
+                          : ''}
+                        {' · '}Lote: {item.lote}
+                      </p>
+                    </div>
+                    <span className="font-body text-on-surface tabular-nums text-sm shrink-0 font-semibold">
+                      {item.cantidadIngresada} uds
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={onNext}
+                className="btn-primary mt-2"
+              >
+                Continuar a distribución
+                <ChevronRight size={16} strokeWidth={2} />
+              </button>
             </div>
           )}
         </div>
-
-        {serverError && (
-          <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">
-            {serverError}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="btn-primary flex items-center justify-center gap-2 py-2.5 text-sm"
-        >
-          <Plus size={14} strokeWidth={2} />
-          {isSubmitting ? 'Agregando...' : 'Agregar item'}
-        </button>
-      </form>
-
-      {/* Items agregados */}
-      {items.length > 0 && (
-        <div className="space-y-3">
-          <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-            Items agregados ({items.length})
-          </p>
-          <div className="space-y-2">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-4"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface text-sm truncate">
-                    {item.productoNombre}
-                  </p>
-                  <p className="font-body text-on-surface-variant text-xs mt-0.5">
-                    {CATEGORIAS.find((c) => c.value === item.categoria)?.label}
-                    {item.mercado
-                      ? ` · ${MERCADOS_CONFIG.find((m) => m.value === item.mercado)?.label ?? item.mercado}`
-                      : ''}
-                    {' · '}Lote: {item.lote}
-                  </p>
-                </div>
-                <span className="font-body text-on-surface tabular-nums text-sm shrink-0">
-                  {item.cantidadIngresada} uds
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={onNext}
-            className="btn-primary flex items-center justify-center gap-2 py-2.5 text-sm mt-2"
-          >
-            Continuar a distribución
-            <ChevronRight size={14} strokeWidth={2} />
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -680,24 +763,22 @@ function Paso2({
 
 function ProgressBar({ distribuida, ingresada }: { distribuida: number; ingresada: number }) {
   const pct = ingresada === 0 ? 0 : Math.round((distribuida / ingresada) * 100)
-  const color =
-    pct === 100 ? '#00AE42' : pct > 0 ? '#2196F3' : '#FF9800'
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 h-1 bg-surface-high rounded-full overflow-hidden">
+      <div className="flex-1 h-1.5 bg-surface-variant rounded-full overflow-hidden">
         <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: color }}
+          className="h-full rounded-full transition-all duration-500 bg-primary"
+          style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="font-body text-xs text-on-surface-variant tabular-nums shrink-0">
+      <span className="font-body text-xs text-on-surface-variant tabular-nums shrink-0 font-mono">
         {distribuida}/{ingresada}
       </span>
     </div>
   )
 }
 
-// ─── Step 3: distribuir ───────────────────────────────────────────────────────
+// ─── Step 3: distribuir (Revisión) ───────────────────────────────────────────
 
 function Paso3({
   actaId,
@@ -712,14 +793,14 @@ function Paso3({
 }) {
   const [distributingId, setDistributingId] = useState<string | null>(null)
   const [distributeValues, setDistributeValues] = useState<Record<string, string>>({})
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errs, setErrs] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
   function startDistribute(item: ActaItem) {
     const remaining = item.cantidadIngresada - item.cantidadDistribuida
     setDistributingId(item.id)
     setDistributeValues((prev) => ({ ...prev, [item.id]: String(remaining) }))
-    setErrors((prev) => ({ ...prev, [item.id]: '' }))
+    setErrs((prev) => ({ ...prev, [item.id]: '' }))
   }
 
   async function confirmDistribute(item: ActaItem) {
@@ -728,11 +809,11 @@ function Paso3({
     const remaining = item.cantidadIngresada - item.cantidadDistribuida
 
     if (!Number.isInteger(num) || num <= 0) {
-      setErrors((prev) => ({ ...prev, [item.id]: 'Debe ser entero positivo' }))
+      setErrs((prev) => ({ ...prev, [item.id]: 'Debe ser entero positivo' }))
       return
     }
     if (num > remaining) {
-      setErrors((prev) => ({ ...prev, [item.id]: `Máximo disponible: ${remaining}` }))
+      setErrs((prev) => ({ ...prev, [item.id]: `Máximo disponible: ${remaining}` }))
       return
     }
 
@@ -740,13 +821,13 @@ function Paso3({
     try {
       const res = await api.post<{ item: ActaItem }>(
         `/actas/${actaId}/items/${item.id}/distribuir`,
-        { cantidad: num }
+        { cantidad: num },
       )
       onItemDistribuido(res.item)
       toast.success(`Distribución registrada para "${item.productoNombre}".`)
       setDistributingId(null)
     } catch (err) {
-      setErrors((prev) => ({
+      setErrs((prev) => ({
         ...prev,
         [item.id]: err instanceof ApiError ? err.message : 'Error al distribuir',
       }))
@@ -755,116 +836,117 @@ function Paso3({
     }
   }
 
-  const todosDistribuidos = items.every(
-    (i) => i.cantidadDistribuida >= i.cantidadIngresada
-  )
+  const todosDistribuidos = items.every((i) => i.cantidadDistribuida >= i.cantidadIngresada)
 
   return (
-    <div className="space-y-6 max-w-lg">
-      <div className="space-y-2">
-        {items.map((item) => {
-          const remaining = item.cantidadIngresada - item.cantidadDistribuida
-          const isDistributing = distributingId === item.id
+    <div className="max-w-4xl mx-auto">
+      <div className="bg-surface-container border border-primary-container/30 rounded-xl shadow-float overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary-container to-transparent opacity-50" />
 
-          return (
-            <div key={item.id} className="bg-surface-low rounded px-4 py-4 space-y-3">
-              {/* Header del item */}
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface text-sm truncate">
-                    {item.productoNombre}
-                  </p>
-                  <p className="font-body text-on-surface-variant text-xs mt-0.5">
-                    {CATEGORIAS.find((c) => c.value === item.categoria)?.label} · Lote: {item.lote}
-                  </p>
-                </div>
-                {remaining > 0 && !isDistributing && (
-                  <button
-                    type="button"
-                    onClick={() => startDistribute(item)}
-                    disabled={distributingId !== null}
-                    className="shrink-0 px-3 py-1 rounded font-heading font-semibold text-xs transition-colors disabled:opacity-40"
-                    style={{ background: 'rgba(84,225,109,0.15)', color: '#54e16d' }}
-                  >
-                    Distribuir
-                  </button>
-                )}
-                {remaining === 0 && (
-                  <span
-                    className="shrink-0 inline-block font-body text-xs font-medium px-2 py-0.5 rounded"
-                    style={{ color: '#00AE42', backgroundColor: 'rgba(0, 174, 66, 0.10)' }}
-                  >
-                    Distribuido
-                  </span>
-                )}
-              </div>
+        <div className="p-lg">
+          <div className="mb-lg">
+            <h2 className="font-heading text-lg font-semibold text-on-surface mb-1">Revisión y Distribución</h2>
+            <p className="font-body text-sm text-on-surface-variant">
+              Distribuí los items ingresados a los mercados correspondientes.
+            </p>
+          </div>
 
-              {/* Progreso */}
-              <ProgressBar
-                distribuida={item.cantidadDistribuida}
-                ingresada={item.cantidadIngresada}
-              />
+          <div className="space-y-3 max-w-lg">
+            {items.map((item) => {
+              const remaining = item.cantidadIngresada - item.cantidadDistribuida
+              const isDistributing = distributingId === item.id
 
-              {/* Inline distribute form */}
-              {isDistributing && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <label htmlFor={`acta-nueva-distribuir-${item.id}`} className="sr-only">
-                      Cantidad a distribuir para {item.productoNombre}
-                    </label>
-                    <input
-                      id={`acta-nueva-distribuir-${item.id}`}
-                      type="number"
-                      min="1"
-                      max={remaining}
-                      value={distributeValues[item.id] ?? ''}
-                      onChange={(e) =>
-                        setDistributeValues((prev) => ({ ...prev, [item.id]: e.target.value }))
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') confirmDistribute(item)
-                        if (e.key === 'Escape') setDistributingId(null)
-                      }}
-                      className="input-field w-28 py-1.5 text-sm"
-                      autoFocus
-                      disabled={saving}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => confirmDistribute(item)}
-                      disabled={saving}
-                      className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
-                      style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
-                    >
-                      {saving ? '...' : 'Confirmar'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDistributingId(null)}
-                      disabled={saving}
-                      className="font-body text-on-surface-variant text-xs hover:text-on-surface transition-colors"
-                    >
-                      Cancelar
-                    </button>
+              return (
+                <div key={item.id} className="bg-surface-container-high rounded-lg px-4 py-4 space-y-3 border border-white/5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-sm text-on-surface font-medium truncate">
+                        {item.productoNombre}
+                      </p>
+                      <p className="font-body text-xs text-on-surface-variant mt-0.5">
+                        {CATEGORIAS.find((c) => c.value === item.categoria)?.label} · Lote: {item.lote}
+                      </p>
+                    </div>
+                    {remaining > 0 && !isDistributing && (
+                      <button
+                        type="button"
+                        onClick={() => startDistribute(item)}
+                        disabled={distributingId !== null}
+                        className="shrink-0 px-3 py-1.5 rounded-lg font-body text-xs font-semibold bg-primary-container/20 text-primary hover:bg-primary-container/30 transition-colors disabled:opacity-40"
+                      >
+                        Distribuir
+                      </button>
+                    )}
+                    {remaining === 0 && (
+                      <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary text-xs font-semibold">
+                        <Check size={12} />
+                        Distribuido
+                      </span>
+                    )}
                   </div>
-                  {errors[item.id] && (
-                    <p className="font-body text-error text-xs">{errors[item.id]}</p>
+
+                  <ProgressBar distribuida={item.cantidadDistribuida} ingresada={item.cantidadIngresada} />
+
+                  {isDistributing && (
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center gap-2">
+                        <label htmlFor={`acta-nueva-distribuir-${item.id}`} className="sr-only">
+                          Cantidad a distribuir para {item.productoNombre}
+                        </label>
+                        <input
+                          id={`acta-nueva-distribuir-${item.id}`}
+                          type="number"
+                          min="1"
+                          max={remaining}
+                          value={distributeValues[item.id] ?? ''}
+                          onChange={(e) =>
+                            setDistributeValues((prev) => ({ ...prev, [item.id]: e.target.value }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') confirmDistribute(item)
+                            if (e.key === 'Escape') setDistributingId(null)
+                          }}
+                          className="input-field w-28 py-1.5 text-sm"
+                          autoFocus
+                          disabled={saving}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => confirmDistribute(item)}
+                          disabled={saving}
+                          className="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-body text-xs font-semibold scale-hover transition-transform disabled:opacity-50"
+                        >
+                          {saving ? '...' : 'Confirmar'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDistributingId(null)}
+                          disabled={saving}
+                          className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                      {errs[item.id] && (
+                        <p className="font-body text-error text-xs">{errs[item.id]}</p>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+              )
+            })}
 
-      <button
-        type="button"
-        onClick={onFinalizar}
-        className="btn-primary flex items-center justify-center gap-2 py-2.5 text-sm"
-      >
-        {todosDistribuidos ? 'Ver acta completa' : 'Finalizar y ver acta'}
-        <ChevronRight size={14} strokeWidth={2} />
-      </button>
+            <button
+              type="button"
+              onClick={onFinalizar}
+              className="btn-primary w-full mt-4"
+            >
+              {todosDistribuidos ? 'Ver acta completa' : 'Finalizar y ver acta'}
+              <ChevronRight size={16} strokeWidth={2} />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -904,49 +986,62 @@ export default function ActaNuevaPage() {
   }
 
   return (
-    <div>
-      {/* Back */}
-      <button
-        onClick={() => navigate('/actas')}
-        className="flex items-center gap-2 font-body text-on-surface-variant text-sm hover:text-on-surface transition-colors mb-6"
-      >
-        <ArrowLeft size={14} strokeWidth={1.5} />
-        Volver a actas
-      </button>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <header className="bg-surface/80 backdrop-blur-md border-b border-white/10 px-margin-desktop py-md flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-md">
+          <button
+            onClick={() => navigate('/actas')}
+            className="text-on-surface-variant hover:text-primary transition-colors flex items-center"
+          >
+            <ArrowLeft size={24} />
+          </button>
+          <h1 className="font-heading text-lg font-semibold text-primary">Nueva Acta de Ingreso</h1>
+        </div>
+        <div className="flex items-center gap-md">
+          {acta && (
+            <span className="font-body text-xs text-on-surface-variant bg-surface-container px-3 py-1 rounded-full border border-white/5 font-mono">
+              ID: {acta.id.slice(0, 8).toUpperCase()}
+            </span>
+          )}
+        </div>
+      </header>
 
-      <h1 className="font-heading text-on-surface font-semibold text-xl mb-6">
-        Nueva Acta
-      </h1>
+      {/* Wizard Content */}
+      <div className="flex-1 overflow-y-auto px-margin-desktop py-lg">
+        <StepIndicator current={step} />
 
-      <StepIndicator current={step} />
+        {step === 1 && <Paso1 onCreated={handleActaCreada} onCancel={() => navigate('/actas')} />}
+        {step === 2 && acta && (
+          <Paso2
+            actaId={acta.id}
+            items={items}
+            onItemAdded={handleItemAdded}
+            onNext={() => setStep(3)}
+            prefillItem={
+              pendingPrefill?.categoria && pendingPrefill?.productoNombre && pendingPrefill?.cantidadIngresada
+                ? {
+                    categoria: pendingPrefill.categoria,
+                    productoNombre: pendingPrefill.productoNombre,
+                    productoId: pendingPrefill.productoId,
+                    cantidadIngresada: pendingPrefill.cantidadIngresada,
+                  }
+                : null
+            }
+          />
+        )}
+        {step === 3 && acta && (
+          <Paso3
+            actaId={acta.id}
+            items={items}
+            onItemDistribuido={handleItemDistribuido}
+            onFinalizar={handleFinalizar}
+          />
+        )}
+      </div>
 
-      {step === 1 && <Paso1 onCreated={handleActaCreada} />}
-      {step === 2 && acta && (
-        <Paso2
-          actaId={acta.id}
-          items={items}
-          onItemAdded={handleItemAdded}
-          onNext={() => setStep(3)}
-          prefillItem={
-            pendingPrefill?.categoria && pendingPrefill?.productoNombre && pendingPrefill?.cantidadIngresada
-              ? {
-                  categoria: pendingPrefill.categoria,
-                  productoNombre: pendingPrefill.productoNombre,
-                  productoId: pendingPrefill.productoId,
-                  cantidadIngresada: pendingPrefill.cantidadIngresada,
-                }
-              : null
-          }
-        />
-      )}
-      {step === 3 && acta && (
-        <Paso3
-          actaId={acta.id}
-          items={items}
-          onItemDistribuido={handleItemDistribuido}
-          onFinalizar={handleFinalizar}
-        />
-      )}
+      {/* Ambient glow */}
+      <div className="fixed bottom-0 right-0 w-96 h-96 bg-primary-container/5 rounded-full blur-[100px] pointer-events-none -z-10" />
     </div>
   )
 }
