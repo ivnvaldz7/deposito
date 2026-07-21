@@ -7,6 +7,7 @@ import { AdminRoute } from '@/components/guards/AdminRoute'
 import LoginPage from '@/modules/auth/LoginPage'
 import GoogleCallbackHandler from '@/modules/auth/GoogleCallbackHandler'
 import NoAccessPage from '@/modules/auth/NoAccessPage'
+import DesignPreviewPage from '@/modules/design-preview/DesignPreviewPage'
 
 // Lazy-loaded modules
 const AppSelector = lazy(() => import('@/modules/app-selector/AppSelector'))
@@ -44,7 +45,7 @@ function NavigateBasedOnAccess() {
 
 function LoadingShell() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-obsidian-900">
+    <div className="flex min-h-screen items-center justify-center bg-surface-lowest">
       <p className="text-gray-400">Cargando…</p>
     </div>
   )
@@ -57,6 +58,7 @@ export function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/google/callback" element={<GoogleCallbackHandler />} />
       <Route path="/no-access" element={<NoAccessPage />} />
+      <Route path="/design-preview" element={<DesignPreviewPage />} />
 
       {/* App selector */}
       <Route
