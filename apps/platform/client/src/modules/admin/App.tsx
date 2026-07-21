@@ -1,33 +1,32 @@
-import { Route, Routes, useNavigate } from 'react-router-dom'
-import UsersPage from './pages/UsersPage'
-import { ArrowLeft } from 'lucide-react'
+import { lazy, Suspense } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import AdminSidebar from './components/Sidebar'
 
-function AdminHeader() {
-  const navigate = useNavigate()
+const UsersPage = lazy(() => import('./pages/UsersPage'))
 
+function LoadingFallback() {
   return (
-    <div className="flex items-center gap-4 border-b border-outline-variant bg-surface-lowest px-6 py-3">
-      <button
-        type="button"
-        onClick={() => navigate('/app-selector')}
-        className="flex items-center gap-2 text-sm font-medium text-primary hover:text-primary-container transition-colors"
-      >
-        <ArrowLeft size={16} strokeWidth={1.5} />
-        Volver a apps
-      </button>
-      <h1 className="text-lg font-heading font-bold text-on-surface">Admin</h1>
+    <div className="flex items-center justify-center p-12">
+      <p className="font-body text-sm text-on-surface-variant">Cargando...</p>
     </div>
   )
 }
 
 export default function AdminModule() {
   return (
-    <div className="min-h-screen bg-surface">
-      <AdminHeader />
-      <Routes>
-        <Route index element={<UsersPage />} />
-        <Route path="usuarios" element={<UsersPage />} />
-      </Routes>
+    <div className="flex min-h-screen bg-background">
+      <AdminSidebar />
+      <div className="flex flex-col flex-1 min-w-0 md:ml-72">
+        <main className="flex-1 p-margin-desktop overflow-y-auto">
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route index element={<Navigate to="usuarios" replace />} />
+              <Route path="usuarios" element={<UsersPage />} />
+              <Route path="*" element={<Navigate to="usuarios" replace />} />
+            </Routes>
+          </Suspense>
+        </main>
+      </div>
     </div>
   )
 }

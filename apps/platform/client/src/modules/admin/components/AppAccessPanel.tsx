@@ -113,43 +113,43 @@ export function AppAccessPanel({
   }
 
   return (
-    <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-md border-l border-slate-800 bg-slate-950/98 p-6 shadow-2xl shadow-black/50">
+    <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-md border-l border-white/10 bg-surface-container-lowest/98 p-6 shadow-float">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-slate-100">Editar usuario</h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <h2 className="text-xl font-semibold font-heading text-on-surface">Editar usuario</h2>
+          <p className="mt-1 font-body text-sm text-on-surface-variant">
             Gestioná accesos por app y estado general.
           </p>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="rounded-full border border-slate-700 px-3 py-1 text-sm text-slate-300"
+          className="rounded-full border border-white/10 px-3 py-1 font-body text-sm text-on-surface-variant"
         >
           Cerrar
         </button>
       </div>
 
-      <div className="mt-6 space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <div className="mt-6 space-y-3 rounded-xl border border-white/10 bg-surface-container/60 p-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+          <p className="font-body text-xs uppercase tracking-[0.18em] text-on-surface-variant/70">
             Nombre
           </p>
-          <p className="mt-1 text-sm text-slate-100">{currentUser.nombre}</p>
+          <p className="mt-1 font-body text-sm text-on-surface">{currentUser.nombre}</p>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+          <p className="font-body text-xs uppercase tracking-[0.18em] text-on-surface-variant/70">
             Email
           </p>
-          <p className="mt-1 text-sm text-slate-100">{currentUser.email}</p>
+          <p className="mt-1 font-body text-sm text-on-surface">{currentUser.email}</p>
         </div>
       </div>
 
-      <div className="mt-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
+      <div className="mt-5 rounded-xl border border-white/10 bg-surface-container/60 p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-slate-100">Usuario activo</p>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="font-body text-sm font-medium text-on-surface">Usuario activo</p>
+            <p className="mt-1 font-body text-xs text-on-surface-variant">
               Desactiva el acceso completo del usuario.
             </p>
           </div>
@@ -157,10 +157,10 @@ export function AppAccessPanel({
             type="button"
             onClick={() => void handleStatusChange(!user.activo)}
             disabled={savingStatus}
-            className={`rounded-full px-4 py-2 text-sm font-medium ${
+            className={`rounded-full px-4 py-2 font-body text-sm font-medium ${
               currentUser.activo
-                ? 'bg-emerald-500/20 text-emerald-200'
-                : 'bg-slate-800 text-slate-300'
+                ? 'bg-success/20 text-success'
+                : 'bg-surface-container-high text-on-surface-variant'
             }`}
           >
             {savingStatus
@@ -176,18 +176,18 @@ export function AppAccessPanel({
         {(Object.keys(access) as AppId[]).map((app) => (
           <section
             key={app}
-            className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4"
+            className="rounded-xl border border-white/10 bg-surface-container/60 p-4"
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-slate-100">
+                <h3 className="font-body text-sm font-semibold text-on-surface">
                   {app === 'deposito' ? 'Depósito' : 'Ale-Bet'}
                 </h3>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 font-body text-xs text-on-surface-variant">
                   Rol y estado del acceso.
                 </p>
               </div>
-              <label className="inline-flex items-center gap-2 text-sm text-slate-300">
+              <label className="inline-flex items-center gap-2 font-body text-sm text-on-surface-variant">
                 <input
                   type="checkbox"
                   checked={access[app].activo}
@@ -205,7 +205,7 @@ export function AppAccessPanel({
               onChange={(event) =>
                 setAppAccess(app, { rol: event.target.value })
               }
-              className="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 disabled:opacity-50"
+              className="mt-4 w-full rounded-xl border border-white/10 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface disabled:opacity-50"
             >
               {appRoleOptions[app].map((role) => (
                 <option key={role} value={role}>
@@ -218,7 +218,7 @@ export function AppAccessPanel({
               type="button"
               onClick={() => void handleSave(app)}
               disabled={savingApp === app}
-              className="mt-4 w-full rounded-xl border border-sky-500/50 bg-sky-500/15 px-4 py-3 text-sm font-medium text-sky-200 transition hover:bg-sky-500/25 disabled:opacity-50"
+              className="mt-4 w-full rounded-xl border border-primary/50 bg-primary/15 px-4 py-3 font-body text-sm font-medium text-primary transition hover:bg-primary/25 disabled:opacity-50 scale-hover"
             >
               {savingApp === app ? 'Guardando...' : 'Guardar cambios'}
             </button>
@@ -227,7 +227,7 @@ export function AppAccessPanel({
       </div>
 
       {error ? (
-        <p className="mt-4 text-sm text-rose-300">{error}</p>
+        <p className="mt-4 font-body text-sm text-error">{error}</p>
       ) : null}
     </aside>
   )

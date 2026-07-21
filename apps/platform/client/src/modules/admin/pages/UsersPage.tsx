@@ -57,17 +57,17 @@ export default function UsersPage() {
   }
 
   return (
-    <main className="min-h-screen bg-transparent px-4 py-6 md:px-8">
+    <div className="px-4 py-6 md:px-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-8 flex flex-col gap-4 rounded-3xl border border-slate-800 bg-slate-900/75 p-6 md:flex-row md:items-center md:justify-between">
+        <header className="mb-8 flex flex-col gap-4 rounded-xl border border-white/10 bg-surface-container-low p-6 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-sky-400">
+            <p className="font-body text-xs uppercase tracking-[0.2em] text-primary">
               Platform
             </p>
-            <h1 className="mt-2 text-3xl font-semibold text-slate-50">
+            <h1 className="mt-2 text-3xl font-bold font-heading text-on-surface">
               Plataforma Admin
             </h1>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 font-body text-sm text-on-surface-variant">
               Gestioná usuarios, accesos y permisos de las apps de la plataforma.
             </p>
           </div>
@@ -76,7 +76,7 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="rounded-xl bg-sky-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-400"
+              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary font-heading transition hover:bg-primary-dim scale-hover"
             >
               Nuevo usuario
             </button>
@@ -84,13 +84,13 @@ export default function UsersPage() {
         </header>
 
         {error ? (
-          <div className="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div className="mb-6 rounded-xl border border-error/30 bg-error/10 px-4 py-3 font-body text-sm text-error">
             {error}
           </div>
         ) : null}
 
         {loading ? (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-5 py-8 text-sm text-slate-400">
+          <div className="rounded-xl border border-white/10 bg-surface-container px-5 py-8 font-body text-sm text-on-surface-variant">
             Cargando usuarios...
           </div>
         ) : (
@@ -110,6 +110,6 @@ export default function UsersPage() {
         onSaveAccess={handleSaveAccess}
         onToggleStatus={handleToggleStatus}
       />
-    </main>
+    </div>
   )
 }

@@ -7,8 +7,8 @@ interface UserTableProps {
 
 function statusClasses(active: boolean): string {
   return active
-    ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/30'
-    : 'bg-slate-700/50 text-slate-300 ring-1 ring-slate-600'
+    ? 'bg-success/15 text-success ring-1 ring-success/30'
+    : 'bg-surface-container-high text-on-surface-variant ring-1 ring-white/5'
 }
 
 function appLabel(app: string): string {
@@ -17,10 +17,10 @@ function appLabel(app: string): string {
 
 export function UserTable({ users, onEdit }: UserTableProps) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/70 shadow-2xl shadow-slate-950/40">
-      <table className="min-w-full divide-y divide-slate-800">
-        <thead className="bg-slate-900/90">
-          <tr className="text-left text-xs uppercase tracking-[0.18em] text-slate-400">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-surface-container-low shadow-float">
+      <table className="min-w-full divide-y divide-white/5">
+        <thead className="bg-surface-container">
+          <tr className="text-left font-body text-xs uppercase tracking-[0.18em] text-on-surface-variant">
             <th className="px-5 py-4 font-medium">Nombre</th>
             <th className="px-5 py-4 font-medium">Email</th>
             <th className="px-5 py-4 font-medium">Estado</th>
@@ -28,11 +28,11 @@ export function UserTable({ users, onEdit }: UserTableProps) {
             <th className="px-5 py-4 font-medium">Acciones</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-800 text-sm text-slate-100">
+        <tbody className="divide-y divide-white/5 font-body text-sm text-on-surface">
           {users.map((user) => (
-            <tr key={user.id} className="bg-slate-950/20">
+            <tr key={user.id} className="bg-surface-dim/20">
               <td className="px-5 py-4 font-medium">{user.nombre}</td>
-              <td className="px-5 py-4 text-slate-300">{user.email}</td>
+              <td className="px-5 py-4 text-on-surface-variant">{user.email}</td>
               <td className="px-5 py-4">
                 <span
                   className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${statusClasses(user.activo)}`}
@@ -43,12 +43,12 @@ export function UserTable({ users, onEdit }: UserTableProps) {
               <td className="px-5 py-4">
                 <div className="flex flex-wrap gap-2">
                   {user.appAccess.length === 0 ? (
-                    <span className="text-slate-500">Sin accesos</span>
+                    <span className="text-on-surface-variant/60">Sin accesos</span>
                   ) : (
                     user.appAccess.map((access) => (
                       <span
                         key={access.id}
-                        className="inline-flex rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-200 ring-1 ring-slate-700"
+                        className="inline-flex rounded-full bg-surface-container-high px-3 py-1 font-body text-xs text-on-surface ring-1 ring-white/5"
                       >
                         {appLabel(access.app)} · {access.rol}
                       </span>
@@ -60,7 +60,7 @@ export function UserTable({ users, onEdit }: UserTableProps) {
                 <button
                   type="button"
                   onClick={() => onEdit(user)}
-                  className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-100 transition hover:border-sky-500 hover:text-sky-300"
+                  className="rounded-lg border border-white/10 px-3 py-2 font-body text-sm text-on-surface transition hover:border-primary hover:text-primary"
                 >
                   Editar
                 </button>
