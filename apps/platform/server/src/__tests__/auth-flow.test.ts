@@ -612,7 +612,172 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
   })
 
   // ────────────────────────────────────────────────
-  // 11. Logout
+  // 11. Local login (email/password)
+  // ────────────────────────────────────────────────
+  describe('POST /api/auth/login — Local login', () => {
+    const localUser = {
+      ...mockPlatformUser,
+      password: '$2b$10$hashedPasswordString',
+    }
+
+    beforeEach(() => {
+      vi.clearAllMocks()
+      app = createTestApp()
+    })
+
+    it('with valid credentials → returns 200 with token + user + cookie', async () => {
+      mockGetUserByEmail.mockResolvedValue(localUser)
+      const { comparePassword: mockCompare } = await import('@platform/core')
+      vi.mocked(mockCompare).mockResolvedValue(true as never)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'encargado@deposito.com', password: 'correct-password' })
+
+      expect(res.status).toBe(200)
+      expect(res.body.token).toBeDefined()
+      expect(typeof res.body.token).toBe('string')
+      expect(res.body.token.length).toBeGreaterThan(0)
+      expect(res.body.user).toBeDefined()
+      expect(res.body.user.sub).toBe(localUser.id)
+      expect(res.body.user.email).toBe(localUser.email)
+      expect(res.body.user.name).toBe(localUser.nombre)
+      expect(res.body.user.isPlatformAdmin).toBe(false)
+      expect(res.body.user.apps).toBeDefined()
+      expect(res.body.user.apps.deposito).toBeDefined()
+      expect(res.body.user.apps.deposito.rol).toBe('encargado')
+
+      // Verify httpOnly refresh cookie is set
+      const cookies = res.headers['set-cookie']
+      expect(cookies).toBeDefined()
+      const refreshCookie = (cookies as string[]).find((c: string) =>
+        c.startsWith('platform_refresh_token=')
+      )
+      expect(refreshCookie).toBeDefined()
+      expect(refreshCookie).toContain('HttpOnly')
+      expect(refreshCookie).toContain('Path=/api/auth')
+    })
+
+    it('with wrong password → returns 401 with generic error', async () => {
+      mockGetUserByEmail.mockResolvedValue(localUser)
+      const { comparePassword: mockCompare } = await import('@platform/core')
+      vi.mocked(mockCompare).mockResolvedValue(false as never)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'encargado@deposito.com', password: 'wrong-password' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toBe('Email o contraseña incorrectos')
+    })
+
+    it('with unknown email → returns 401 with generic error', async () => {
+      mockGetUserByEmail.mockResolvedValue(null)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'unknown@test.com', password: 'any-password' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toBe('Email o contraseña incorrectos')
+    })
+
+    it('with disabled user (activo: false) → returns 401 with disabled message', async () => {
+      mockGetUserByEmail.mockResolvedValue(disabledUser)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'disabled@test.com', password: 'any-password' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toBe('Cuenta deshabilitada')
+    })
+
+    it('with disabled user (estado: disabled) → returns 401 with disabled message', async () => {
+      const disabledEstadoUser = {
+        ...mockPlatformUser,
+        email: 'disabled2@test.com',
+        activo: true,
+        estado: 'disabled' as const,
+        password: '$2b$10$hashed',
+      }
+      mockGetUserByEmail.mockResolvedValue(disabledEstadoUser)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'disabled2@test.com', password: 'any-password' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toBe('Cuenta deshabilitada')
+    })
+
+    it('with pending user → returns 401 with generic error', async () => {
+      mockGetUserByEmail.mockResolvedValue(pendingUser)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'pending@test.com', password: 'any-password' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toBe('Email o contraseña incorrectos')
+    })
+
+    it('with inactive user (activo: false, estado: active) → returns 401 with disabled message', async () => {
+      mockGetUserByEmail.mockResolvedValue(inactiveUser)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'inactive@test.com', password: 'any-password' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toBe('Cuenta deshabilitada')
+    })
+
+    it('with user that has no password hash → returns 401 with generic error', async () => {
+      const noPasswordUser = {
+        ...mockPlatformUser,
+        email: 'nopass@test.com',
+        password: null,
+      }
+      mockGetUserByEmail.mockResolvedValue(noPasswordUser)
+
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'nopass@test.com', password: 'any-password' })
+
+      expect(res.status).toBe(401)
+      expect(res.body.error).toBe('Email o contraseña incorrectos')
+    })
+
+    it('with missing email → returns 400', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ password: 'some-password' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toMatch(/email/i)
+    })
+
+    it('with missing password → returns 400', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ email: 'test@test.com' })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toMatch(/contraseña/i)
+    })
+
+    it('with missing both fields → returns 400', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({})
+
+      expect(res.status).toBe(400)
+    })
+  })
+
+  // ────────────────────────────────────────────────
+  // 12. Logout
   // ────────────────────────────────────────────────
   describe('POST /api/auth/logout — Logout', () => {
     it('clears refresh cookie and returns 204', async () => {
