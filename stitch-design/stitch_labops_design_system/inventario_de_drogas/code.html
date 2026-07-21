@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Depósito - Drugs Inventory</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"inverse-surface": "#f7faf5", "on-tertiary-fixed": "#00494e", surface: "#0b0f0d", "on-surface-variant": "#a4ada6", background: "#0b0f0d", "error-container": "#871f21", "surface-tint": "#a3d1b6", "on-primary-fixed": "#1c4733", "primary-container": "#305b46", outline: "#6f7871", "surface-bright": "#262e29", "surface-variant": "#1f2822", "on-secondary-fixed-variant": "#4a6054", "on-background": "#dfe8df", "tertiary-fixed-dim": "#a7e1e7", "on-error": "#490006", "tertiary-container": "#b5f0f5", "on-error-container": "#ff9993", "surface-container-lowest": "#000000", "on-tertiary": "#296469", "on-secondary": "#2f453a", "on-primary-fixed-variant": "#3a644e", "surface-container": "#151b17", "surface-dim": "#0b0f0d", "inverse-on-surface": "#525652", error: "#fa746f", "tertiary-fixed": "#b5f0f5", "secondary-fixed-dim": "#c1dacb", secondary: "#b4ccbd", "on-primary": "#1d4834", "on-primary-container": "#bfeed2", "surface-container-highest": "#1f2822", "surface-container-high": "#1a211d", "surface-container-low": "#0f1511", tertiary: "#d2fbff", "inverse-primary": "#3d6852", primary: "#a3d1b6", "secondary-fixed": "#cfe8d9", "on-tertiary-fixed-variant": "#2b666a", "on-secondary-container": "#adc5b6", "outline-variant": "#414a44", "on-secondary-fixed": "#2e4439", "on-tertiary-container": "#1f5c60", "primary-fixed": "#beedd2", "on-surface": "#dfe8df", "primary-fixed-dim": "#b1dfc4", "secondary-container": "#2a4035", "tertiary-dim": "#a7e1e7", "secondary-dim": "#a6beb0", "error-dim": "#c54d4a", "primary-dim": "#96c3a9"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "1rem", gutter: "1rem", xs: "0.25rem", "margin-desktop": "2rem", "margin-mobile": "1rem", xl: "2.5rem", lg: "1.5rem", sm: "0.5rem", base: "4px"}, fontFamily: {h1: ["Montserrat"], "label-sm": ["Inter"], "body-md": ["Inter"], "body-lg": ["Inter"], h2: ["Montserrat"], display: ["Space Grotesk"], mono: ["Inter"], "h1-mobile": ["Montserrat"], h3: ["Montserrat"], headline: ["Space Grotesk"], body: ["Inter"], label: ["Inter"]}, fontSize: {h1: ["32px", {lineHeight: "1.2", fontWeight: "600"}], "label-sm": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600"}], "body-md": ["14px", {lineHeight: "1.5", fontWeight: "400"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], h2: ["24px", {lineHeight: "1.3", fontWeight: "600"}], display: ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], mono: ["13px", {lineHeight: "1.5", letterSpacing: "-0.01em", fontWeight: "500"}], "h1-mobile": ["24px", {lineHeight: "1.2", fontWeight: "600"}], h3: ["18px", {lineHeight: "1.4", fontWeight: "600"}]}, boxShadow: {float: "0 8px 30px rgba(0,0,0,0.5)"}}}};</script>
+<style>
+        body {
+            background-color: #131313;
+            color: #e5e2e1;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Stagger animations for list items */
+        .slide-up:nth-child(1) { animation-delay: 0.05s; }
+        .slide-up:nth-child(2) { animation-delay: 0.1s; }
+        .slide-up:nth-child(3) { animation-delay: 0.15s; }
+        .slide-up:nth-child(4) { animation-delay: 0.2s; }
+        .slide-up:nth-child(5) { animation-delay: 0.25s; }
+        .slide-up:nth-child(6) { animation-delay: 0.3s; }
+
+        .scale-hover:hover {
+            transform: scale(1.02);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .glass-panel {
+            background-color: rgba(28, 27, 27, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .drug-card {
+            background-color: #1c1b1b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .drug-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        
+        .drug-card.expanded {
+            border-color: #10b981;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Custom Scrollbar for inner tables */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #131313;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #353534;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4edea3;
+        }
+        
+        .table-row-hover:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+            transform: translateY(-1px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col md:flex-row overflow-x-hidden antialiased">
+<!-- Desktop Sidebar Navigation Drawer -->
+<aside class="hidden md:flex flex-col h-screen w-72 rounded-r-xl border-r border-white/10 bg-surface-container-low shadow-float py-lg sticky top-0 z-40 shrink-0">
+<!-- Profile Header -->
+<div class="px-md mb-xl flex items-center gap-sm">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-outline-variant shrink-0">
+<img alt="Dr. Smith" class="w-full h-full object-cover" data-alt="A professional, high-contrast portrait of a veterinarian in a modern clinical setting. Dramatic lighting highlighting precision and expertise, dark mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAZTTsjxuXa6xWLf90CfYp7cfh5iRaBycJc03VPAPFHOP4BOEHgcVHiGKbJjj91gnLoDyZsiGYPTkkjp5x_ywB3_LpfElDUdg0hC1AnL2J-8HKB6mbOF38NPv__TE00UJ15oooKn9pUFMA7gE1j3-tjQ-OLXIJgnV4q2DJUeZFDO_kzj71L8E-s06R6gySOgo8QhlVD24Yv36TW-GW6iq7DmXKEKN6yaquik2gZxevRoByCccby9CmLhdIzplR_Br4S-JQP-m2hh1E"/>
+</div>
+<div class="flex flex-col">
+<span class="font-h3 text-h3 text-primary">Dr. Smith</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Lead Veterinarian</span>
+<span class="font-label-sm text-label-sm text-outline text-[10px]">Lab ID: 7702</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 px-sm space-y-sm">
+<a class="flex items-center gap-sm px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">analytics</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-sm px-4 py-3 rounded-xl bg-primary-container/20 text-primary border-l-4 border-primary hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-body-md text-body-md font-bold">Inventory</span>
+</a>
+<a class="flex items-center gap-sm px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">history_edu</span>
+<span class="font-body-md text-body-md">Audit Logs</span>
+</a>
+<a class="flex items-center gap-sm px-4 py-3 rounded-xl text-on-surface-variant hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-h-screen relative w-full max-w-full">
+<!-- Mobile Top App Bar -->
+<header class="md:hidden flex items-center justify-between px-md w-full z-40 bg-surface/80 backdrop-blur-md border-b border-white/10 shadow-float docked full-width top-0 sticky h-16">
+<button class="text-on-surface-variant hover:bg-surface-variant transition-colors duration-200 active:scale-95 p-2 rounded-full">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-h1-mobile text-h1-mobile text-primary tracking-tighter">Depósito</h1>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="A professional small avatar portrait of a vet lab technician, dark mode styling." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAIMDEnp76sCYBHdAJkqRD3NkkH3-PzfcvvNfz4J64k3QsmrL44wXo_neoTDhgdxNpnOOmwmFjxXN9DPULQ3Ie95vLA5jPUAAwX17Xm-H-uJIDEl9Cxd_I4rUUp0p-F7jdfINLJ4ynhxmMoforxwWtyqcCUIC2gEYCUUGptfcbdsIDrAgcz7u0p8VY-0a0Ci3qVDdr7_GdthRJBag5semWQ9kaJGiTwyLuLRMRupH7TmDFAOg0MOjRvHHdWgVWqgotkoR0WrwcZHGk"/>
+</div>
+</header>
+<!-- Desktop Header / Search Section -->
+<div class="px-margin-desktop py-lg max-w-7xl mx-auto w-full flex flex-col md:flex-row justify-between items-start md:items-end gap-md pt-margin-desktop">
+<div>
+<h1 class="font-display text-display text-primary-fixed mb-xs hidden md:block tracking-tighter">Drugs Inventory</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Manage laboratory reagents, medications, and clinical supplies.</p>
+</div>
+<!-- Global Search -->
+<div class="relative w-full md:w-96 group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-surface-container-high border border-white/10 rounded-xl py-3 pl-10 pr-4 font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-inner placeholder:text-outline-variant" placeholder="Search by name, active ingredient, or CAS..." type="text"/>
+</div>
+</div>
+<!-- Inventory List Container -->
+<div class="flex-1 px-margin-mobile md:px-margin-desktop pb-32 md:pb-xl max-w-7xl mx-auto w-full space-y-md">
+<!-- Filters & Summary Bar -->
+<div class="flex flex-wrap items-center justify-between gap-sm glass-panel rounded-lg p-sm mb-sm slide-up">
+<div class="flex gap-2 overflow-x-auto pb-1 md:pb-0 hide-scrollbar w-full md:w-auto">
+<button class="px-3 py-1.5 rounded-md bg-primary-container/20 text-primary border border-primary/30 font-label-sm text-label-sm whitespace-nowrap">All Items (142)</button>
+<button class="px-3 py-1.5 rounded-md bg-surface-container hover:bg-surface-variant text-on-surface-variant border border-white/5 font-label-sm text-label-sm whitespace-nowrap transition-colors">Critical Stock (3)</button>
+<button class="px-3 py-1.5 rounded-md bg-surface-container hover:bg-surface-variant text-on-surface-variant border border-white/5 font-label-sm text-label-sm whitespace-nowrap transition-colors">Expiring Soon (12)</button>
+</div>
+<div class="flex items-center gap-sm text-on-surface-variant font-label-sm text-label-sm hidden sm:flex">
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-primary-container"></div> Optimal</span>
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-tertiary-container"></div> Low</span>
+<span class="flex items-center gap-xs"><div class="w-2 h-2 rounded-full bg-error-container"></div> Critical</span>
+</div>
+</div>
+<!-- Drug Item 1: Optimal Stock (Expanded State Example) -->
+<div class="drug-card rounded-xl overflow-hidden slide-up expanded">
+<!-- Header (Always visible) -->
+<div class="p-md flex flex-wrap sm:flex-nowrap items-center justify-between gap-md cursor-pointer hover:bg-white/5">
+<div class="flex items-center gap-md min-w-0 flex-1">
+<!-- Status Indicator -->
+<div class="w-1.5 h-12 bg-primary-container rounded-full shrink-0"></div>
+<div class="min-w-0">
+<h3 class="font-h3 text-h3 text-on-surface truncate flex items-center gap-sm">
+                                Amoxicillin Trihydrate
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-outline-variant border border-white/5">ANTIBIOTIC</span>
+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">500mg Tablets • CAS: 61336-70-7</p>
+</div>
+</div>
+<div class="flex items-center gap-lg shrink-0">
+<div class="text-right">
+<div class="font-h2 text-h2 text-primary-fixed">1,250 <span class="font-label-sm text-label-sm text-on-surface-variant">u.</span></div>
+<div class="font-label-sm text-label-sm text-primary-container/80">Optimal Stock</div>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-variant text-primary transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">expand_less</span>
+</button>
+</div>
+</div>
+<!-- Expanded Details (Batches) -->
+<div class="border-t border-white/10 bg-surface-container-lowest p-md pb-lg">
+<div class="flex items-center justify-between mb-sm">
+<h4 class="font-label-sm text-label-sm text-outline uppercase tracking-wider">Active Batches (Lotes)</h4>
+<button class="text-primary font-label-sm text-label-sm hover:underline flex items-center gap-xs">
+<span class="material-symbols-outlined text-[16px]">add</span> New Batch
+                        </button>
+</div>
+<div class="w-full overflow-x-auto rounded-lg border border-white/5 bg-surface">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container border-b border-white/5">
+<th class="py-2 px-3 font-label-sm text-label-sm text-on-surface-variant font-medium">Batch ID</th>
+<th class="py-2 px-3 font-label-sm text-label-sm text-on-surface-variant font-medium">Location</th>
+<th class="py-2 px-3 font-label-sm text-label-sm text-on-surface-variant font-medium">Quantity</th>
+<th class="py-2 px-3 font-label-sm text-label-sm text-on-surface-variant font-medium">Expiration</th>
+<th class="py-2 px-3 font-label-sm text-label-sm text-on-surface-variant font-medium text-right">Status</th>
+</tr>
+</thead>
+<tbody class="font-mono text-mono">
+<tr class="border-b border-white/5 table-row-hover transition-all">
+<td class="py-2 px-3 text-on-surface">L-2023-884A</td>
+<td class="py-2 px-3 text-on-surface-variant">A-12-Shelf 3</td>
+<td class="py-2 px-3 text-on-surface">800 u.</td>
+<td class="py-2 px-3 text-on-surface">2025-10-15</td>
+<td class="py-2 px-3 text-right"><span class="inline-block px-2 py-0.5 rounded bg-primary-container/20 text-primary text-[10px] font-bold">VALID</span></td>
+</tr>
+<tr class="table-row-hover transition-all">
+<td class="py-2 px-3 text-on-surface">L-2023-902B</td>
+<td class="py-2 px-3 text-on-surface-variant">B-04-Shelf 1</td>
+<td class="py-2 px-3 text-on-surface">450 u.</td>
+<td class="py-2 px-3 text-tertiary">2024-05-20</td>
+<td class="py-2 px-3 text-right"><span class="inline-block px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary text-[10px] font-bold">NEAR EXP</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Drug Item 2: Low Stock -->
+<div class="drug-card rounded-xl overflow-hidden slide-up">
+<div class="p-md flex flex-wrap sm:flex-nowrap items-center justify-between gap-md cursor-pointer hover:bg-white/5">
+<div class="flex items-center gap-md min-w-0 flex-1">
+<div class="w-1.5 h-12 bg-tertiary-container rounded-full shrink-0"></div>
+<div class="min-w-0">
+<h3 class="font-h3 text-h3 text-on-surface truncate flex items-center gap-sm">
+                                Ketamine Hydrochloride
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-outline-variant border border-white/5">ANESTHETIC</span>
+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">100mg/mL Injectable • Controlled Substance</p>
+</div>
+</div>
+<div class="flex items-center gap-lg shrink-0">
+<div class="text-right">
+<div class="font-h2 text-h2 text-tertiary">15 <span class="font-label-sm text-label-sm text-on-surface-variant">vials</span></div>
+<div class="font-label-sm text-label-sm text-tertiary/80">Low Stock</div>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Drug Item 3: Critical Stock -->
+<div class="drug-card rounded-xl overflow-hidden slide-up">
+<div class="p-md flex flex-wrap sm:flex-nowrap items-center justify-between gap-md cursor-pointer hover:bg-white/5">
+<div class="flex items-center gap-md min-w-0 flex-1">
+<div class="w-1.5 h-12 bg-error rounded-full shrink-0"></div>
+<div class="min-w-0">
+<h3 class="font-h3 text-h3 text-on-surface truncate flex items-center gap-sm">
+                                Propofol
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-outline-variant border border-white/5">ANESTHETIC</span>
+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">10mg/mL Emulsion</p>
+</div>
+</div>
+<div class="flex items-center gap-lg shrink-0">
+<div class="text-right">
+<div class="font-h2 text-h2 text-error">2 <span class="font-label-sm text-label-sm text-on-surface-variant">vials</span></div>
+<div class="font-label-sm text-label-sm text-error/80 font-bold animate-pulse">Critical Stock</div>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Drug Item 4: Optimal Stock -->
+<div class="drug-card rounded-xl overflow-hidden slide-up">
+<div class="p-md flex flex-wrap sm:flex-nowrap items-center justify-between gap-md cursor-pointer hover:bg-white/5">
+<div class="flex items-center gap-md min-w-0 flex-1">
+<div class="w-1.5 h-12 bg-primary-container rounded-full shrink-0"></div>
+<div class="min-w-0">
+<h3 class="font-h3 text-h3 text-on-surface truncate flex items-center gap-sm">
+                                Meloxicam
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-surface-container-highest text-outline-variant border border-white/5">NSAID</span>
+</h3>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">5mg/mL Oral Suspension</p>
+</div>
+</div>
+<div class="flex items-center gap-lg shrink-0">
+<div class="text-right">
+<div class="font-h2 text-h2 text-primary-fixed">85 <span class="font-label-sm text-label-sm text-on-surface-variant">bottles</span></div>
+<div class="font-label-sm text-label-sm text-primary-container/80">Optimal Stock</div>
+</div>
+<button class="w-8 h-8 rounded-full flex items-center justify-center bg-surface-container hover:bg-surface-variant text-on-surface-variant transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">expand_more</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Mobile Bottom Navigation Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-16 px-2 pb-safe z-50 bg-surface-container/90 backdrop-blur-xl border-t border-white/5 shadow-float">
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all w-16 h-14" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">dashboard</span>
+<span class="font-label-sm text-[10px]">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 h-14" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">medical_services</span>
+<span class="font-label-sm text-[10px] font-bold">Drugs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all w-16 h-14" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">swap_horiz</span>
+<span class="font-label-sm text-[10px]">Movements</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all w-16 h-14" href="#">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">assignment</span>
+<span class="font-label-sm text-[10px]">Ingress</span>
+</a>
+</nav>
+<!-- Floating Action Button (FAB) - For adding new drugs, contextual to inventory -->
+<button class="fixed right-margin-mobile md:right-margin-desktop bottom-24 md:bottom-margin-desktop w-14 h-14 bg-primary text-on-primary rounded-full shadow-float flex items-center justify-center hover:bg-primary-fixed scale-hover z-40">
+<span class="material-symbols-outlined text-[28px]">add</span>
+</button>
+</body></html>

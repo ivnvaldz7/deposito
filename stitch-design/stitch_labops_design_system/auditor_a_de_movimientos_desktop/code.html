@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Auditoría de Movimientos - Depósito</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"primary-fixed": "#beedd2", "on-primary-fixed": "#1c4733", "on-tertiary": "#296469", "on-error-container": "#ff9993", "on-error": "#490006", "on-tertiary-fixed-variant": "#2b666a", "inverse-on-surface": "#525652", "on-secondary-fixed-variant": "#4a6054", "tertiary-fixed": "#b5f0f5", "surface-container-low": "#0f1511", background: "#0b0f0d", error: "#fa746f", "tertiary-fixed-dim": "#a7e1e7", "tertiary-container": "#b5f0f5", tertiary: "#d2fbff", "surface-bright": "#262e29", "on-tertiary-container": "#1f5c60", "surface-variant": "#1f2822", secondary: "#b4ccbd", "on-surface": "#dfe8df", "on-primary-fixed-variant": "#3a644e", "on-primary": "#1d4834", "secondary-fixed-dim": "#c1dacb", "on-tertiary-fixed": "#00494e", "surface-dim": "#0b0f0d", outline: "#6f7871", "on-secondary-fixed": "#2e4439", "on-secondary": "#2f453a", "surface-container-high": "#1a211d", "surface-container": "#151b17", "inverse-surface": "#f7faf5", primary: "#a3d1b6", "outline-variant": "#414a44", "on-background": "#dfe8df", "inverse-primary": "#3d6852", "on-primary-container": "#bfeed2", "error-container": "#871f21", "on-surface-variant": "#a4ada6", "primary-fixed-dim": "#b1dfc4", "secondary-container": "#2a4035", surface: "#0b0f0d", "surface-container-highest": "#1f2822", "primary-container": "#305b46", "on-secondary-container": "#adc5b6", "surface-tint": "#a3d1b6", "surface-container-lowest": "#000000", "secondary-fixed": "#cfe8d9", "tertiary-dim": "#a7e1e7", "secondary-dim": "#a6beb0", "error-dim": "#c54d4a", "primary-dim": "#96c3a9"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "1rem", gutter: "1rem", base: "4px", "margin-desktop": "2rem", sm: "0.5rem", xl: "2.5rem", xs: "0.25rem", "margin-mobile": "1rem", lg: "1.5rem"}, fontFamily: {mono: ["Inter"], h3: ["Montserrat"], "body-lg": ["Inter"], "body-md": ["Inter"], display: ["Space Grotesk"], h2: ["Montserrat"], "h1-mobile": ["Montserrat"], h1: ["Montserrat"], "label-sm": ["Inter"], headline: ["Space Grotesk"], body: ["Inter"], label: ["Inter"]}, fontSize: {mono: ["13px", {lineHeight: "1.5", letterSpacing: "-0.01em", fontWeight: "500"}], h3: ["18px", {lineHeight: "1.4", fontWeight: "600"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], "body-md": ["14px", {lineHeight: "1.5", fontWeight: "400"}], display: ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], h2: ["24px", {lineHeight: "1.3", fontWeight: "600"}], "h1-mobile": ["24px", {lineHeight: "1.2", fontWeight: "600"}], h1: ["32px", {lineHeight: "1.2", fontWeight: "600"}], "label-sm": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600"}]}}}};</script>
+<style>
+        .shadow-float { box-shadow: 0 8px 30px rgba(0,0,0,0.5); }
+        .scale-hover:hover { transform: scale(1.02); }
+        .scale-hover:active { transform: scale(0.98); }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex font-body-md text-body-md">
+<!-- Navigation Drawer (SideNav) -->
+<aside class="hidden md:flex h-full w-72 rounded-r-xl border-r border-white/10 bg-surface-container-low shadow-float flex flex-col py-lg fixed left-0 top-0 z-40 bg-surface-container-low dark:bg-surface-container-low text-primary dark:text-primary">
+<!-- Profile Header -->
+<div class="px-md mb-xl flex items-center gap-sm">
+<div class="w-12 h-12 rounded-full overflow-hidden border border-outline-variant bg-surface-variant flex items-center justify-center">
+<img class="w-full h-full object-cover" data-alt="A macro shot of a sleek, minimalist veterinary laboratory ID badge hanging on a lanyard. The badge features a stylized silhouette avatar with the text 'Dr. Smith, Lead Veterinarian'. The lighting is clinical and sharp, highlighting the subtle texture of the matte plastic card against a deep obsidian background with subtle emerald accents, reflecting the Precision Lab visual identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBHGDULmV_FbmXwWO2lPTRiHyXYcPiKO3nLpnC39AQ8mgZKJqFc9aBvOGIyN8rbOyIjIL-aFJrGd1morWyiNBe9I36lyYZr4z-YwE0PAJVqwti3AiMjYk3zXMB7yYu7Kk432zvDTIdjn3XewCCf19juLv5U-MRNWUeEghqI-gZXhH36KuzrKX5YREc9r-e1C5q7lQcJtLaQlu9eduN2sw1qlhev4YQvo79J_eph_YWNa3EZxZqR_IjziCazGWzdY5pVikReVsk2ozE"/>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface">Dr. Smith</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Lead Veterinarian</p>
+<p class="font-mono text-mono text-outline">Lab ID: 7702</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 flex flex-col gap-base">
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-body-md text-body-md">Inventory</span>
+</a>
+<a class="flex items-center gap-sm bg-primary-container/20 text-primary border-l-4 border-primary px-4 py-3 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span class="font-body-md text-body-md font-semibold">Audit Logs</span>
+</a>
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 ml-0 md:ml-72 flex flex-col min-h-screen">
+<!-- Header -->
+<header class="px-margin-desktop py-lg border-b border-white/5 bg-surface-container/50 backdrop-blur-md sticky top-0 z-30 flex items-center justify-between">
+<div>
+<h1 class="font-h1 text-h1 text-on-surface tracking-tighter">Auditoría de Movimientos</h1>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Registro inmutable de transacciones del depósito central.</p>
+</div>
+<div class="flex gap-sm">
+<button class="flex items-center gap-xs px-md py-sm rounded border border-outline-variant text-on-surface hover:bg-surface-variant transition-colors scale-hover">
+<span class="material-symbols-outlined text-[18px]">download</span>
+<span class="font-label-sm text-label-sm">Export</span>
+</button>
+<button class="flex items-center gap-xs px-md py-sm rounded bg-primary-container text-on-primary-container hover:bg-primary transition-colors scale-hover">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span class="font-label-sm text-label-sm">New Entry</span>
+</button>
+</div>
+</header>
+<!-- Content Area -->
+<div class="p-margin-desktop flex-1 flex flex-col gap-lg">
+<!-- Filter Toolbar -->
+<div class="bg-surface-container-high rounded-lg p-md border border-white/10 flex flex-wrap gap-md items-end">
+<div class="flex-1 min-w-[200px]">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Product Search</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full bg-surface-container border border-outline-variant rounded pl-[36px] pr-sm py-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-mono outline-none" placeholder="Scan or type ID..." type="text"/>
+</div>
+</div>
+<div class="w-[180px]">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Movement Type</label>
+<select class="w-full bg-surface-container border border-outline-variant rounded px-sm py-sm text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-body-md text-body-md outline-none appearance-none">
+<option>All Types</option>
+<option>Ingress</option>
+<option>Egress</option>
+</select>
+</div>
+<div class="w-[220px]">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-xs">Date Range</label>
+<div class="flex items-center bg-surface-container border border-outline-variant rounded px-sm py-sm focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all">
+<span class="material-symbols-outlined text-[18px] text-outline mr-sm">calendar_today</span>
+<input class="bg-transparent border-none p-0 text-on-surface font-body-md text-body-md outline-none w-full" placeholder="Past 7 Days" readonly="" type="text"/>
+</div>
+</div>
+</div>
+<!-- Data Table (Audit Grade) -->
+<div class="bg-surface-container border border-white/10 rounded-xl overflow-hidden flex-1 shadow-float">
+<table class="w-full text-left border-collapse font-mono text-mono">
+<thead class="bg-surface-container-highest border-b border-white/10">
+<tr>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant w-12 text-center">Dir</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant w-32">Tx ID</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant">Product / Item</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant w-48">Date &amp; Time</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant w-24 text-right">Qty</th>
+<th class="p-sm font-label-sm text-label-sm text-on-surface-variant w-24 text-center">User</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<!-- Row 1: Ingress -->
+<tr class="hover:-translate-y-[2px] hover:bg-surface-variant/30 transition-transform cursor-default group">
+<td class="p-sm text-center">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="arrow_downward" style="font-variation-settings: 'FILL' 1;">arrow_downward</span>
+</td>
+<td class="p-sm text-outline">TX-9021A</td>
+<td class="p-sm">
+<div class="font-body-md text-on-surface font-medium group-hover:text-primary transition-colors">Ketamine HCL 100mg/mL</div>
+<div class="text-xs text-outline-variant">Lot: KET-24-001 | Exp: 2025-11</div>
+</td>
+<td class="p-sm text-on-surface-variant">2023-10-24 08:15:33</td>
+<td class="p-sm text-right text-primary font-bold">+50</td>
+<td class="p-sm text-center text-outline">7702</td>
+</tr>
+<!-- Row 2: Egress -->
+<tr class="hover:-translate-y-[2px] hover:bg-surface-variant/30 transition-transform cursor-default group bg-black/20">
+<td class="p-sm text-center">
+<span class="material-symbols-outlined text-tertiary-container text-[20px]" data-icon="arrow_upward" style="font-variation-settings: 'FILL' 1;">arrow_upward</span>
+</td>
+<td class="p-sm text-outline">TX-9020B</td>
+<td class="p-sm">
+<div class="font-body-md text-on-surface font-medium group-hover:text-primary transition-colors">Propofol 1% 20mL</div>
+<div class="text-xs text-outline-variant">Lot: PRO-23-442 | Exp: 2024-05</div>
+</td>
+<td class="p-sm text-on-surface-variant">2023-10-23 16:45:11</td>
+<td class="p-sm text-right text-tertiary-container font-bold">-12</td>
+<td class="p-sm text-center text-outline">8190</td>
+</tr>
+<!-- Row 3: Ingress -->
+<tr class="hover:-translate-y-[2px] hover:bg-surface-variant/30 transition-transform cursor-default group">
+<td class="p-sm text-center">
+<span class="material-symbols-outlined text-primary text-[20px]" data-icon="arrow_downward" style="font-variation-settings: 'FILL' 1;">arrow_downward</span>
+</td>
+<td class="p-sm text-outline">TX-9019A</td>
+<td class="p-sm">
+<div class="font-body-md text-on-surface font-medium group-hover:text-primary transition-colors">Surgical Sponges 4x4 (Sterile)</div>
+<div class="text-xs text-outline-variant">Lot: SPG-24-110 | Exp: 2028-01</div>
+</td>
+<td class="p-sm text-on-surface-variant">2023-10-23 10:12:05</td>
+<td class="p-sm text-right text-primary font-bold">+200</td>
+<td class="p-sm text-center text-outline">7702</td>
+</tr>
+<!-- Row 4: Alert / Egress -->
+<tr class="hover:-translate-y-[2px] hover:bg-surface-variant/30 transition-transform cursor-default group border-l-2 border-l-error bg-error-container/5">
+<td class="p-sm text-center">
+<span class="material-symbols-outlined text-error text-[20px]" data-icon="arrow_upward" style="font-variation-settings: 'FILL' 1;">arrow_upward</span>
+</td>
+<td class="p-sm text-outline">TX-9018C</td>
+<td class="p-sm">
+<div class="font-body-md text-error font-medium flex items-center gap-xs">
+                                    Fentanyl Citrate 50mcg/mL
+                                    <span class="px-1.5 py-0.5 rounded bg-error-container text-on-error-container text-[10px] uppercase font-bold tracking-wider">Flagged</span>
+</div>
+<div class="text-xs text-outline-variant">Lot: FEN-23-009 | Discrepancy logged</div>
+</td>
+<td class="p-sm text-on-surface-variant">2023-10-22 23:55:40</td>
+<td class="p-sm text-right text-error font-bold">-5</td>
+<td class="p-sm text-center text-outline">SYS</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination -->
+<div class="border-t border-white/10 p-sm flex items-center justify-between bg-surface-container-low">
+<span class="font-mono text-mono text-outline-variant">Showing 1-4 of 1,024 entries</span>
+<div class="flex gap-xs">
+<button class="w-8 h-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-variant disabled:opacity-50">
+<span class="material-symbols-outlined text-[16px]">chevron_left</span>
+</button>
+<button class="w-8 h-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-variant">
+<span class="material-symbols-outlined text-[16px]">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

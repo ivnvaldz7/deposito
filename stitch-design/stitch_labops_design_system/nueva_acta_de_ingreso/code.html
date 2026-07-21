@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nuevo Ingreso - Depósito</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"inverse-surface": "#f7faf5", "on-tertiary-fixed": "#00494e", surface: "#0b0f0d", "on-surface-variant": "#a4ada6", background: "#0b0f0d", "error-container": "#871f21", "surface-tint": "#a3d1b6", "on-primary-fixed": "#1c4733", "primary-container": "#305b46", outline: "#6f7871", "surface-bright": "#262e29", "surface-variant": "#1f2822", "on-secondary-fixed-variant": "#4a6054", "on-background": "#dfe8df", "tertiary-fixed-dim": "#a7e1e7", "on-error": "#490006", "tertiary-container": "#b5f0f5", "on-error-container": "#ff9993", "surface-container-lowest": "#000000", "on-tertiary": "#296469", "on-secondary": "#2f453a", "on-primary-fixed-variant": "#3a644e", "surface-container": "#151b17", "surface-dim": "#0b0f0d", "inverse-on-surface": "#525652", error: "#fa746f", "tertiary-fixed": "#b5f0f5", "secondary-fixed-dim": "#c1dacb", secondary: "#b4ccbd", "on-primary": "#1d4834", "on-primary-container": "#bfeed2", "surface-container-highest": "#1f2822", "surface-container-high": "#1a211d", "surface-container-low": "#0f1511", tertiary: "#d2fbff", "inverse-primary": "#3d6852", primary: "#a3d1b6", "secondary-fixed": "#cfe8d9", "on-tertiary-fixed-variant": "#2b666a", "on-secondary-container": "#adc5b6", "outline-variant": "#414a44", "on-secondary-fixed": "#2e4439", "on-tertiary-container": "#1f5c60", "primary-fixed": "#beedd2", "on-surface": "#dfe8df", "primary-fixed-dim": "#b1dfc4", "secondary-container": "#2a4035", "tertiary-dim": "#a7e1e7", "secondary-dim": "#a6beb0", "error-dim": "#c54d4a", "primary-dim": "#96c3a9"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "1rem", gutter: "1rem", xs: "0.25rem", "margin-desktop": "2rem", "margin-mobile": "1rem", xl: "2.5rem", lg: "1.5rem", sm: "0.5rem", base: "4px"}, fontFamily: {h1: ["Montserrat"], "label-sm": ["Inter"], "body-md": ["Inter"], "body-lg": ["Inter"], h2: ["Montserrat"], display: ["Space Grotesk"], mono: ["Inter"], "h1-mobile": ["Montserrat"], h3: ["Montserrat"], headline: ["Space Grotesk"], body: ["Inter"], label: ["Inter"]}, fontSize: {h1: ["32px", {lineHeight: "1.2", fontWeight: "600"}], "label-sm": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600"}], "body-md": ["14px", {lineHeight: "1.5", fontWeight: "400"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], h2: ["24px", {lineHeight: "1.3", fontWeight: "600"}], display: ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], mono: ["13px", {lineHeight: "1.5", letterSpacing: "-0.01em", fontWeight: "500"}], "h1-mobile": ["24px", {lineHeight: "1.2", fontWeight: "600"}], h3: ["18px", {lineHeight: "1.4", fontWeight: "600"}]}}}};</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .scale-hover {
+            transition: transform 0.2s ease-in-out;
+        }
+        .scale-hover:hover {
+            transform: scale(1.02);
+        }
+        .shadow-float {
+            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface flex h-screen overflow-hidden font-body-md">
+<!-- NavigationDrawer (Desktop) -->
+<aside class="hidden md:flex flex-col h-full w-72 rounded-r-xl border-r border-white/10 bg-surface-container-low shadow-float py-lg shrink-0 z-50">
+<!-- Header Profile -->
+<div class="px-4 pb-lg border-b border-white/10 mb-md flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden border border-white/10">
+<img class="w-full h-full object-cover" data-alt="A highly detailed close-up portrait of a professional laboratory technician in a modern, dark-themed vet lab. The person is wearing a pristine white lab coat over dark scrubs. Dramatic, high-contrast lighting with subtle emerald green highlights reflecting off their safety glasses. Deep obsidian background. Cinematic and clinical aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHSgVfgnp0KdsbZvJej9ecvDro7HXfrWyQX-FcKHOj-2NIACTRTgle70XhOwBVlr3bd-dffxJr4TUpzNtFNNlDu5pSQi6-9-Bz1o9ucs-kA2P7pbnFxTukrgneasoOliuESIroStyD_-JVRExHqGGyw1Fe8ySRHIluU_BZUM7Ofqjk9VxByRP_yiIzhLzaBWwJyLqOUkNgBWnarXjjtd1DeqRDZCMG-M-6iT0jOT_7NvZjIA-1JvPzk34Bpr3QUF0YydKoBNaqmVg"/>
+</div>
+<div>
+<h3 class="font-h3 text-h3 text-on-surface">Dr. Smith</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Lead Veterinarian</p>
+<p class="font-mono text-mono text-primary/70 text-[10px]">Lab ID: 7702</p>
+</div>
+</div>
+<!-- Navigation Links -->
+<nav class="flex-1 flex flex-col gap-xs px-2">
+<!-- Inactive -->
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 rounded-lg scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-sm text-label-sm">Dashboard</span>
+</a>
+<!-- Active (Inventory maps to Ingresos) -->
+<a class="flex items-center gap-sm bg-primary-container/20 text-primary border-l-4 border-primary px-4 py-3 rounded-r-lg" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-label-sm text-label-sm">Inventory</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 rounded-lg scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span class="font-label-sm text-label-sm">Audit Logs</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-sm text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 rounded-lg scale-hover transition-transform duration-200 mt-auto" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-sm text-label-sm">Settings</span>
+</a>
+</nav>
+</aside>
+<div class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- TopAppBar -->
+<header class="flex items-center justify-between px-md w-full z-40 bg-surface/80 backdrop-blur-md border-b border-white/10 shadow-float docked full-width top-0 sticky h-16 shrink-0">
+<div class="flex items-center gap-sm">
+<button class="md:hidden p-2 text-on-surface-variant hover:bg-surface-variant transition-colors duration-200 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-h1 text-h1 text-primary tracking-tighter">Depósito</h1>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-2 text-on-surface-variant hover:bg-surface-variant transition-colors duration-200 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-white/10 md:hidden">
+<img class="w-full h-full object-cover" data-alt="A small circular avatar placeholder showing a generic silhouette of a person in a lab coat against a dark obsidian background with a subtle emerald glow." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmdITMLL63-jBlveq31JzfaxE3A10Y_0QKaKFB8gAavmyqEE3yDfUGV_wTIo_uXYvaF5Ew1PzwqsUBW10__tDoSPqfxNLS1OEYt4Y2LH59ooNjE2Y6JxjX_fTuDAL0c5BoGJkmbDfQrywTunjTnETbghgFRhnufBaptW0h9PwvlP0xZgmIwvoXmsDgKncKORqCKatMcLlV2_UUaNSPpMIHMgSPjSxA3Q5YT1Te__yOAZaQ8uY-Lvzo9xrCIrI4GyEu_dH21a2xYWM"/>
+</div>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 overflow-y-auto p-gutter md:p-margin-desktop bg-background">
+<div class="mb-lg">
+<h2 class="font-h2 text-h2 text-on-surface mb-xs">Nuevo Acta de Ingreso</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Registre los metadatos principales del documento de recepción.</p>
+</div>
+<!-- Wizard Container -->
+<div class="max-w-4xl mx-auto bg-surface-container rounded-xl border border-white/10 shadow-float overflow-hidden flex flex-col relative">
+<!-- Glowing Focus Ring Base -->
+<div class="absolute inset-0 border border-primary/30 rounded-xl pointer-events-none"></div>
+<!-- Progress Stepper (Pipeline) -->
+<div class="p-lg border-b border-white/5 bg-surface-container-lowest flex justify-between items-center px-xl">
+<!-- Step 1: Active -->
+<div class="flex flex-col items-center gap-sm relative z-10 w-24">
+<div class="w-10 h-10 rounded-full border-2 border-primary flex items-center justify-center p-1 bg-surface-container-lowest shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+<div class="w-full h-full bg-primary rounded-full animate-pulse opacity-80"></div>
+</div>
+<span class="font-label-sm text-label-sm text-primary text-center">Cabecera</span>
+</div>
+<div class="flex-1 h-px bg-outline-variant mx-sm max-w-[100px]"></div>
+<!-- Step 2: Pending -->
+<div class="flex flex-col items-center gap-sm relative z-10 w-24">
+<div class="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center bg-surface-container-lowest">
+<span class="font-label-sm text-label-sm text-on-surface-variant">2</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center">Ítems</span>
+</div>
+<div class="flex-1 h-px bg-outline-variant mx-sm max-w-[100px]"></div>
+<!-- Step 3: Pending -->
+<div class="flex flex-col items-center gap-sm relative z-10 w-24">
+<div class="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center bg-surface-container-lowest">
+<span class="font-label-sm text-label-sm text-on-surface-variant">3</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center">Distribución</span>
+</div>
+<div class="flex-1 h-px bg-outline-variant mx-sm max-w-[100px]"></div>
+<!-- Step 4: Pending -->
+<div class="flex flex-col items-center gap-sm relative z-10 w-24">
+<div class="w-10 h-10 rounded-full border-2 border-outline-variant flex items-center justify-center bg-surface-container-lowest">
+<span class="font-label-sm text-label-sm text-on-surface-variant">4</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant text-center">Resumen</span>
+</div>
+</div>
+<!-- Step 1 Content: Form Grid -->
+<div class="p-lg md:p-xl flex-1">
+<form class="grid grid-cols-1 md:grid-cols-2 gap-lg">
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Nro. de Remito / Factura <span class="text-error">*</span></label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-[20px]" data-icon="receipt_long">receipt_long</span>
+<input class="w-full bg-surface-container-high border border-outline-variant rounded-md pl-10 pr-md py-sm text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50" placeholder="Ej: R-0001-12345678" type="text"/>
+</div>
+</div>
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Fecha de Recepción <span class="text-error">*</span></label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-[20px]" data-icon="calendar_today">calendar_today</span>
+<input class="w-full bg-surface-container-high border border-outline-variant rounded-md pl-10 pr-md py-sm text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all [color-scheme:dark]" type="date"/>
+</div>
+</div>
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Proveedor <span class="text-error">*</span></label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-[20px]" data-icon="storefront">storefront</span>
+<select class="w-full bg-surface-container-high border border-outline-variant rounded-md pl-10 pr-md py-sm text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all appearance-none">
+<option disabled="" selected="" value="">Seleccione un proveedor...</option>
+<option value="1">BioVet Supplies Inc.</option>
+<option value="2">PharmaLab Global</option>
+<option value="3">Insumos Nacionales S.A.</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-[20px]" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+<!-- Input Group -->
+<div class="flex flex-col gap-xs">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Transportista</label>
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors text-[20px]" data-icon="local_shipping">local_shipping</span>
+<input class="w-full bg-surface-container-high border border-outline-variant rounded-md pl-10 pr-md py-sm text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50" placeholder="Nombre o empresa de transporte" type="text"/>
+</div>
+</div>
+<!-- Input Group - Full Width -->
+<div class="flex flex-col gap-xs md:col-span-2">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Observaciones Adicionales</label>
+<textarea class="w-full bg-surface-container-high border border-outline-variant rounded-md px-md py-sm text-body-md font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all placeholder:text-on-surface-variant/50 resize-none" placeholder="Detalles sobre el estado de las cajas, temperatura al arribo, etc." rows="3"></textarea>
+</div>
+</form>
+</div>
+<!-- Wizard Actions -->
+<div class="p-md bg-surface-container-highest border-t border-white/5 flex justify-between items-center px-lg">
+<button class="text-on-surface-variant font-label-sm text-label-sm px-lg py-sm rounded-md hover:bg-surface-variant hover:text-on-surface transition-colors flex items-center gap-xs">
+<span class="material-symbols-outlined text-[18px]" data-icon="close">close</span>
+                        Cancelar
+                    </button>
+<button class="bg-primary text-on-primary font-label-sm text-label-sm px-xl py-sm rounded-md hover:scale-[1.02] active:scale-95 transition-transform flex items-center gap-xs shadow-[0_4px_14px_0_rgba(16,185,129,0.39)]">
+                        Siguiente Paso
+                        <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-16 px-2 pb-safe bg-surface-container/90 backdrop-blur-xl border-t border-white/5 shadow-float z-50">
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-90 w-16" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-[10px] mt-1">Dashboard</span>
+</a>
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-90 w-16" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span class="font-label-sm text-[10px] mt-1">Drugs</span>
+</a>
+<!-- Inactive -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-90 w-16" href="#">
+<span class="material-symbols-outlined" data-icon="swap_horiz">swap_horiz</span>
+<span class="font-label-sm text-[10px] mt-1">Movements</span>
+</a>
+<!-- Active (Ingress) -->
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="assignment" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-label-sm text-[10px] mt-1 font-bold">Ingress</span>
+</a>
+</nav>
+</div>
+</body></html>

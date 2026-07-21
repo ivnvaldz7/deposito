@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Inventario de Drogas - Precision Lab</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Montserrat:wght@600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"primary-fixed": "#beedd2", "on-primary-fixed": "#1c4733", "on-tertiary": "#296469", "on-error-container": "#ff9993", "on-error": "#490006", "on-tertiary-fixed-variant": "#2b666a", "inverse-on-surface": "#525652", "on-secondary-fixed-variant": "#4a6054", "tertiary-fixed": "#b5f0f5", "surface-container-low": "#0f1511", background: "#0b0f0d", error: "#fa746f", "tertiary-fixed-dim": "#a7e1e7", "tertiary-container": "#b5f0f5", tertiary: "#d2fbff", "surface-bright": "#262e29", "on-tertiary-container": "#1f5c60", "surface-variant": "#1f2822", secondary: "#b4ccbd", "on-surface": "#dfe8df", "on-primary-fixed-variant": "#3a644e", "on-primary": "#1d4834", "secondary-fixed-dim": "#c1dacb", "on-tertiary-fixed": "#00494e", "surface-dim": "#0b0f0d", outline: "#6f7871", "on-secondary-fixed": "#2e4439", "on-secondary": "#2f453a", "surface-container-high": "#1a211d", "surface-container": "#151b17", "inverse-surface": "#f7faf5", primary: "#a3d1b6", "outline-variant": "#414a44", "on-background": "#dfe8df", "inverse-primary": "#3d6852", "on-primary-container": "#bfeed2", "error-container": "#871f21", "on-surface-variant": "#a4ada6", "primary-fixed-dim": "#b1dfc4", "secondary-container": "#2a4035", surface: "#0b0f0d", "surface-container-highest": "#1f2822", "primary-container": "#305b46", "on-secondary-container": "#adc5b6", "surface-tint": "#a3d1b6", "surface-container-lowest": "#000000", "secondary-fixed": "#cfe8d9", "tertiary-dim": "#a7e1e7", "secondary-dim": "#a6beb0", "error-dim": "#c54d4a", "primary-dim": "#96c3a9"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "1rem", gutter: "1rem", base: "4px", "margin-desktop": "2rem", sm: "0.5rem", xl: "2.5rem", xs: "0.25rem", "margin-mobile": "1rem", lg: "1.5rem"}, fontFamily: {mono: ["Inter"], h3: ["Montserrat"], "body-lg": ["Inter"], "body-md": ["Inter"], display: ["Space Grotesk"], h2: ["Montserrat"], "h1-mobile": ["Montserrat"], h1: ["Montserrat"], "label-sm": ["Inter"], headline: ["Space Grotesk"], body: ["Inter"], label: ["Inter"]}, fontSize: {mono: ["13px", {lineHeight: "1.5", letterSpacing: "-0.01em", fontWeight: "500"}], h3: ["18px", {lineHeight: "1.4", fontWeight: "600"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], "body-md": ["14px", {lineHeight: "1.5", fontWeight: "400"}], display: ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], h2: ["24px", {lineHeight: "1.3", fontWeight: "600"}], "h1-mobile": ["24px", {lineHeight: "1.2", fontWeight: "600"}], h1: ["32px", {lineHeight: "1.2", fontWeight: "600"}], "label-sm": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600"}]}, boxShadow: {float: "0 8px 30px rgba(0,0,0,0.5)"}}}};</script>
+<style>
+        /* Precision Lab Specific Micro-interactions */
+        .scale-hover:hover {
+            transform: scale(1.02);
+            transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .table-row-hover:hover {
+            transform: translateY(-2px);
+            background-color: var(--tw-colors-surface-container-high);
+            transition: all 0.2s ease-in-out;
+        }
+        /* Glassmorphism scrollbar for tables */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #353534; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4edea3; }
+    </style>
+</head>
+<body class="bg-background text-on-background flex h-screen overflow-hidden font-body-md text-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- Navigation Drawer (COMPONENTS_3) -->
+<nav class="bg-surface-container-low dark:bg-surface-container-low h-full w-72 rounded-r-xl border-r border-white/10 shadow-float flex flex-col py-lg shrink-0 z-40">
+<!-- Header: Profile -->
+<div class="px-md mb-xl flex items-center gap-md">
+<div class="w-12 h-12 rounded-full overflow-hidden border-2 border-outline-variant shrink-0">
+<img alt="Lab Technician Profile" class="w-full h-full object-cover" data-alt="Close up professional headshot of a veterinarian in a clinical lab setting, wearing a pristine white coat, soft cool lighting, modern glassmorphic background, high fidelity, 8k resolution, confident expression." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBcqQNSxH1J3PToWy0zsG-GxOv6A-t82Gfnq96QL9hJpb4QGoGYlOR0S_qg5X1QQsvBjMNcUQhpmEzUkpQZVNKYOUsqrtlzD6hYP8BOWs64ko1PMuqgYdZ4jxZgFTFc6kwx0LxBHa2WylgOhAPO07RLhv_DHLJEMhQOqR6HTx6xMr7p-0Er_CrE5Ei7LfGkK59S1Ne5OI_f6DM1I_CXHrywOOCHYEvGRJ5C4OOL3eYkVRaJrbv9S7jwkZVDSgoiKx2htAmfpwOzXig"/>
+</div>
+<div class="flex flex-col">
+<span class="font-h3 text-h3 text-on-surface">Dr. Smith</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Lead Veterinarian</span>
+<span class="font-label-sm text-label-sm text-primary/70 mt-1">Lab ID: 7702</span>
+</div>
+</div>
+<!-- Navigation Links -->
+<div class="flex flex-col gap-sm flex-grow">
+<!-- Inactive -->
+<a class="flex items-center gap-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">analytics</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<!-- Active (Inventory maps to Inventario de Drogas) -->
+<a class="flex items-center gap-md bg-primary-container/20 text-primary border-l-4 border-primary px-4 py-3 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-body-md text-body-md font-semibold">Inventory</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">history_edu</span>
+<span class="font-body-md text-body-md">Audit Logs</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-md text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200 mt-auto" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+<!-- Ambient Shader Background (Subtle) -->
+<!-- Top Header Panel -->
+<header class="h-20 shrink-0 border-b border-outline-variant bg-surface-container/90 backdrop-blur-xl z-10 flex items-center justify-between px-margin-desktop">
+<div class="flex items-center gap-md">
+<h1 class="font-h2 text-h2 text-on-surface tracking-tight">Inventario de Drogas</h1>
+<span class="bg-surface-variant text-on-surface-variant font-mono text-mono px-2 py-1 rounded-md border border-white/5">Active: 142</span>
+</div>
+<div class="flex items-center gap-md">
+<!-- Search Input -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+<input class="w-64 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all" placeholder="Search ID, Lot, Name..." type="text"/>
+</div>
+<!-- Filter Button -->
+<button class="flex items-center gap-2 bg-surface-container-high border border-outline-variant rounded-lg px-4 py-2 hover:bg-surface-variant transition-colors text-on-surface">
+<span class="material-symbols-outlined">filter_list</span>
+<span class="font-label-sm text-label-sm">Filter</span>
+</button>
+<!-- Primary Action -->
+<button class="flex items-center gap-2 bg-primary text-on-primary rounded-lg px-4 py-2 font-label-sm text-label-sm scale-hover shadow-float">
+<span class="material-symbols-outlined">add</span>
+<span>New Ingress</span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="flex-1 overflow-y-auto p-margin-desktop z-10">
+<!-- Audit Grade Data Container -->
+<div class="bg-surface-container rounded-xl border border-outline-variant shadow-float overflow-hidden flex flex-col">
+<!-- Table Header (Pseudo Grid for layout consistency) -->
+<div class="grid grid-cols-12 gap-4 px-md py-sm border-b border-outline-variant bg-surface-container-low font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+<div class="col-span-3">Drug Profile</div>
+<div class="col-span-2">Lot Identifier</div>
+<div class="col-span-2">Storage Location</div>
+<div class="col-span-2 text-right">Quantity / Vol</div>
+<div class="col-span-2 text-center">Status</div>
+<div class="col-span-1 text-right">Actions</div>
+</div>
+<!-- Table Body -->
+<div class="flex flex-col">
+<!-- Drug Group 1: Propofol -->
+<div class="flex flex-col border-b border-outline-variant/50 last:border-0">
+<!-- Group Header (Drug Level) -->
+<div class="grid grid-cols-12 gap-4 px-md py-3 bg-surface-container-high/50 items-center">
+<div class="col-span-12 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-variant flex items-center justify-center border border-white/5">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">science</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface">Propofol 1% (10mg/mL)</h3>
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono border border-white/5 uppercase tracking-wide">Anesthetic</span>
+</div>
+</div>
+<!-- Batch Rows -->
+<div class="grid grid-cols-12 gap-4 px-md py-3 bg-surface items-center table-row-hover cursor-default">
+<div class="col-span-3 pl-11">
+<span class="font-mono text-mono text-on-surface-variant">Vial - 50mL</span>
+</div>
+<div class="col-span-2 font-mono text-mono text-on-surface">PR-2023-A1</div>
+<div class="col-span-2 font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">ac_unit</span> Cold-02
+                            </div>
+<div class="col-span-2 text-right font-mono text-mono text-on-surface font-medium">145 vials</div>
+<div class="col-span-2 flex justify-center">
+<!-- Status Badge: Optimal -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary">
+<div class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+<span class="font-label-sm text-label-sm">Optimal</span>
+</div>
+</div>
+<div class="col-span-1 flex justify-end gap-2 text-on-surface-variant">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit_document</span></button>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-4 px-md py-3 bg-surface items-center table-row-hover cursor-default border-t border-outline-variant/30">
+<div class="col-span-3 pl-11">
+<span class="font-mono text-mono text-on-surface-variant">Vial - 20mL</span>
+</div>
+<div class="col-span-2 font-mono text-mono text-on-surface">PR-2023-B4</div>
+<div class="col-span-2 font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">ac_unit</span> Cold-01
+                            </div>
+<div class="col-span-2 text-right font-mono text-mono text-on-surface font-medium">12 vials</div>
+<div class="col-span-2 flex justify-center">
+<!-- Status Badge: Critical -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-error-container/10 border border-error-container/20 text-error">
+<span class="material-symbols-outlined text-[14px]">warning</span>
+<span class="font-label-sm text-label-sm">Critical</span>
+</div>
+</div>
+<div class="col-span-1 flex justify-end gap-2 text-on-surface-variant">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit_document</span></button>
+</div>
+</div>
+</div>
+<!-- Drug Group 2: Ketamine -->
+<div class="flex flex-col border-b border-outline-variant/50 last:border-0">
+<!-- Group Header -->
+<div class="grid grid-cols-12 gap-4 px-md py-3 bg-surface-container-high/50 items-center">
+<div class="col-span-12 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-variant flex items-center justify-center border border-white/5">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">medication</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface">Ketamine HCl (100mg/mL)</h3>
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono border border-white/5 uppercase tracking-wide">Controlled</span>
+</div>
+</div>
+<!-- Batch Rows -->
+<div class="grid grid-cols-12 gap-4 px-md py-3 bg-surface items-center table-row-hover cursor-default focus-within:border focus-within:border-primary relative">
+<!-- Focus Indicator (Left edge glow) -->
+<div class="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 hover:opacity-100 transition-opacity"></div>
+<div class="col-span-3 pl-11">
+<span class="font-mono text-mono text-on-surface-variant">Vial - 10mL</span>
+</div>
+<div class="col-span-2 font-mono text-mono text-on-surface">KT-889-X</div>
+<div class="col-span-2 font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">lock</span> Safe-A
+                            </div>
+<div class="col-span-2 text-right font-mono text-mono text-on-surface font-medium">45 vials</div>
+<div class="col-span-2 flex justify-center">
+<!-- Status Badge: Low -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-tertiary-container/10 border border-tertiary-container/20 text-tertiary">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="font-label-sm text-label-sm">Low Stock</span>
+</div>
+</div>
+<div class="col-span-1 flex justify-end gap-2 text-on-surface-variant">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit_document</span></button>
+</div>
+</div>
+</div>
+<!-- Drug Group 3: Meloxicam -->
+<div class="flex flex-col border-b border-outline-variant/50 last:border-0">
+<!-- Group Header -->
+<div class="grid grid-cols-12 gap-4 px-md py-3 bg-surface-container-high/50 items-center">
+<div class="col-span-12 flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-surface-variant flex items-center justify-center border border-white/5">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">vaccines</span>
+</div>
+<h3 class="font-h3 text-h3 text-on-surface">Meloxicam (5mg/mL)</h3>
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono border border-white/5 uppercase tracking-wide">NSAID</span>
+</div>
+</div>
+<!-- Batch Rows -->
+<div class="grid grid-cols-12 gap-4 px-md py-3 bg-surface items-center table-row-hover cursor-default">
+<div class="col-span-3 pl-11">
+<span class="font-mono text-mono text-on-surface-variant">Bottle - 100mL</span>
+</div>
+<div class="col-span-2 font-mono text-mono text-on-surface">MX-092-22</div>
+<div class="col-span-2 font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">shelves</span> Shelf-C4
+                            </div>
+<div class="col-span-2 text-right font-mono text-mono text-on-surface font-medium">88 btls</div>
+<div class="col-span-2 flex justify-center">
+<!-- Status Badge: Optimal -->
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-container/10 border border-primary-container/20 text-primary">
+<div class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+<span class="font-label-sm text-label-sm">Optimal</span>
+</div>
+</div>
+<div class="col-span-1 flex justify-end gap-2 text-on-surface-variant">
+<button class="hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">edit_document</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination / Footer Info -->
+<div class="mt-4 flex justify-between items-center px-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">Showing 1-3 of 142 Active Records</span>
+<div class="flex gap-2">
+<button class="w-8 h-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-sm">chevron_left</span></button>
+<button class="w-8 h-8 rounded border border-primary bg-primary-container/10 flex items-center justify-center text-primary font-mono text-mono">1</button>
+<button class="w-8 h-8 rounded border border-outline-variant flex items-center justify-center text-on-surface-variant hover:bg-surface-variant transition-colors"><span class="material-symbols-outlined text-sm">chevron_right</span></button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

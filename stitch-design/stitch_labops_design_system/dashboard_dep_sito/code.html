@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Depósito - Vet Lab Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&amp;family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .shadow-float {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+        }
+        .scale-hover:hover {
+            transform: scale(1.02);
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .slide-up:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"inverse-surface": "#f7faf5", "on-tertiary-fixed": "#00494e", surface: "#0b0f0d", "on-surface-variant": "#a4ada6", background: "#0b0f0d", "error-container": "#871f21", "surface-tint": "#a3d1b6", "on-primary-fixed": "#1c4733", "primary-container": "#305b46", outline: "#6f7871", "surface-bright": "#262e29", "surface-variant": "#1f2822", "on-secondary-fixed-variant": "#4a6054", "on-background": "#dfe8df", "tertiary-fixed-dim": "#a7e1e7", "on-error": "#490006", "tertiary-container": "#b5f0f5", "on-error-container": "#ff9993", "surface-container-lowest": "#000000", "on-tertiary": "#296469", "on-secondary": "#2f453a", "on-primary-fixed-variant": "#3a644e", "surface-container": "#151b17", "surface-dim": "#0b0f0d", "inverse-on-surface": "#525652", error: "#fa746f", "tertiary-fixed": "#b5f0f5", "secondary-fixed-dim": "#c1dacb", secondary: "#b4ccbd", "on-primary": "#1d4834", "on-primary-container": "#bfeed2", "surface-container-highest": "#1f2822", "surface-container-high": "#1a211d", "surface-container-low": "#0f1511", tertiary: "#d2fbff", "inverse-primary": "#3d6852", primary: "#a3d1b6", "secondary-fixed": "#cfe8d9", "on-tertiary-fixed-variant": "#2b666a", "on-secondary-container": "#adc5b6", "outline-variant": "#414a44", "on-secondary-fixed": "#2e4439", "on-tertiary-container": "#1f5c60", "primary-fixed": "#beedd2", "on-surface": "#dfe8df", "primary-fixed-dim": "#b1dfc4", "secondary-container": "#2a4035", "tertiary-dim": "#a7e1e7", "secondary-dim": "#a6beb0", "error-dim": "#c54d4a", "primary-dim": "#96c3a9"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "1rem", gutter: "1rem", xs: "0.25rem", "margin-desktop": "2rem", "margin-mobile": "1rem", xl: "2.5rem", lg: "1.5rem", sm: "0.5rem", base: "4px"}, fontFamily: {h1: ["Montserrat"], "label-sm": ["Inter"], "body-md": ["Inter"], "body-lg": ["Inter"], h2: ["Montserrat"], display: ["Space Grotesk"], mono: ["Inter"], "h1-mobile": ["Montserrat"], h3: ["Montserrat"], headline: ["Space Grotesk"], body: ["Inter"], label: ["Inter"]}, fontSize: {h1: ["32px", {lineHeight: "1.2", fontWeight: "600"}], "label-sm": ["12px", {lineHeight: "1", letterSpacing: "0.05em", fontWeight: "600"}], "body-md": ["14px", {lineHeight: "1.5", fontWeight: "400"}], "body-lg": ["16px", {lineHeight: "1.6", fontWeight: "400"}], h2: ["24px", {lineHeight: "1.3", fontWeight: "600"}], display: ["48px", {lineHeight: "1.1", letterSpacing: "-0.02em", fontWeight: "700"}], mono: ["13px", {lineHeight: "1.5", letterSpacing: "-0.01em", fontWeight: "500"}], "h1-mobile": ["24px", {lineHeight: "1.2", fontWeight: "600"}], h3: ["18px", {lineHeight: "1.4", fontWeight: "600"}]}}}};</script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col md:flex-row pb-20 md:pb-0">
+<!-- Mobile Top App Bar -->
+<header class="md:hidden docked full-width top-0 sticky bg-surface/80 backdrop-blur-md border-b border-white/10 shadow-float z-40">
+<div class="flex items-center justify-between px-md w-full h-16">
+<button aria-label="Menu" class="text-primary active:scale-95 transition-transform p-2 rounded-full hover:bg-surface-variant transition-colors duration-200">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="font-h1-mobile text-h1-mobile text-primary tracking-tighter">Depósito</h1>
+<button aria-label="Notifications" class="text-on-surface-variant active:scale-95 transition-transform p-2 rounded-full hover:bg-surface-variant transition-colors duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</header>
+<!-- Desktop Sidebar -->
+<nav class="hidden md:flex flex-col h-screen w-72 rounded-r-xl border-r border-white/10 bg-surface-container-low shadow-float py-lg fixed left-0 top-0 z-40">
+<div class="px-md mb-8">
+<h1 class="font-h1 text-h1 text-primary tracking-tighter">Depósito</h1>
+</div>
+<div class="flex items-center px-4 mb-8 gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-variant overflow-hidden border border-white/10 shrink-0">
+<img alt="Dr. Smith" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2G60_xoqXrfoGoKuuhN53Q_XP65KNuqbS7PESvrEtyZoXgQ-za5VBkh64AQVybBzUW4nPBEpWT2ltWBsxBJ87I740Q9FdN4-XIgoeUF3d0GAxNdCACS-LoUFx-kh-vqU2Vn8rBXjoHnZ08M_pemcUXqJa8kVSh4Ck8oIQ7L4D6e9RCA8UAH09U376w4Pu0URlFohHR9xJ8w9d0JSyYGQ_mjvWa4I1DsJSu1PlMGi1rTWcyFn6GunsJDAVBtbbqpdbzS_JZ-f9nss"/>
+</div>
+<div>
+<div class="font-body-md text-body-md font-semibold text-on-surface">Dr. Smith</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Lead Veterinarian</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant opacity-70">Lab ID: 7702</div>
+</div>
+</div>
+<ul class="flex flex-col space-y-1 w-full flex-grow">
+<li>
+<a class="flex items-center gap-3 bg-primary-container/20 text-primary border-l-4 border-primary px-4 py-3 scale-hover transition-transform duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-body-md text-body-md font-medium">Dashboard</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="font-body-md text-body-md font-medium">Drugs</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="font-body-md text-body-md font-medium">Movements</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-variant/50 scale-hover transition-transform duration-200 border-l-4 border-transparent" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-body-md text-body-md font-medium">Ingress</span>
+</a>
+</li>
+</ul>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 md:ml-72 p-margin-mobile md:p-margin-desktop fade-in flex flex-col gap-lg">
+<!-- Summary Cards (Bento Grid) -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-md">
+<!-- Total Items -->
+<div class="bg-surface-container-high rounded-xl p-md border border-white/10 shadow-float scale-hover transition-transform relative overflow-hidden group">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-4 relative z-10">
+<h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Total Items</h3>
+<div class="p-2 bg-surface-variant rounded-lg text-primary">
+<span class="material-symbols-outlined">inventory_2</span>
+</div>
+</div>
+<div class="font-display text-display text-on-surface relative z-10">1,248</div>
+<div class="font-body-md text-body-md text-primary mt-2 flex items-center gap-1 relative z-10">
+<span class="material-symbols-outlined text-[16px]">trending_up</span> +12% this month
+                </div>
+</div>
+<!-- Low Stock -->
+<div class="bg-surface-container-high rounded-xl p-md border border-tertiary-container/30 shadow-float scale-hover transition-transform relative overflow-hidden group focus-within:border-tertiary-container focus-within:shadow-[0_0_15px_rgba(226,145,0,0.2)]">
+<div class="absolute inset-0 bg-tertiary-container/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-4 relative z-10">
+<h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Low Stock</h3>
+<div class="p-2 bg-tertiary-container/20 rounded-lg text-tertiary-container">
+<span class="material-symbols-outlined">warning</span>
+</div>
+</div>
+<div class="font-display text-display text-on-surface relative z-10">24</div>
+<div class="font-body-md text-body-md text-tertiary-container mt-2 relative z-10">Requires attention</div>
+</div>
+<!-- Expired -->
+<div class="bg-surface-container-high rounded-xl p-md border border-error/30 shadow-float scale-hover transition-transform relative overflow-hidden group">
+<div class="absolute inset-0 bg-error/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex justify-between items-start mb-4 relative z-10">
+<h3 class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Expired</h3>
+<div class="p-2 bg-error-container rounded-lg text-error">
+<span class="material-symbols-outlined">event_busy</span>
+</div>
+</div>
+<div class="font-display text-display text-on-surface relative z-10">7</div>
+<div class="font-body-md text-body-md text-error mt-2 flex items-center gap-1 relative z-10">
+<span class="material-symbols-outlined text-[16px]">delete_sweep</span> Pending disposal
+                </div>
+</div>
+</section>
+<!-- Alerta de Stock Bajo (Horizontal Scroll) -->
+<section class="flex flex-col gap-4">
+<h2 class="font-h2 text-h2 text-on-surface">Alerta de Stock Bajo</h2>
+<div class="flex overflow-x-auto pb-4 gap-md snap-x snap-mandatory hide-scrollbar" style="scrollbar-width: none;">
+<!-- Card 1 -->
+<div class="snap-start shrink-0 w-64 bg-surface-container rounded-xl border border-white/10 p-md flex flex-col gap-3 scale-hover transition-transform">
+<div class="flex justify-between items-start">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">science</span>
+</div>
+<span class="px-2 py-1 bg-tertiary-container/20 text-tertiary-container font-label-sm text-label-sm rounded-DEFAULT">Critico</span>
+</div>
+<div>
+<h4 class="font-h3 text-h3 text-on-surface truncate">Amoxicillin 500mg</h4>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">Antibiotics A-Ward</p>
+</div>
+<div class="mt-auto pt-2 border-t border-white/5 flex justify-between items-end">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Current Stock</span>
+<span class="font-h2 text-h2 text-tertiary-container">12<span class="font-body-md text-body-md"> units</span></span>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="snap-start shrink-0 w-64 bg-surface-container rounded-xl border border-white/10 p-md flex flex-col gap-3 scale-hover transition-transform">
+<div class="flex justify-between items-start">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">vaccines</span>
+</div>
+<span class="px-2 py-1 bg-tertiary-container/20 text-tertiary-container font-label-sm text-label-sm rounded-DEFAULT">Bajo</span>
+</div>
+<div>
+<h4 class="font-h3 text-h3 text-on-surface truncate">Rabies Vaccine</h4>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">Cold Storage B</p>
+</div>
+<div class="mt-auto pt-2 border-t border-white/5 flex justify-between items-end">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Current Stock</span>
+<span class="font-h2 text-h2 text-tertiary-container">5<span class="font-body-md text-body-md"> vials</span></span>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="snap-start shrink-0 w-64 bg-surface-container rounded-xl border border-white/10 p-md flex flex-col gap-3 scale-hover transition-transform">
+<div class="flex justify-between items-start">
+<div class="w-10 h-10 rounded-lg bg-surface-variant flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">healing</span>
+</div>
+<span class="px-2 py-1 bg-tertiary-container/20 text-tertiary-container font-label-sm text-label-sm rounded-DEFAULT">Bajo</span>
+</div>
+<div>
+<h4 class="font-h3 text-h3 text-on-surface truncate">Sterile Gauze Pads</h4>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">General Supplies</p>
+</div>
+<div class="mt-auto pt-2 border-t border-white/5 flex justify-between items-end">
+<div>
+<span class="font-label-sm text-label-sm text-on-surface-variant block">Current Stock</span>
+<span class="font-h2 text-h2 text-tertiary-container">40<span class="font-body-md text-body-md"> boxes</span></span>
+</div>
+<button class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-[18px]">add</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Movimientos Recientes (Audit List) -->
+<section class="flex flex-col gap-4 flex-1">
+<h2 class="font-h2 text-h2 text-on-surface">Movimientos Recientes</h2>
+<div class="bg-surface-container-high rounded-xl border border-white/10 overflow-hidden shadow-float">
+<table class="w-full text-left font-body-md text-body-md">
+<thead class="bg-surface-container-highest border-b border-white/5 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">
+<tr>
+<th class="p-md font-medium">Item</th>
+<th class="p-md font-medium hidden sm:table-cell">Lote</th>
+<th class="p-md font-medium">Tipo</th>
+<th class="p-md font-medium text-right">Cant.</th>
+<th class="p-md font-medium text-right hidden sm:table-cell">Fecha</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/5">
+<tr class="hover:bg-surface-variant/30 slide-up transition-transform duration-200 cursor-pointer">
+<td class="p-md">
+<div class="font-medium text-on-surface">Ketamine 10ml</div>
+<div class="text-on-surface-variant text-[12px] sm:hidden">Lot: K882 • 10:42 AM</div>
+</td>
+<td class="p-md text-on-surface-variant hidden sm:table-cell">K882</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-DEFAULT bg-primary/10 text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span> Ingreso
+                                </span>
+</td>
+<td class="p-md text-right font-mono text-on-surface">+50</td>
+<td class="p-md text-right text-on-surface-variant hidden sm:table-cell">10:42 AM</td>
+</tr>
+<tr class="hover:bg-surface-variant/30 slide-up transition-transform duration-200 cursor-pointer bg-surface-container/30">
+<td class="p-md">
+<div class="font-medium text-on-surface">Surgical Masks</div>
+<div class="text-on-surface-variant text-[12px] sm:hidden">Lot: M102 • 09:15 AM</div>
+</td>
+<td class="p-md text-on-surface-variant hidden sm:table-cell">M102</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-DEFAULT bg-error/10 text-error font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> Egreso
+                                </span>
+</td>
+<td class="p-md text-right font-mono text-on-surface">-15</td>
+<td class="p-md text-right text-on-surface-variant hidden sm:table-cell">09:15 AM</td>
+</tr>
+<tr class="hover:bg-surface-variant/30 slide-up transition-transform duration-200 cursor-pointer">
+<td class="p-md">
+<div class="font-medium text-on-surface">Syringes 5ml</div>
+<div class="text-on-surface-variant text-[12px] sm:hidden">Lot: S400 • Yesterday</div>
+</td>
+<td class="p-md text-on-surface-variant hidden sm:table-cell">S400</td>
+<td class="p-md">
+<span class="inline-flex items-center gap-1 px-2 py-1 rounded-DEFAULT bg-primary/10 text-primary font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px]">arrow_downward</span> Ingreso
+                                </span>
+</td>
+<td class="p-md text-right font-mono text-on-surface">+200</td>
+<td class="p-md text-right text-on-surface-variant hidden sm:table-cell">Yesterday</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+<!-- Mobile Bottom Nav Bar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center h-16 px-2 pb-safe bg-surface-container/90 backdrop-blur-xl border-t border-white/5 shadow-float z-50">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="font-label-sm text-label-sm mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-90 px-4 py-1" href="#">
+<span class="material-symbols-outlined">medical_services</span>
+<span class="font-label-sm text-label-sm mt-1">Drugs</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-90 px-4 py-1" href="#">
+<span class="material-symbols-outlined">swap_horiz</span>
+<span class="font-label-sm text-label-sm mt-1">Movements</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all active:scale-90 px-4 py-1" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-sm text-label-sm mt-1">Ingress</span>
+</a>
+</nav>
+</body></html>

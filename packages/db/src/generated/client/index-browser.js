@@ -141,6 +141,19 @@ exports.Prisma.AppAccessScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  app: 'app',
+  tipo: 'tipo',
+  titulo: 'titulo',
+  mensaje: 'mensaje',
+  leida: 'leida',
+  link: 'link',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ProductoScalarFieldEnum = {
   id: 'id',
   nombre: 'nombre',
@@ -342,9 +355,20 @@ exports.Prisma.SortOrder = {
   desc: 'desc'
 };
 
+exports.Prisma.NullableJsonNullValueInput = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
+};
+
+exports.Prisma.JsonNullValueFilter = {
+  DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull,
+  AnyNull: Prisma.AnyNull
 };
 
 exports.Prisma.NullsOrder = {
@@ -439,6 +463,7 @@ exports.EstadoOrden = exports.$Enums.EstadoOrden = {
 exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
   AppAccess: 'AppAccess',
+  Notification: 'Notification',
   Producto: 'Producto',
   Lote: 'Lote',
   Cliente: 'Cliente',

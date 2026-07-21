@@ -41,7 +41,7 @@ async function main(): Promise<void> {
 
   await platformDb.platformUser.update({
     where: { id: user.id },
-    data: { isPlatformAdmin: true },
+    data: { isPlatformAdmin: true, estado: 'active' },
   })
 
   console.log(`✅ Superadmin ${email} creado exitosamente`)

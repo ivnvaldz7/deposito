@@ -209,8 +209,8 @@ async function seedEtiquetas(rows: string[][]): Promise<void> {
     const productId = await ensureProduct(normalized, Categoria.etiqueta, parsed.base, parsed.volumen, parsed.unidad)
     if (!productId) continue
 
-    // Argentina = no mercado specified or null (default market)
-    await createOrUpdateInventarioEtiqueta(normalized, productId, undefined as any, cantidad)
+    // Argentina = default market
+    await createOrUpdateInventarioEtiqueta(normalized, productId, Mercado.argentina, cantidad)
     count++
   }
 
@@ -319,7 +319,7 @@ async function seedEstuches(rows: string[][]): Promise<void> {
     const productId = await ensureProduct(normalized, Categoria.estuche, parsed.base, parsed.volumen, parsed.unidad)
     if (!productId) continue
 
-    await createOrUpdateInventarioEstuche(normalized, productId, undefined as any, cantidad)
+    await createOrUpdateInventarioEstuche(normalized, productId, Mercado.argentina, cantidad)
     count++
 
     // Colombia inline (col D-E)
