@@ -1,4 +1,8 @@
-import { useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Input } from '@/components/ui/Input'
+import { useAuthStore } from '@/stores/auth-store'
+import { useAppStore } from '@/stores/app-store'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 const IS_DEV = import.meta.env.DEV
@@ -16,18 +20,90 @@ const DEV_USERS = [
 
 export default function LoginPage() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const error = searchParams.get('error')
+  const login = useAuthStore((s) => s.login)
+  const setLastApp = useAppStore((s) => s.setLastApp)
+
+  // Local form state
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [localError, setLocalError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({})
+
+  const validateForm = (): boolean => {
+    const errors: { email?: string; password?: string } = {}
+    if (!email.trim()) {
+      errors.email = 'Email requerido'
+    }
+    if (!password) {
+      errors.password = 'Contraseña requerida'
+    }
+    setFieldErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+
+  const handleLocalLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLocalError(null)
+
+    if (!validateForm()) return
+
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+        credentials: 'include',
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: 'Error de conexión' }))
+        if (err.error === 'Cuenta deshabilitada') {
+          setLocalError(err.error)
+        } else {
+          setLocalError('Email o contraseña incorrectos')
+        }
+        return
+      }
+
+      const data = await res.json()
+      login(data.token, data.user)
+
+      // Redirect based on user's apps (same logic as GoogleCallbackHandler)
+      const user = data.user as import('@/stores/auth-store').PlatformUser
+      const activeApps = Object.entries(user.apps ?? {})
+        .filter(([_, a]) => a.activo)
+        .map(([app]) => app)
+
+      if (activeApps.length === 0) {
+        navigate('/no-access', { replace: true })
+      } else if (activeApps.length === 1) {
+        const target = activeApps[0]
+        setLastApp(target)
+        navigate(`/${target}`, { replace: true })
+      } else {
+        navigate('/app-selector', { replace: true })
+      }
+    } catch {
+      setLocalError('Error de conexión')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleGoogleLogin = () => {
     window.location.href = `${API_URL}/api/auth/google`
   }
 
-  const handleDevLogin = async (email: string) => {
+  const handleDevLogin = async (devEmail: string) => {
     try {
       const res = await fetch(`${API_URL}/api/auth/dev-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: devEmail }),
       })
 
       if (!res.ok) {
@@ -45,19 +121,19 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-obsidian-900">
-      <div className="w-full max-w-sm rounded-lg bg-obsidian-800 p-8 shadow-lg">
-        <h1 className="mb-2 text-center text-2xl font-bold text-white">
+    <div className="flex min-h-screen items-center justify-center bg-surface-lowest">
+      <div className="w-full max-w-sm rounded-xl border border-white/5 bg-surface-container p-8 shadow-lg">
+        <h1 className="mb-2 text-center font-heading text-2xl font-bold text-on-surface">
           Plataforma
         </h1>
-        <p className="mb-8 text-center text-sm text-gray-400">
+        <p className="mb-8 text-center font-body text-sm text-on-surface-variant">
           Iniciá sesión para continuar
         </p>
 
         {error && ERROR_MESSAGES[error] && (
           <div
             role="alert"
-            className="mb-6 rounded-md bg-rose-500/10 px-4 py-3 text-sm text-rose-500"
+            className="mb-6 rounded-md bg-error/10 px-4 py-3 text-sm text-error"
           >
             {ERROR_MESSAGES[error]}
           </div>
@@ -66,16 +142,62 @@ export default function LoginPage() {
         {error && !ERROR_MESSAGES[error] && (
           <div
             role="alert"
-            className="mb-6 rounded-md bg-rose-500/10 px-4 py-3 text-sm text-rose-500"
+            className="mb-6 rounded-md bg-error/10 px-4 py-3 text-sm text-error"
           >
             Error desconocido
           </div>
         )}
 
+        {/* Local login form */}
+        <form onSubmit={handleLocalLogin} className="mb-6 space-y-4">
+          <Input
+            label="Email"
+            type="email"
+            placeholder="tu@email.com"
+            value={email}
+            onChange={setEmail}
+            error={fieldErrors.email}
+            disabled={loading}
+          />
+
+          <Input
+            label="Contraseña"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={setPassword}
+            error={fieldErrors.password}
+            disabled={loading}
+          />
+
+          {localError && (
+            <p role="alert" className="font-body text-xs text-error">
+              {localError}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 font-heading text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loading ? 'Iniciando sesión…' : 'Iniciar sesión'}
+          </button>
+        </form>
+
+        {/* Divider */}
+        <div className="mb-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-surface-variant" />
+          <span className="font-body text-xs text-on-surface-variant">O</span>
+          <div className="h-px flex-1 bg-surface-variant" />
+        </div>
+
+        {/* Google button */}
         <button
           type="button"
           onClick={handleGoogleLogin}
-          className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100"
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-3 rounded-md bg-white px-4 py-3 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
@@ -101,19 +223,19 @@ export default function LoginPage() {
         {IS_DEV && (
           <>
             <div className="my-6 flex items-center gap-3">
-              <div className="h-px flex-1 bg-obsidian-600" />
-              <span className="text-xs text-gray-500">DEV</span>
-              <div className="h-px flex-1 bg-obsidian-600" />
+              <div className="h-px flex-1 bg-surface-variant" />
+              <span className="font-body text-xs text-on-surface-variant">DEV</span>
+              <div className="h-px flex-1 bg-surface-variant" />
             </div>
 
             <div className="space-y-2">
-              <p className="text-xs text-gray-500">Inicio rápido (desarrollo):</p>
+              <p className="font-body text-xs text-on-surface-variant">Inicio rápido (desarrollo):</p>
               {DEV_USERS.map((user) => (
                 <button
                   key={user.email}
                   type="button"
                   onClick={() => handleDevLogin(user.email)}
-                  className="w-full rounded-md border border-obsidian-600 px-4 py-2 text-sm text-gray-300 transition-colors hover:border-emerald-600 hover:text-emerald-400"
+                  className="w-full rounded-md border border-surface-variant px-4 py-2 font-body text-sm text-on-surface-variant transition-colors hover:border-primary hover:text-primary"
                 >
                   {user.label}
                 </button>
