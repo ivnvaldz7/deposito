@@ -1,16 +1,21 @@
-import { Search } from 'lucide-react'
-import { useAuthStore } from '@/stores/auth-store'
+import { useState } from 'react'
+import { Search, Sun, Moon } from 'lucide-react'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
 import { ActivityFeed } from '@/components/notifications/ActivityFeed'
+import { getStoredTheme, setTheme, type ThemeMode } from '../../lib/theme'
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent)
-const shortcutLabel = isMac ? '⌘K' : 'Ctrl+Shift+K'
-
-// ─── Topbar ───────────────────────────────────────────────────────────────────
+const shortcutLabel = isMac ? '⌘K' : 'Shift+K'
 
 export function Topbar() {
-  const user = useAuthStore((s) => s.user)
   const openPalette = useCommandPaletteStore((s) => s.openPalette)
+  const [theme, setThemeState] = useState<ThemeMode>(getStoredTheme() ?? 'light')
+
+  function handleToggleTheme() {
+    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark'
+    setTheme(nextTheme)
+    setThemeState(nextTheme)
+  }
 
   return (
     <header className="h-12 bg-surface-low flex items-center justify-between px-5 shrink-0">
@@ -35,11 +40,16 @@ export function Topbar() {
         {/* Activity Feed (SSE + toggle + panel) */}
         <ActivityFeed />
 
-        {user && (
-          <span className="font-body text-on-surface text-sm hidden sm:block">
-            {user.name}
-          </span>
-        )}
+        {/* Theme toggle */}
+        <button
+          type="button"
+          onClick={handleToggleTheme}
+          className="p-1.5 rounded text-on-surface-variant hover:bg-surface-high hover:text-on-surface transition-colors"
+          title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+        >
+          {theme === 'dark' ? <Sun size={16} strokeWidth={1.5} /> : <Moon size={16} strokeWidth={1.5} />}
+        </button>
+
       </div>
     </header>
   )

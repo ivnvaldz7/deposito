@@ -1,9 +1,9 @@
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, Plus } from 'lucide-react'
+import { Plus, Search, Calendar, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useActas } from '../queries/use-actas'
 import { ApiError } from '../lib/api'
-import { PageHeader } from '../components/layout/PageHeader'
 import {
   Table,
   TableHeader,
@@ -24,28 +24,44 @@ function uniqueJoined(values: string[]): string {
   return [...new Set(values)].join(', ')
 }
 
-function hasQualityNoAprobada(acta: ActaListItem): boolean {
-  return acta.items?.some((item) => item.aprobadoCalidad === false) ?? false
-}
-
-function CalidadWarningChip() {
-  return (
-    <span
-      className="inline-flex items-center gap-1 font-body text-xs font-medium px-2 py-0.5 rounded"
-      style={{ color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' }}
-    >
-      <AlertTriangle size={12} strokeWidth={1.5} />
-      Calidad pendiente
-    </span>
-  )
-}
-
 export default function ActasPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const navigate = useNavigate()
 
   const { data: actas = [], isLoading, error } = useActas()
+
+  const [searchQuery, setSearchQuery] = useState('')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
+
+  const filtered = useMemo(() => {
+    let result = actas
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter((acta) =>
+        acta.items?.some((item) => item.productoNombre.toLowerCase().includes(q))
+      )
+    }
+
+    if (fechaDesde) {
+      result = result.filter((acta) => acta.fecha >= fechaDesde)
+    }
+    if (fechaHasta) {
+      result = result.filter((acta) => acta.fecha <= fechaHasta)
+    }
+
+    return result
+  }, [actas, searchQuery, fechaDesde, fechaHasta])
+
+  const hasFilters = searchQuery || fechaDesde || fechaHasta
+
+  function clearFilters() {
+    setSearchQuery('')
+    setFechaDesde('')
+    setFechaHasta('')
+  }
 
   if (isLoading) {
     return (
@@ -58,138 +74,145 @@ export default function ActasPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-48">
-        <p className="font-body text-error text-sm">{error instanceof ApiError ? error.message : 'No se pudo cargar las actas'}</p>
+        <p className="font-body text-error text-sm">{error instanceof ApiError ? error.message : 'No se pudieron cargar las actas'}</p>
       </div>
     )
   }
 
-  const calidadPendienteCount = actas.filter(hasQualityNoAprobada).length
-  const completadasCount = actas.filter((acta) => acta.estado === 'completada').length
+  const completadasCount = actas.filter((a) => a.estado === 'completada').length
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="ACTAS"
-        stats={[
-          { label: 'actas', value: actas.length },
-          { label: 'completadas', value: completadasCount },
-          { label: 'calidad pendiente', value: calidadPendienteCount, warning: calidadPendienteCount > 0 },
-        ]}
-        primaryAction={
-          isEncargado
-            ? {
-                label: 'Nuevo ingreso',
-                onClick: () => navigate('/ingresos'),
-                icon: <Plus size={14} strokeWidth={2} />,
-              }
-            : undefined
-        }
-      />
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-on-surface tracking-tight">
+            Actas
+          </h1>
+          <p className="font-body text-sm text-on-surface-variant mt-1">
+            {actas.length} actas · {completadasCount} completadas
+          </p>
+        </div>
+        {isEncargado && (
+          <button
+            onClick={() => navigate('/ingresos')}
+            className="flex items-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float"
+          >
+            <Plus size={16} strokeWidth={2} />
+            Nuevo ingreso
+          </button>
+        )}
+      </div>
 
-      {actas.length === 0 ? (
+      {/* Filters */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+        {/* Search */}
+        <div className="relative flex-1 max-w-xs">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por producto..."
+            className="input-field pl-9 py-2 text-sm"
+          />
+        </div>
+
+        {/* Date range */}
+        <div className="flex items-center gap-2">
+          <Calendar size={16} className="text-on-surface-variant shrink-0" />
+          <input
+            type="date"
+            value={fechaDesde}
+            onChange={(e) => setFechaDesde(e.target.value)}
+            className="input-field py-2 text-sm [color-scheme:dark]"
+            title="Fecha desde"
+          />
+          <span className="text-on-surface-variant text-xs">a</span>
+          <input
+            type="date"
+            value={fechaHasta}
+            onChange={(e) => setFechaHasta(e.target.value)}
+            className="input-field py-2 text-sm [color-scheme:dark]"
+            title="Fecha hasta"
+          />
+        </div>
+
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 text-xs text-on-surface-variant hover:text-on-surface transition-colors"
+          >
+            <X size={14} />
+            Limpiar filtros
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-48 bg-surface-low rounded gap-3">
           <p className="font-body text-on-surface-variant text-sm">
-            No hay actas registradas todavía.
+            {hasFilters ? 'No se encontraron actas con esos filtros.' : 'No hay actas registradas todavía.'}
           </p>
-          {isEncargado && (
+          {isEncargado && !hasFilters && (
             <p className="font-body text-on-surface-variant/60 text-xs">
               Usá "Nuevo Ingreso" para empezar.
             </p>
           )}
         </div>
       ) : (
-        <>
-          <div className="hidden md:block bg-surface-low rounded overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Lote(s)</TableHead>
-                  <TableHead>Productos</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-20">Items</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {actas.map((acta) => {
-                  const lotes = uniqueJoined(acta.items?.map((i) => i.lote) ?? [])
-                  const productos = uniqueJoined(acta.items?.map((i) => i.productoNombre) ?? [])
-                  const hasQualityIssue = hasQualityNoAprobada(acta)
+        <div className="bg-surface-low rounded overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Fecha</TableHead>
+                <TableHead>Producto</TableHead>
+                <TableHead>Lote</TableHead>
+                <TableHead>Cantidad</TableHead>
+                <TableHead>Estado</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((acta) => {
+                const items = acta.items ?? []
+                const firstItem = items[0]
 
-                  return (
-                    <TableRow
-                      key={acta.id}
-                      onClick={() => navigate(`/actas/${acta.id}`)}
-                      className="cursor-pointer"
-                    >
-                      <TableCell className="font-body text-on-surface tabular-nums">
-                        {formatFecha(acta.fecha)}
-                      </TableCell>
-                      <TableCell
-                        className="font-body text-on-surface-variant text-sm max-w-[140px] truncate"
-                        title={lotes || undefined}
-                      >
-                        {lotes || '—'}
-                      </TableCell>
-                      <TableCell
-                        className="font-body text-on-surface text-sm max-w-xs truncate"
-                        title={productos || undefined}
-                      >
-                        {productos || '—'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col items-start gap-1">
-                          <EstadoChip estado={acta.estado} />
-                          {hasQualityIssue && <CalidadWarningChip />}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-body text-on-surface-variant tabular-nums">
-                        {acta._count?.items ?? acta.items?.length ?? 0}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="md:hidden space-y-2">
-            {actas.map((acta) => {
-              const lotes = uniqueJoined(acta.items?.map((i) => i.lote) ?? [])
-              const productos = uniqueJoined(acta.items?.map((i) => i.productoNombre) ?? [])
-              const hasQualityIssue = hasQualityNoAprobada(acta)
-
-              return (
-                <div
-                  key={acta.id}
-                  onClick={() => navigate(`/actas/${acta.id}`)}
-                  className="bg-surface-low rounded px-4 py-3 cursor-pointer hover:bg-surface-bright transition-colors space-y-2"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-body text-on-surface text-sm tabular-nums">
+                return (
+                  <TableRow
+                    key={acta.id}
+                    onClick={() => navigate(`/actas/${acta.id}`)}
+                    className="cursor-pointer"
+                  >
+                    <TableCell className="font-body text-on-surface tabular-nums whitespace-nowrap">
                       {formatFecha(acta.fecha)}
-                    </p>
-                    <EstadoChip estado={acta.estado} />
-                  </div>
-                  {productos && (
-                    <p className="font-body text-on-surface text-sm truncate">{productos}</p>
-                  )}
-                  <div className="flex items-center gap-3 flex-wrap">
-                    {lotes && (
-                      <span className="font-body text-on-surface-variant text-xs truncate">
-                        Lote: {lotes}
-                      </span>
-                    )}
-                    <span className="font-body text-on-surface-variant text-xs shrink-0">
-                      {acta._count?.items ?? acta.items?.length ?? 0} items
-                    </span>
-                    {hasQualityIssue && <CalidadWarningChip />}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </>
+                    </TableCell>
+                    <TableCell
+                      className="font-body text-on-surface text-sm max-w-[200px] truncate"
+                      title={firstItem?.productoNombre ?? '—'}
+                    >
+                      {firstItem?.productoNombre ?? '—'}
+                      {items.length > 1 && (
+                        <span className="text-on-surface-variant text-xs ml-1">
+                          +{items.length - 1} más
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-body text-on-surface-variant text-sm font-mono">
+                      {firstItem?.lote ?? '—'}
+                    </TableCell>
+                    <TableCell className="font-body text-on-surface tabular-nums">
+                      {firstItem?.cantidadIngresada ?? '—'} uds
+                    </TableCell>
+                    <TableCell>
+                      <EstadoChip estado={acta.estado} />
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   )

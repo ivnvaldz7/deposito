@@ -19,7 +19,7 @@ const updateClienteSchema = z.object({
   activo: z.boolean().optional(),
 })
 
-router.get('/', requireApp('ale_bet'), async (_req, res) => {
+router.get('/', requireApp('ale-bet'), async (_req, res) => {
   const clientes = await prisma.cliente.findMany({
     where: { activo: true },
     orderBy: { nombre: 'asc' },
@@ -28,7 +28,7 @@ router.get('/', requireApp('ale_bet'), async (_req, res) => {
   res.json(clientes)
 })
 
-router.post('/', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) => {
+router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
   const parsed = clienteSchema.safeParse(req.body)
 
   if (!parsed.success) {
@@ -43,7 +43,7 @@ router.post('/', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) 
   res.status(201).json(cliente)
 })
 
-router.put('/:id', requireApp('ale_bet', ['admin']), async (req, res) => {
+router.put('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
   const clienteId = String(req.params.id)
   const parsed = updateClienteSchema.safeParse(req.body)
 

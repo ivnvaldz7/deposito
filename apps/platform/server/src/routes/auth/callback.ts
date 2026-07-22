@@ -70,7 +70,7 @@ router.get('/google/callback', async (req, res) => {
     const apps = platformUser.appAccess.reduce<
       Record<string, { rol: string; activo: boolean }>
     >((acc, access) => {
-      acc[access.app] = {
+      acc[access.app.replace('_', '-')] = {
         rol: access.rol,
         activo: access.activo,
       }

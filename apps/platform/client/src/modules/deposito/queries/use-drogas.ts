@@ -35,6 +35,15 @@ export function useCreateDroga() {
   })
 }
 
+export function useUpdateDroga() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string; lote?: string | null; cantidad?: number }) =>
+      api.put<DrogaRecord>(`/drogas/${id}`, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: drogasKeys.all }),
+  })
+}
+
 export function useDeleteDroga() {
   const qc = useQueryClient()
   return useMutation({

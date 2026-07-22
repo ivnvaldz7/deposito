@@ -148,7 +148,7 @@ function buildProductosCell(items: HistorialPedidoResponse['items']): string {
   return items.map((item) => `${item.productoNombre} x${item.cantidad}`).join(', ')
 }
 
-router.get('/', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) => {
+router.get('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
   const user = req.user as JwtPayload
   const where = buildHistorialWhere(req, user)
 
@@ -160,7 +160,7 @@ router.get('/', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) =
   res.json(await loadHistorialPedidos(where))
 })
 
-router.get('/export', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) => {
+router.get('/export', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
   const user = req.user as JwtPayload
   const where = buildHistorialWhere(req, user)
 

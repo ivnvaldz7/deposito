@@ -1,27 +1,16 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useSearchParams } from 'react-router-dom'
 import {
-  Plus, Trash2, CalendarClock, Search, Filter, Pill, FlaskConical,
-  Edit, Syringe,
+  Trash2, CalendarClock, Search, Pill, FlaskConical,
+  Edit, Syringe, Check, X,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
-import { useDrogas, useCreateDroga, useDeleteDroga } from '../queries/use-drogas'
+import { useDrogas, useDeleteDroga, useUpdateDroga } from '../queries/use-drogas'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-} from '../components/ui/Dialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -115,161 +104,20 @@ function DrugIcon({ nombre }: { nombre: string }) {
   return <Pill size={18} />
 }
 
-// ─── Agregar droga modal ──────────────────────────────────────────────────────
-
-const agregarSchema = z.object({
-  nombre: z.string().min(2, 'Mínimo 2 caracteres').max(100),
-  lote: z.string().max(50).optional(),
-  vencimiento: z.string().optional(),
-  cantidad: z
-    .string()
-    .min(1, 'Requerido')
-    .refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Debe ser un número positivo'),
-})
-
-type AgregarFormData = z.infer<typeof agregarSchema>
-
-function AgregarDrogaModal({
-  open,
-  onOpenChange,
-}: {
-  open: boolean
-  onOpenChange: (next: boolean) => void
-}) {
-  const [serverError, setServerError] = useState<string | null>(null)
-  const createMutation = useCreateDroga()
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<AgregarFormData>({ resolver: zodResolver(agregarSchema) })
-
-  async function onSubmit(data: AgregarFormData) {
-    setServerError(null)
-    try {
-      const droga = await createMutation.mutateAsync({
-        nombre: data.nombre,
-        cantidad: Number(data.cantidad),
-        ...(data.lote ? { lote: data.lote } : {}),
-        ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
-      })
-
-      toast.success(`Droga "${droga.nombre}" agregada.`)
-      reset()
-      onOpenChange(false)
-    } catch (err) {
-      setServerError(err instanceof ApiError ? err.message : 'Error al guardar')
-    }
-  }
-
-  function handleOpenChange(next: boolean) {
-    if (!next) { reset(); setServerError(null) }
-    onOpenChange(next)
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Agregar droga</DialogTitle>
-          <DialogDescription>
-            Ingresá el nombre del principio activo. El lote y vencimiento son opcionales para registros heredados.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <div className="space-y-1">
-            <label htmlFor="agregar-droga-nombre" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Nombre
-            </label>
-            <input
-              id="agregar-droga-nombre"
-              {...register('nombre')}
-              type="text"
-              placeholder="Ej: Vitamina B12"
-              className="input-field"
-              autoFocus
-            />
-            {errors.nombre && <p className="font-body text-error text-xs">{errors.nombre.message}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label htmlFor="agregar-droga-lote" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                Lote <span className="normal-case tracking-normal opacity-60">(opcional)</span>
-              </label>
-              <input
-                id="agregar-droga-lote"
-                {...register('lote')}
-                type="text"
-                placeholder="Ej: L240901"
-                className="input-field"
-              />
-              {errors.lote && <p className="font-body text-error text-xs">{errors.lote.message}</p>}
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="agregar-droga-vencimiento" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                Vencimiento <span className="normal-case tracking-normal opacity-60">(opcional)</span>
-              </label>
-              <input
-                id="agregar-droga-vencimiento"
-                {...register('vencimiento')}
-                type="date"
-                className="input-field"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <label htmlFor="agregar-droga-cantidad" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Cantidad inicial
-            </label>
-            <input
-              id="agregar-droga-cantidad"
-              {...register('cantidad')}
-              type="number"
-              min="0"
-              placeholder="0"
-              className="input-field"
-            />
-            {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
-          </div>
-
-          {serverError && (
-            <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>
-          )}
-
-          <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
-              {createMutation.isPending ? 'Guardando...' : 'Guardar'}
-            </button>
-            <DialogClose asChild>
-              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">
-                Cancelar
-              </button>
-            </DialogClose>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DrogasPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
 
   const { data: records = [], isLoading, error } = useDrogas()
   const deleteMutation = useDeleteDroga()
+  const updateMutation = useUpdateDroga()
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
-  const [agregarOpen, setAgregarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [editingLote, setEditingLote] = useState<string | null>(null)
+  const [loteValue, setLoteValue] = useState('')
 
   useEffect(() => {
     fetchCatalogoProductos('droga')
@@ -318,10 +166,25 @@ export default function DrogasPage() {
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar el inventario'} />
 
-  const stockBajoCount = groups.filter((g) => g.totalCantidad < STOCK_BAJO_THRESHOLD).length
-  const porVencerCount = records.filter(
-    (r) => r.vencimiento && diasHastaVencimiento(r.vencimiento) <= VENCE_PRONTO_DIAS
-  ).length
+  function startEditLote(id: string, current: string | null) {
+    setEditingLote(id)
+    setLoteValue(current ?? '')
+  }
+
+  async function saveLote(id: string) {
+    try {
+      await updateMutation.mutateAsync({ id, lote: loteValue.trim() || null })
+      toast.success('Lote actualizado')
+      setEditingLote(null)
+    } catch {
+      toast.error('No se pudo actualizar el lote')
+    }
+  }
+
+  function cancelEditLote() {
+    setEditingLote(null)
+    setLoteValue('')
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -329,149 +192,188 @@ export default function DrogasPage() {
       <header className="shrink-0 flex items-center justify-between mb-lg">
         <div className="flex items-center gap-md">
           <h1 className="font-heading text-xl font-semibold text-on-surface tracking-tight">
-            Inventario de Drogas
+            Drogas
           </h1>
           <span className="bg-surface-variant text-on-surface-variant font-mono text-xs px-2 py-1 rounded-md border border-white/5">
-            Active: {groups.length}
+            {groups.length} activas
           </span>
         </div>
-        <div className="flex items-center gap-md">
-          {/* Search Input */}
-          <div className="relative group">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search ID, Lot, Name..."
-              className="w-64 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
-            />
-          </div>
-          {/* Filter Button */}
-          <button className="flex items-center gap-2 bg-surface-container-high border border-outline-variant rounded-lg px-4 py-2 hover:bg-surface-variant transition-colors text-on-surface">
-            <Filter size={16} />
-            <span className="font-body text-xs font-semibold">Filter</span>
-          </button>
-          {/* Primary Action */}
-          {isEncargado && (
-            <button
-              onClick={() => setAgregarOpen(true)}
-              className="flex items-center gap-2 bg-primary text-on-primary rounded-lg px-4 py-2 font-body text-xs font-semibold scale-hover shadow-float"
-            >
-              <Plus size={16} />
-              <span>New Ingress</span>
-            </button>
-          )}
+        <div className="relative group">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar por nombre o lote..."
+            className="w-64 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+          />
         </div>
       </header>
 
-      {isEncargado ? (
-        <AgregarDrogaModal
-          open={agregarOpen}
-          onOpenChange={setAgregarOpen}
-        />
-      ) : null}
-
-      {/* Content */}
       {filteredGroups.length === 0 ? (
-        <EmptyState message={searchQuery ? 'No se encontró esa droga en inventario.' : 'No hay drogas cargadas todavía.'} />
-      ) : (
-        <div className="bg-surface-container rounded-xl border border-outline-variant shadow-float overflow-hidden flex flex-col">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-md py-sm border-b border-outline-variant bg-surface-container-low font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-            <div className="col-span-3">Drug Profile</div>
-            <div className="col-span-2">Lot Identifier</div>
-            <div className="col-span-2">Storage Location</div>
-            <div className="col-span-2 text-right">Quantity / Vol</div>
-            <div className="col-span-2 text-center">Status</div>
-            <div className="col-span-1 text-right">Actions</div>
+        searchQuery ? (
+          <div className="animate-fade-up flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-14 h-14 rounded-full bg-surface-variant flex items-center justify-center">
+              <Search size={24} className="text-on-surface-variant" />
+            </div>
+            <p className="font-body text-base text-on-surface-variant">No se encontró <strong className="text-on-surface">{searchQuery}</strong></p>
+            <p className="font-body text-sm text-on-surface-variant/60">Probá con otro nombre o número de lote</p>
           </div>
+        ) : (
+          <EmptyState message="No hay drogas cargadas todavía." />
+        )
+      ) : (
+        <>
+          {/* Desktop Table */}
+          <div className="hidden md:block bg-surface-container rounded-xl border border-outline-variant shadow-float overflow-hidden">
+            <div className="grid grid-cols-12 gap-4 px-4 py-2.5 border-b border-outline-variant bg-surface-container-low font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+              <div className="col-span-4">Producto</div>
+              <div className="col-span-3">Lote</div>
+              <div className="col-span-2 text-right">Cantidad</div>
+              <div className="col-span-3 text-center">Estado</div>
+            </div>
 
-          {/* Table Body */}
-          <div className="flex flex-col">
-            {filteredGroups.map((group) => (
-              <div key={group.nombre} className="flex flex-col border-b border-outline-variant/50 last:border-0">
-                {/* Group Header */}
-                <div className="grid grid-cols-12 gap-4 px-md py-3 bg-surface-container-high/50 items-center">
-                  <div className="col-span-12 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded bg-surface-variant flex items-center justify-center border border-white/5">
-                      <DrugIcon nombre={group.nombre} />
-                    </div>
-                    <h3 className="font-heading text-sm font-semibold text-on-surface">{group.nombre}</h3>
-                    <span className="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded text-[10px] font-mono border border-white/5 uppercase tracking-wide">
-                      Drug
-                    </span>
-                    <span className="font-body text-xs text-on-surface-variant ml-auto tabular-nums">
-                      Total: <strong className="text-on-surface">{group.totalCantidad}</strong> uds
-                    </span>
-                  </div>
-
-                </div>
-
-                {/* Batch Rows */}
-                {group.lotes.map((lote, idx) => {
-                  const displayName = lote.productoId
-                    ? (catalogMap[lote.productoId] ?? lote.nombre)
-                    : lote.nombre
+            <div className="flex flex-col">
+              {filteredGroups.map((group, gi) =>
+                group.lotes.map((lote, li) => {
+                  const idx = gi + li
                   return (
                     <div
                       key={lote.id}
-                      className={`grid grid-cols-12 gap-4 px-md py-3 items-center cursor-default transition-all duration-200 hover:-translate-y-[2px] hover:bg-surface-variant/30 ${
-                        idx < group.lotes.length - 1 ? 'border-t border-outline-variant/30' : ''
+                      style={{ animationDelay: `${idx * 0.03}s` }}
+                      className={`grid grid-cols-12 gap-4 px-4 py-3 items-center transition-all duration-200 hover:bg-surface-variant/30 animate-fade-up ${
+                        idx > 0 ? 'border-t border-outline-variant/20' : ''
                       }`}
                     >
-                      <div className="col-span-3 pl-11">
-                        <span className="font-mono text-xs text-on-surface-variant">
-                          Vial - {lote.cantidad}mL
+                      <div className="col-span-4 flex items-center gap-2 min-w-0">
+                        <DrugIcon nombre={group.nombre} />
+                        <span className="font-body text-sm font-medium text-on-surface truncate">
+                          {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
                         </span>
                       </div>
-                      <div className="col-span-2 font-mono text-xs text-on-surface">
-                        {lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>}
+                      <div className="col-span-3 font-mono text-sm text-on-surface">
+                        {editingLote === lote.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={loteValue}
+                              onChange={(e) => setLoteValue(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') saveLote(lote.id)
+                                if (e.key === 'Escape') cancelEditLote()
+                              }}
+                              className="w-full bg-surface-container-high border border-outline-variant rounded px-2 py-1 text-sm font-mono text-on-surface focus:outline-none focus:border-primary"
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => saveLote(lote.id)}
+                              className="shrink-0 p-1 rounded text-primary hover:bg-primary-container/20 transition-colors"
+                              title="Confirmar"
+                            >
+                              <Check size={16} strokeWidth={2} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditLote}
+                              className="shrink-0 p-1 rounded text-on-surface-variant hover:text-error hover:bg-error-container/10 transition-colors"
+                              title="Cancelar"
+                            >
+                              <X size={16} strokeWidth={2} />
+                            </button>
+                          </div>
+                        ) : (
+                          lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>
+                        )}
                       </div>
-                      <div className="col-span-2 font-body text-sm text-on-surface-variant flex items-center gap-1">
-                        <VencimientoChip vencimiento={lote.vencimiento} />
+                      <div className="col-span-2 text-right font-mono text-sm text-on-surface font-medium tabular-nums">
+                        {lote.cantidad}
                       </div>
-                      <div className="col-span-2 text-right font-mono text-xs text-on-surface font-medium">
-                        {lote.cantidad} vials
-                      </div>
-                      <div className="col-span-2 flex justify-center">
+                      <div className="col-span-3 flex items-center justify-center gap-2">
                         <StatusBadge
                           variant={getStatusVariant(lote.cantidad)}
-                          label={getStatusVariant(lote.cantidad) === 'optimal' ? 'Optimal' : getStatusVariant(lote.cantidad) === 'low' ? 'Low Stock' : 'Critical'}
+                          label={getStatusVariant(lote.cantidad) === 'optimal' ? 'Optimo' : getStatusVariant(lote.cantidad) === 'low' ? 'Bajo' : 'Crítico'}
                           showDot={getStatusVariant(lote.cantidad) !== 'critical'}
                         />
-                      </div>
-                      <div className="col-span-1 flex justify-end gap-2 text-on-surface-variant">
-                        {isEncargado && (
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(lote.id, `${displayName} (lote ${lote.lote ?? 'sin lote'})`)}
-                            disabled={deleteMutation.isPending}
-                            className="hover:text-error transition-colors disabled:opacity-40"
-                            title="Eliminar lote"
-                            aria-label={`Eliminar lote ${lote.lote ?? 'sin lote'} de ${lote.nombre}`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                        <button className="hover:text-primary transition-colors" title="Edit">
-                          <Edit size={16} />
+                        <VencimientoChip vencimiento={lote.vencimiento} />
+                        <button
+                          type="button"
+                          onClick={() => startEditLote(lote.id, lote.lote)}
+                          className="hover:text-primary transition-colors shrink-0 ml-1 p-1 rounded hover:bg-surface-variant"
+                          title="Editar lote"
+                        >
+                          <Edit size={14} />
                         </button>
                       </div>
                     </div>
                   )
-                })}
-              </div>
-            ))}
+                })
+              )}
+            </div>
           </div>
 
-          {/* Footer */}
-          <div className="mt-4 flex justify-between items-center px-2 pb-2">
-            <span className="font-body text-xs text-on-surface-variant">
-              Showing {filteredGroups.length} of {groups.length} Active Records
-            </span>
+          {/* Mobile Cards */}
+          <div className="md:hidden flex flex-col gap-2">
+            {filteredGroups.map((group, gi) =>
+              group.lotes.map((lote, li) => {
+                const idx = gi + li
+                return (
+                  <div
+                    key={lote.id}
+                    style={{ animationDelay: `${idx * 0.03}s` }}
+                    className="bg-surface-container-high rounded-lg px-4 py-3 border border-white/10 flex items-center gap-3 animate-fade-up"
+                  >
+                    <DrugIcon nombre={group.nombre} />
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
+                      <span className="font-body text-sm font-medium text-on-surface truncate">
+                        {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
+                      </span>
+                      {editingLote === lote.id ? (
+                        <input
+                          type="text"
+                          value={loteValue}
+                          onChange={(e) => setLoteValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveLote(lote.id)
+                            if (e.key === 'Escape') cancelEditLote()
+                          }}
+                          className="w-20 bg-surface-container-high border border-outline-variant rounded px-1.5 py-0.5 text-xs font-mono text-on-surface focus:outline-none focus:border-primary"
+                          autoFocus
+                        />
+                      ) : (
+                        <span className="font-mono text-xs text-on-surface-variant shrink-0">
+                          {lote.lote ?? '—'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="font-mono text-sm font-bold text-on-surface tabular-nums shrink-0">
+                      {lote.cantidad}
+                    </span>
+                    <StatusBadge
+                      variant={getStatusVariant(lote.cantidad)}
+                      label={getStatusVariant(lote.cantidad) === 'optimal' ? 'Optimo' : getStatusVariant(lote.cantidad) === 'low' ? 'Bajo' : 'Crítico'}
+                      showDot={getStatusVariant(lote.cantidad) !== 'critical'}
+                    />
+                    {isEncargado && (
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(lote.id, `${lote.nombre} (lote ${lote.lote ?? 'sin lote'})`)}
+                        disabled={deleteMutation.isPending}
+                        className="hover:text-error transition-colors disabled:opacity-40 shrink-0"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                    <button className="hover:text-primary transition-colors shrink-0" title="Editar">
+                      <Edit size={14} />
+                    </button>
+                  </div>
+                )
+              })
+            )}
           </div>
-        </div>
+        </>
       )}
     </div>
   )

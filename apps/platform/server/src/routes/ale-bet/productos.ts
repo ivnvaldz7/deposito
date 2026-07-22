@@ -43,7 +43,7 @@ async function getProductStock(productId: string): Promise<number> {
   return lotes.reduce((total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos), 0)
 }
 
-router.get('/', requireApp('ale_bet'), async (_req, res) => {
+router.get('/', requireApp('ale-bet'), async (_req, res) => {
   const productos = await prisma.producto.findMany({
     include: {
       lotes: {
@@ -70,7 +70,7 @@ router.get('/', requireApp('ale_bet'), async (_req, res) => {
   res.json(response)
 })
 
-router.post('/', requireApp('ale_bet', ['admin']), async (req, res) => {
+router.post('/', requireApp('ale-bet', ['admin']), async (req, res) => {
   const parsed = productoSchema.safeParse(req.body)
 
   if (!parsed.success) {
@@ -83,7 +83,7 @@ router.post('/', requireApp('ale_bet', ['admin']), async (req, res) => {
   res.status(201).json({ ...producto, stock: 0, stockBajo: true })
 })
 
-router.put('/:id', requireApp('ale_bet', ['admin']), async (req, res) => {
+router.put('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
   const productoId = String(req.params.id)
   const parsed = updateProductoSchema.safeParse(req.body)
 
@@ -102,7 +102,7 @@ router.put('/:id', requireApp('ale_bet', ['admin']), async (req, res) => {
   res.json({ ...producto, stock, stockBajo: stock < producto.stockMinimo })
 })
 
-router.delete('/:id', requireApp('ale_bet', ['admin']), async (req, res) => {
+router.delete('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
   const productoId = String(req.params.id)
 
   const activeItems = await prisma.itemPedido.findFirst({
@@ -124,7 +124,7 @@ router.delete('/:id', requireApp('ale_bet', ['admin']), async (req, res) => {
   res.status(204).send()
 })
 
-router.get('/:id/lotes', requireApp('ale_bet', ['admin']), async (req, res) => {
+router.get('/:id/lotes', requireApp('ale-bet', ['admin']), async (req, res) => {
   const productoId = String(req.params.id)
 
   const lotes = await prisma.lote.findMany({
@@ -140,7 +140,7 @@ router.get('/:id/lotes', requireApp('ale_bet', ['admin']), async (req, res) => {
   )
 })
 
-router.post('/:id/lotes', requireApp('ale_bet', ['admin']), async (req, res) => {
+router.post('/:id/lotes', requireApp('ale-bet', ['admin']), async (req, res) => {
   const productoId = String(req.params.id)
   const user = req.user as JwtPayload
   const parsed = loteSchema.safeParse(req.body)

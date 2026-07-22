@@ -256,56 +256,72 @@ export function CommandPalette() {
       className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
-      <div
-        className="w-full max-w-xl rounded shadow-lg overflow-hidden"
-        style={{ backgroundColor: 'var(--color-surface)' }}
-      >
-        <div className="flex items-center gap-3 px-4 border-b border-outline-variant/15">
-          <Search size={16} strokeWidth={1.5} style={{ color: 'var(--color-on-surface-variant)' }} />
-          <Command.Input
-            ref={inputRef}
-            value={query}
-            onValueChange={setQuery}
-            placeholder="Buscá productos, navegá secciones, consultá métricas…"
-            className="w-full bg-transparent border-none outline-none py-3.5 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60"
-          />
-        </div>
+      <div className="relative w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
+        <Command className="flex flex-col rounded-xl shadow-2xl bg-surface">
+          <div className="flex items-center gap-3 px-4 border-b border-outline-variant/15">
+            <Search size={16} strokeWidth={1.5} style={{ color: 'var(--color-on-surface-variant)' }} />
+            <Command.Input
+              ref={inputRef}
+              value={query}
+              onValueChange={setQuery}
+              placeholder="Buscá productos, navegá secciones, consultá métricas…"
+              className="w-full bg-transparent border-none outline-none py-3.5 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60"
+            />
+          </div>
 
-        <Command.List className="max-h-72 overflow-y-auto px-2 py-2 space-y-0.5">
-          {allActions.length === 0 && query.trim() && !isLoadingMetrics && (
-            <div className="px-3 py-6 text-center">
-              <p className="font-body text-sm text-on-surface-variant">
-                Sin resultados para <strong className="text-on-surface">{query}</strong>
-              </p>
-            </div>
-          )}
+          <Command.List className="max-h-72 overflow-y-auto px-2 py-2 space-y-0.5">
+            {allActions.length === 0 && query.trim() && !isLoadingMetrics && (
+              <div className="px-3 py-6 text-center">
+                <p className="font-body text-sm text-on-surface-variant">
+                  Sin resultados para <strong className="text-on-surface">{query}</strong>
+                </p>
+              </div>
+            )}
 
-          {isLoadingMetrics && query.trim() && (
-            <div className="px-3 py-4">
-              <p className="font-body text-sm text-on-surface-variant">Consultando métricas…</p>
-            </div>
-          )}
+            {isLoadingMetrics && query.trim() && (
+              <div className="px-3 py-4">
+                <p className="font-body text-sm text-on-surface-variant">Consultando métricas…</p>
+              </div>
+            )}
 
-          {metricAction && (
-            <Command.Group heading="Métricas">
-              <Command.Item
-                value={metricAction.id}
-                onSelect={metricAction.onSelect}
-                className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer text-sm"
-              >
-                {metricAction.icon}
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface">{metricAction.label}</p>
-                  <p className="font-body text-xs text-on-surface-variant truncate">{metricAction.description}</p>
-                </div>
-                <ExternalLink size={12} strokeWidth={1.5} style={{ color: 'var(--color-on-surface-variant)' }} />
-              </Command.Item>
-            </Command.Group>
-          )}
+            {metricAction && (
+              <Command.Group heading="Métricas">
+                <Command.Item
+                  value={metricAction.id}
+                  onSelect={metricAction.onSelect}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer text-sm"
+                >
+                  {metricAction.icon}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body text-on-surface">{metricAction.label}</p>
+                    <p className="font-body text-xs text-on-surface-variant truncate">{metricAction.description}</p>
+                  </div>
+                  <ExternalLink size={12} strokeWidth={1.5} style={{ color: 'var(--color-on-surface-variant)' }} />
+                </Command.Item>
+              </Command.Group>
+            )}
 
-          {productActions.length > 0 && (
-            <Command.Group heading="Productos">
-              {productActions.map((action) => (
+            {productActions.length > 0 && (
+              <Command.Group heading="Productos">
+                {productActions.map((action) => (
+                  <Command.Item
+                    key={action.id}
+                    value={action.id}
+                    onSelect={action.onSelect}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer text-sm"
+                  >
+                    {action.icon}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-on-surface">{action.label}</p>
+                      <p className="font-body text-xs text-on-surface-variant truncate">{action.description}</p>
+                    </div>
+                  </Command.Item>
+                ))}
+              </Command.Group>
+            )}
+
+            <Command.Group heading="Navegación">
+              {baseActions.map((action) => (
                 <Command.Item
                   key={action.id}
                   value={action.id}
@@ -320,33 +336,16 @@ export function CommandPalette() {
                 </Command.Item>
               ))}
             </Command.Group>
-          )}
 
-          <Command.Group heading="Navegación">
-            {baseActions.map((action) => (
-              <Command.Item
-                key={action.id}
-                value={action.id}
-                onSelect={action.onSelect}
-                className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer text-sm"
-              >
-                {action.icon}
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface">{action.label}</p>
-                  <p className="font-body text-xs text-on-surface-variant truncate">{action.description}</p>
-                </div>
-              </Command.Item>
-            ))}
-          </Command.Group>
-
-          <Command.Empty>
-            <div className="px-3 py-6 text-center">
-              <p className="font-body text-sm text-on-surface-variant">
-                Sin resultados para <strong className="text-on-surface">{query}</strong>
-              </p>
-            </div>
-          </Command.Empty>
-        </Command.List>
+            <Command.Empty>
+              <div className="px-3 py-6 text-center">
+                <p className="font-body text-sm text-on-surface-variant">
+                  Sin resultados para <strong className="text-on-surface">{query}</strong>
+                </p>
+              </div>
+            </Command.Empty>
+          </Command.List>
+        </Command>
       </div>
     </Command.Dialog>,
     document.body

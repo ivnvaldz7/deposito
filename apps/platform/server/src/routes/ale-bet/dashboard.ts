@@ -17,7 +17,7 @@ async function getPlatformUserNames(): Promise<Map<string, string>> {
   }
 }
 
-router.get('/', requireApp('ale_bet'), async (_req, res) => {
+router.get('/', requireApp('ale-bet'), async (_req, res) => {
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
   const mañana = new Date(hoy)

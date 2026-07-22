@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, ArrowRight, Package, Pill, Box, Tag, Plus } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Package, Plus } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { useDashboard } from '../queries'
 
@@ -123,14 +123,12 @@ function TipoChip({ tipo }: { tipo: TipoMovimiento }) {
 // ─── Stock Bajo Alert Card ──────────────────────────────────────────────────────
 
 function StockAlertCard({
-  icon: Icon,
   productName,
   category,
   currentStock,
   unit,
   stockTone = 'tertiary',
 }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>
   productName: string
   category: string
   currentStock: number
@@ -138,23 +136,17 @@ function StockAlertCard({
   stockTone?: 'tertiary' | 'error'
 }) {
   return (
-    <div className="bg-surface-container-high rounded-lg p-md border border-white/10 hover:border-primary transition-colors duration-300 group">
-      <div className="flex items-center space-x-4 mb-sm">
-        <div className={`w-10 h-10 rounded flex items-center justify-center ${stockTone === 'error' ? 'bg-error-container/20 text-error' : 'bg-tertiary-container/20 text-tertiary'}`}>
-          <Icon size={20} />
-        </div>
+    <div className="bg-surface-container-high rounded-lg px-4 py-3 border border-white/10 hover:border-primary transition-colors duration-300 group">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="font-heading text-sm font-semibold text-on-surface truncate">{productName}</h3>
-          <p className="font-body text-xs text-on-surface-variant">{category}</p>
+          <h3 className="font-heading text-base font-bold text-on-surface truncate">{productName}</h3>
+          <p className="font-body text-sm text-on-surface-variant mt-0.5">{category}</p>
         </div>
-      </div>
-      <div className="flex justify-between items-end mt-4">
-        <div>
-          <span className="font-body text-xs text-outline">Current Stock</span>
-          <div className={`font-heading text-xl font-bold tabular-nums ${stockTone === 'error' ? 'text-error' : 'text-tertiary'}`}>
-            {currentStock}{' '}
-            <span className="font-body text-sm text-on-surface-variant font-normal">{unit}</span>
-          </div>
+        <div className="text-right shrink-0">
+          <span className={`font-heading text-2xl font-bold tabular-nums leading-none ${stockTone === 'error' ? 'text-error' : 'text-tertiary'}`}>
+            {currentStock}
+          </span>
+          <span className="font-body text-xs text-on-surface-variant ml-1">{unit}</span>
         </div>
       </div>
     </div>
@@ -207,34 +199,34 @@ export default function DashboardPage() {
         <div>
           <h1 className="font-heading text-3xl font-bold text-primary tracking-tighter">Depósito</h1>
           <p className="font-body text-base text-on-surface-variant mt-1">
-            Overview of current laboratory inventory and critical alerts.
+            Resumen del inventario y alertas críticas.
           </p>
         </div>
         <button
-          onClick={() => navigate('/deposito/ingresos/nueva')}
-          className="flex items-center gap-2 bg-primary-container text-white font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:bg-primary shadow-float"
+          onClick={() => navigate('/deposito/ingresos')}
+          className="flex items-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float"
         >
           <Plus size={18} />
-          <span>New Entry</span>
+          <span>Nuevo ingreso</span>
         </button>
       </div>
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
         <MetricCard
-          label="Total Items"
+          label="Total productos"
           value={totalItems.toLocaleString()}
           icon={Package}
           variant="default"
         />
         <MetricCard
-          label="Low Stock"
+          label="Stock bajo"
           value={stats.stockBajo.length + stats.stockBajoEstuches.length + stats.stockBajoEtiquetas.length + stats.stockBajoFrascos.length}
           icon={AlertTriangle}
           variant="warning"
         />
         <MetricCard
-          label="Movements Today"
+          label="Mov. hoy"
           value={stats.movimientosHoy}
           icon={ArrowRight}
           variant={stats.movimientosHoy > 50 ? 'error' : 'default'}
@@ -246,12 +238,12 @@ export default function DashboardPage() {
         {/* Left Column (2/3) - Low Stock Alerts */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-md">
-            <h2 className="font-heading text-lg font-semibold text-on-surface">Critical Reorder Alerts</h2>
+            <h2 className="font-heading text-lg font-semibold text-on-surface">Alertas de stock bajo</h2>
             <button
               onClick={() => navigate('/deposito/drogas')}
               className="font-body text-xs text-primary hover:underline"
             >
-              View All
+              Ver todo
             </button>
           </div>
 
@@ -267,7 +259,6 @@ export default function DashboardPage() {
               {stats.stockBajo.slice(0, 4).map((droga) => (
                 <StockAlertCard
                   key={droga.id}
-                  icon={Pill}
                   productName={droga.nombre}
                   category="Droga"
                   currentStock={droga.cantidad}
@@ -279,7 +270,6 @@ export default function DashboardPage() {
               {stats.stockBajoEstuches.slice(0, 2).map((estuche) => (
                 <StockAlertCard
                   key={estuche.id}
-                  icon={Box}
                   productName={estuche.articulo}
                   category={`Estuche · ${formatMercado(estuche.mercado)}`}
                   currentStock={estuche.cantidad}
@@ -290,7 +280,6 @@ export default function DashboardPage() {
               {stats.stockBajoEtiquetas.slice(0, 2).map((etiqueta) => (
                 <StockAlertCard
                   key={etiqueta.id}
-                  icon={Tag}
                   productName={etiqueta.articulo}
                   category={`Etiqueta · ${formatMercado(etiqueta.mercado)}`}
                   currentStock={etiqueta.cantidad}
@@ -301,7 +290,6 @@ export default function DashboardPage() {
               {stats.stockBajoFrascos.slice(0, 2).map((frasco) => (
                 <StockAlertCard
                   key={frasco.id}
-                  icon={Package}
                   productName={frasco.articulo}
                   category={`Frasco · ${frasco.unidadesPorCaja} uds/caja`}
                   currentStock={frasco.cantidadCajas}
@@ -314,7 +302,7 @@ export default function DashboardPage() {
 
         {/* Right Column (1/3) - Recent Movements */}
         <div className="lg:col-span-1">
-          <h2 className="font-heading text-lg font-semibold text-on-surface mb-md">Recent Movements</h2>
+          <h2 className="font-heading text-lg font-semibold text-on-surface mb-md">Últimos movimientos</h2>
           <div className="bg-surface-container-high rounded-xl border border-white/10 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -359,7 +347,7 @@ export default function DashboardPage() {
                   onClick={() => navigate('/deposito/movimientos')}
                   className="font-body text-xs text-primary hover:underline"
                 >
-                  View Audit Log
+                  Ver historial
                 </button>
               </div>
             )}

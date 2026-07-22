@@ -72,6 +72,14 @@
   /* === SOMBRAS === */
   --shadow-float: 0 8px 30px rgba(0, 0, 0, 0.5);
 
+  /* === SPACING (legacy named tokens — keep until full migration to numeric) === */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-margin-desktop: 2rem;
+
   /* === BACKWARD COMPAT (legacy tokens — keep until full migration) === */
   --color-obsidian-900: #0b0f0d;
   --color-obsidian-800: #0f1511;
@@ -200,6 +208,36 @@
   50% {
     opacity: 0.5;
     transform: scale(0.8);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-slide-in-left {
+  animation: slide-in-left 0.3s ease-out both;
+}
+
+@utility animate-fade-up {
+  animation: fade-up 0.25s ease-out both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

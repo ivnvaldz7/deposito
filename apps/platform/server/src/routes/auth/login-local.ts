@@ -78,11 +78,11 @@ router.post('/login', async (req, res) => {
     return
   }
 
-  // Build apps record from access
+  // Build apps record from access (normalize Prisma enum underscore to frontend hyphen)
   const apps = platformUser.appAccess.reduce<
     Record<string, { rol: string; activo: boolean }>
   >((acc, access) => {
-    acc[access.app] = {
+    acc[`${access.app}`.replace('_', '-')] = {
       rol: access.rol,
       activo: access.activo,
     }

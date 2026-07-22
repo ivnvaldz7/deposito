@@ -5,7 +5,7 @@ import { calcularUnidades } from './constants'
 
 const router = Router()
 
-router.get('/', requireApp('ale_bet', ['admin']), async (_req, res) => {
+router.get('/', requireApp('ale-bet', ['admin']), async (_req, res) => {
   const [productos, movimientos] = await Promise.all([
     prisma.producto.findMany({
       include: {
@@ -39,7 +39,7 @@ router.get('/', requireApp('ale_bet', ['admin']), async (_req, res) => {
   })
 })
 
-router.get('/movimientos', requireApp('ale_bet', ['admin']), async (_req, res) => {
+router.get('/movimientos', requireApp('ale-bet', ['admin']), async (_req, res) => {
   const movimientos = await prisma.movimientoStock.findMany({
     orderBy: { createdAt: 'desc' },
   })

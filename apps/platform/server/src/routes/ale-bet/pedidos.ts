@@ -186,7 +186,7 @@ async function descontarStockFIFO(
   })
 }
 
-router.get('/', requireApp('ale_bet'), async (req, res) => {
+router.get('/', requireApp('ale-bet'), async (req, res) => {
   const user = req.user as JwtPayload
   const estado = typeof req.query.estado === 'string' ? req.query.estado : undefined
   const vendedorId = typeof req.query.vendedorId === 'string' ? req.query.vendedorId : undefined
@@ -216,7 +216,7 @@ router.get('/', requireApp('ale_bet'), async (req, res) => {
   res.json(await enrichPedidos(sortedPedidos))
 })
 
-router.post('/', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) => {
+router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
   const user = req.user as JwtPayload
   const parsed = pedidoSchema.safeParse(req.body)
 
@@ -250,7 +250,7 @@ router.post('/', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) 
   res.status(201).json(enrichedPedido)
 })
 
-router.put('/:id/aprobar', requireApp('ale_bet', ['admin', 'vendedor']), async (req, res) => {
+router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
   const pedidoId = String(req.params.id)
 
   const pedido = await prisma.pedido.findUnique({
@@ -297,7 +297,7 @@ router.put('/:id/aprobar', requireApp('ale_bet', ['admin', 'vendedor']), async (
   res.json(enrichedPedido)
 })
 
-router.put('/:id/tomar', requireApp('ale_bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
   const pedidoId = String(req.params.id)
   const user = req.user as JwtPayload
 
@@ -326,7 +326,7 @@ router.put('/:id/tomar', requireApp('ale_bet', ['admin', 'armador']), async (req
   res.json(enrichedPedido)
 })
 
-router.put('/:id/items/:itemId/completar', requireApp('ale_bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
   const pedidoId = String(req.params.id)
   const itemId = String(req.params.itemId)
   const user = req.user as JwtPayload
@@ -416,7 +416,7 @@ router.put('/:id/items/:itemId/completar', requireApp('ale_bet', ['admin', 'arma
   }
 })
 
-router.put('/:id/cancelar', requireApp('ale_bet', ['admin']), async (req, res) => {
+router.put('/:id/cancelar', requireApp('ale-bet', ['admin']), async (req, res) => {
   const pedidoId = String(req.params.id)
 
   const pedido = await prisma.pedido.findUnique({ where: { id: pedidoId } })
