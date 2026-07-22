@@ -1,13 +1,8 @@
 import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-<<<<<<< Updated upstream
 import { AlertTriangle, ArrowRight, Package, Pill, Box, Tag, Plus } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { api } from '../lib/api'
-=======
-import { AlertTriangle, ArrowRight } from 'lucide-react'
 import { useDashboard } from '../queries'
->>>>>>> Stashed changes
 
 type TipoMovimiento = 'ingreso_acta' | 'egreso_orden' | 'ajuste_manual'
 

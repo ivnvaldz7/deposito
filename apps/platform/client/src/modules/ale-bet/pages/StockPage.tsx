@@ -5,28 +5,8 @@ export default function StockPage() {
   const { data, isLoading, error } = useStockOverview()
   const [search, setSearch] = useState('')
 
-<<<<<<< Updated upstream
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      setError(null)
-      try {
-        setData(await aleBetApi.stock.get())
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Error al cargar stock')
-      } finally {
-        setLoading(false)
-      }
-    }
-    void load()
-  }, [])
-
-  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando stock...</p>
-  if (error || !data) return <p className="font-body text-sm text-error">{error ?? 'Error'}</p>
-=======
-  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando stock...</p>
-  if (error || !data) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar stock'}</p>
->>>>>>> Stashed changes
+  if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando stock...</p>
+  if (error || !data) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar stock'}</p>
 
   const filtered = data.productos.filter(
     (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())

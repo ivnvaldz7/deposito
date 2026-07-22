@@ -1,11 +1,8 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
-<<<<<<< Updated upstream
-import { api } from '../lib/api'
-import { ArrowDown, ArrowUp, Search, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
-=======
 import { useMovimientos } from '../queries'
+import { ArrowDown, ArrowUp, Search, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 import {
   Table,
   TableHeader,
@@ -14,7 +11,6 @@ import {
   TableHead,
   TableCell,
 } from '../components/ui/Table'
->>>>>>> Stashed changes
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -195,7 +191,6 @@ export default function MovimientosPage() {
     hasta: '',
   })
 
-<<<<<<< Updated upstream
   const [currentPage, setCurrentPage] = useState(1)
   const perPage = 20
 
@@ -205,14 +200,6 @@ export default function MovimientosPage() {
       producto: searchParams.get('producto') ?? '',
     }))
   }, [searchParams])
-=======
-  // Sync producto from URL params
-  const initialSearch = useRef(searchParams.get('producto') ?? '')
-  if (initialSearch.current !== searchParams.get('producto')) {
-    initialSearch.current = searchParams.get('producto') ?? ''
-    setFilters((prev) => ({ ...prev, producto: initialSearch.current }))
-  }
->>>>>>> Stashed changes
 
   const { data: movimientos = [], isLoading: loading, error } = useMovimientos(
     filters.tipo || filters.producto || filters.desde || filters.hasta ? filters : undefined

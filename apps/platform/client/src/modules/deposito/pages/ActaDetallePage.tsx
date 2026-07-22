@@ -220,30 +220,16 @@ function ItemRow({
             Control de Calidad
           </p>
           <div className="flex items-center gap-2">
-<<<<<<< Updated upstream
             {!item.aprobadoCalidad && isEncargado && (
               <button
                 type="button"
                 onClick={handleAprobarCalidad}
-                disabled={approvingQuality}
+                disabled={approvingQuality || aprobarCalidad.isPending}
                 className="px-3 py-1 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50 bg-primary-container/20 text-primary"
               >
-                {approvingQuality ? 'Aprobando...' : 'Aprobar calidad'}
+                {approvingQuality || aprobarCalidad.isPending ? 'Aprobando...' : 'Aprobar calidad'}
               </button>
             )}
-=======
-              {!item.aprobadoCalidad && isEncargado && (
-                <button
-                  type="button"
-                  onClick={handleAprobarCalidad}
-                  disabled={approvingQuality || aprobarCalidad.isPending}
-                  className="px-3 py-1 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
-                  style={{ background: 'rgba(84,225,109,0.15)', color: '#54e16d' }}
-                >
-                  {approvingQuality || aprobarCalidad.isPending ? 'Aprobando...' : 'Aprobar calidad'}
-                </button>
-              )}
->>>>>>> Stashed changes
             <span
               className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded ${
                 item.aprobadoCalidad
@@ -310,17 +296,8 @@ function ItemRow({
             <button
               type="button"
               onClick={confirm}
-<<<<<<< Updated upstream
-              disabled={saving}
-              className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity bg-primary text-on-primary disabled:opacity-50"
-=======
               disabled={distribuirItem.isPending}
-              className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)',
-                color: '#003918',
-              }}
->>>>>>> Stashed changes
+              className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity bg-primary text-on-primary disabled:opacity-50"
             >
               {distribuirItem.isPending ? '...' : 'Confirmar'}
             </button>

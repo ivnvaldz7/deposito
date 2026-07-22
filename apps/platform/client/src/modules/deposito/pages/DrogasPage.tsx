@@ -1,10 +1,5 @@
-<<<<<<< Updated upstream
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-=======
-import { useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
->>>>>>> Stashed changes
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -154,20 +149,13 @@ function AgregarDrogaModal({
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-<<<<<<< Updated upstream
-      const droga = await api.post<DrogaRecord>('/drogas', {
-=======
       const droga = await createMutation.mutateAsync({
->>>>>>> Stashed changes
         nombre: data.nombre,
         cantidad: Number(data.cantidad),
         ...(data.lote ? { lote: data.lote } : {}),
         ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
       })
-<<<<<<< Updated upstream
-      onCreated(droga)
-=======
->>>>>>> Stashed changes
+
       toast.success(`Droga "${droga.nombre}" agregada.`)
       reset()
       onOpenChange(false)
@@ -417,29 +405,7 @@ export default function DrogasPage() {
                       Total: <strong className="text-on-surface">{group.totalCantidad}</strong> uds
                     </span>
                   </div>
-<<<<<<< Updated upstream
-=======
 
-                  {isEncargado && (
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleDelete(
-                            lote.id,
-                            `${lote.productoId ? (catalogMap[lote.productoId] ?? lote.nombre) : lote.nombre} (lote ${lote.lote ?? 'sin lote'})`
-                          )
-                        }
-                        disabled={deleteMutation.isPending}
-                        className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
-                        title="Eliminar lote"
-                        aria-label={`Eliminar lote ${lote.lote ?? 'sin lote'} de ${lote.nombre}`}
-                      >
-                        <Trash2 size={13} strokeWidth={1.5} />
-                      </button>
-                    </div>
-                  )}
->>>>>>> Stashed changes
                 </div>
 
                 {/* Batch Rows */}
@@ -480,7 +446,7 @@ export default function DrogasPage() {
                           <button
                             type="button"
                             onClick={() => handleDelete(lote.id, `${displayName} (lote ${lote.lote ?? 'sin lote'})`)}
-                            disabled={deletingId === lote.id}
+                            disabled={deleteMutation.isPending}
                             className="hover:text-error transition-colors disabled:opacity-40"
                             title="Eliminar lote"
                             aria-label={`Eliminar lote ${lote.lote ?? 'sin lote'} de ${lote.nombre}`}

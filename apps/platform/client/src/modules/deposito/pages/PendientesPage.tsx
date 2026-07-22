@@ -706,11 +706,7 @@ export default function PendientesPage() {
         </div>
       ) : error ? (
         <div className="flex h-48 items-center justify-center">
-<<<<<<< Updated upstream
-          <p className="font-body text-sm text-warning">{error}</p>
-=======
-          <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error?.message ?? 'Error'}</p>
->>>>>>> Stashed changes
+          <p className="font-body text-sm text-warning">{error instanceof Error ? error.message : 'Error'}</p>
         </div>
       ) : (
         <div className="space-y-8">

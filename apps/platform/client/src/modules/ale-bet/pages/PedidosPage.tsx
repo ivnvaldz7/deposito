@@ -1,16 +1,11 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
-<<<<<<< Updated upstream
-import { aleBetApi, type Pedido, type Cliente, type Producto } from '../lib/api'
-import { useAuthStore } from '@/stores/auth-store'
-import { Badge } from '@/components/ui/Badge'
-=======
 import { type Pedido } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { Badge } from '@/components/ui/Badge'
 import { usePedidos, useCreatePedido, useAprobarPedido, useTomarPedido, useCompletarItemPedido, useCancelarPedido } from '../queries'
 import { useClientes } from '../queries'
 import { useProductos } from '../queries'
->>>>>>> Stashed changes
 
 const ESTADO_PRIORITY: Record<Pedido['estado'], number> = {
   APROBADO: 0,
@@ -171,13 +166,8 @@ export default function PedidosPage() {
     return isAdmin || isVendedor
   }
 
-<<<<<<< Updated upstream
-  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
-  if (error) return <p className="font-body text-sm text-error">{error}</p>
-=======
-  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando pedidos...</p>
-  if (error) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar pedidos'}</p>
->>>>>>> Stashed changes
+  if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
+  if (error) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar pedidos'}</p>
 
   return (
     <div className="space-y-6">
@@ -208,9 +198,8 @@ export default function PedidosPage() {
         </select>
       </div>
 
-<<<<<<< Updated upstream
       <div className="bg-surface-container-high rounded-xl overflow-hidden">
-        {pedidos.length === 0 ? (
+        {sortedPedidos.length === 0 ? (
           <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay pedidos.</p>
         ) : (
           <table className="w-full text-left font-body text-[12px]">
@@ -226,27 +215,7 @@ export default function PedidosPage() {
               </tr>
             </thead>
             <tbody>
-              {pedidos.map((p) => {
-=======
-      <div className="app-panel overflow-hidden rounded-[12px]">
-          {sortedPedidos.length === 0 ? (
-            <p className="px-5 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay pedidos.</p>
-          ) : (
-            <table className="w-full text-left text-[12px]">
-              <thead>
-                <tr className="border-b border-[var(--color-border)] text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
-                  <th className="px-5 py-3 font-medium">N°</th>
-                  <th className="px-5 py-3 font-medium">Cliente</th>
-                  <th className="px-5 py-3 font-medium">Estado</th>
-                  <th className="px-5 py-3 font-medium">Vendedor</th>
-                  <th className="px-5 py-3 font-medium text-center">Items</th>
-                  <th className="px-5 py-3 font-medium text-center">Fecha</th>
-                  <th className="px-5 py-3 font-medium text-center">Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedPedidos.map((p) => {
->>>>>>> Stashed changes
+              {sortedPedidos.map((p) => {
                 const isExpanded = expandedId === p.id
                 const variant = getEstadoVariant(p.estado)
                 return (
@@ -450,13 +419,8 @@ export default function PedidosPage() {
                 </button>
                 <button
                   onClick={handleCreate}
-<<<<<<< Updated upstream
-                  disabled={saving}
-                  className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
-=======
                   disabled={createMutation.isPending}
-                  className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)] disabled:opacity-50"
->>>>>>> Stashed changes
+                  className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
                 >
                   {createMutation.isPending ? 'Guardando...' : 'Crear pedido'}
                 </button>

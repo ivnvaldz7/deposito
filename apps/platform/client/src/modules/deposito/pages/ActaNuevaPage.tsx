@@ -102,13 +102,9 @@ function Paso1({
   async function onSubmit(data: Paso1Data) {
     setServerError(null)
     try {
-<<<<<<< Updated upstream
-      const acta = await api.post<Acta>('/actas', { fecha: data.fecha, notas: data.notas || undefined })
-=======
       const acta = await createActa.mutateAsync(
         { fecha: data.fecha, notas: data.notas || undefined }
       )
->>>>>>> Stashed changes
       onCreated(acta)
       toast.info('Acta creada. Ya podés cargar los items.')
     } catch (err) {
@@ -220,7 +216,6 @@ function Paso1({
           </form>
         </div>
 
-<<<<<<< Updated upstream
         {/* Action Footer */}
         <div className="bg-surface-container-low border-t border-white/5 p-md flex items-center justify-between">
           <button
@@ -233,26 +228,15 @@ function Paso1({
           <button
             type="button"
             onClick={handleSubmit(onSubmit)}
-            disabled={isSubmitting}
+            disabled={createActa.isPending}
             className="px-lg py-2 rounded-lg bg-primary-container text-on-primary-container font-body text-sm font-semibold flex items-center gap-2 scale-hover transition-transform shadow-[0_0_15px_rgba(163,209,182,0.2)]"
           >
-            {isSubmitting ? 'Creando...' : 'Siguiente: Ítems'}
-            {!isSubmitting && <ArrowRight size={18} />}
+            {createActa.isPending ? 'Creando...' : 'Siguiente: Ítems'}
+            {!createActa.isPending && <ArrowRight size={18} />}
           </button>
         </div>
       </div>
     </div>
-=======
-      <button
-        type="submit"
-        disabled={createActa.isPending}
-        className="btn-primary flex items-center justify-center gap-2 py-2.5 text-sm"
-      >
-        {createActa.isPending ? 'Creando...' : 'Continuar'}
-        {!createActa.isPending && <ChevronRight size={14} strokeWidth={2} />}
-      </button>
-    </form>
->>>>>>> Stashed changes
   )
 }
 
@@ -398,12 +382,8 @@ function Paso2({
   async function onSubmit(data: ItemFormData) {
     setServerError(null)
     try {
-<<<<<<< Updated upstream
-      const item = await api.post<ActaItem>(`/actas/${actaId}/items`, {
-=======
       const item = await addActaItem.mutateAsync({
         actaId,
->>>>>>> Stashed changes
         categoria: data.categoria,
         ...(data.productoId ? { productoId: data.productoId } : {}),
         productoNombre: data.productoNombre,
@@ -418,13 +398,7 @@ function Paso2({
           ? { observacionesCalidad: data.observacionesCalidad.trim() }
           : {}),
         aprobadoCalidad: data.aprobadoCalidad,
-<<<<<<< Updated upstream
-        ...((data.categoria === 'estuche' || data.categoria === 'etiqueta') && data.mercado
-          ? { mercado: data.mercado }
-          : {}),
-=======
         ...((data.categoria === 'estuche' || data.categoria === 'etiqueta') && data.mercado ? { mercado: data.mercado } : {}),
->>>>>>> Stashed changes
       })
       onItemAdded(item)
       toast.info(`Item "${item.productoNombre}" agregado al acta.`)
@@ -784,68 +758,7 @@ function Paso2({
             </div>
           )}
         </div>
-<<<<<<< Updated upstream
       </div>
-=======
-
-        {serverError && (
-          <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">
-            {serverError}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={addActaItem.isPending}
-          className="btn-primary flex items-center justify-center gap-2 py-2.5 text-sm"
-        >
-          <Plus size={14} strokeWidth={2} />
-          {addActaItem.isPending ? 'Agregando...' : 'Agregar item'}
-        </button>
-      </form>
-
-      {/* Items agregados */}
-      {items.length > 0 && (
-        <div className="space-y-3">
-          <p className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-            Items agregados ({items.length})
-          </p>
-          <div className="space-y-2">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-surface-low rounded px-4 py-3 flex items-center justify-between gap-4"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface text-sm truncate">
-                    {item.productoNombre}
-                  </p>
-                  <p className="font-body text-on-surface-variant text-xs mt-0.5">
-                    {CATEGORIAS.find((c) => c.value === item.categoria)?.label}
-                    {item.mercado
-                      ? ` · ${MERCADOS_CONFIG.find((m) => m.value === item.mercado)?.label ?? item.mercado}`
-                      : ''}
-                    {' · '}Lote: {item.lote}
-                  </p>
-                </div>
-                <span className="font-body text-on-surface tabular-nums text-sm shrink-0">
-                  {item.cantidadIngresada} uds
-                </span>
-              </div>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={onNext}
-            className="btn-primary flex items-center justify-center gap-2 py-2.5 text-sm mt-2"
-          >
-            Continuar a distribución
-            <ChevronRight size={14} strokeWidth={2} />
-          </button>
-        </div>
-      )}
->>>>>>> Stashed changes
     </div>
   )
 }
@@ -884,13 +797,9 @@ function Paso3({
 }) {
   const [distributingId, setDistributingId] = useState<string | null>(null)
   const [distributeValues, setDistributeValues] = useState<Record<string, string>>({})
-<<<<<<< Updated upstream
   const [errs, setErrs] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
-=======
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const distribuirItem = useDistribuirItem()
->>>>>>> Stashed changes
 
   function startDistribute(item: ActaItem) {
     const remaining = item.cantidadIngresada - item.cantidadDistribuida
@@ -914,18 +823,11 @@ function Paso3({
     }
 
     try {
-<<<<<<< Updated upstream
-      const res = await api.post<{ item: ActaItem }>(
-        `/actas/${actaId}/items/${item.id}/distribuir`,
-        { cantidad: num },
-      )
-=======
       const res = await distribuirItem.mutateAsync({
         actaId,
         itemId: item.id,
         cantidad: num,
       })
->>>>>>> Stashed changes
       onItemDistribuido(res.item)
       toast.success(`Distribución registrada para "${item.productoNombre}".`)
       setDistributingId(null)
@@ -957,7 +859,6 @@ function Paso3({
               const remaining = item.cantidadIngresada - item.cantidadDistribuida
               const isDistributing = distributingId === item.id
 
-<<<<<<< Updated upstream
               return (
                 <div key={item.id} className="bg-surface-container-high rounded-lg px-4 py-4 space-y-3 border border-white/5">
                   <div className="flex items-start justify-between gap-4">
@@ -985,49 +886,6 @@ function Paso3({
                         Distribuido
                       </span>
                     )}
-=======
-              {/* Inline distribute form */}
-              {isDistributing && (
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <label htmlFor={`acta-nueva-distribuir-${item.id}`} className="sr-only">
-                      Cantidad a distribuir para {item.productoNombre}
-                    </label>
-                    <input
-                      id={`acta-nueva-distribuir-${item.id}`}
-                      type="number"
-                      min="1"
-                      max={remaining}
-                      value={distributeValues[item.id] ?? ''}
-                      onChange={(e) =>
-                        setDistributeValues((prev) => ({ ...prev, [item.id]: e.target.value }))
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') confirmDistribute(item)
-                        if (e.key === 'Escape') setDistributingId(null)
-                      }}
-                      className="input-field w-28 py-1.5 text-sm"
-                      autoFocus
-                      disabled={distribuirItem.isPending}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => confirmDistribute(item)}
-                      disabled={distribuirItem.isPending}
-                      className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
-                      style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
-                    >
-                      {distribuirItem.isPending ? '...' : 'Confirmar'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDistributingId(null)}
-                      disabled={distribuirItem.isPending}
-                      className="font-body text-on-surface-variant text-xs hover:text-on-surface transition-colors"
-                    >
-                      Cancelar
-                    </button>
->>>>>>> Stashed changes
                   </div>
 
                   <ProgressBar distribuida={item.cantidadDistribuida} ingresada={item.cantidadIngresada} />
@@ -1053,20 +911,20 @@ function Paso3({
                           }}
                           className="input-field w-28 py-1.5 text-sm"
                           autoFocus
-                          disabled={saving}
+                          disabled={distribuirItem.isPending}
                         />
                         <button
                           type="button"
                           onClick={() => confirmDistribute(item)}
-                          disabled={saving}
+                          disabled={distribuirItem.isPending}
                           className="px-3 py-1.5 rounded-lg bg-primary-container text-on-primary-container font-body text-xs font-semibold scale-hover transition-transform disabled:opacity-50"
                         >
-                          {saving ? '...' : 'Confirmar'}
+                          {distribuirItem.isPending ? '...' : 'Confirmar'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setDistributingId(null)}
-                          disabled={saving}
+                          disabled={distribuirItem.isPending}
                           className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors"
                         >
                           Cancelar

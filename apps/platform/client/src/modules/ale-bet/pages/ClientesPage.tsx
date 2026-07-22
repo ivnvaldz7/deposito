@@ -1,12 +1,7 @@
-<<<<<<< Updated upstream
-import { useEffect, useState } from 'react'
-import { aleBetApi, type Cliente } from '../lib/api'
-import { Badge } from '@/components/ui/Badge'
-=======
 import { useState } from 'react'
 import { type Cliente } from '../lib/api'
+import { Badge } from '@/components/ui/Badge'
 import { useClientes, useCreateCliente, useUpdateCliente } from '../queries'
->>>>>>> Stashed changes
 
 export default function ClientesPage() {
   const { data: clientes = [], isLoading, error } = useClientes()
@@ -41,13 +36,8 @@ export default function ClientesPage() {
     }
   }
 
-<<<<<<< Updated upstream
-  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando clientes...</p>
-  if (error) return <p className="font-body text-sm text-error">{error}</p>
-=======
-  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando clientes...</p>
-  if (error) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar clientes'}</p>
->>>>>>> Stashed changes
+  if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando clientes...</p>
+  if (error) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar clientes'}</p>
 
   return (
     <div className="space-y-6">

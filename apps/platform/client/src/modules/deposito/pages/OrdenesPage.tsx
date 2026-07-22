@@ -376,14 +376,8 @@ function RechazarModal({
               <button
                 type="button"
                 onClick={handleRechazar}
-<<<<<<< Updated upstream
-                disabled={loading}
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors bg-error text-white disabled:opacity-50"
-=======
                 disabled={rejectMutation.isPending}
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors disabled:opacity-50"
-                style={{ backgroundColor: '#ef4444', color: '#fff' }}
->>>>>>> Stashed changes
+                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors bg-error text-white disabled:opacity-50"
               >
                 {rejectMutation.isPending ? 'Rechazando...' : 'Confirmar rechazo'}
               </button>
@@ -496,14 +490,8 @@ function OrdenCard({
             <button
               type="button"
               onClick={() => handleAction('aprobar')}
-<<<<<<< Updated upstream
-              disabled={actionLoading === 'aprobar'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity text-primary bg-primary-container/10"
-=======
               disabled={approveMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
-              style={{ color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' }}
->>>>>>> Stashed changes
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity text-primary bg-primary-container/10"
             >
               <Check size={12} strokeWidth={2} />
               {approveMutation.isPending ? 'Aprobando...' : 'Aprobar'}
@@ -513,14 +501,8 @@ function OrdenCard({
             <button
               type="button"
               onClick={() => handleAction('ejecutar')}
-<<<<<<< Updated upstream
-              disabled={actionLoading === 'ejecutar'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity bg-primary text-on-primary"
-=======
               disabled={executeMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
-              style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
->>>>>>> Stashed changes
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity bg-primary text-on-primary"
             >
               <Check size={12} strokeWidth={2} />
               {executeMutation.isPending ? 'Ejecutando...' : 'Ejecutar'}
@@ -530,13 +512,8 @@ function OrdenCard({
             <button
               type="button"
               onClick={() => handleAction('completar')}
-<<<<<<< Updated upstream
-              disabled={actionLoading === 'completar'}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-container-high hover:bg-surface-bright transition-colors disabled:opacity-50"
-=======
               disabled={completeMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-high hover:bg-surface-bright transition-colors disabled:opacity-50"
->>>>>>> Stashed changes
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-container-high hover:bg-surface-bright transition-colors disabled:opacity-50"
             >
               {completeMutation.isPending ? 'Completando...' : 'Marcar completada'}
             </button>
@@ -649,11 +626,7 @@ export default function OrdenesPage() {
         </div>
       ) : error ? (
         <div className="flex items-center justify-center py-20">
-<<<<<<< Updated upstream
-          <p className="font-body text-sm text-warning">{error}</p>
-=======
-          <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error?.message ?? 'Error'}</p>
->>>>>>> Stashed changes
+          <p className="font-body text-sm text-warning">{error instanceof Error ? error.message : 'Error'}</p>
         </div>
       ) : ordenesOrdenadas.length === 0 ? (
         <div className="flex items-center justify-center py-20">

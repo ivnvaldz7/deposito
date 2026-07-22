@@ -28,28 +28,15 @@ const ROLE_LABELS: Record<string, string> = {
 
 // ─── Role chip ────────────────────────────────────────────────────────────────
 
-<<<<<<< Updated upstream
-function RoleChip({ role }: { role: Role }) {
-  const roleClasses: Record<Role, string> = {
+function RoleChip({ role }: { role: string }) {
+  const roleClasses: Record<string, string> = {
     encargado: 'text-success bg-success/10',
     observador: 'text-on-surface-variant bg-surface-variant',
     solicitante: 'text-warning bg-warning/10',
   }
   return (
     <span
-      className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 ${roleClasses[role]}`}
-=======
-function RoleChip({ role }: { role: string }) {
-  const styles: Record<string, React.CSSProperties> = {
-    encargado: { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
-    observador: { color: '#bccbb8', backgroundColor: 'rgba(188,203,184,0.10)' },
-    solicitante: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
-  }
-  return (
-    <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
-      style={styles[role] ?? styles.observador}
->>>>>>> Stashed changes
+      className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 ${roleClasses[role] ?? roleClasses.observador}`}
     >
       {ROLE_LABELS[role] ?? role}
     </span>
@@ -89,13 +76,8 @@ function RoleSelector({
     <select
       value={currentRole}
       onChange={handleChange}
-<<<<<<< Updated upstream
-      disabled={saving || isSelf}
-      className="bg-surface-container-high text-on-surface font-body text-sm rounded px-2 py-1 border-0 outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
-=======
       disabled={updateRole.isPending || isSelf}
-      className="bg-surface-high text-on-surface font-body text-sm rounded px-2 py-1 border-0 outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
->>>>>>> Stashed changes
+      className="bg-surface-container-high text-on-surface font-body text-sm rounded px-2 py-1 border-0 outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
       aria-label="Cambiar rol"
     >
       <option value="encargado">Encargado</option>

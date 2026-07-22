@@ -70,13 +70,8 @@ export default function ProductosPage() {
     }
   }
 
-<<<<<<< Updated upstream
-  if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando productos...</p>
-  if (error) return <p className="font-body text-sm text-error">{error}</p>
-=======
-  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando productos...</p>
-  if (error) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar productos'}</p>
->>>>>>> Stashed changes
+  if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando productos...</p>
+  if (error) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar productos'}</p>
 
   const filtered = productos.filter(
     (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
@@ -204,29 +199,16 @@ export default function ProductosPage() {
       )}
 
       {/* Lotes modal */}
-<<<<<<< Updated upstream
-      {lotesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesModal(null)}>
-          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-1 font-heading text-[18px] font-bold text-on-surface">
-              Lotes: {lotesModal.producto.nombre}
-            </h2>
-            <p className="mb-4 font-body text-[12px] text-outline">Stock total: {lotesModal.producto.stock} unidades</p>
-
-            {lotesModal.lotes.length === 0 ? (
-              <p className="py-4 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados.</p>
-=======
       {lotesProducto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesProducto(null)}>
-          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-1 text-[18px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-1 font-heading text-[18px] font-bold text-on-surface">
               Lotes: {lotesProducto.nombre}
             </h2>
-            <p className="mb-4 text-[12px] text-[var(--color-text-3)]">Stock total: {lotesProducto.stock} unidades</p>
+            <p className="mb-4 font-body text-[12px] text-outline">Stock total: {lotesProducto.stock} unidades</p>
 
             {lotes.length === 0 ? (
-              <p className="py-4 text-center text-[13px] text-[var(--color-text-2)]">Sin lotes registrados.</p>
->>>>>>> Stashed changes
+              <p className="py-4 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados.</p>
             ) : (
               <table className="mb-6 w-full text-left font-body text-[12px]">
                 <thead>
@@ -240,23 +222,13 @@ export default function ProductosPage() {
                   </tr>
                 </thead>
                 <tbody>
-<<<<<<< Updated upstream
-                  {lotesModal.lotes.map((l) => (
+                  {lotes.map((l) => (
                     <tr key={l.id} className="border-b border-white/10 last:border-0">
                       <td className="py-3 font-medium text-on-surface">{l.numero}</td>
                       <td className="py-3 text-right text-on-surface">{l.cajas}</td>
                       <td className="py-3 text-right text-on-surface">{l.sueltos}</td>
                       <td className="py-3 text-right font-medium text-on-surface">{l.unidades}</td>
                       <td className="py-3 text-outline">
-=======
-                  {lotes.map((l) => (
-                    <tr key={l.id} className="border-b border-[var(--color-border)] last:border-0">
-                      <td className="py-3 font-medium text-[var(--color-text)]">{l.numero}</td>
-                      <td className="py-3 text-right text-[var(--color-text)]">{l.cajas}</td>
-                      <td className="py-3 text-right text-[var(--color-text)]">{l.sueltos}</td>
-                      <td className="py-3 text-right font-medium text-[var(--color-text)]">{l.unidades}</td>
-                      <td className="py-3 text-[var(--color-text-3)]">
->>>>>>> Stashed changes
                         {new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}
                       </td>
                       <td className="py-3 text-center">
@@ -295,11 +267,7 @@ export default function ProductosPage() {
             </div>
 
             <div className="mt-4 flex justify-end">
-<<<<<<< Updated upstream
-              <button onClick={() => setLotesModal(null)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cerrar</button>
-=======
-              <button onClick={() => setLotesProducto(null)} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-[12px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]">Cerrar</button>
->>>>>>> Stashed changes
+              <button onClick={() => setLotesProducto(null)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cerrar</button>
             </div>
           </div>
         </div>
