@@ -1,8 +1,13 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+<<<<<<< Updated upstream
 import { AlertTriangle, ArrowRight, Package, Pill, Box, Tag, Plus } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { api } from '../lib/api'
+=======
+import { AlertTriangle, ArrowRight } from 'lucide-react'
+import { useDashboard } from '../queries'
+>>>>>>> Stashed changes
 
 type TipoMovimiento = 'ingreso_acta' | 'egreso_orden' | 'ajuste_manual'
 
@@ -165,20 +170,9 @@ function StockAlertCard({
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const { data: stats, isLoading, error } = useDashboard()
 
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    api
-      .get<DashboardStats>('/dashboard/stats')
-      .then(setStats)
-      .catch(() => setError('No se pudo cargar el dashboard'))
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-48 items-center justify-center">
         <p className="font-body text-sm text-on-surface-variant">Cargando...</p>
@@ -186,10 +180,18 @@ export default function DashboardPage() {
     )
   }
 
-  if (error || !stats) {
+  if (error) {
     return (
       <div className="flex h-48 items-center justify-center">
-        <p className="font-body text-sm text-error">{error ?? 'Error desconocido'}</p>
+        <p className="font-body text-sm text-error">No se pudo cargar el dashboard</p>
+      </div>
+    )
+  }
+
+  if (!stats) {
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <p className="font-body text-sm text-on-surface-variant">No hay datos disponibles.</p>
       </div>
     )
   }

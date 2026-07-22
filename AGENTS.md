@@ -35,9 +35,9 @@ Strict TDD mode habilitado: primero el test fallido (RED), luego la implementaci
 
 | Módulo | Server | Client |
 |--------|--------|--------|
-| Depósito | `apps/platform/server/src/deposito/routes/` | `apps/deposito/client/src/` |
-| Ale-Bet | `apps/platform/server/src/routes/ale-bet/` | `apps/ale-bet/client/src/` |
-| Admin | `apps/platform/server/src/routes/admin/` | `apps/admin/client/src/` |
+| Depósito | `apps/platform/server/src/deposito/routes/` | `apps/platform/client/src/modules/deposito/` |
+| Ale-Bet | `apps/platform/server/src/routes/ale-bet/` | `apps/platform/client/src/modules/ale-bet/` |
+| Admin | `apps/platform/server/src/routes/admin/` | `apps/platform/client/src/modules/admin/` |
 | Auth | `apps/platform/server/src/routes/auth/` | `apps/platform/client/src/modules/auth/` |
 | Core | `packages/platform-core/src/auth/` | — |
 | DB | `packages/db/prisma/schema.prisma` | — |
@@ -70,11 +70,4 @@ npm run build                      # Turbo build todos los workspaces
 6. **No expandir scope** sin autorización explícita
 7. **No Co-Authored-By** ni atribuciones AI en commits
 
-## Apps Legacy (se mantienen como frontends)
 
-| App | Client | Estado |
-|-----|--------|--------|
-| Depósito | `apps/deposito/client/` | Activo, pendiente de refactor |
-| Ale-Bet | `apps/ale-bet/client/` | Activo, pendiente de refactor |
-| Admin | `apps/admin/client/` | Activo, pendiente de refactor |
-| Portal | Eliminado | Sin server, reemplazado por platform/client |

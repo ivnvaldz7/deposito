@@ -1,5 +1,10 @@
+<<<<<<< Updated upstream
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+=======
+import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
+>>>>>>> Stashed changes
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -8,7 +13,8 @@ import {
   Edit, Syringe,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { api, ApiError } from '../lib/api'
+import { ApiError } from '../lib/api'
+import { useDrogas, useCreateDroga, useDeleteDroga } from '../queries/use-drogas'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
@@ -23,16 +29,6 @@ import {
 } from '../components/ui/Dialog'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-interface DrogaRecord {
-  id: string
-  productoId?: string | null
-  nombre: string
-  lote: string | null
-  vencimiento: string | null
-  cantidad: number
-  updatedAt: string
-}
 
 interface DrogaGroup {
   nombre: string
@@ -139,33 +135,39 @@ const agregarSchema = z.object({
 type AgregarFormData = z.infer<typeof agregarSchema>
 
 function AgregarDrogaModal({
-  onCreated,
   open,
   onOpenChange,
 }: {
-  onCreated: (d: DrogaRecord) => void
   open: boolean
   onOpenChange: (next: boolean) => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const createMutation = useCreateDroga()
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<AgregarFormData>({ resolver: zodResolver(agregarSchema) })
 
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
+<<<<<<< Updated upstream
       const droga = await api.post<DrogaRecord>('/drogas', {
+=======
+      const droga = await createMutation.mutateAsync({
+>>>>>>> Stashed changes
         nombre: data.nombre,
         cantidad: Number(data.cantidad),
         ...(data.lote ? { lote: data.lote } : {}),
         ...(data.vencimiento ? { vencimiento: data.vencimiento } : {}),
       })
+<<<<<<< Updated upstream
       onCreated(droga)
+=======
+>>>>>>> Stashed changes
       toast.success(`Droga "${droga.nombre}" agregada.`)
       reset()
       onOpenChange(false)
@@ -252,8 +254,8 @@ function AgregarDrogaModal({
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
+            <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
+              {createMutation.isPending ? 'Guardando...' : 'Guardar'}
             </button>
             <DialogClose asChild>
               <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">
@@ -275,21 +277,13 @@ export default function DrogasPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  const [records, setRecords] = useState<DrogaRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const { data: records = [], isLoading, error } = useDrogas()
+  const deleteMutation = useDeleteDroga()
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
-    api
-      .get<DrogaRecord[]>('/drogas')
-      .then(setRecords)
-      .catch(() => setError('No se pudo cargar el inventario'))
-      .finally(() => setLoading(false))
-
     fetchCatalogoProductos('droga')
       .then((productos) => {
         setCatalogMap(
@@ -324,25 +318,17 @@ export default function DrogasPage() {
     return groups
   }, [groups, productoFiltro, searchQuery])
 
-  function handleCreated(droga: DrogaRecord) {
-    setRecords((prev) => [...prev, droga])
-  }
-
   async function handleDelete(id: string, nombre: string) {
-    setDeletingId(id)
     try {
-      await api.del<void>(`/drogas/${id}`)
-      setRecords((prev) => prev.filter((r) => r.id !== id))
+      await deleteMutation.mutateAsync(id)
       toast.success(`Droga "${nombre}" eliminada.`)
     } catch {
       toast.error('No se pudo eliminar la droga.')
-    } finally {
-      setDeletingId(null)
     }
   }
 
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState message={error} />
+  if (isLoading) return <LoadingState />
+  if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar el inventario'} />
 
   const stockBajoCount = groups.filter((g) => g.totalCantidad < STOCK_BAJO_THRESHOLD).length
   const porVencerCount = records.filter(
@@ -393,7 +379,6 @@ export default function DrogasPage() {
 
       {isEncargado ? (
         <AgregarDrogaModal
-          onCreated={handleCreated}
           open={agregarOpen}
           onOpenChange={setAgregarOpen}
         />
@@ -432,6 +417,29 @@ export default function DrogasPage() {
                       Total: <strong className="text-on-surface">{group.totalCantidad}</strong> uds
                     </span>
                   </div>
+<<<<<<< Updated upstream
+=======
+
+                  {isEncargado && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDelete(
+                            lote.id,
+                            `${lote.productoId ? (catalogMap[lote.productoId] ?? lote.nombre) : lote.nombre} (lote ${lote.lote ?? 'sin lote'})`
+                          )
+                        }
+                        disabled={deleteMutation.isPending}
+                        className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
+                        title="Eliminar lote"
+                        aria-label={`Eliminar lote ${lote.lote ?? 'sin lote'} de ${lote.nombre}`}
+                      >
+                        <Trash2 size={13} strokeWidth={1.5} />
+                      </button>
+                    </div>
+                  )}
+>>>>>>> Stashed changes
                 </div>
 
                 {/* Batch Rows */}

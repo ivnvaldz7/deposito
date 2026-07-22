@@ -1,29 +1,20 @@
+<<<<<<< Updated upstream
 import { useEffect, useState } from 'react'
 import { aleBetApi, type Cliente } from '../lib/api'
 import { Badge } from '@/components/ui/Badge'
+=======
+import { useState } from 'react'
+import { type Cliente } from '../lib/api'
+import { useClientes, useCreateCliente, useUpdateCliente } from '../queries'
+>>>>>>> Stashed changes
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: clientes = [], isLoading, error } = useClientes()
+  const createMutation = useCreateCliente()
+  const updateMutation = useUpdateCliente()
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Cliente | null>(null)
   const [form, setForm] = useState({ nombre: '', contacto: '', direccion: '' })
-
-  async function loadClientes() {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await aleBetApi.clientes.list()
-      setClientes(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar clientes')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { void loadClientes() }, [])
 
   function openCreate() {
     setEditing(null)
@@ -40,19 +31,23 @@ export default function ClientesPage() {
   async function handleSave() {
     try {
       if (editing) {
-        await aleBetApi.clientes.update(editing.id, form)
+        await updateMutation.mutateAsync({ id: editing.id, ...form })
       } else {
-        await aleBetApi.clientes.create(form)
+        await createMutation.mutateAsync(form)
       }
       setShowModal(false)
-      void loadClientes()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error al guardar')
     }
   }
 
+<<<<<<< Updated upstream
   if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando clientes...</p>
   if (error) return <p className="font-body text-sm text-error">{error}</p>
+=======
+  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando clientes...</p>
+  if (error) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar clientes'}</p>
+>>>>>>> Stashed changes
 
   return (
     <div className="space-y-6">

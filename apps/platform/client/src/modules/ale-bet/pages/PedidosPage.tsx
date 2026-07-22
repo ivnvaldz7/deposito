@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
+<<<<<<< Updated upstream
 import { aleBetApi, type Pedido, type Cliente, type Producto } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { Badge } from '@/components/ui/Badge'
+=======
+import { type Pedido } from '../lib/api'
+import { useAuthStore } from '@/stores/auth-store'
+import { usePedidos, useCreatePedido, useAprobarPedido, useTomarPedido, useCompletarItemPedido, useCancelarPedido } from '../queries'
+import { useClientes } from '../queries'
+import { useProductos } from '../queries'
+>>>>>>> Stashed changes
 
 const ESTADO_PRIORITY: Record<Pedido['estado'], number> = {
   APROBADO: 0,
@@ -27,65 +35,56 @@ export default function PedidosPage() {
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
 
-  const [pedidos, setPedidos] = useState<Pedido[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [estadoFilter, setEstadoFilter] = useState<string>('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Create modal state
   const [showCreate, setShowCreate] = useState(false)
-  const [clientes, setClientes] = useState<Cliente[]>([])
-  const [productos, setProductos] = useState<Producto[]>([])
   const [createForm, setCreateForm] = useState<{ clienteId: string; items: Array<{ productoId: string; cantidad: number }> }>({
     clienteId: '',
     items: [{ productoId: '', cantidad: 1 }],
   })
-  const [saving, setSaving] = useState(false)
 
   const isAdmin = rol === 'admin'
   const isVendedor = rol === 'vendedor'
   const isArmador = rol === 'armador'
 
-  async function loadPedidos() {
-    setLoading(true)
-    setError(null)
-    try {
-      const params: { estado?: string; vendedorId?: string } = {}
-      if (estadoFilter) params.estado = estadoFilter
-      if (isVendedor && user?.id) params.vendedorId = user.id
-      const data = await aleBetApi.pedidos.list(params)
-      data.sort((a, b) => {
-        const pa = ESTADO_PRIORITY[a.estado]
-        const pb = ESTADO_PRIORITY[b.estado]
-        if (pa !== pb) return pa - pb
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      })
-      setPedidos(data)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar pedidos')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const filters = useMemo(() => {
+    const f: { estado?: string; vendedorId?: string } = {}
+    if (estadoFilter) f.estado = estadoFilter
+    if (isVendedor && user?.id) f.vendedorId = user.id
+    return f
+  }, [estadoFilter, isVendedor, user?.id])
 
-  useEffect(() => { void loadPedidos() }, [estadoFilter, isVendedor, user?.id])
+  const { data: pedidos = [], isLoading, error } = usePedidos(filters)
+  const { data: clientes = [] } = useClientes()
+  const { data: productos = [] } = useProductos()
+  const createMutation = useCreatePedido()
+  const aprobarMutation = useAprobarPedido()
+  const tomarMutation = useTomarPedido()
+  const completarItemMutation = useCompletarItemPedido()
+  const cancelarMutation = useCancelarPedido()
+
+  const sortedPedidos = useMemo(() => {
+    return [...pedidos].sort((a, b) => {
+      const pa = ESTADO_PRIORITY[a.estado]
+      const pb = ESTADO_PRIORITY[b.estado]
+      if (pa !== pb) return pa - pb
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+  }, [pedidos])
+
+  const activeClientes = useMemo(() => clientes.filter((c) => c.activo), [clientes])
+  const activeProductos = useMemo(() => productos.filter((p) => p.activo), [productos])
 
   useEffect(() => {
     const id = (location.state as { openPedidoId?: string } | null)?.openPedidoId
     if (id) setExpandedId(id)
   }, [location.state])
 
-  async function openCreateModal() {
-    try {
-      const [c, p] = await Promise.all([aleBetApi.clientes.list(), aleBetApi.productos.list()])
-      setClientes(c.filter((cl) => cl.activo))
-      setProductos(p.filter((pr) => pr.activo))
-      setCreateForm({ clienteId: '', items: [{ productoId: '', cantidad: 1 }] })
-      setShowCreate(true)
-    } catch {
-      alert('Error al cargar datos para crear pedido')
-    }
+  function openCreateModal() {
+    setCreateForm({ clienteId: '', items: [{ productoId: '', cantidad: 1 }] })
+    setShowCreate(true)
   }
 
   function addItemRow() {
@@ -111,53 +110,37 @@ export default function PedidosPage() {
       alert('Completá todos los campos')
       return
     }
-    setSaving(true)
     try {
-      await aleBetApi.pedidos.create(createForm)
+      await createMutation.mutateAsync(createForm)
       setShowCreate(false)
-      void loadPedidos()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error al crear pedido')
-    } finally {
-      setSaving(false)
     }
   }
 
-  async function handleAprobar(id: string) {
-    try {
-      await aleBetApi.pedidos.aprobar(id)
-      void loadPedidos()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al aprobar')
-    }
+  function handleAprobar(id: string) {
+    aprobarMutation.mutate(id, {
+      onError: (e) => alert(e instanceof Error ? e.message : 'Error al aprobar'),
+    })
   }
 
-  async function handleTomar(id: string) {
-    try {
-      await aleBetApi.pedidos.tomar(id)
-      void loadPedidos()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al tomar pedido')
-    }
+  function handleTomar(id: string) {
+    tomarMutation.mutate(id, {
+      onError: (e) => alert(e instanceof Error ? e.message : 'Error al tomar pedido'),
+    })
   }
 
-  async function handleCompletarItem(pedidoId: string, itemId: string) {
-    try {
-      await aleBetApi.pedidos.completarItem(pedidoId, itemId)
-      void loadPedidos()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al completar item')
-    }
+  function handleCompletarItem(pedidoId: string, itemId: string) {
+    completarItemMutation.mutate({ pedidoId, itemId }, {
+      onError: (e) => alert(e instanceof Error ? e.message : 'Error al completar item'),
+    })
   }
 
-  async function handleCancelar(id: string) {
+  function handleCancelar(id: string) {
     if (!confirm('¿Cancelar este pedido?')) return
-    try {
-      await aleBetApi.pedidos.cancelar(id)
-      void loadPedidos()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al cancelar')
-    }
+    cancelarMutation.mutate(id, {
+      onError: (e) => alert(e instanceof Error ? e.message : 'Error al cancelar'),
+    })
   }
 
   function canAprobar(p: Pedido) {
@@ -188,8 +171,13 @@ export default function PedidosPage() {
     return isAdmin || isVendedor
   }
 
+<<<<<<< Updated upstream
   if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
   if (error) return <p className="font-body text-sm text-error">{error}</p>
+=======
+  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando pedidos...</p>
+  if (error) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar pedidos'}</p>
+>>>>>>> Stashed changes
 
   return (
     <div className="space-y-6">
@@ -220,6 +208,7 @@ export default function PedidosPage() {
         </select>
       </div>
 
+<<<<<<< Updated upstream
       <div className="bg-surface-container-high rounded-xl overflow-hidden">
         {pedidos.length === 0 ? (
           <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay pedidos.</p>
@@ -238,6 +227,26 @@ export default function PedidosPage() {
             </thead>
             <tbody>
               {pedidos.map((p) => {
+=======
+      <div className="app-panel overflow-hidden rounded-[12px]">
+          {sortedPedidos.length === 0 ? (
+            <p className="px-5 py-8 text-center text-[13px] text-[var(--color-text-2)]">No hay pedidos.</p>
+          ) : (
+            <table className="w-full text-left text-[12px]">
+              <thead>
+                <tr className="border-b border-[var(--color-border)] text-[10px] uppercase tracking-[0.8px] text-[var(--color-text-3)]">
+                  <th className="px-5 py-3 font-medium">N°</th>
+                  <th className="px-5 py-3 font-medium">Cliente</th>
+                  <th className="px-5 py-3 font-medium">Estado</th>
+                  <th className="px-5 py-3 font-medium">Vendedor</th>
+                  <th className="px-5 py-3 font-medium text-center">Items</th>
+                  <th className="px-5 py-3 font-medium text-center">Fecha</th>
+                  <th className="px-5 py-3 font-medium text-center">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedPedidos.map((p) => {
+>>>>>>> Stashed changes
                 const isExpanded = expandedId === p.id
                 const variant = getEstadoVariant(p.estado)
                 return (
@@ -269,7 +278,7 @@ export default function PedidosPage() {
       </div>
 
       {/* Pedido detail rows */}
-      {pedidos.filter((p) => expandedId === p.id).map((p) => (
+      {sortedPedidos.filter((p) => expandedId === p.id).map((p) => (
         <div
           key={`detail-${p.id}`}
           className="bg-surface-container-high rounded-xl -mt-4"
@@ -377,7 +386,7 @@ export default function PedidosPage() {
                   className="input-field mt-1"
                 >
                   <option value="">Seleccionar cliente</option>
-                  {clientes.map((c) => (
+                   {activeClientes.map((c) => (
                     <option key={c.id} value={c.id}>{c.nombre}</option>
                   ))}
                 </select>
@@ -404,7 +413,7 @@ export default function PedidosPage() {
                           className="input-field"
                         >
                           <option value="">Producto</option>
-                          {productos.map((pr) => (
+                          {activeProductos.map((pr) => (
                             <option key={pr.id} value={pr.id}>{pr.nombre} ({pr.sku})</option>
                           ))}
                         </select>
@@ -441,10 +450,15 @@ export default function PedidosPage() {
                 </button>
                 <button
                   onClick={handleCreate}
+<<<<<<< Updated upstream
                   disabled={saving}
                   className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
+=======
+                  disabled={createMutation.isPending}
+                  className="rounded-full border border-[var(--color-accent)] px-4 py-2 text-[12px] font-semibold text-[#7ff6a1] transition hover:bg-[rgba(26,107,53,0.16)] disabled:opacity-50"
+>>>>>>> Stashed changes
                 >
-                  {saving ? 'Guardando...' : 'Crear pedido'}
+                  {createMutation.isPending ? 'Guardando...' : 'Crear pedido'}
                 </button>
               </div>
             </div>

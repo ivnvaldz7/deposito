@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { api } from '../lib/api'
+import { useActas } from '../queries/use-actas'
+import { ApiError } from '../lib/api'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
   Table,
@@ -45,19 +45,9 @@ export default function ActasPage() {
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const navigate = useNavigate()
 
-  const [actas, setActas] = useState<ActaListItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: actas = [], isLoading, error } = useActas()
 
-  useEffect(() => {
-    api
-      .get<ActaListItem[]>('/actas')
-      .then(setActas)
-      .catch(() => setError('No se pudo cargar las actas'))
-      .finally(() => setLoading(false))
-  }, [])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-48">
         <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
@@ -68,7 +58,7 @@ export default function ActasPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-48">
-        <p className="font-body text-error text-sm">{error}</p>
+        <p className="font-body text-error text-sm">{error instanceof ApiError ? error.message : 'No se pudo cargar las actas'}</p>
       </div>
     )
   }

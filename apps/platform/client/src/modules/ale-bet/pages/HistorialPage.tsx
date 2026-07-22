@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
-import { aleBetApi, type HistorialPedido, type Cliente } from '../lib/api'
+import { useState } from 'react'
+import { type HistorialPedido } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { useHistorial } from '../queries'
+import { useClientes } from '../queries'
 
 const ESTADOS = [
   { value: '', label: 'Todos los estados' },
@@ -26,54 +28,23 @@ export default function HistorialPage() {
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? null
 
-  const [pedidos, setPedidos] = useState<HistorialPedido[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [estado, setEstado] = useState('')
   const [clienteId, setClienteId] = useState('')
 
-  const [clientes, setClientes] = useState<Cliente[]>([])
   const [exporting, setExporting] = useState(false)
 
   const vendedorId = rol === 'vendedor' ? (user?.sub ?? '') : ''
 
-  useEffect(() => {
-    async function loadClientes() {
-      try {
-        setClientes(await aleBetApi.clientes.list())
-      } catch {
-        // Non-critical
-      }
-    }
-    void loadClientes()
-  }, [])
-
-  async function load() {
-    setLoading(true)
-    setError(null)
-    try {
-      const params: Parameters<typeof aleBetApi.historial.list>[0] = {}
-      if (desde) params.desde = desde
-      if (hasta) params.hasta = hasta
-      if (estado) params.estado = estado
-      if (clienteId) params.clienteId = clienteId
-      if (vendedorId) params.vendedorId = vendedorId
-      setPedidos(await aleBetApi.historial.list(params))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar historial')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { void load() }, [desde, hasta, estado, clienteId, vendedorId])
+  const filters = { desde, hasta, estado, clienteId, vendedorId: vendedorId || undefined }
+  const { data: pedidos = [], isLoading, error } = useHistorial(filters)
+  const { data: clientes = [] } = useClientes()
 
   async function handleExport() {
     setExporting(true)
     try {
+      const { aleBetApi } = await import('../lib/api')
       const blob = await aleBetApi.historial.exportDownload()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')

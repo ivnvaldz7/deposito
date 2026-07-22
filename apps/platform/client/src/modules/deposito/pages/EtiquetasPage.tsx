@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { api, ApiError } from '../lib/api'
+import { ApiError } from '../lib/api'
+import { useEtiquetas, useCreateEtiqueta, useUpdateEtiqueta, useDeleteEtiqueta } from '../queries/use-etiquetas'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
@@ -69,15 +70,14 @@ const agregarSchema = z.object({
 type AgregarFormData = z.infer<typeof agregarSchema>
 
 function AgregarEtiquetaModal({
-  onCreated,
   open,
   onOpenChange,
 }: {
-  onCreated: (e: Etiqueta) => void
   open: boolean
   onOpenChange: (next: boolean) => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const createMutation = useCreateEtiqueta()
 
   const {
     register,
@@ -85,7 +85,7 @@ function AgregarEtiquetaModal({
     control,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<AgregarFormData>({
     resolver: zodResolver(agregarSchema),
     defaultValues: { articulo: '', mercado: 'argentina', cantidad: '' },
@@ -96,11 +96,9 @@ function AgregarEtiquetaModal({
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const etiqueta = await api.post<Etiqueta>(
-        '/etiquetas',
-        { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) },
-      )
-      onCreated(etiqueta)
+      const etiqueta = await createMutation.mutateAsync({
+        articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad),
+      })
       if (etiqueta.cantidad < STOCK_BAJO_THRESHOLD) {
         toast.warning(`"${etiqueta.articulo}" quedó con stock bajo (${etiqueta.cantidad}).`)
       } else {
@@ -159,7 +157,7 @@ function AgregarEtiquetaModal({
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
 
           <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
+            <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{createMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
             <DialogClose asChild>
               <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
             </DialogClose>
@@ -178,9 +176,10 @@ const editarSchema = z.object({
 
 type EditarFormData = z.infer<typeof editarSchema>
 
-function EditarEtiquetaModal({ etiqueta, onUpdated, onClose }: { etiqueta: Etiqueta; onUpdated: (e: Etiqueta) => void; onClose: () => void }) {
+function EditarEtiquetaModal({ etiqueta, onClose }: { etiqueta: Etiqueta; onClose: () => void }) {
   const [serverError, setServerError] = useState<string | null>(null)
-  const { register, handleSubmit, control, setValue, formState: { errors, isSubmitting } } = useForm<EditarFormData>({
+  const updateMutation = useUpdateEtiqueta()
+  const { register, handleSubmit, control, setValue, formState: { errors } } = useForm<EditarFormData>({
     resolver: zodResolver(editarSchema),
     defaultValues: { articulo: etiqueta.articulo, mercado: etiqueta.mercado, cantidad: String(etiqueta.cantidad) },
   })
@@ -189,8 +188,7 @@ function EditarEtiquetaModal({ etiqueta, onUpdated, onClose }: { etiqueta: Etiqu
   async function onSubmit(data: EditarFormData) {
     setServerError(null)
     try {
-      const updated = await api.put<Etiqueta>(`/etiquetas/${etiqueta.id}`, { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) })
-      onUpdated(updated)
+      const updated = await updateMutation.mutateAsync({ id: etiqueta.id, articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) })
       if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
       else toast.info(`Etiqueta "${updated.articulo}" actualizada.`)
       onClose()
@@ -226,8 +224,13 @@ function EditarEtiquetaModal({ etiqueta, onUpdated, onClose }: { etiqueta: Etiqu
           </div>
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
+<<<<<<< Updated upstream
             <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
             <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
+=======
+            <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{updateMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">Cancelar</button>
+>>>>>>> Stashed changes
           </div>
         </form>
       </DialogContent>
@@ -235,13 +238,13 @@ function EditarEtiquetaModal({ etiqueta, onUpdated, onClose }: { etiqueta: Etiqu
   )
 }
 
-function CantidadCell({ etiqueta, onUpdated }: { etiqueta: Etiqueta; onUpdated: (e: Etiqueta) => void }) {
+function CantidadCell({ etiqueta }: { etiqueta: Etiqueta }) {
+  const updateMutation = useUpdateEtiqueta()
   return (
     <InlineNumberEditor
       value={etiqueta.cantidad} label="cantidad"
       onSave={async (nextValue) => {
-        const updated = await api.put<Etiqueta>(`/etiquetas/${etiqueta.id}`, { cantidad: nextValue })
-        onUpdated(updated)
+        const updated = await updateMutation.mutateAsync({ id: etiqueta.id, cantidad: nextValue })
         if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
         else toast.info(`Stock de "${updated.articulo}" actualizado.`)
       }}
@@ -253,17 +256,14 @@ export default function EtiquetasPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const [searchParams] = useSearchParams()
-  const [allEtiquetas, setAllEtiquetas] = useState<Etiqueta[]>([])
+  const { data: allEtiquetas = [], isLoading, error } = useEtiquetas()
+  const deleteMutation = useDeleteEtiqueta()
   const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingEtiqueta, setEditingEtiqueta] = useState<Etiqueta | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
-    api.get<Etiqueta[]>('/etiquetas').then((list) => setAllEtiquetas(sortEtiquetas(list))).catch(() => setError('No se pudo cargar las etiquetas')).finally(() => setLoading(false))
     fetchCatalogoProductos('etiqueta').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
@@ -272,27 +272,24 @@ export default function EtiquetasPage() {
   useEffect(() => { setMercadoFiltro((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos') }, [searchParams])
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const sortedEtiquetas = useMemo(() => sortEtiquetas(allEtiquetas), [allEtiquetas])
   const etiquetas = useMemo(() => {
-    const byMercado = mercadoFiltro === 'todos' ? allEtiquetas : allEtiquetas.filter((e) => e.mercado === mercadoFiltro)
+    const byMercado = mercadoFiltro === 'todos' ? sortedEtiquetas : sortedEtiquetas.filter((e) => e.mercado === mercadoFiltro)
     if (!productoFiltro) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((e) => normalizeProducto(getDisplayName(e)) === target)
-  }, [allEtiquetas, mercadoFiltro, productoFiltro, getDisplayName])
+  }, [sortedEtiquetas, mercadoFiltro, productoFiltro, getDisplayName])
 
-  function handleCreated(e: Etiqueta) { setAllEtiquetas((prev) => sortEtiquetas([...prev, e])) }
-  function handleUpdated(updated: Etiqueta) { setAllEtiquetas((prev) => sortEtiquetas(prev.map((e) => (e.id === updated.id ? updated : e)))) }
   async function handleDelete(id: string) {
-    setDeletingId(id)
     try {
-      await api.del<void>(`/etiquetas/${id}`)
+      await deleteMutation.mutateAsync(id)
       const etiqueta = allEtiquetas.find((e) => e.id === id)
-      setAllEtiquetas((prev) => prev.filter((e) => e.id !== id))
       toast.success(etiqueta ? `Etiqueta "${etiqueta.articulo}" eliminada.` : 'Etiqueta eliminada.')
-    } catch { toast.error('No se pudo eliminar la etiqueta.') } finally { setDeletingId(null) }
+    } catch { toast.error('No se pudo eliminar la etiqueta.') }
   }
 
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState message={error} />
+  if (isLoading) return <LoadingState />
+  if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar las etiquetas'} />
 
   const stockBajoCount = etiquetas.filter((e) => e.cantidad < STOCK_BAJO_THRESHOLD).length
   const countsByMercado = MERCADOS.reduce<Record<Mercado, number>>((acc, m) => { acc[m.value] = allEtiquetas.filter((e) => e.mercado === m.value).length; return acc }, {} as Record<Mercado, number>)
@@ -306,8 +303,8 @@ export default function EtiquetasPage() {
       ]} primaryAction={isEncargado ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
         <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={setMercadoFiltro} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
       </PageHeader>
-      {isEncargado && <AgregarEtiquetaModal onCreated={handleCreated} open={agregarOpen} onOpenChange={setAgregarOpen} />}
-      {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onUpdated={handleUpdated} onClose={() => setEditingEtiqueta(null)} />}
+      {isEncargado && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
+      {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onClose={() => setEditingEtiqueta(null)} />}
       {etiquetas.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       : (
         <>
@@ -319,13 +316,13 @@ export default function EtiquetasPage() {
                   <TableRow key={e.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(e)}</TableCell>
                     <TableCell><MercadoChip mercado={e.mercado} /></TableCell>
-                    <TableCell>{isEncargado ? <CantidadCell etiqueta={e} onUpdated={handleUpdated} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
+                    <TableCell>{isEncargado ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
                     <TableCell><StockChip cantidad={e.cantidad} threshold={STOCK_BAJO_THRESHOLD} /></TableCell>
                     {isEncargado && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button type="button" onClick={() => setEditingEtiqueta(e)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar"><Pencil size={14} strokeWidth={1.5} /></button>
-                          <button type="button" onClick={() => handleDelete(e.id)} disabled={deletingId === e.id} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40" title="Eliminar"><Trash2 size={14} strokeWidth={1.5} /></button>
+                          <button type="button" onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40" title="Eliminar"><Trash2 size={14} strokeWidth={1.5} /></button>
                         </div>
                       </TableCell>
                     )}
@@ -346,9 +343,9 @@ export default function EtiquetasPage() {
                 </div>
                 {isEncargado && (
                   <div className="flex items-center gap-3 shrink-0">
-                    <CantidadCell etiqueta={e} onUpdated={handleUpdated} />
+                    <CantidadCell etiqueta={e} />
                     <button type="button" onClick={() => setEditingEtiqueta(e)} className="text-on-surface-variant hover:text-on-surface transition-colors"><Pencil size={14} strokeWidth={1.5} /></button>
-                    <button type="button" onClick={() => handleDelete(e.id)} disabled={deletingId === e.id} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"><Trash2 size={14} strokeWidth={1.5} /></button>
+                    <button type="button" onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"><Trash2 size={14} strokeWidth={1.5} /></button>
                   </div>
                 )}
               </div>

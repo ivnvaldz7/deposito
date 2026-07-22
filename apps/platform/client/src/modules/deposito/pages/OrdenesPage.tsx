@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -6,6 +6,14 @@ import { Plus, Check, X, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
+import {
+  useOrdenes,
+  useCreateOrden,
+  useAprobarOrden,
+  useRechazarOrden,
+  useEjecutarOrden,
+  useCompletarOrden,
+} from '../queries'
 import { ProductoSelector } from '../components/ProductoSelector'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
@@ -137,6 +145,7 @@ function NuevaOrdenModal({
   onOpenChange: (next: boolean) => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const createMutation = useCreateOrden()
 
   const {
     register,
@@ -179,7 +188,7 @@ function NuevaOrdenModal({
       if (needsMercado(data.categoria) && data.mercado) {
         body.mercado = data.mercado
       }
-      const orden = await api.post<OrdenProduccion>('/ordenes', body)
+      const orden = await createMutation.mutateAsync(body)
       onCreated(orden)
       toast.info(`Orden creada para "${orden.productoNombre}".`)
       reset()
@@ -312,28 +321,21 @@ function RechazarModal({
   const [open, setOpen] = useState(false)
   const [motivo, setMotivo] = useState('')
   const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const rejectMutation = useRechazarOrden()
 
   async function handleRechazar() {
     if (motivo.trim().length < 5) {
       setError('El motivo debe tener al menos 5 caracteres')
       return
     }
-    setLoading(true)
     setError(null)
     try {
-      const updated = await api.put<OrdenProduccion>(
-        `/ordenes/${orden.id}/rechazar`,
-        { motivoRechazo: motivo.trim() }
-      )
-      onRechazada(updated)
-      toast.info(`Orden "${updated.productoNombre}" rechazada.`)
+      await rejectMutation.mutateAsync({ id: orden.id, motivo: motivo.trim() })
+      toast.info(`Orden "${orden.productoNombre}" rechazada.`)
       setOpen(false)
       setMotivo('')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Error al rechazar')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -374,10 +376,16 @@ function RechazarModal({
               <button
                 type="button"
                 onClick={handleRechazar}
+<<<<<<< Updated upstream
                 disabled={loading}
                 className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors bg-error text-white disabled:opacity-50"
+=======
+                disabled={rejectMutation.isPending}
+                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors disabled:opacity-50"
+                style={{ backgroundColor: '#ef4444', color: '#fff' }}
+>>>>>>> Stashed changes
               >
-                {loading ? 'Rechazando...' : 'Confirmar rechazo'}
+                {rejectMutation.isPending ? 'Rechazando...' : 'Confirmar rechazo'}
               </button>
               <button
                 type="button"
@@ -405,27 +413,24 @@ function OrdenCard({
   isEncargado: boolean
   onUpdated: (o: OrdenProduccion) => void
 }) {
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const approveMutation = useAprobarOrden()
+  const executeMutation = useEjecutarOrden()
+  const completeMutation = useCompletarOrden()
 
   async function handleAction(action: 'aprobar' | 'ejecutar' | 'completar') {
-    setActionLoading(action)
     try {
-      const updated = await api.put<OrdenProduccion>(
-        `/ordenes/${orden.id}/${action}`,
-        {}
-      )
-      onUpdated(updated)
       if (action === 'aprobar') {
-        toast.success(`Orden "${updated.productoNombre}" aprobada.`)
+        await approveMutation.mutateAsync(orden.id)
+        toast.success(`Orden "${orden.productoNombre}" aprobada.`)
       } else if (action === 'ejecutar') {
-        toast.success(`Orden "${updated.productoNombre}" ejecutada.`)
+        await executeMutation.mutateAsync(orden.id)
+        toast.success(`Orden "${orden.productoNombre}" ejecutada.`)
       } else {
-        toast.info(`Orden "${updated.productoNombre}" marcada como completada.`)
+        await completeMutation.mutateAsync(orden.id)
+        toast.info(`Orden "${orden.productoNombre}" marcada como completada.`)
       }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Error al procesar la acción')
-    } finally {
-      setActionLoading(null)
     }
   }
 
@@ -491,32 +496,49 @@ function OrdenCard({
             <button
               type="button"
               onClick={() => handleAction('aprobar')}
+<<<<<<< Updated upstream
               disabled={actionLoading === 'aprobar'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity text-primary bg-primary-container/10"
+=======
+              disabled={approveMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
+              style={{ color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.10)' }}
+>>>>>>> Stashed changes
             >
               <Check size={12} strokeWidth={2} />
-              {actionLoading === 'aprobar' ? 'Aprobando...' : 'Aprobar'}
+              {approveMutation.isPending ? 'Aprobando...' : 'Aprobar'}
             </button>
           )}
           {canEjecutar && (
             <button
               type="button"
               onClick={() => handleAction('ejecutar')}
+<<<<<<< Updated upstream
               disabled={actionLoading === 'ejecutar'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity bg-primary text-on-primary"
+=======
+              disabled={executeMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity"
+              style={{ background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)', color: '#003918' }}
+>>>>>>> Stashed changes
             >
               <Check size={12} strokeWidth={2} />
-              {actionLoading === 'ejecutar' ? 'Ejecutando...' : 'Ejecutar'}
+              {executeMutation.isPending ? 'Ejecutando...' : 'Ejecutar'}
             </button>
           )}
           {canCompletar && (
             <button
               type="button"
               onClick={() => handleAction('completar')}
+<<<<<<< Updated upstream
               disabled={actionLoading === 'completar'}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-container-high hover:bg-surface-bright transition-colors disabled:opacity-50"
+=======
+              disabled={completeMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-high hover:bg-surface-bright transition-colors disabled:opacity-50"
+>>>>>>> Stashed changes
             >
-              {actionLoading === 'completar' ? 'Completando...' : 'Marcar completada'}
+              {completeMutation.isPending ? 'Completando...' : 'Marcar completada'}
             </button>
           )}
           {canRechazar && (
@@ -568,38 +590,16 @@ export default function OrdenesPage() {
   const isSolicitante = user?.apps?.['deposito']?.rol === 'solicitante'
   const canCreate = isEncargado || isSolicitante
 
-  const [ordenes, setOrdenes] = useState<OrdenProduccion[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [filtroEstado, setFiltroEstado] = useState<EstadoOrden | 'todas'>('todas')
   const [nuevaOrdenOpen, setNuevaOrdenOpen] = useState(false)
 
-  useEffect(() => {
-    const query = filtroEstado !== 'todas' ? `?estado=${filtroEstado}` : ''
+  const { data: ordenes = [], isLoading, error } = useOrdenes(
+    filtroEstado !== 'todas' ? { estado: filtroEstado } : undefined
+  )
 
-    async function load() {
-      setLoading(true)
-      try {
-        const data = await api.get<OrdenProduccion[]>(`/ordenes${query}`)
-        setOrdenes(data)
-        setError(null)
-      } catch {
-        setError('No se pudo cargar las órdenes')
-      } finally {
-        setLoading(false)
-      }
-    }
+  function handleCreated(_o: OrdenProduccion) {}
 
-    load()
-  }, [filtroEstado])
-
-  function handleCreated(o: OrdenProduccion) {
-    setOrdenes((prev) => [o, ...prev])
-  }
-
-  function handleUpdated(o: OrdenProduccion) {
-    setOrdenes((prev) => prev.map((x) => (x.id === o.id ? o : x)))
-  }
+  function handleUpdated(_o: OrdenProduccion) {}
 
   const urgentes = ordenes.filter((o) => o.urgencia === 'urgente')
   const pendientesAprobacion = ordenes.filter((o) => o.estado === 'solicitada').length
@@ -617,9 +617,9 @@ export default function OrdenesPage() {
       <PageHeader
         title="ÓRDENES"
         stats={[
-          { label: 'órdenes', value: loading ? '...' : ordenes.length },
-          { label: 'urgentes', value: loading ? '...' : urgentes.length, warning: urgentes.length > 0 && !loading },
-          { label: 'por aprobar', value: loading ? '...' : pendientesAprobacion, warning: pendientesAprobacion > 0 && !loading },
+          { label: 'órdenes', value: isLoading ? '...' : ordenes.length },
+          { label: 'urgentes', value: isLoading ? '...' : urgentes.length, warning: urgentes.length > 0 && !isLoading },
+          { label: 'por aprobar', value: isLoading ? '...' : pendientesAprobacion, warning: pendientesAprobacion > 0 && !isLoading },
         ]}
         primaryAction={
           canCreate
@@ -643,13 +643,17 @@ export default function OrdenesPage() {
       ) : null}
 
       {/* Content */}
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-20">
           <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center py-20">
+<<<<<<< Updated upstream
           <p className="font-body text-sm text-warning">{error}</p>
+=======
+          <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error?.message ?? 'Error'}</p>
+>>>>>>> Stashed changes
         </div>
       ) : ordenesOrdenadas.length === 0 ? (
         <div className="flex items-center justify-center py-20">

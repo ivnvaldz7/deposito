@@ -1,8 +1,20 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
+<<<<<<< Updated upstream
 import { api } from '../lib/api'
 import { ArrowDown, ArrowUp, Search, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+=======
+import { useMovimientos } from '../queries'
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from '../components/ui/Table'
+>>>>>>> Stashed changes
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -176,10 +188,6 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
 export default function MovimientosPage() {
   const [searchParams] = useSearchParams()
 
-  const [movimientos, setMovimientos] = useState<Movimiento[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
   const [filters, setFilters] = useState<Filters>({
     tipo: '',
     producto: searchParams.get('producto') ?? '',
@@ -187,6 +195,7 @@ export default function MovimientosPage() {
     hasta: '',
   })
 
+<<<<<<< Updated upstream
   const [currentPage, setCurrentPage] = useState(1)
   const perPage = 20
 
@@ -196,28 +205,18 @@ export default function MovimientosPage() {
       producto: searchParams.get('producto') ?? '',
     }))
   }, [searchParams])
+=======
+  // Sync producto from URL params
+  const initialSearch = useRef(searchParams.get('producto') ?? '')
+  if (initialSearch.current !== searchParams.get('producto')) {
+    initialSearch.current = searchParams.get('producto') ?? ''
+    setFilters((prev) => ({ ...prev, producto: initialSearch.current }))
+  }
+>>>>>>> Stashed changes
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      setError(null)
-      const params = new URLSearchParams()
-      if (filters.tipo) params.set('tipo', filters.tipo)
-      if (filters.producto) params.set('producto', filters.producto)
-      if (filters.desde) params.set('desde', filters.desde)
-      if (filters.hasta) params.set('hasta', filters.hasta)
-      const qs = params.toString()
-      try {
-        const data = await api.get<Movimiento[]>(`/movimientos${qs ? `?${qs}` : ''}`)
-        setMovimientos(data)
-      } catch {
-        setError('No se pudo cargar los movimientos')
-      } finally {
-        setLoading(false)
-      }
-    }
-    void load()
-  }, [filters.tipo, filters.producto, filters.desde, filters.hasta])
+  const { data: movimientos = [], isLoading: loading, error } = useMovimientos(
+    filters.tipo || filters.producto || filters.desde || filters.hasta ? filters : undefined
+  )
 
   // Pagination
   const totalPages = Math.ceil(movimientos.length / perPage)

@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { api, ApiError } from '../lib/api'
+import { ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
+import { useUsuarios, useCreateUsuario, useUpdateUsuarioRole, useDeleteUsuario } from '../queries/use-usuarios'
+import type { DepositoUser } from '../queries/use-usuarios'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
   Dialog,
@@ -16,21 +18,9 @@ import {
   DialogClose,
 } from '../components/ui/Dialog'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Role = 'encargado' | 'observador' | 'solicitante'
-
-interface Usuario {
-  id: string
-  email: string
-  name: string
-  role: Role
-  createdAt: string
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const ROLE_LABELS: Record<Role, string> = {
+const ROLE_LABELS: Record<string, string> = {
   encargado: 'Encargado',
   observador: 'Observador',
   solicitante: 'Solicitante',
@@ -38,6 +28,7 @@ const ROLE_LABELS: Record<Role, string> = {
 
 // ─── Role chip ────────────────────────────────────────────────────────────────
 
+<<<<<<< Updated upstream
 function RoleChip({ role }: { role: Role }) {
   const roleClasses: Record<Role, string> = {
     encargado: 'text-success bg-success/10',
@@ -47,8 +38,20 @@ function RoleChip({ role }: { role: Role }) {
   return (
     <span
       className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 ${roleClasses[role]}`}
+=======
+function RoleChip({ role }: { role: string }) {
+  const styles: Record<string, React.CSSProperties> = {
+    encargado: { color: '#00AE42', backgroundColor: 'rgba(0,174,66,0.10)' },
+    observador: { color: '#bccbb8', backgroundColor: 'rgba(188,203,184,0.10)' },
+    solicitante: { color: '#FF9800', backgroundColor: 'rgba(255,152,0,0.10)' },
+  }
+  return (
+    <span
+      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0"
+      style={styles[role] ?? styles.observador}
+>>>>>>> Stashed changes
     >
-      {ROLE_LABELS[role]}
+      {ROLE_LABELS[role] ?? role}
     </span>
   )
 }
@@ -62,24 +65,21 @@ function RoleSelector({
   onUpdated,
 }: {
   userId: string
-  currentRole: Role
+  currentRole: string
   currentUserId: string
-  onUpdated: (u: Usuario) => void
+  onUpdated: (u: DepositoUser) => void
 }) {
-  const [saving, setSaving] = useState(false)
+  const updateRole = useUpdateUsuarioRole()
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const role = e.target.value as Role
+    const role = e.target.value
     if (role === currentRole) return
-    setSaving(true)
     try {
-      const updated = await api.put<Usuario>(`/users/${userId}`, { role })
+      const updated = await updateRole.mutateAsync({ id: userId, role })
       onUpdated(updated)
       toast.info(`Rol actualizado para "${updated.name}".`)
     } catch {
       toast.error('No se pudo actualizar el rol.')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -89,8 +89,13 @@ function RoleSelector({
     <select
       value={currentRole}
       onChange={handleChange}
+<<<<<<< Updated upstream
       disabled={saving || isSelf}
       className="bg-surface-container-high text-on-surface font-body text-sm rounded px-2 py-1 border-0 outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+=======
+      disabled={updateRole.isPending || isSelf}
+      className="bg-surface-high text-on-surface font-body text-sm rounded px-2 py-1 border-0 outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+>>>>>>> Stashed changes
       aria-label="Cambiar rol"
     >
       <option value="encargado">Encargado</option>
@@ -116,17 +121,18 @@ function CrearUsuarioModal({
   open,
   onOpenChange,
 }: {
-  onCreated: (u: Usuario) => void
+  onCreated: (u: DepositoUser) => void
   open: boolean
   onOpenChange: (next: boolean) => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const createUsuario = useCreateUsuario()
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<CrearFormData>({
     resolver: zodResolver(crearSchema),
     defaultValues: { role: 'observador' },
@@ -135,10 +141,7 @@ function CrearUsuarioModal({
   async function onSubmit(data: CrearFormData) {
     setServerError(null)
     try {
-      const result = await api.post<{ token: string; user: Usuario }>(
-        '/auth/register',
-        data
-      )
+      const result = await createUsuario.mutateAsync(data)
       onCreated(result.user)
       toast.success(`Usuario "${result.user.name}" creado.`)
       reset()
@@ -230,8 +233,8 @@ function CrearUsuarioModal({
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
-              {isSubmitting ? 'Creando...' : 'Crear usuario'}
+            <button type="submit" disabled={createUsuario.isPending} className="btn-primary flex-1 py-2.5 text-sm">
+              {createUsuario.isPending ? 'Creando...' : 'Crear usuario'}
             </button>
             <DialogClose asChild>
               <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
@@ -251,26 +254,23 @@ function DeleteButton({
   usuario,
   onDeleted,
 }: {
-  usuario: Usuario
+  usuario: DepositoUser
   onDeleted: (id: string) => void
 }) {
   const [open, setOpen] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const deleteUsuario = useDeleteUsuario()
 
   async function handleDelete() {
-    setDeleting(true)
     setError(null)
     try {
-      await api.del<void>(`/users/${usuario.id}`)
+      await deleteUsuario.mutateAsync(usuario.id)
       onDeleted(usuario.id)
       toast.success(`Usuario "${usuario.name}" eliminado.`)
       setOpen(false)
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Error al eliminar')
       toast.error(err instanceof ApiError ? err.message : 'Error al eliminar')
-    } finally {
-      setDeleting(false)
     }
   }
 
@@ -302,10 +302,10 @@ function DeleteButton({
           <button
             type="button"
             onClick={handleDelete}
-            disabled={deleting}
+            disabled={deleteUsuario.isPending}
             className="flex-1 py-2.5 text-sm font-heading font-semibold rounded bg-error text-white hover:bg-error/90 transition-colors disabled:opacity-50"
           >
-            {deleting ? 'Eliminando...' : 'Eliminar'}
+            {deleteUsuario.isPending ? 'Eliminando...' : 'Eliminar'}
           </button>
           <button
             type="button"
@@ -325,32 +325,22 @@ function DeleteButton({
 export default function UsuariosPage() {
   const currentUser = useAuthStore((s) => s.user)
 
-  const [usuarios, setUsuarios] = useState<Usuario[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: usuarios = [], isLoading, error } = useUsuarios()
   const [crearOpen, setCrearOpen] = useState(false)
 
-  useEffect(() => {
-    api
-      .get<Usuario[]>('/users')
-      .then((list) => setUsuarios(list))
-      .catch(() => setError('No se pudo cargar la lista de usuarios'))
-      .finally(() => setLoading(false))
-  }, [])
-
-  function handleCreated(u: Usuario) {
-    setUsuarios((prev) => [...prev, u])
+  function handleCreated(_u: DepositoUser) {
+    // Query invalidated by mutation's onSuccess — refetch handles update
   }
 
-  function handleUpdated(u: Usuario) {
-    setUsuarios((prev) => prev.map((x) => (x.id === u.id ? u : x)))
+  function handleUpdated(_u: DepositoUser) {
+    // Query invalidated by mutation's onSuccess — refetch handles update
   }
 
-  function handleDeleted(id: string) {
-    setUsuarios((prev) => prev.filter((x) => x.id !== id))
+  function handleDeleted(_id: string) {
+    // Query invalidated by mutation's onSuccess — refetch handles update
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
@@ -361,7 +351,7 @@ export default function UsuariosPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="font-body text-error text-sm">{error}</p>
+        <p className="font-body text-error text-sm">{error instanceof ApiError ? error.message : 'No se pudo cargar la lista de usuarios'}</p>
       </div>
     )
   }

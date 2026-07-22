@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
-import { aleBetApi, type StockOverview } from '../lib/api'
+import { useState } from 'react'
+import { useStockOverview } from '../queries'
 
 export default function StockPage() {
-  const [data, setData] = useState<StockOverview | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data, isLoading, error } = useStockOverview()
   const [search, setSearch] = useState('')
 
+<<<<<<< Updated upstream
   useEffect(() => {
     async function load() {
       setLoading(true)
@@ -24,6 +23,10 @@ export default function StockPage() {
 
   if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando stock...</p>
   if (error || !data) return <p className="font-body text-sm text-error">{error ?? 'Error'}</p>
+=======
+  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando stock...</p>
+  if (error || !data) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar stock'}</p>
+>>>>>>> Stashed changes
 
   const filtered = data.productos.filter(
     (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())

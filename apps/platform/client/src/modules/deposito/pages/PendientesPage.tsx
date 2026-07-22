@@ -8,6 +8,12 @@ import { Check, ChevronDown, PackagePlus, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
+import {
+  usePendientes,
+  useFrascosDisponibles,
+  useEnviarEsterilizacion,
+  useRecibirEsterilizacion,
+} from '../queries'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
   Dialog,
@@ -213,9 +219,9 @@ function EnviarModal({
   onOpenChange: (next: boolean) => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
-  const [frascos, setFrascos] = useState<Frasco[]>([])
-  const [loadingFrascos, setLoadingFrascos] = useState(false)
   const [selectedFrasco, setSelectedFrasco] = useState<Frasco | null>(null)
+  const { data: frascos = [], isLoading: loadingFrascos } = useFrascosDisponibles()
+  const enviarMutation = useEnviarEsterilizacion()
 
   const today = new Date().toISOString().slice(0, 10)
 
@@ -239,37 +245,6 @@ function EnviarModal({
   })
 
   const articulo = useWatch({ control, name: 'articulo' })
-
-  useEffect(() => {
-    if (!open) return
-
-    let cancelled = false
-
-    async function loadFrascos() {
-      setLoadingFrascos(true)
-      try {
-        const data = await api.get<Frasco[]>('/frascos')
-        if (!cancelled) {
-          setFrascos(data)
-        }
-      } catch {
-        if (!cancelled) {
-          setFrascos([])
-          setServerError('No se pudo cargar el inventario de frascos.')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingFrascos(false)
-        }
-      }
-    }
-
-    loadFrascos()
-
-    return () => {
-      cancelled = true
-    }
-  }, [open])
 
   function handleOpenChange(next: boolean) {
     if (!next) {
@@ -297,18 +272,13 @@ function EnviarModal({
     }
 
     try {
-      const body: Record<string, unknown> = {
-        articulo: data.articulo,
+      const mutationData = {
+        frascoId: selectedFrasco.id,
         cantidad: Number(data.cantidad),
-        destino: data.destino,
-        fechaEnvio: data.fechaEnvio,
       }
-      if (data.fechaRetornoEstimada) body.fechaRetornoEstimada = data.fechaRetornoEstimada
-      if (data.notas?.trim()) body.notas = data.notas.trim()
 
-      const pendiente = await api.post<InsumoPendiente>('/pendientes', body)
-      onCreated(pendiente)
-      toast.info(`Pendiente creado para "${pendiente.articulo}".`)
+      await enviarMutation.mutateAsync(mutationData)
+      toast.info(`Pendiente creado para "${data.articulo}".`)
       handleOpenChange(false)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'No se pudo crear el pendiente. Intentá de nuevo.'
@@ -473,6 +443,7 @@ function RecibirModal({
 }) {
   const [open, setOpen] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const recibirMutation = useRecibirEsterilizacion()
 
   const {
     register,
@@ -510,21 +481,8 @@ function RecibirModal({
     }
 
     try {
-      const response = await api.put<RecibirPendienteResponse>(
-        `/pendientes/${pendiente.id}/recibir`,
-        { cantidadRecibida: cantidad }
-      )
-
-      onRecibido(response)
-
-      if (response.pendienteRestante) {
-        toast.warning(
-          `Se recibieron ${response.recibido.cantidad} cajas y ${response.pendienteRestante.cantidad} siguen en esterilización.`
-        )
-      } else {
-        toast.success(`"${response.recibido.articulo}" marcado como recibido.`)
-      }
-
+      await recibirMutation.mutateAsync(pendiente.id)
+      toast.success(`"${pendiente.articulo}" marcado como recibido.`)
       handleOpenChange(false)
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'No se pudo registrar la recepción.'
@@ -691,35 +649,17 @@ export default function PendientesPage() {
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const navigate = useNavigate()
 
-  const [pendientes, setPendientes] = useState<InsumoPendiente[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [enviarOpen, setEnviarOpen] = useState(false)
 
-  useEffect(() => {
-    api
-      .get<InsumoPendiente[]>('/pendientes')
-      .then(setPendientes)
-      .catch(() => setError('No se pudo cargar los pendientes'))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data: pendientes = [], isLoading, error } = usePendientes()
 
   const enEsterilizacion = pendientes.filter((p) => p.estado === 'en_esterilizacion')
   const recibidos = pendientes.filter((p) => p.estado === 'recibido')
   const cajasEnEsterilizacion = enEsterilizacion.reduce((sum, p) => sum + p.cantidad, 0)
 
-  function handleCreated(pendiente: InsumoPendiente) {
-    setPendientes((prev) => [pendiente, ...prev])
-  }
+  function handleCreated(_pendiente: InsumoPendiente) {}
 
-  function handleRecibido(response: RecibirPendienteResponse) {
-    setPendientes((prev) => {
-      const withoutCurrent = prev.filter((p) => p.id !== response.recibido.id)
-      return response.pendienteRestante
-        ? [response.pendienteRestante, response.recibido, ...withoutCurrent]
-        : [response.recibido, ...withoutCurrent]
-    })
-  }
+  function handleRecibido(_response: RecibirPendienteResponse) {}
 
   function handleCrearIngreso(pendiente: InsumoPendiente) {
     toast.info(`Abriendo ingreso para "${pendiente.articulo}".`)
@@ -737,9 +677,9 @@ export default function PendientesPage() {
       <PageHeader
         title="PENDIENTES"
         stats={[
-          { label: 'en esterilización', value: loading ? '...' : enEsterilizacion.length, warning: enEsterilizacion.length > 0 && !loading },
-          { label: 'recibidos', value: loading ? '...' : recibidos.length },
-          { label: 'cajas afuera', value: loading ? '...' : cajasEnEsterilizacion, warning: cajasEnEsterilizacion > 0 && !loading },
+          { label: 'en esterilización', value: isLoading ? '...' : enEsterilizacion.length, warning: enEsterilizacion.length > 0 && !isLoading },
+          { label: 'recibidos', value: isLoading ? '...' : recibidos.length },
+          { label: 'cajas afuera', value: isLoading ? '...' : cajasEnEsterilizacion, warning: cajasEnEsterilizacion > 0 && !isLoading },
         ]}
         primaryAction={
           isEncargado
@@ -760,13 +700,17 @@ export default function PendientesPage() {
         />
       ) : null}
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex h-48 items-center justify-center">
           <p className="font-body text-sm text-on-surface-variant">Cargando...</p>
         </div>
       ) : error ? (
         <div className="flex h-48 items-center justify-center">
+<<<<<<< Updated upstream
           <p className="font-body text-sm text-warning">{error}</p>
+=======
+          <p className="font-body text-sm" style={{ color: '#FF9800' }}>{error?.message ?? 'Error'}</p>
+>>>>>>> Stashed changes
         </div>
       ) : (
         <div className="space-y-8">

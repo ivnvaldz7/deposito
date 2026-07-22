@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { api, ApiError } from '../lib/api'
+import { ApiError } from '../lib/api'
+import { useEstuches, useCreateEstuche, useUpdateEstuche, useDeleteEstuche } from '../queries/use-estuches'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
@@ -75,15 +76,14 @@ const agregarSchema = z.object({
 type AgregarFormData = z.infer<typeof agregarSchema>
 
 function AgregarEstucheModal({
-  onCreated,
   open,
   onOpenChange,
 }: {
-  onCreated: (e: Estuche) => void
   open: boolean
   onOpenChange: (next: boolean) => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const createMutation = useCreateEstuche()
 
   const {
     register,
@@ -91,7 +91,7 @@ function AgregarEstucheModal({
     control,
     setValue,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<AgregarFormData>({
     resolver: zodResolver(agregarSchema),
     defaultValues: { articulo: '', mercado: 'argentina', cantidad: '' },
@@ -102,11 +102,9 @@ function AgregarEstucheModal({
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const estuche = await api.post<Estuche>(
-        '/estuches',
-        { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) },
-      )
-      onCreated(estuche)
+      const estuche = await createMutation.mutateAsync({
+        articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad),
+      })
       if (estuche.cantidad < STOCK_BAJO_THRESHOLD) {
         toast.warning(`"${estuche.articulo}" quedó con stock bajo (${estuche.cantidad}).`)
       } else {
@@ -199,8 +197,8 @@ function AgregarEstucheModal({
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
+            <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
+              {createMutation.isPending ? 'Guardando...' : 'Guardar'}
             </button>
             <DialogClose asChild>
               <button
@@ -235,21 +233,20 @@ type EditarFormData = z.infer<typeof editarSchema>
 
 function EditarEstucheModal({
   estuche,
-  onUpdated,
   onClose,
 }: {
   estuche: Estuche
-  onUpdated: (e: Estuche) => void
   onClose: () => void
 }) {
   const [serverError, setServerError] = useState<string | null>(null)
+  const updateMutation = useUpdateEstuche()
 
   const {
     register,
     handleSubmit,
     control,
     setValue,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<EditarFormData>({
     resolver: zodResolver(editarSchema),
     defaultValues: { articulo: estuche.articulo, mercado: estuche.mercado, cantidad: String(estuche.cantidad) },
@@ -260,11 +257,12 @@ function EditarEstucheModal({
   async function onSubmit(data: EditarFormData) {
     setServerError(null)
     try {
-      const updated = await api.put<Estuche>(
-        `/estuches/${estuche.id}`,
-        { articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) },
-      )
-      onUpdated(updated)
+      const updated = await updateMutation.mutateAsync({
+        id: estuche.id,
+        articulo: data.articulo,
+        mercado: data.mercado,
+        cantidad: Number(data.cantidad),
+      })
       if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
         toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
       } else {
@@ -321,8 +319,8 @@ function EditarEstucheModal({
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
 
           <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
-              {isSubmitting ? 'Guardando...' : 'Guardar'}
+            <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
+              {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
             </button>
             <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
               Cancelar
@@ -336,23 +334,14 @@ function EditarEstucheModal({
 
 // ─── Inline cantidad editor ───────────────────────────────────────────────────
 
-function CantidadCell({
-  estuche,
-  onUpdated,
-}: {
-  estuche: Estuche
-  onUpdated: (e: Estuche) => void
-}) {
+function CantidadCell({ estuche }: { estuche: Estuche }) {
+  const updateMutation = useUpdateEstuche()
   return (
     <InlineNumberEditor
       value={estuche.cantidad}
       label="cantidad"
       onSave={async (nextValue) => {
-        const updated = await api.put<Estuche>(
-          `/estuches/${estuche.id}`,
-          { cantidad: nextValue },
-        )
-        onUpdated(updated)
+        const updated = await updateMutation.mutateAsync({ id: estuche.id, cantidad: nextValue })
         if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
           toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
         } else {
@@ -370,24 +359,16 @@ export default function EstuchesPage() {
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const [searchParams] = useSearchParams()
 
-  const [allEstuches, setAllEstuches] = useState<Estuche[]>([])
+  const { data: allEstuches = [], isLoading, error } = useEstuches()
+  const deleteMutation = useDeleteEstuche()
   const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>(
     (searchParams.get('mercado') as Mercado | 'todos') ?? 'todos'
   )
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [editingEstuche, setEditingEstuche] = useState<Estuche | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
-    api
-      .get<Estuche[]>('/estuches')
-      .then((list) => setAllEstuches(sortEstuches(list)))
-      .catch(() => setError('No se pudo cargar los estuches'))
-      .finally(() => setLoading(false))
-
     fetchCatalogoProductos('estuche')
       .then((productos) => {
         setCatalogMap(
@@ -407,46 +388,35 @@ export default function EstuchesPage() {
   }, [searchParams])
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const sortedEstuches = useMemo(() => sortEstuches(allEstuches), [allEstuches])
 
   const estuches = useMemo(() => {
     const byMercado =
       mercadoFiltro === 'todos'
-        ? allEstuches
-        : allEstuches.filter((e) => e.mercado === mercadoFiltro)
+        ? sortedEstuches
+        : sortedEstuches.filter((e) => e.mercado === mercadoFiltro)
 
     if (!productoFiltro) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((estuche) => normalizeProducto(getDisplayName(estuche)) === target)
-  }, [allEstuches, mercadoFiltro, productoFiltro, getDisplayName])
-
-  function handleCreated(e: Estuche) {
-    setAllEstuches((prev) => sortEstuches([...prev, e]))
-  }
-
-  function handleUpdated(updated: Estuche) {
-    setAllEstuches((prev) => sortEstuches(prev.map((e) => (e.id === updated.id ? updated : e))))
-  }
+  }, [sortedEstuches, mercadoFiltro, productoFiltro, getDisplayName])
 
   async function handleDelete(id: string) {
-    setDeletingId(id)
     try {
-      await api.del<void>(`/estuches/${id}`)
+      await deleteMutation.mutateAsync(id)
       const estuche = allEstuches.find((e) => e.id === id)
-      setAllEstuches((prev) => prev.filter((e) => e.id !== id))
       toast.success(estuche ? `Estuche "${estuche.articulo}" eliminado.` : 'Estuche eliminado.')
     } catch {
       toast.error('No se pudo eliminar el estuche.')
-    } finally {
-      setDeletingId(null)
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return <LoadingState />
   }
 
   if (error) {
-    return <ErrorState message={error} />
+    return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar los estuches'} />
   }
 
   const stockBajoCount = estuches.filter((e) => e.cantidad < STOCK_BAJO_THRESHOLD).length
@@ -484,7 +454,6 @@ export default function EstuchesPage() {
 
       {isEncargado ? (
         <AgregarEstucheModal
-          onCreated={handleCreated}
           open={agregarOpen}
           onOpenChange={setAgregarOpen}
         />
@@ -493,7 +462,6 @@ export default function EstuchesPage() {
       {editingEstuche && (
         <EditarEstucheModal
           estuche={editingEstuche}
-          onUpdated={handleUpdated}
           onClose={() => setEditingEstuche(null)}
         />
       )}
@@ -522,7 +490,7 @@ export default function EstuchesPage() {
                     </TableCell>
                     <TableCell>
                       {isEncargado ? (
-                        <CantidadCell estuche={estuche} onUpdated={handleUpdated} />
+                        <CantidadCell estuche={estuche} />
                       ) : (
                         <span className="font-body text-on-surface tabular-nums">{estuche.cantidad}</span>
                       )}
@@ -539,7 +507,7 @@ export default function EstuchesPage() {
                           <button
                             type="button"
                             onClick={() => handleDelete(estuche.id)}
-                            disabled={deletingId === estuche.id}
+                            disabled={deleteMutation.isPending}
                             className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
                             title="Eliminar"
                             aria-label={`Eliminar ${estuche.articulo}`}
@@ -573,14 +541,14 @@ export default function EstuchesPage() {
                 </div>
                 {isEncargado && (
                   <div className="flex items-center gap-3 shrink-0">
-                    <CantidadCell estuche={estuche} onUpdated={handleUpdated} />
+                    <CantidadCell estuche={estuche} />
                     <button type="button" onClick={() => setEditingEstuche(estuche)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar" aria-label={`Editar ${estuche.articulo}`}>
                       <Pencil size={14} strokeWidth={1.5} />
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(estuche.id)}
-                      disabled={deletingId === estuche.id}
+                      disabled={deleteMutation.isPending}
                       className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
                       title="Eliminar"
                       aria-label={`Eliminar ${estuche.articulo}`}

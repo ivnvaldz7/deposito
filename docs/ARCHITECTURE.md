@@ -5,12 +5,9 @@
 ```
 deposito/
 ├── apps/
-│   ├── platform/             ← App unificada (TODA la lógica actual)
-│   │   ├── server/           ← Express API + Prisma
-│   │   └── client/           ← React SPA (Vite + Tailwind + Zustand)
-│   ├── deposito/client/      ← Frontend legacy (pendiente de refactor)
-│   ├── admin/client/         ← Frontend legacy (pendiente de refactor)
-│   └── ale-bet/client/       ← Frontend legacy (pendiente de refactor)
+│   └── platform/             ← App unificada (TODA la lógica actual)
+│       ├── server/           ← Express API + Prisma
+│       └── client/           ← React SPA (Vite + Tailwind + Zustand)
 ├── packages/
 │   ├── db/                   ← Prisma schema unificado + generated client
 │   └── platform-core/        ← Auth compartido (JWT, password, middleware)

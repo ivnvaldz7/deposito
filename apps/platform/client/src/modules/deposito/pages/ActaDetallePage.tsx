@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
+import { useActa, useDistribuirItem, useAprobarCalidad } from '../queries/use-actas'
 import { EstadoChip } from '../components/EstadoChip'
-import type { Acta, ActaItem } from '../lib/actas-types'
+import type { ActaItem } from '../lib/actas-types'
 
 function formatFecha(iso: string): string {
   const d = new Date(iso)
@@ -68,8 +69,9 @@ function ItemRow({
   const [distributing, setDistributing] = useState(false)
   const [approvingQuality, setApprovingQuality] = useState(false)
   const [value, setValue] = useState(String(remaining))
-  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const distribuirItem = useDistribuirItem()
+  const aprobarCalidad = useAprobarCalidad()
 
   const [lotes, setLotes] = useState<DrogaLote[]>([])
   const [loadingLotes, setLoadingLotes] = useState(false)
@@ -113,10 +115,7 @@ function ItemRow({
   async function handleAprobarCalidad() {
     setApprovingQuality(true)
     try {
-      const updated = await api.put<ActaItem>(
-        `/actas/${actaId}/items/${item.id}/aprobar-calidad`,
-        undefined
-      )
+      const updated = await aprobarCalidad.mutateAsync({ actaId, itemId: item.id })
       onCalidadAprobada(updated)
       toast.success(`Calidad aprobada para "${item.productoNombre}".`)
     } catch (err) {
@@ -142,7 +141,6 @@ function ItemRow({
       return
     }
 
-    setSaving(true)
     setError(null)
     try {
       const payload: Record<string, unknown> = { cantidad: num }
@@ -152,10 +150,11 @@ function ItemRow({
           payload.justificacion = justificacion.trim()
         }
       }
-      const res = await api.post<{ item: ActaItem }>(
-        `/actas/${actaId}/items/${item.id}/distribuir`,
-        payload
-      )
+      const res = await distribuirItem.mutateAsync({
+        actaId,
+        itemId: item.id,
+        ...payload,
+      })
       onDistribuido(res.item)
       toast.success(`Distribución registrada para "${item.productoNombre}".`)
       setDistributing(false)
@@ -164,8 +163,6 @@ function ItemRow({
       setJustificacion('')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Error al distribuir')
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -223,6 +220,7 @@ function ItemRow({
             Control de Calidad
           </p>
           <div className="flex items-center gap-2">
+<<<<<<< Updated upstream
             {!item.aprobadoCalidad && isEncargado && (
               <button
                 type="button"
@@ -233,6 +231,19 @@ function ItemRow({
                 {approvingQuality ? 'Aprobando...' : 'Aprobar calidad'}
               </button>
             )}
+=======
+              {!item.aprobadoCalidad && isEncargado && (
+                <button
+                  type="button"
+                  onClick={handleAprobarCalidad}
+                  disabled={approvingQuality || aprobarCalidad.isPending}
+                  className="px-3 py-1 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
+                  style={{ background: 'rgba(84,225,109,0.15)', color: '#54e16d' }}
+                >
+                  {approvingQuality || aprobarCalidad.isPending ? 'Aprobando...' : 'Aprobar calidad'}
+                </button>
+              )}
+>>>>>>> Stashed changes
             <span
               className={`inline-block font-body text-xs font-medium px-2 py-0.5 rounded ${
                 item.aprobadoCalidad
@@ -294,20 +305,29 @@ function ItemRow({
               }}
               className="input-field w-28 py-1.5 text-sm"
               autoFocus
-              disabled={saving}
+              disabled={distribuirItem.isPending}
             />
             <button
               type="button"
               onClick={confirm}
+<<<<<<< Updated upstream
               disabled={saving}
               className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity bg-primary text-on-primary disabled:opacity-50"
+=======
+              disabled={distribuirItem.isPending}
+              className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50"
+              style={{
+                background: 'linear-gradient(180deg, #54e16d 0%, #00AE42 100%)',
+                color: '#003918',
+              }}
+>>>>>>> Stashed changes
             >
-              {saving ? '...' : 'Confirmar'}
+              {distribuirItem.isPending ? '...' : 'Confirmar'}
             </button>
             <button
               type="button"
               onClick={handleCancelDistribuir}
-              disabled={saving}
+              disabled={distribuirItem.isPending}
               className="font-body text-on-surface-variant text-xs hover:text-on-surface transition-colors"
             >
               Cancelar
@@ -334,7 +354,7 @@ function ItemRow({
                       setJustificacion('')
                     }}
                     className="input-field text-sm"
-                    disabled={saving}
+                    disabled={distribuirItem.isPending}
                   >
                     {lotes.map((l, idx) => (
                       <option key={l.id} value={l.id}>
@@ -365,7 +385,7 @@ function ItemRow({
                     rows={2}
                     placeholder="Explicá por qué se cambia el lote FIFO..."
                     className="input-field text-sm resize-none"
-                    disabled={saving}
+                    disabled={distribuirItem.isPending}
                   />
                 </div>
               )}
@@ -385,41 +405,18 @@ export default function ActaDetallePage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
 
-  const [acta, setActa] = useState<Acta | null>(null)
-  const [items, setItems] = useState<ActaItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: acta, isLoading, error } = useActa(id ?? '')
+  const items = acta?.items ?? []
 
-  const load = useCallback(() => {
-    if (!id) return
-    api
-      .get<Acta>(`/actas/${id}`)
-      .then((data) => {
-        setActa(data)
-        setItems(data.items ?? [])
-      })
-      .catch(() => setError('No se pudo cargar el acta'))
-      .finally(() => setLoading(false))
-  }, [id])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  function handleDistribuido(updated: ActaItem) {
-    setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
-    const updatedItems = items.map((i) => (i.id === updated.id ? updated : i))
-    const todosCompletos = updatedItems.every((i) => i.cantidadDistribuida >= i.cantidadIngresada)
-    const hayDistribucion = updatedItems.some((i) => i.cantidadDistribuida > 0)
-    const nuevoEstado = todosCompletos ? 'completada' : hayDistribucion ? 'parcial' : 'pendiente'
-    setActa((prev) => (prev ? { ...prev, estado: nuevoEstado } : prev))
+  function handleDistribuido(_updated: ActaItem) {
+    // Query invalidated by mutation's onSuccess — refetch handles update
   }
 
-  function handleCalidadAprobada(updated: ActaItem) {
-    setItems((prev) => prev.map((i) => (i.id === updated.id ? updated : i)))
+  function handleCalidadAprobada(_updated: ActaItem) {
+    // Query invalidated by mutation's onSuccess — refetch handles update
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-48">
         <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
@@ -430,7 +427,7 @@ export default function ActaDetallePage() {
   if (error || !acta) {
     return (
       <div className="flex items-center justify-center h-48">
-        <p className="font-body text-error text-sm">{error ?? 'Acta no encontrada'}</p>
+        <p className="font-body text-error text-sm">{error instanceof ApiError ? error.message : 'Acta no encontrada'}</p>
       </div>
     )
   }

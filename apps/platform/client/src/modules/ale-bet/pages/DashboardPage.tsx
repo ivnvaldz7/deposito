@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { aleBetApi, type DashboardOverview, type DashboardPedidoReciente, type Pedido } from '../lib/api'
+import { type Pedido, type DashboardPedidoReciente } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+<<<<<<< Updated upstream
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/Badge'
+=======
+import { useDashboardOverview, dashboardKeys } from '../queries'
+import { useQueryClient } from '@tanstack/react-query'
+>>>>>>> Stashed changes
 
 function formatDashboardDate(dateString: string): string {
   const date = new Date(dateString)
@@ -113,31 +118,16 @@ export default function DashboardPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
-  const [data, setData] = useState<DashboardOverview | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+  const { data, isLoading, error } = useDashboardOverview()
   const [animatedPedidoId, setAnimatedPedidoId] = useState<string | null>(null)
   const [animatedTone, setAnimatedTone] = useState<'success' | 'danger' | null>(null)
 
-  async function loadData() {
-    setLoading(true)
-    setError(null)
-    try {
-      setData(await aleBetApi.dashboard())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo cargar el dashboard')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { void loadData() }, [])
-
   useEffect(() => {
-    const handler = () => void loadData()
+    const handler = () => queryClient.invalidateQueries({ queryKey: dashboardKeys.all })
     window.addEventListener('alebet:refresh', handler)
     return () => window.removeEventListener('alebet:refresh', handler)
-  }, [])
+  }, [queryClient])
 
   useEffect(() => {
     const state = location.state as { flashPedidoId?: string; flashTone?: 'success' | 'danger' } | null
@@ -149,8 +139,13 @@ export default function DashboardPage() {
     return () => window.clearTimeout(id)
   }, [location.state])
 
+<<<<<<< Updated upstream
   if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando dashboard...</p>
   if (error || !data) return <p className="font-body text-sm text-error">{error ?? 'No se pudo cargar el dashboard'}</p>
+=======
+  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando dashboard...</p>
+  if (error || !data) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'No se pudo cargar el dashboard'}</p>
+>>>>>>> Stashed changes
 
   const isAdmin = user?.apps?.['ale-bet']?.rol === 'admin'
 

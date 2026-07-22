@@ -5,7 +5,8 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { api, ApiError } from '../lib/api'
+import { ApiError } from '../lib/api'
+import { useFrascos, useCreateFrasco, useUpdateFrasco, useDeleteFrasco } from '../queries/use-frascos'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
@@ -57,9 +58,10 @@ const agregarSchema = z.object({
 
 type AgregarFormData = z.infer<typeof agregarSchema>
 
-function AgregarFrascoModal({ onCreated, open, onOpenChange }: { onCreated: (f: Frasco) => void; open: boolean; onOpenChange: (next: boolean) => void }) {
+function AgregarFrascoModal({ open, onOpenChange }: { open: boolean; onOpenChange: (next: boolean) => void }) {
   const [serverError, setServerError] = useState<string | null>(null)
-  const { register, handleSubmit, control, reset, formState: { errors, isSubmitting } } = useForm<AgregarFormData>({
+  const createMutation = useCreateFrasco()
+  const { register, handleSubmit, control, reset, formState: { errors } } = useForm<AgregarFormData>({
     resolver: zodResolver(agregarSchema),
     defaultValues: { articulo: '', unidadesPorCaja: '', cantidadCajas: '' },
   })
@@ -70,8 +72,7 @@ function AgregarFrascoModal({ onCreated, open, onOpenChange }: { onCreated: (f: 
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const frasco = await api.post<Frasco>('/frascos', { articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
-      onCreated(frasco)
+      const frasco = await createMutation.mutateAsync({ articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
       if (frasco.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${frasco.articulo}" quedó con stock bajo (${frasco.cantidadCajas} cajas).`)
       else toast.success(`Frasco "${frasco.articulo}" agregado.`)
       reset(); onOpenChange(false)
@@ -104,8 +105,13 @@ function AgregarFrascoModal({ onCreated, open, onOpenChange }: { onCreated: (f: 
           {totalPreview > 0 && <p className="font-body text-on-surface-variant text-xs">Total: <span className="text-on-surface font-medium tabular-nums">{totalPreview.toLocaleString()} unidades</span></p>}
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
+<<<<<<< Updated upstream
             <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
             <DialogClose asChild><button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button></DialogClose>
+=======
+            <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{createMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
+            <DialogClose asChild><button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">Cancelar</button></DialogClose>
+>>>>>>> Stashed changes
           </div>
         </form>
       </DialogContent>
@@ -121,9 +127,10 @@ const editarSchema = z.object({
 
 type EditarFormData = z.infer<typeof editarSchema>
 
-function EditarFrascoModal({ frasco, onUpdated, onClose }: { frasco: Frasco; onUpdated: (f: Frasco) => void; onClose: () => void }) {
+function EditarFrascoModal({ frasco, onClose }: { frasco: Frasco; onClose: () => void }) {
   const [serverError, setServerError] = useState<string | null>(null)
-  const { register, handleSubmit, control, formState: { errors, isSubmitting } } = useForm<EditarFormData>({
+  const updateMutation = useUpdateFrasco()
+  const { register, handleSubmit, control, formState: { errors } } = useForm<EditarFormData>({
     resolver: zodResolver(editarSchema),
     defaultValues: { articulo: frasco.articulo, unidadesPorCaja: String(frasco.unidadesPorCaja), cantidadCajas: String(frasco.cantidadCajas) },
   })
@@ -134,8 +141,7 @@ function EditarFrascoModal({ frasco, onUpdated, onClose }: { frasco: Frasco; onU
   async function onSubmit(data: EditarFormData) {
     setServerError(null)
     try {
-      const updated = await api.put<Frasco>(`/frascos/${frasco.id}`, { articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
-      onUpdated(updated)
+      const updated = await updateMutation.mutateAsync({ id: frasco.id, articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
       if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
       else toast.info(`Frasco "${updated.articulo}" actualizado.`)
       onClose()
@@ -155,8 +161,13 @@ function EditarFrascoModal({ frasco, onUpdated, onClose }: { frasco: Frasco; onU
           {totalPreview > 0 && <p className="font-body text-on-surface-variant text-xs">Total: <span className="text-on-surface font-medium tabular-nums">{totalPreview.toLocaleString()} unidades</span></p>}
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
+<<<<<<< Updated upstream
             <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">{isSubmitting ? 'Guardando...' : 'Guardar'}</button>
             <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
+=======
+            <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{updateMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors">Cancelar</button>
+>>>>>>> Stashed changes
           </div>
         </form>
       </DialogContent>
@@ -164,11 +175,11 @@ function EditarFrascoModal({ frasco, onUpdated, onClose }: { frasco: Frasco; onU
   )
 }
 
-function CajasCell({ frasco, onUpdated }: { frasco: Frasco; onUpdated: (f: Frasco) => void }) {
+function CajasCell({ frasco }: { frasco: Frasco }) {
+  const updateMutation = useUpdateFrasco()
   return (
     <InlineNumberEditor value={frasco.cantidadCajas} label="Cajas" onSave={async (nextValue) => {
-      const updated = await api.put<Frasco>(`/frascos/${frasco.id}`, { cantidadCajas: nextValue })
-      onUpdated(updated)
+      const updated = await updateMutation.mutateAsync({ id: frasco.id, cantidadCajas: nextValue })
       if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
       else toast.info(`Stock de cajas para "${updated.articulo}" actualizado.`)
     }} />
@@ -179,42 +190,36 @@ export default function FrascosPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const [searchParams] = useSearchParams()
-  const [frascos, setFrascos] = useState<Frasco[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const { data: frascos = [], isLoading, error } = useFrascos()
+  const deleteMutation = useDeleteFrasco()
   const [editingFrasco, setEditingFrasco] = useState<Frasco | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
 
   useEffect(() => {
-    api.get<Frasco[]>('/frascos').then((list) => setFrascos(sortFrascos(list))).catch(() => setError('No se pudo cargar los frascos')).finally(() => setLoading(false))
     fetchCatalogoProductos('frasco').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
   const getDisplayName = useCallback((frasco: Frasco): string => frasco.productoId ? (catalogMap[frasco.productoId] ?? frasco.articulo) : frasco.articulo, [catalogMap])
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const sortedFrascos = useMemo(() => sortFrascos(frascos), [frascos])
   const filteredFrascos = useMemo(() => {
-    if (!productoFiltro) return frascos
+    if (!productoFiltro) return sortedFrascos
     const target = normalizeProducto(productoFiltro)
-    return frascos.filter((f) => normalizeProducto(getDisplayName(f)) === target)
-  }, [frascos, productoFiltro, getDisplayName])
+    return sortedFrascos.filter((f) => normalizeProducto(getDisplayName(f)) === target)
+  }, [sortedFrascos, productoFiltro, getDisplayName])
 
-  function handleCreated(f: Frasco) { setFrascos((prev) => sortFrascos([...prev, f])) }
-  function handleUpdated(updated: Frasco) { setFrascos((prev) => sortFrascos(prev.map((f) => (f.id === updated.id ? updated : f)))) }
   async function handleDelete(id: string) {
-    setDeletingId(id)
     try {
-      await api.del<void>(`/frascos/${id}`)
+      await deleteMutation.mutateAsync(id)
       const frasco = frascos.find((f) => f.id === id)
-      setFrascos((prev) => prev.filter((f) => f.id !== id))
       toast.success(frasco ? `Frasco "${frasco.articulo}" eliminado.` : 'Frasco eliminado.')
-    } catch { toast.error('No se pudo eliminar el frasco.') } finally { setDeletingId(null) }
+    } catch { toast.error('No se pudo eliminar el frasco.') }
   }
 
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState message={error} />
+  if (isLoading) return <LoadingState />
+  if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar los frascos'} />
 
   const totalCajas = frascos.reduce((s, f) => s + f.cantidadCajas, 0)
   const stockBajoCount = frascos.filter((f) => f.cantidadCajas < STOCK_BAJO_THRESHOLD).length
@@ -227,8 +232,8 @@ export default function FrascosPage() {
         { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
       ]} primaryAction={isEncargado ? { label: 'Agregar frasco', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} />
 
-      {isEncargado && <AgregarFrascoModal onCreated={handleCreated} open={agregarOpen} onOpenChange={setAgregarOpen} />}
-      {editingFrasco && <EditarFrascoModal frasco={editingFrasco} onUpdated={handleUpdated} onClose={() => setEditingFrasco(null)} />}
+      {isEncargado && <AgregarFrascoModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
+      {editingFrasco && <EditarFrascoModal frasco={editingFrasco} onClose={() => setEditingFrasco(null)} />}
 
       {filteredFrascos.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />
       : (
@@ -241,13 +246,13 @@ export default function FrascosPage() {
                   <TableRow key={frasco.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(frasco)}</TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface-variant tabular-nums text-sm">{frasco.unidadesPorCaja}</span></TableCell>
-                    <TableCell className="text-right">{isEncargado ? <div className="flex justify-end"><CajasCell frasco={frasco} onUpdated={handleUpdated} /></div> : <span className="font-body text-on-surface tabular-nums">{frasco.cantidadCajas}</span>}</TableCell>
+                    <TableCell className="text-right">{isEncargado ? <div className="flex justify-end"><CajasCell frasco={frasco} /></div> : <span className="font-body text-on-surface tabular-nums">{frasco.cantidadCajas}</span>}</TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface font-medium tabular-nums">{frasco.total.toLocaleString()}</span></TableCell>
                     {isEncargado && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button type="button" onClick={() => setEditingFrasco(frasco)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar"><Pencil size={14} strokeWidth={1.5} /></button>
-                          <button type="button" onClick={() => handleDelete(frasco.id)} disabled={deletingId === frasco.id} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40" title="Eliminar"><Trash2 size={14} strokeWidth={1.5} /></button>
+                          <button type="button" onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40" title="Eliminar"><Trash2 size={14} strokeWidth={1.5} /></button>
                         </div>
                       </TableCell>
                     )}
@@ -265,9 +270,9 @@ export default function FrascosPage() {
                 </div>
                 {isEncargado && (
                   <div className="flex items-center gap-3 shrink-0">
-                    <CajasCell frasco={frasco} onUpdated={handleUpdated} />
+<CajasCell frasco={frasco} />
                     <button type="button" onClick={() => setEditingFrasco(frasco)} className="text-on-surface-variant hover:text-on-surface transition-colors"><Pencil size={14} strokeWidth={1.5} /></button>
-                    <button type="button" onClick={() => handleDelete(frasco.id)} disabled={deletingId === frasco.id} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"><Trash2 size={14} strokeWidth={1.5} /></button>
+                    <button type="button" onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"><Trash2 size={14} strokeWidth={1.5} /></button>
                   </div>
                 )}
               </div>

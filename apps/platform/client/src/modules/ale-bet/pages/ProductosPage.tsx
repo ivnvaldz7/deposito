@@ -1,31 +1,22 @@
-import { useEffect, useState } from 'react'
-import { aleBetApi, type Producto, type Lote } from '../lib/api'
+import { useState } from 'react'
+import { type Producto } from '../lib/api'
 import { UNIDADES_POR_CAJA, MAX_SUELTOS } from '../lib/constants'
+import { useProductos, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useCreateLote } from '../queries'
 
 export default function ProductosPage() {
-  const [productos, setProductos] = useState<Producto[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { data: productos = [], isLoading, error } = useProductos()
+  const createMutation = useCreateProducto()
+  const updateMutation = useUpdateProducto()
+  const deleteMutation = useDeleteProducto()
+  const createLoteMutation = useCreateLote()
+
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Producto | null>(null)
   const [form, setForm] = useState({ nombre: '', sku: '', stockMinimo: 100 })
-  const [lotesModal, setLotesModal] = useState<{ producto: Producto; lotes: Lote[] } | null>(null)
+  const [lotesProducto, setLotesProducto] = useState<Producto | null>(null)
+  const { data: lotes = [] } = useLotes(lotesProducto?.id ?? '')
   const [loteForm, setLoteForm] = useState({ cajas: 0, sueltos: 0, fechaProduccion: new Date().toISOString().split('T')[0] })
-
-  async function load() {
-    setLoading(true)
-    setError(null)
-    try {
-      setProductos(await aleBetApi.productos.list())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar productos')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { void load() }, [])
 
   function openCreate() {
     setEditing(null)
@@ -42,57 +33,50 @@ export default function ProductosPage() {
   async function handleSave() {
     try {
       if (editing) {
-        await aleBetApi.productos.update(editing.id, form)
+        await updateMutation.mutateAsync({ id: editing.id, ...form })
       } else {
-        await aleBetApi.productos.create(form)
+        await createMutation.mutateAsync(form)
       }
       setShowModal(false)
-      void load()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error al guardar')
     }
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     if (!confirm('¿Eliminar producto?')) return
-    try {
-      await aleBetApi.productos.delete(id)
-      void load()
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al eliminar')
-    }
+    deleteMutation.mutate(id, {
+      onError: (e) => alert(e instanceof Error ? e.message : 'Error al eliminar'),
+    })
   }
 
-  async function openLotes(p: Producto) {
-    try {
-      const lotes = await aleBetApi.productos.lotes.list(p.id)
-      setLotesModal({ producto: p, lotes })
-      setLoteForm({ cajas: 0, sueltos: 0, fechaProduccion: new Date().toISOString().split('T')[0] })
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al cargar lotes')
-    }
+  function openLotes(p: Producto) {
+    setLotesProducto(p)
+    setLoteForm({ cajas: 0, sueltos: 0, fechaProduccion: new Date().toISOString().split('T')[0] })
   }
 
   async function handleAddLote() {
-    if (!lotesModal) return
+    if (!lotesProducto) return
     try {
-      await aleBetApi.productos.lotes.create(lotesModal.producto.id, {
+      await createLoteMutation.mutateAsync({
+        productoId: lotesProducto.id,
         cajas: loteForm.cajas,
         sueltos: loteForm.sueltos,
         fechaProduccion: new Date(loteForm.fechaProduccion).toISOString(),
       })
       setLoteForm({ cajas: 0, sueltos: 0, fechaProduccion: new Date().toISOString().split('T')[0] })
-      // Refresh lotes
-      const lotes = await aleBetApi.productos.lotes.list(lotesModal.producto.id)
-      setLotesModal({ ...lotesModal, lotes })
-      void load()
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Error al crear lote')
     }
   }
 
+<<<<<<< Updated upstream
   if (loading) return <p className="font-body text-sm text-on-surface-variant">Cargando productos...</p>
   if (error) return <p className="font-body text-sm text-error">{error}</p>
+=======
+  if (isLoading) return <p className="text-sm text-[var(--color-text-2)]">Cargando productos...</p>
+  if (error) return <p className="text-sm text-[var(--color-danger)]">{error instanceof Error ? error.message : 'Error al cargar productos'}</p>
+>>>>>>> Stashed changes
 
   const filtered = productos.filter(
     (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
@@ -220,6 +204,7 @@ export default function ProductosPage() {
       )}
 
       {/* Lotes modal */}
+<<<<<<< Updated upstream
       {lotesModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesModal(null)}>
           <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
@@ -230,6 +215,18 @@ export default function ProductosPage() {
 
             {lotesModal.lotes.length === 0 ? (
               <p className="py-4 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados.</p>
+=======
+      {lotesProducto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesProducto(null)}>
+          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-[12px] border border-[var(--color-border)] bg-[var(--color-surface)] p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-1 text-[18px] font-bold text-[var(--color-text)]" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              Lotes: {lotesProducto.nombre}
+            </h2>
+            <p className="mb-4 text-[12px] text-[var(--color-text-3)]">Stock total: {lotesProducto.stock} unidades</p>
+
+            {lotes.length === 0 ? (
+              <p className="py-4 text-center text-[13px] text-[var(--color-text-2)]">Sin lotes registrados.</p>
+>>>>>>> Stashed changes
             ) : (
               <table className="mb-6 w-full text-left font-body text-[12px]">
                 <thead>
@@ -243,6 +240,7 @@ export default function ProductosPage() {
                   </tr>
                 </thead>
                 <tbody>
+<<<<<<< Updated upstream
                   {lotesModal.lotes.map((l) => (
                     <tr key={l.id} className="border-b border-white/10 last:border-0">
                       <td className="py-3 font-medium text-on-surface">{l.numero}</td>
@@ -250,6 +248,15 @@ export default function ProductosPage() {
                       <td className="py-3 text-right text-on-surface">{l.sueltos}</td>
                       <td className="py-3 text-right font-medium text-on-surface">{l.unidades}</td>
                       <td className="py-3 text-outline">
+=======
+                  {lotes.map((l) => (
+                    <tr key={l.id} className="border-b border-[var(--color-border)] last:border-0">
+                      <td className="py-3 font-medium text-[var(--color-text)]">{l.numero}</td>
+                      <td className="py-3 text-right text-[var(--color-text)]">{l.cajas}</td>
+                      <td className="py-3 text-right text-[var(--color-text)]">{l.sueltos}</td>
+                      <td className="py-3 text-right font-medium text-[var(--color-text)]">{l.unidades}</td>
+                      <td className="py-3 text-[var(--color-text-3)]">
+>>>>>>> Stashed changes
                         {new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}
                       </td>
                       <td className="py-3 text-center">
@@ -288,7 +295,11 @@ export default function ProductosPage() {
             </div>
 
             <div className="mt-4 flex justify-end">
+<<<<<<< Updated upstream
               <button onClick={() => setLotesModal(null)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cerrar</button>
+=======
+              <button onClick={() => setLotesProducto(null)} className="rounded-full border border-[var(--color-border)] px-4 py-2 text-[12px] text-[var(--color-text-3)] transition hover:text-[var(--color-text)]">Cerrar</button>
+>>>>>>> Stashed changes
             </div>
           </div>
         </div>

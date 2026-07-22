@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Scale, Activity, FileDown, BarChart2, Search, Check } from 'lucide-react'
 import Fuse from 'fuse.js'
-import { api } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { toast } from '../lib/toast'
 import { PageHeader } from '../components/layout/PageHeader'
+import { useMetricas, useProductosCatalogo } from '../queries'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -232,12 +232,15 @@ export default function MetricasPage() {
   const [producto, setProducto] = useState(initialProducto)
   const [productoQuery, setProductoQuery] = useState(initialProducto)
 
-  const [data, setData] = useState<MetricasData | null>(null)
-  const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
-  const [productOptions, setProductOptions] = useState<string[]>([])
 
-  const buildQS = useCallback(() => {
+  const filters = { desde, hasta, categoria, producto }
+  const { data, isLoading: loading } = useMetricas(
+    desde || hasta || categoria || producto ? filters : undefined
+  )
+  const { data: productOptions = [] } = useProductosCatalogo()
+
+  const buildQS = useMemo(() => {
     const params = new URLSearchParams()
     if (desde) params.set('desde', desde)
     if (hasta) params.set('hasta', hasta)
@@ -246,50 +249,10 @@ export default function MetricasPage() {
     return params.toString()
   }, [desde, hasta, categoria, producto])
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true)
-      setData(null)
-      try {
-        const qs = buildQS()
-        const result = await api.get<MetricasData>(`/metricas${qs ? `?${qs}` : ''}`)
-        setData(result)
-      } catch {
-        toast.error('Error al cargar métricas')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    load()
-  }, [buildQS])
-
-  useEffect(() => {
-    async function loadProducts() {
-      try {
-        const params = new URLSearchParams()
-        if (desde) params.set('desde', desde)
-        if (hasta) params.set('hasta', hasta)
-        if (productoQuery.trim()) params.set('producto', productoQuery.trim())
-
-        const movimientos = await api.get<MovimientoListItem[]>(
-          `/movimientos${params.toString() ? `?${params.toString()}` : ''}`
-        )
-
-        const unique = [...new Set(movimientos.map((movimiento) => movimiento.productoNombre.trim()).filter(Boolean))]
-        setProductOptions(unique)
-      } catch {
-        setProductOptions([])
-      }
-    }
-
-    loadProducts()
-  }, [desde, hasta, productoQuery])
-
   async function handleExportPdf() {
     setExporting(true)
     try {
-      const qs = buildQS()
+      const qs = buildQS
       const url = `${BASE_URL}/api/metricas/exportar-pdf${qs ? `?${qs}` : ''}`
       const res = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
