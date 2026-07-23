@@ -26,7 +26,7 @@ export function Input({
   const inputId = label ? `input-${label.toLowerCase().replace(/\s+/g, '-')}` : undefined
 
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
+    <div className={cn('flex w-full flex-col gap-1.5', className)}>
       {label && (
         <label
           htmlFor={inputId}
@@ -50,7 +50,7 @@ export function Input({
           disabled={disabled}
           className={cn(
             'w-full font-body',
-            'bg-surface-high text-on-surface',
+            'bg-surface-container-high text-on-surface',
             'border border-outline-variant rounded px-3 py-2',
             'placeholder:text-on-surface-variant placeholder:opacity-60',
             'focus:border-primary focus:outline-none',

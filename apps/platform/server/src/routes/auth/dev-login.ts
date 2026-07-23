@@ -77,7 +77,7 @@ router.post('/dev-login', async (req, res) => {
   setRefreshTokenCookie(res, refreshToken)
 
   // Respond with the redirect URL so the frontend can navigate
-  const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5176'
+  const frontendUrl = process.env.FRONTEND_URL ?? req.get('origin') ?? 'http://localhost:5176'
   res.json({
     redirectUrl: `${frontendUrl}/auth/google/callback?token=${accessToken}`,
   })

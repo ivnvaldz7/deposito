@@ -12,14 +12,15 @@ import { eventBus, createNotificationHandler } from '@platform/core'
 import { platformDb } from '@platform/db'
 
 const app = express()
-const PORT = process.env.PORT ?? 3000
+const PORT = Number(process.env.PORT ?? 3000)
 
 const localhostRegex = /^http:\/\/localhost(:\d+)?$/
+const privateNetworkRegex = /^http:\/\/(?:(?:127\.0\.0\.1)|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Permitir requests sin origin (móvil, postman, etc.) y localhost con cualquier puerto
-    if (!origin || localhostRegex.test(origin) || origin === process.env.FRONTEND_URL) {
+    // Permitir requests sin origin (móvil, postman, etc.), localhost y LAN privada en desarrollo.
+    if (!origin || localhostRegex.test(origin) || privateNetworkRegex.test(origin) || origin === process.env.FRONTEND_URL) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))
@@ -69,8 +70,8 @@ setInterval(async () => {
   }
 }, PURGE_INTERVAL_MS)
 
-app.listen(PORT, () => {
-  console.log(`Platform server running on http://localhost:${PORT}`)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Platform server running on http://0.0.0.0:${PORT}`)
 })
 
 export default app

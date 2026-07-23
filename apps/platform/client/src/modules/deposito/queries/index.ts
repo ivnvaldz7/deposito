@@ -70,7 +70,8 @@ export {
   useRecibirEsterilizacion,
   pendientesKeys,
 } from './use-pendientes'
-export type { InsumoPendiente, Frasco } from './use-pendientes'
+export type { InsumoPendiente } from './use-pendientes'
+export type { Frasco as FrascoPendiente } from './use-pendientes'
 
 export {
   useMovimientos,

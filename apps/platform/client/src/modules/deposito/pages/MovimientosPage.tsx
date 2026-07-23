@@ -16,18 +16,6 @@ import {
 
 type TipoMovimiento = 'ingreso_acta' | 'egreso_orden' | 'ajuste_manual'
 
-interface Movimiento {
-  id: string
-  tipo: TipoMovimiento
-  categoria: string
-  productoNombre: string
-  cantidad: number
-  referenciaId: string | null
-  justificacion: string | null
-  createdAt: string
-  user: { name: string }
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatFecha(iso: string): string {
@@ -54,14 +42,14 @@ const TIPO_CONFIG: Record<TipoMovimiento, { label: string; variant: 'primary' | 
 
 // ─── Chips ────────────────────────────────────────────────────────────────────
 
-function DirectionIcon({ tipo }: { tipo: TipoMovimiento }) {
+function DirectionIcon({ tipo }: { tipo: string }) {
   if (tipo === 'ingreso_acta') {
     return <ArrowDown size={20} className="text-primary" strokeWidth={2} />
   }
   return <ArrowUp size={20} className="text-tertiary" strokeWidth={2} />
 }
 
-function CantidadCell({ cantidad, tipo }: { cantidad: number; tipo: TipoMovimiento }) {
+function CantidadCell({ cantidad, tipo }: { cantidad: number; tipo: string }) {
   const color = tipo === 'ingreso_acta' ? 'var(--color-primary)' : 'var(--color-tertiary)'
   const prefix = tipo === 'ingreso_acta' ? '+' : '-'
   return (

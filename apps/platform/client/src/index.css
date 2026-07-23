@@ -81,6 +81,8 @@
   --spacing-margin-desktop: 2rem;
 
   /* === BACKWARD COMPAT (legacy tokens — keep until full migration) === */
+  --color-surface-high: #1a211d;
+  --color-surface-highest: #1f2822;
   --color-obsidian-900: #0b0f0d;
   --color-obsidian-800: #0f1511;
   --color-obsidian-700: #151b17;
@@ -139,6 +141,8 @@
   --color-warning: #ea580c;
 
   /* Backward compat overrides */
+  --color-surface-high: #d6dbd3;
+  --color-surface-highest: #cad0c7;
   --color-obsidian-900: #f7faf5;
   --color-obsidian-800: #edf2eb;
   --color-obsidian-700: #e1e7df;

@@ -4,11 +4,12 @@ import { api } from '../lib/api'
 export interface Movimiento {
   id: string
   tipo: string
-  categoria?: string
+  categoria: string
   productoNombre: string
   cantidad: number
-  referencia?: string
-  createdBy?: string
+  referenciaId: string | null
+  justificacion: string | null
+  user: { name: string }
   createdAt: string
 }
 

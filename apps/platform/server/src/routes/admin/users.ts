@@ -109,7 +109,7 @@ router.put('/:id/access', asyncHandler(async (req, res) => {
     return
   }
 
-  const access = await updateAppAccess(platformDb as any, req.params.id, app, {
+  const access = await updateAppAccess(platformDb as any, req.params.id as string, app, {
     rol: body.rol,
     activo: body.activo,
   })
@@ -131,7 +131,7 @@ router.put('/:id/status', asyncHandler(async (req, res) => {
   }
 
   const user = await platformDb.platformUser.update({
-    where: { id: req.params.id },
+    where: { id: req.params.id as string },
     data,
     include: { appAccess: true },
   })
