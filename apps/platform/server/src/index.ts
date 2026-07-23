@@ -1,4 +1,6 @@
 import 'dotenv/config'
+import { existsSync } from 'fs'
+import path from 'path'
 import express from 'express'
 import cors from 'cors'
 import authRoutes from './routes/auth/index'
@@ -45,6 +47,19 @@ app.use('/api/notifications', verifyToken, notificationRoutes)
 app.use('/api/admin', verifyToken, createAdminRoutes())
 app.use('/api/deposito', verifyToken, createDepositoRoutes())
 app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
+
+const clientDistPath = path.resolve(__dirname, '../../client/dist')
+const clientIndexPath = path.join(clientDistPath, 'index.html')
+
+if (existsSync(clientIndexPath)) {
+  app.use(express.static(clientDistPath))
+
+  app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.sendFile(clientIndexPath)
+  })
+} else {
+  console.warn(`[static] Client build not found at ${clientDistPath}`)
+}
 
 // Error handler
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

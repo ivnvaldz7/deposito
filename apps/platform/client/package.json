@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --port 5176",
     "build": "tsc -b && vite build",
+    "build:static": "vite build",
     "preview": "vite preview --port 4176",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,7 +27,7 @@
     "react-router-dom": "^7.13.2",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.2.0",
-    "zod": "^3.24.4",
+    "zod": "^4.4.3",
     "zustand": "^5.0.12"
   },
   "devDependencies": {

@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: deposito-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: deposito
+      POSTGRES_USER: deposito
+      POSTGRES_PASSWORD: deposito
+    ports:
+      - "5433:5432"
+    volumes:
+      - deposito-postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deposito -d deposito"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  deposito-postgres-data:
