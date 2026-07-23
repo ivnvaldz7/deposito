@@ -135,6 +135,14 @@ Password por defecto local:
 Demo123456!
 ```
 
+Si el login devuelve `Email o contraseña incorrectos`, probablemente los usuarios fueron sembrados con otra password desde `.env`.
+
+Para forzar la password demo otra vez:
+
+```powershell
+$env:STAGING_USER_PASSWORD='Demo123456!'; $env:ADMIN_PASSWORD='Admin123456!'; npm run db:seed:staging-users
+```
+
 ## Opción Costo Cero
 
 Para probar desde otra ubicación sin deploy pago:
