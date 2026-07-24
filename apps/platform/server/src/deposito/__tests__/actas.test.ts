@@ -249,7 +249,7 @@ vi.mock('../lib/sse-manager', () => ({
   },
 }))
 vi.mock('../lib/lote-generator', () => ({
-  generarLote: vi.fn(async (categoria: string) => `${categoria.toUpperCase().slice(0, 3)}-0001`),
+  generarLote: vi.fn(async () => '1'),
 }))
 
 import actasRouter from '../routes/actas'

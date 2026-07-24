@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import Fuse from 'fuse.js'
-import { apiClient } from '@/lib/api-client'
+import { api } from '../lib/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +48,7 @@ export function ProductoSelector({
   const fuseRef = useRef<Fuse<Producto>>(new Fuse<Producto>([], { keys: ['nombreCompleto'], threshold: 0.4 }))
 
   useEffect(() => {
-    apiClient
+    api
       .get<Producto[]>(`/productos?categoria=${categoria}`)
       .then((data) => {
         fuseRef.current = new Fuse(data, { keys: ['nombreCompleto'], threshold: 0.4 })

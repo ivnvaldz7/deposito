@@ -1,39 +1,26 @@
-import { Categoria } from '@platform/db'
 import { prisma } from './prisma'
 
-type CategoriaConLoteAuto = Exclude<Categoria, 'droga'>
-
-const PREFIJOS: Record<CategoriaConLoteAuto, string> = {
-  estuche: 'EST',
-  etiqueta: 'ETQ',
-  frasco: 'FRA',
-}
-
 /**
- * Genera el siguiente lote secuencial para una categoría que no sea droga.
- * Formato: "EST-0001", "ETQ-0002", "FRA-0003", etc.
+ * Genera el siguiente lote secuencial para productos ME (no drogas).
+ *
+ * Busca el número más alto entre todos los items de ME existentes (extrayendo
+ * solo la parte numérica del lote) y devuelve ese número + 1 como string.
+ *
+ * Ejemplos:
+ *   - Último lote "3435" → devuelve "3436"
+ *   - Último lote "EST-0007" → devuelve "8"
+ *   - Sin items previos → devuelve "1"
  *
  * Nota: no usa una transacción de DB para reservar el número, por lo que en
  * alta concurrencia podría haber colisiones (aceptable para MVP).
  */
-export async function generarLote(categoria: CategoriaConLoteAuto): Promise<string> {
-  const prefijo = PREFIJOS[categoria]
+export async function generarLote(): Promise<string> {
+  const result = await prisma.$queryRaw<{ max_num: number | null }[]>`
+    SELECT MAX(CAST(REGEXP_REPLACE(lote, '[^0-9]', '', 'g') AS INTEGER)) as max_num
+    FROM deposito.acta_items
+    WHERE categoria != 'droga'
+  `
 
-  const ultimoItem = await prisma.actaItem.findFirst({
-    where: {
-      categoria,
-      lote: { startsWith: `${prefijo}-` },
-    },
-    orderBy: { createdAt: 'desc' },
-    select: { lote: true },
-  })
-
-  let siguienteNum = 1
-  if (ultimoItem?.lote) {
-    const numStr = ultimoItem.lote.slice(prefijo.length + 1) // "EST-0007" → "0007"
-    const num = parseInt(numStr, 10)
-    if (!isNaN(num)) siguienteNum = num + 1
-  }
-
-  return `${prefijo}-${String(siguienteNum).padStart(4, '0')}`
+  const maxNum = result[0]?.max_num ?? 0
+  return String(maxNum + 1)
 }

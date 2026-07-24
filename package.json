@@ -15,6 +15,7 @@
     "db:migrate": "npm --workspace @platform/server run db:migrate",
     "db:seed:staging-users": "npm --workspace @platform/server run db:seed-users:staging",
     "db:setup:staging": "npm run db:migrate && npm run db:seed:staging-users",
+    "db:setup": "npm --workspace @platform/server run db:setup",
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {

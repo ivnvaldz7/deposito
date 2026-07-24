@@ -10,6 +10,7 @@ export async function authenticate(
   const authHeader = req.headers.authorization
 
   if (!authHeader?.startsWith('Bearer ')) {
+    console.log('[authenticate] Token requerido');
     res.status(401).json({ message: 'Token requerido' })
     return
   }
@@ -18,6 +19,7 @@ export async function authenticate(
   const payload = verifyPlatformToken(token)
 
   if (!payload) {
+    console.log('[authenticate] Token inválido o expirado');
     res.status(401).json({ message: 'Token inválido o expirado' })
     return
   }
@@ -29,7 +31,7 @@ export async function authenticate(
     return
   }
 
-  const depositoUser = await prisma.user.findFirst({
+  let depositoUser = await prisma.user.findFirst({
     where: {
       OR: [
         { platformUserId: payload.sub },
@@ -38,9 +40,27 @@ export async function authenticate(
     },
   })
 
+  // JIT provisioning: si el usuario no existe en el schema de deposito,
+  // lo creamos usando los datos del JWT de la plataforma
   if (!depositoUser) {
-    res.status(401).json({ message: 'Usuario de Depósito no encontrado' })
-    return
+    depositoUser = await prisma.user.create({
+      data: {
+        email: payload.email,
+        name: payload.name || payload.email.split('@')[0],
+        role: (depositoAccess.rol as 'encargado' | 'observador' | 'solicitante') || 'observador',
+        passwordHash: '', // Ya no usamos pass local, delegamos en platform
+        platformUserId: payload.sub,
+      },
+    })
+  } else if (!depositoUser.platformUserId || depositoUser.role !== depositoAccess.rol) {
+    // Mantener sincronizado el rol y el platformUserId si faltaba
+    depositoUser = await prisma.user.update({
+      where: { id: depositoUser.id },
+      data: {
+        platformUserId: payload.sub,
+        role: (depositoAccess.rol as 'encargado' | 'observador' | 'solicitante'),
+      },
+    })
   }
 
   req.depositoUser = {

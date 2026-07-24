@@ -88,6 +88,8 @@ router.get('/', authenticate, async (_req: Request, res: Response): Promise<void
           select: {
             lote: true,
             productoNombre: true,
+            cantidadIngresada: true,
+            cantidadDistribuida: true,
             temperaturaTransporte: true,
             condicionEmbalaje: true,
             observacionesCalidad: true,
@@ -238,7 +240,7 @@ router.post(
       const lote =
         categoria === 'droga'
           ? result.data.lote!.trim()
-          : await generarLote(categoria)
+          : await generarLote()
 
       const item = await prisma.actaItem.create({
         data: {

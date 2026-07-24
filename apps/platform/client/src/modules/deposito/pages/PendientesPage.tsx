@@ -13,6 +13,9 @@ import {
   useFrascosDisponibles,
   useEnviarEsterilizacion,
   useRecibirEsterilizacion,
+  type InsumoPendiente,
+  type Frasco,
+  type EstadoPendiente,
 } from '../queries'
 import { PageHeader } from '../components/layout/PageHeader'
 import {
@@ -22,31 +25,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '../components/ui/Dialog'
-
-type EstadoPendiente = 'en_esterilizacion' | 'recibido'
-
-interface InsumoPendiente {
-  id: string
-  categoria: string
-  articulo: string
-  cantidad: number
-  destino: string
-  estado: EstadoPendiente
-  fechaEnvio: string
-  fechaRetornoEstimada: string | null
-  fechaRecibido: string | null
-  notas: string | null
-  createdAt: string
-  user: { name: string }
-}
-
-interface Frasco {
-  id: string
-  articulo: string
-  unidadesPorCaja: number
-  cantidadCajas: number
-  total: number
-}
 
 interface RecibirPendienteResponse {
   recibido: InsumoPendiente

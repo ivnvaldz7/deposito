@@ -35,12 +35,20 @@ router.post(
 
     const { fecha, productoId, lote, cantidad, observaciones } = result.data
 
+    // Generate lot number before opening the transaction so it runs in the
+    // correct scope and avoids reading uncommitted data from within $transaction.
+    let loteFinal: string
+    const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
+    if (!producto) {
+      res.status(400).json({ message: 'Producto no encontrado en el catálogo' })
+      return
+    }
+    loteFinal =
+      producto.categoria === 'droga'
+        ? lote?.trim() ?? ''
+        : await generarLote()
+
     try {
-      const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
-      if (!producto) {
-        res.status(400).json({ message: 'Producto no encontrado en el catálogo' })
-        return
-      }
 
       const currentUser = await prisma.user.findUnique({
         where: { id: req.depositoUser!.id },
@@ -51,9 +59,9 @@ router.post(
         return
       }
 
-      const result = await prisma.$transaction(async (tx) => {
+      const acta = await prisma.$transaction(async (tx) => {
         // 1. Crear acta
-        const acta = await tx.acta.create({
+        const actaRecord = await tx.acta.create({
           data: {
             fecha: new Date(fecha + 'T00:00:00.000Z'),
             notas: observaciones ?? null,
@@ -61,16 +69,12 @@ router.post(
           },
         })
 
-        // 2. Generar lote (manual para droga, auto para el resto)
-        const loteFinal =
-          producto.categoria === 'droga'
-            ? lote?.trim() ?? ''
-            : await generarLote(producto.categoria)
+        // 2. loteFinal was resolved before the transaction (see above)
 
         // 3. Crear item del acta
         const item = await tx.actaItem.create({
           data: {
-            actaId: acta.id,
+            actaId: actaRecord.id,
             productoId: producto.id,
             categoria: producto.categoria,
             productoNombre: producto.nombreCompleto,
@@ -145,7 +149,10 @@ router.post(
           if (existing) {
             await tx.inventarioFrasco.update({
               where: { id: existing.id },
-              data: { total: { increment: cantidad } },
+              data: {
+                cantidadCajas: { increment: cantidad },
+                total: { increment: cantidad * existing.unidadesPorCaja },
+              },
             })
           } else {
             await tx.inventarioFrasco.create({
@@ -153,7 +160,8 @@ router.post(
                 productoId: producto.id,
                 articulo: producto.nombreCompleto,
                 unidadesPorCaja: 1,
-                total: cantidad,
+                cantidadCajas: cantidad,
+                total: cantidad, // unidadesPorCaja = 1
               },
             })
           }
@@ -161,7 +169,7 @@ router.post(
 
         // 5. Marcar acta como completada
         await tx.acta.update({
-          where: { id: acta.id },
+          where: { id: actaRecord.id },
           data: { estado: 'completada' },
         })
 
@@ -179,14 +187,14 @@ router.post(
           },
         })
 
-        return acta
+        return actaRecord
       })
 
       // Notificaciones
       sseManager.broadcastGlobal({
         tipo: 'ingreso_creado',
         mensaje: `Nuevo ingreso de ${producto.nombreCompleto} por ${currentUser.name}`,
-        datos: { actaId: result.id, fecha, producto: producto.nombreCompleto, cantidad },
+        datos: { actaId: acta.id, fecha, producto: producto.nombreCompleto, cantidad },
         timestamp: new Date().toISOString(),
       })
       eventBus.emit({
@@ -194,11 +202,11 @@ router.post(
         tipo: 'ingreso_creado',
         titulo: 'Ingreso registrado',
         mensaje: `${producto.nombreCompleto} — ${cantidad} uds — ${currentUser.name}`,
-        link: `/deposito/actas/${result.id}`,
+        link: `/deposito/actas/${acta.id}`,
         timestamp: new Date().toISOString(),
       })
 
-      res.status(201).json(result)
+      res.status(201).json(acta)
     } catch (error) {
       console.error(error)
       res.status(500).json({ message: 'Error interno del servidor' })

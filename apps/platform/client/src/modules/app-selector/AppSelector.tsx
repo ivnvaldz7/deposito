@@ -100,8 +100,8 @@ export default function AppSelector() {
                 onClick={() => handleSelect(appId)}
                 className={cn(
                   'group relative w-full overflow-hidden rounded-xl text-left transition-all duration-200',
-                  'glass border border-white/5',
-                  'hover:border-primary/20 hover:shadow-float',
+                  'bg-surface-container border border-white/10 shadow-float',
+                  'hover:border-primary/20',
                   'scale-hover',
                   'animate-slide-up',
                 )}

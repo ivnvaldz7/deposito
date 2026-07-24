@@ -80,6 +80,9 @@
   --spacing-xl: 2rem;
   --spacing-margin-desktop: 2rem;
 
+  /* === ANCHOS — En Tailwind v4 el namespace de tamaño es unificado,
+       y --spacing-md: 1rem pisa --container-md. Sobreescribimos utilities directamente. */
+
   /* === BACKWARD COMPAT (legacy tokens — keep until full migration) === */
   --color-surface-high: #1a211d;
   --color-surface-highest: #1f2822;
@@ -93,6 +96,16 @@
   --color-emerald-200: #bfeed2;
   --color-rose-500: #fa746f;
   --color-amber-500: #ff9800;
+}
+
+/* === OVERRIDES max-w-{named} — Tailwind v4 usa --spacing-{size} para max-w-{size},
+       y --spacing-md: 1rem da 16px en lugar de 28rem. Estos overrides garantizan los valores correctos. */
+@layer utilities {
+  .max-w-xs { max-width: 20rem; }
+  .max-w-sm { max-width: 24rem; }
+  .max-w-md { max-width: 28rem; }
+  .max-w-lg { max-width: 32rem; }
+  .max-w-xl { max-width: 36rem; }
 }
 
 /* === LIGHT THEME OVERRIDES === */

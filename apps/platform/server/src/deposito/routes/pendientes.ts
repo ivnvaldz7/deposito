@@ -139,7 +139,7 @@ router.put(
       })
       res.json(pendiente)
     } catch {
-      res.status(404).json({ message: 'Pendiente no encontrado' })
+      res.status(500).json({ message: 'Error interno del servidor' })
     }
   }
 )

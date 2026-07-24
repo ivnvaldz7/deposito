@@ -215,7 +215,7 @@ router.get('/exportar-pdf', authenticate, requireRole('encargado', 'observador')
       doc.text(movimiento.categoria, 230, rowY + 7, { width: 70 })
       doc.text(movimiento.productoNombre, 312, rowY + 7, { width: 116 })
       doc.text(String(movimiento.cantidad), 440, rowY + 7, { width: 42, align: 'right' })
-      doc.text(movimiento.user.name, 494, rowY + 7, { width: 55 })
+      doc.text(movimiento.user?.name ?? '—', 494, rowY + 7, { width: 55 })
       rowY += 26
     }
 

@@ -40,7 +40,6 @@ export function verifyToken(
     return
   }
 
-  console.log('[verify-token] Token verified for:', payload.email)
   req.user = payload
   next()
 }

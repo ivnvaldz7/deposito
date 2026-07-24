@@ -5,6 +5,7 @@ import { queryClient } from '@/lib/query-client'
 import { AppRouter } from '@/router'
 import { useAuthStore } from '@/stores/auth-store'
 import { applyStoredTheme } from '@/lib/theme'
+import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 
 function AuthBootstrap({ children }: { children: React.ReactNode }) {
   const authResolved = useAuthStore((s) => s.authResolved)
@@ -31,12 +32,14 @@ function AuthBootstrap({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthBootstrap>
-          <AppRouter />
-        </AuthBootstrap>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <AppErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthBootstrap>
+            <AppRouter />
+          </AuthBootstrap>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </AppErrorBoundary>
   )
 }

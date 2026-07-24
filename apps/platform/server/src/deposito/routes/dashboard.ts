@@ -75,7 +75,7 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
       }),
       prisma.inventarioDroga.findMany({
         where: {
-          vencimiento: { lte: porVencerLimit },
+          vencimiento: { gte: todayStart, lte: porVencerLimit },
           cantidad: { gt: 0 },
         },
         orderBy: { vencimiento: 'asc' },

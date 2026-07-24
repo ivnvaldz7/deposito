@@ -1,21 +1,30 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
+export type EstadoPendiente = 'en_esterilizacion' | 'recibido'
+
 export interface InsumoPendiente {
   id: string
-  tipo: string
+  categoria: string
+  articulo: string
   cantidad: number
-  fechaEnvio?: string | null
-  fechaRecepcion?: string | null
-  estado: string
+  destino: string
+  estado: EstadoPendiente
+  fechaEnvio: string
+  fechaRetornoEstimada: string | null
+  fechaRecibido: string | null
+  notas: string | null
   observaciones?: string | null
   createdAt: string
+  user: { name: string }
 }
 
 export interface Frasco {
   id: string
   articulo: string
-  cantidad: number
+  unidadesPorCaja: number
+  cantidadCajas: number
+  total: number
 }
 
 export const pendientesKeys = {
@@ -45,7 +54,7 @@ export function useEnviarEsterilizacion() {
       api.post('/pendientes/enviar', data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: pendientesKeys.all })
-      qc.invalidateQueries({ queryKey: pendientesKeys.frascos })
+      qc.invalidateQueries({ queryKey: pendientesKeys.frascos() })
     },
   })
 }

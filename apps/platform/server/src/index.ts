@@ -52,9 +52,19 @@ const clientDistPath = path.resolve(__dirname, '../../client/dist')
 const clientIndexPath = path.join(clientDistPath, 'index.html')
 
 if (existsSync(clientIndexPath)) {
-  app.use(express.static(clientDistPath))
+  // Hashed assets are immutable — cache aggressively
+  app.use('/assets', express.static(path.join(clientDistPath, 'assets'), {
+    maxAge: '1y',
+    immutable: true,
+  }))
+  app.use(express.static(clientDistPath, { index: false }))
 
+  // SPA fallback — never cache index.html so the browser always gets
+  // the latest chunk references after a deploy.
   app.get(/^\/(?!api\/).*/, (_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
     res.sendFile(clientIndexPath)
   })
 } else {

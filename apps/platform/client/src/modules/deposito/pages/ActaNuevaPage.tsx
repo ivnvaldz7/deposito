@@ -3,13 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Calendar, Package, Hash, FileText, ArrowLeft, Building2 } from 'lucide-react'
+import { Package, Hash, FileText, ArrowLeft, Building2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { api } from '../lib/api'
 import { toast } from '../lib/toast'
 import { ProductoSelector } from '../components/ProductoSelector'
 import type { CategoriaProducto } from '../components/ProductoSelector'
+import { DatePickerInput } from '../components/ui/DatePickerInput'
 
 const ingresoSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
@@ -47,6 +48,7 @@ export default function ActaNuevaPage() {
   const [mercadoCat, setMercadoCat] = useState<CategoriaProducto>('estuche')
 
   const resolvedCategoria: CategoriaProducto = tipoIngreso === 'MP' ? 'droga' : mercadoCat
+  const esME = tipoIngreso === 'ME'
 
   const {
     register,
@@ -75,6 +77,16 @@ export default function ActaNuevaPage() {
   useEffect(() => {
     setValue('categoria', resolvedCategoria, { shouldValidate: true })
   }, [resolvedCategoria, setValue])
+
+  // Auto-popular lote cuando cambia a ME
+  useEffect(() => {
+    if (!esME) return
+    api.get<{ lote: string }>('/lotes/siguiente')
+      .then((data) => setValue('lote', data.lote, { shouldValidate: false }))
+      .catch(() => {
+        // Si falla el endpoint, dejar el campo vacío
+      })
+  }, [esME, mercadoCat, setValue])
 
   async function onSubmit(data: IngresoFormData) {
     setServerError(null)
@@ -139,7 +151,7 @@ export default function ActaNuevaPage() {
                           : 'text-on-surface-variant hover:text-on-surface'
                       }`}
                     >
-                      {tipo === 'MP' ? 'Medicamento' : 'Material de Empaque'}
+                      {tipo === 'MP' ? 'Drogas' : 'Material de Empaque'}
                     </button>
                   ))}
                 </div>
@@ -170,17 +182,13 @@ export default function ActaNuevaPage() {
                   <label htmlFor="ingreso-fecha" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Fecha
                   </label>
-                  <div className="relative">
-                    <Calendar size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
-                    <input
-                      id="ingreso-fecha"
-                      {...register('fecha')}
-                      type="date"
-                      className="input-field pl-10 [color-scheme:dark]"
-                      autoFocus
-                    />
-                  </div>
-                  {errors.fecha && <p className="font-body text-error text-xs">{errors.fecha.message}</p>}
+                  <DatePickerInput
+                    id="ingreso-fecha"
+                    value={watch('fecha')}
+                    onChange={(iso) => setValue('fecha', iso, { shouldValidate: true })}
+                    error={errors.fecha?.message}
+                    autoFocus
+                  />
                 </div>
 
                 {/* Producto */}
@@ -235,7 +243,7 @@ export default function ActaNuevaPage() {
                       id="ingreso-lote"
                       {...register('lote')}
                       type="text"
-                      placeholder={categoria === 'droga' ? 'Ej: L240901 (obligatorio para drogas)' : 'Ej: EST-0001 (auto si se deja vacío)'}
+                      placeholder={categoria === 'droga' ? 'Ej: L240901 (obligatorio para drogas)' : 'Auto-generado, editable'}
                       className="input-field pl-10"
                     />
                   </div>
