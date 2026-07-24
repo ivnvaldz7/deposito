@@ -5,6 +5,8 @@ import {
   comparePassword,
   signAccessToken,
   signRefreshToken,
+  APP_SLUG_BY_ID,
+  AppIdEnum,
 } from '@platform/core'
 
 const router = Router()
@@ -78,13 +80,16 @@ router.post('/login', async (req, res) => {
     return
   }
 
-  // Build apps record from access (normalize Prisma enum underscore to frontend hyphen)
+  // Build apps record from access
   const apps = platformUser.appAccess.reduce<
     Record<string, { rol: string; activo: boolean }>
   >((acc, access) => {
-    acc[`${access.app}`.replace('_', '-')] = {
-      rol: access.rol,
-      activo: access.activo,
+    const slug = APP_SLUG_BY_ID[access.app as AppIdEnum]
+    if (slug) {
+      acc[slug] = {
+        rol: access.rol,
+        activo: access.activo,
+      }
     }
     return acc
   }, {})

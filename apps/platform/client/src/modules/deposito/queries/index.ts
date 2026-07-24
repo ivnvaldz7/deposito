@@ -70,8 +70,7 @@ export {
   useRecibirEsterilizacion,
   pendientesKeys,
 } from './use-pendientes'
-export type { InsumoPendiente, Frasco, EstadoPendiente } from './use-pendientes'
-export type { Frasco as FrascoPendiente } from './use-pendientes'
+export type { InsumoPendiente, EstadoPendiente } from './use-pendientes'
 
 export {
   useMovimientos,
@@ -90,4 +89,12 @@ export {
   useDashboard,
   dashboardKeys,
 } from './use-dashboard'
-export type { DashboardStats } from './use-dashboard'
+export type { 
+  DashboardStats,
+  TipoMovimiento,
+  UltimoMovimiento,
+  DrogaBajo,
+  ItemMercadoBajo,
+  FrascoBajo,
+  DrogaPorVencer
+} from './use-dashboard'

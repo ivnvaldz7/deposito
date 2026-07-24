@@ -69,7 +69,7 @@ describe('ActaNuevaPage', () => {
       token: 'token',
     })
     // Mock catalog fetch for ProductoSelector + lote autofill
-    api.get.mockImplementation((path: string) => {
+    vi.mocked(api.get).mockImplementation((path: string) => {
       if (path === '/lotes/siguiente') return Promise.resolve({ lote: '1' })
       return Promise.resolve(PRODUCTOS_MOCK)
     })

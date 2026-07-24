@@ -1,19 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
+export type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
+export type EstadoOrden = 'solicitada' | 'aprobada' | 'ejecutada' | 'completada' | 'rechazada'
+export type Urgencia = 'normal' | 'urgente'
+
 export interface OrdenProduccion {
   id: string
-  categoria: string
+  categoria: Categoria
   productoId?: string | null
   productoNombre: string
-  mercado?: string | null
+  mercado?: Mercado | null
   cantidad: number
-  urgencia: string
-  estado: string
-  solicitanteId: string
-  solicitanteNombre?: string
-  aprobadorId?: string | null
-  aprobadorNombre?: string
+  urgencia: Urgencia
+  estado: EstadoOrden
+  solicitante: { id: string; name: string; role: string }
+  aprobador: { id: string; name: string } | null
   motivoRechazo?: string | null
   createdAt: string
 }
@@ -36,7 +39,7 @@ export function useOrdenes(filters?: { estado?: string }) {
 export function useCreateOrden() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { categoria: string; productoNombre: string; cantidad: number; mercado?: string; urgencia?: string }) =>
+    mutationFn: (data: { categoria: Categoria; productoNombre: string; cantidad: number; mercado?: Mercado; urgencia?: Urgencia; productoId?: string }) =>
       api.post<OrdenProduccion>('/ordenes', data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
   })

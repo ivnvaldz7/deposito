@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
-import { useDrogas, useDeleteDroga, useUpdateDroga } from '../queries/use-drogas'
+import { useDrogas, useDeleteDroga, useUpdateDroga, type DrogaRecord } from '../queries/use-drogas'
 import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'

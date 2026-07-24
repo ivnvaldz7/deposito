@@ -5,7 +5,7 @@ import type { JwtPayload } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { MAX_SUELTOS, UNIDADES_POR_CAJA, calcularUnidades } from './constants'
 import { sseManager } from './sse-manager'
-import { eventBus } from '@platform/core'
+import { eventBus, getAppAccess } from '@platform/core'
 
 const router = Router()
 
@@ -190,7 +190,7 @@ router.get('/', requireApp('ale-bet'), async (req, res) => {
   const user = req.user as JwtPayload
   const estado = typeof req.query.estado === 'string' ? req.query.estado : undefined
   const vendedorId = typeof req.query.vendedorId === 'string' ? req.query.vendedorId : undefined
-  const rol = user.apps['ale_bet']?.rol
+  const rol = getAppAccess(user, 'ale-bet')?.rol
 
   const where: Prisma.PedidoWhereInput = {}
 

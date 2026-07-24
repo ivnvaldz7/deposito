@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express'
-import { eventBus, type JwtPayload } from '@platform/core'
+import { eventBus, getAppAccess, APP_SLUG_BY_ID, type JwtPayload, type AppIdEnum } from '@platform/core'
 
 const router = Router()
 
@@ -22,7 +22,8 @@ router.get('/stream', (req: Request, res: Response) => {
   // Suscribir al eventBus — filtrar por apps del usuario
   const off = eventBus.on((event) => {
     // Admin recibe todo; los demás solo eventos de sus apps
-    if (user.isPlatformAdmin || user.apps[event.app]?.activo) {
+    const appSlug = APP_SLUG_BY_ID[event.app as AppIdEnum] || event.app
+    if (user.isPlatformAdmin || getAppAccess(user, appSlug)?.activo) {
       res.write(`event: ${event.tipo}\ndata: ${JSON.stringify(event)}\n\n`)
     }
   })

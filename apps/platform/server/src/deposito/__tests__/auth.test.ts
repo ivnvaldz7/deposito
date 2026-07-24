@@ -9,7 +9,10 @@ const mockComparePassword = vi.hoisted(() => vi.fn())
 const mockSignToken = vi.hoisted(() => vi.fn())
 
 vi.mock('@platform/core', () => ({
-  getUserByEmail: mockGetUserByEmail,
+  
+    APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
+    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+    getUserByEmail: mockGetUserByEmail,
   comparePassword: mockComparePassword,
   signToken: mockSignToken,
   getUserById: vi.fn(),

@@ -6,6 +6,8 @@ import {
   getUserById,
   signAccessToken,
   signRefreshToken,
+  APP_SLUG_BY_ID,
+  AppIdEnum,
 } from '@platform/core'
 
 const router = Router()
@@ -70,9 +72,12 @@ router.get('/google/callback', async (req, res) => {
     const apps = platformUser.appAccess.reduce<
       Record<string, { rol: string; activo: boolean }>
     >((acc, access) => {
-      acc[access.app.replace('_', '-')] = {
-        rol: access.rol,
-        activo: access.activo,
+      const slug = APP_SLUG_BY_ID[access.app as AppIdEnum]
+      if (slug) {
+        acc[slug] = {
+          rol: access.rol,
+          activo: access.activo,
+        }
       }
       return acc
     }, {})

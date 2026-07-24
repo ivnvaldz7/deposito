@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
-import { verifyAccessToken } from '@platform/core'
+import { verifyAccessToken, getAppAccess } from '@platform/core'
 
 export function requireApp(app: string, roles?: string[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
@@ -19,7 +19,7 @@ export function requireApp(app: string, roles?: string[]) {
       return
     }
 
-    const appAccess = payload.apps[app]
+    const appAccess = getAppAccess(payload, app)
 
     if (!appAccess || appAccess.activo !== true) {
       res.status(403).json({ error: 'No tiene acceso a esta aplicación' })

@@ -22,7 +22,10 @@ const { mockGetUserByEmail, mockCreateUser, mockDb } = vi.hoisted(() => ({
 // ──────────────────────────────────────────────────
 vi.mock('@platform/core', () => ({
   createUser: mockCreateUser,
-  getUserByEmail: mockGetUserByEmail,
+  
+    APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
+    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+    getUserByEmail: mockGetUserByEmail,
   hashPassword: vi.fn().mockResolvedValue('hashed-password'),
   comparePassword: vi.fn(),
 }))

@@ -32,7 +32,7 @@ function signToken(overrides: Record<string, unknown> = {}): string {
       sub: 'admin-1',
       email: 'admin@test.com',
       name: 'Admin',
-      apps: { ale_bet: { rol: 'admin', activo: true } },
+      apps: { 'ale-bet': { rol: 'admin', activo: true } },
       ...overrides,
     },
     JWT_SECRET,
@@ -61,6 +61,9 @@ vi.mock('@platform/core', () => {
     signAccessToken: (payload: Record<string, unknown>) => {
       return _jwt.sign(payload, _getSecret(), { expiresIn: '15m' })
     },
+    
+    APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
+    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
     verifyAccessToken: (token: string) => {
       try {
         return _jwt.verify(token, _getSecret())

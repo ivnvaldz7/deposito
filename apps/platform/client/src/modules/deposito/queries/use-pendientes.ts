@@ -19,13 +19,7 @@ export interface InsumoPendiente {
   user: { name: string }
 }
 
-export interface Frasco {
-  id: string
-  articulo: string
-  unidadesPorCaja: number
-  cantidadCajas: number
-  total: number
-}
+import type { Frasco } from './use-frascos'
 
 export const pendientesKeys = {
   all: ['deposito', 'pendientes'] as const,

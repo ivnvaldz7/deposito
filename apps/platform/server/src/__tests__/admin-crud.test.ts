@@ -61,6 +61,9 @@ vi.mock('@platform/core', () => {
         expiresIn: '7d',
       })
     },
+    
+    APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
+    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
     verifyAccessToken: (token: string) => {
       try {
         const decoded = _jwt.verify(token, _getSecret())

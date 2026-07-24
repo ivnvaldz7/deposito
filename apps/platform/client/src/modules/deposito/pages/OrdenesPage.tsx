@@ -25,28 +25,7 @@ import {
   DialogClose,
 } from '../components/ui/Dialog'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
-type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
-type EstadoOrden = 'solicitada' | 'aprobada' | 'ejecutada' | 'completada' | 'rechazada'
-type Urgencia = 'normal' | 'urgente'
-
-interface OrdenProduccion {
-  id: string
-  categoria: Categoria
-  productoNombre: string
-  mercado: Mercado | null
-  cantidad: number
-  urgencia: Urgencia
-  estado: EstadoOrden
-  motivoRechazo: string | null
-  createdAt: string
-  updatedAt: string
-  solicitante: { id: string; name: string; role: string }
-  aprobador: { id: string; name: string } | null
-}
-
+import type { OrdenProduccion, Categoria, Mercado, EstadoOrden, Urgencia } from '../queries/use-ordenes'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const CATEGORIA_LABELS: Record<Categoria, string> = {
@@ -176,7 +155,7 @@ function NuevaOrdenModal({
       return
     }
     try {
-      const body: Record<string, unknown> = {
+      const body: { categoria: Categoria; productoNombre: string; cantidad: number; urgencia: Urgencia; productoId?: string; mercado?: Mercado } = {
         categoria: data.categoria,
         productoNombre: data.productoNombre,
         cantidad: Number(data.cantidad),
@@ -186,7 +165,7 @@ function NuevaOrdenModal({
         body.productoId = data.productoId
       }
       if (needsMercado(data.categoria) && data.mercado) {
-        body.mercado = data.mercado
+        body.mercado = data.mercado as Mercado
       }
       const orden = await createMutation.mutateAsync(body)
       onCreated(orden)

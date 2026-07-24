@@ -27,7 +27,7 @@ export function Sidebar() {
   const navigate = useNavigate()
   const collapsed = useSidebarStore((s) => s.collapsed)
   const [hoverOpen, setHoverOpen] = useState(false)
-  const hoverTimer = useRef<ReturnType<typeof setTimeout>>()
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const isOpen = collapsed ? hoverOpen : true
 

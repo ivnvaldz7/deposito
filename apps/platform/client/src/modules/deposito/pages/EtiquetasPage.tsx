@@ -34,15 +34,7 @@ import {
 } from '../components/ui/Dialog'
 import { PageHeader } from '../components/layout/PageHeader'
 
-interface Etiqueta {
-  id: string
-  productoId?: string | null
-  articulo: string
-  mercado: Mercado
-  cantidad: number
-  updatedAt: string
-}
-
+import type { Etiqueta } from '../queries/use-etiquetas'
 function sortEtiquetas(list: Etiqueta[]): Etiqueta[] {
   return [...list].sort((a, b) =>
     a.mercado.localeCompare(b.mercado) || sortByArticulo(a.articulo, b.articulo)
@@ -140,7 +132,6 @@ function AgregarEtiquetaModal({
             <div className="flex flex-wrap gap-2">
               {MERCADOS.map(({ value, label }) => (
                 <button key={value} type="button" onClick={() => setValue('mercado', value)}
-                  className="px-3 py-1.5 rounded font-body text-xs transition-colors"
                   className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${mercadoVal === value ? 'bg-primary-container/20 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                   {label}
                 </button>
@@ -210,7 +201,6 @@ function EditarEtiquetaModal({ etiqueta, onClose }: { etiqueta: Etiqueta; onClos
             <div className="flex flex-wrap gap-2">
               {MERCADOS.map(({ value, label }) => (
                 <button key={value} type="button" onClick={() => setValue('mercado', value)}
-                  className="px-3 py-1.5 rounded font-body text-xs transition-colors"
                   className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${mercadoVal === value ? 'bg-primary-container/20 text-primary' : 'bg-surface-container-high text-on-surface-variant'}`}>
                   {label}
                 </button>

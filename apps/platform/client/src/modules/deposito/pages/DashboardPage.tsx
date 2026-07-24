@@ -2,66 +2,7 @@ import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, Package, Plus } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
-import { useDashboard } from '../queries'
-
-type TipoMovimiento = 'ingreso_acta' | 'egreso_orden' | 'ajuste_manual'
-
-interface UltimoMovimiento {
-  id: string
-  tipo: TipoMovimiento
-  productoNombre: string
-  cantidad: number
-  createdAt: string
-  user: { name: string }
-}
-
-interface DrogaBajo {
-  id: string
-  nombre: string
-  cantidad: number
-}
-
-interface ItemMercadoBajo {
-  id: string
-  articulo: string
-  mercado: string
-  cantidad: number
-}
-
-interface FrascoBajo {
-  id: string
-  articulo: string
-  cantidadCajas: number
-  unidadesPorCaja: number
-  total: number
-}
-
-interface DrogaPorVencer {
-  id: string
-  nombre: string
-  lote: string | null
-  vencimiento: string
-  cantidad: number
-}
-
-interface DashboardStats {
-  totalDrogas: number
-  drogasEnStock: number
-  drogasSinStock: number
-  totalEstuches: number
-  estuchesSinStock: number
-  totalEtiquetas: number
-  etiquetasSinStock: number
-  totalFrascos: number
-  frascosSinStock: number
-  movimientosHoy: number
-  ultimosMovimientos: UltimoMovimiento[]
-  stockBajo: DrogaBajo[]
-  stockBajoEstuches: ItemMercadoBajo[]
-  stockBajoEtiquetas: ItemMercadoBajo[]
-  stockBajoFrascos: FrascoBajo[]
-  porVencer: DrogaPorVencer[]
-}
+import { useDashboard, type DashboardStats, type UltimoMovimiento, type DrogaBajo, type ItemMercadoBajo, type FrascoBajo, type DrogaPorVencer, type TipoMovimiento } from '../queries'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 

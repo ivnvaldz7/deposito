@@ -1,7 +1,7 @@
 import { Router, type Request } from 'express'
 import ExcelJS from 'exceljs'
 import { platformDb as prisma, type Prisma } from '@platform/db'
-import type { JwtPayload } from '@platform/core'
+import { getAppAccess, type JwtPayload } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 
 const router = Router()
@@ -81,7 +81,7 @@ function buildHistorialWhere(req: Request, user: JwtPayload): Prisma.PedidoWhere
 
   const vendedorId = typeof req.query.vendedorId === 'string' ? req.query.vendedorId : undefined
   const clienteId = typeof req.query.clienteId === 'string' ? req.query.clienteId : undefined
-  const rol = user.apps['ale_bet']?.rol
+  const rol = getAppAccess(user, 'ale-bet')?.rol
 
   const where: Prisma.PedidoWhereInput = {}
 
@@ -172,7 +172,7 @@ router.get('/export', requireApp('ale-bet'), async (req, res) => {
   const pedidos = await loadHistorialPedidos(where)
   const workbook = new ExcelJS.Workbook()
   const worksheet = workbook.addWorksheet('Historial')
-  const isVendedor = user.apps['ale_bet']?.rol === 'vendedor'
+  const isVendedor = getAppAccess(user, 'ale-bet')?.rol === 'vendedor'
 
   const columns = isVendedor
     ? [

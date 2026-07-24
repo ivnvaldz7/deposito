@@ -1,5 +1,15 @@
 import jwt from 'jsonwebtoken'
 
+export const APP_SLUG_BY_ID = {
+  deposito: 'deposito',
+  ale_bet: 'ale-bet',
+  portal: 'portal',
+  admin: 'admin',
+} as const
+
+export type AppIdEnum = keyof typeof APP_SLUG_BY_ID
+export type AppSlug = typeof APP_SLUG_BY_ID[AppIdEnum]
+
 export interface JwtPayload {
   sub: string
   email: string
@@ -92,6 +102,12 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload | null {
     return null
   }
 }
+
+export function getAppAccess(user: JwtPayload | undefined | null, slug: string) {
+  if (!user || !user.apps) return undefined
+  return user.apps[slug]
+}
+
 
 // Backward compatibility aliases
 export const verifyToken = verifyAccessToken

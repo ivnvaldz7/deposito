@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import { getAppAccess } from '@platform/core'
 import type { JwtPayload } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { sseManager } from './sse-manager'
@@ -16,7 +17,7 @@ router.get(
       return
     }
 
-    const rol = user.apps['ale_bet']?.rol
+    const rol = getAppAccess(user, 'ale-bet')?.rol
 
     if (!rol) {
       res.status(403).json({ error: 'No tiene acceso a Ale-Bet' })

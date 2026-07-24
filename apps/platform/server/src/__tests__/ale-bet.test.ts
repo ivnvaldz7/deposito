@@ -9,7 +9,7 @@ import jwt from 'jsonwebtoken'
 const { mockDb, mockSseManager, mockEventBus } = vi.hoisted(() => ({
   mockDb: {
     producto: {
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -17,7 +17,7 @@ const { mockDb, mockSseManager, mockEventBus } = vi.hoisted(() => ({
       count: vi.fn(),
     },
     lote: {
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -28,7 +28,7 @@ const { mockDb, mockSseManager, mockEventBus } = vi.hoisted(() => ({
       update: vi.fn(),
     },
     pedido: {
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       findUniqueOrThrow: vi.fn(),
       create: vi.fn(),
@@ -38,10 +38,10 @@ const { mockDb, mockSseManager, mockEventBus } = vi.hoisted(() => ({
       create: vi.fn(),
     },
     platformUser: {
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     cliente: {
-      findMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -72,7 +72,7 @@ function signToken(overrides: Record<string, unknown> = {}): string {
       email: 'test@example.com',
       name: 'Test User',
       apps: {
-        ale_bet: { rol: 'admin', activo: true },
+        'ale-bet': { rol: 'admin', activo: true },
         deposito: { rol: 'encargado', activo: true },
       },
       ...overrides,
@@ -85,14 +85,14 @@ function signToken(overrides: Record<string, unknown> = {}): string {
 function signVendedorToken(): string {
   return signToken({
     sub: 'vendedor-1',
-    apps: { ale_bet: { rol: 'vendedor', activo: true } },
+    apps: { 'ale-bet': { rol: 'vendedor', activo: true } },
   })
 }
 
 function signArmadorToken(): string {
   return signToken({
     sub: 'armador-1',
-    apps: { ale_bet: { rol: 'armador', activo: true } },
+    apps: { 'ale-bet': { rol: 'armador', activo: true } },
   })
 }
 
@@ -120,6 +120,9 @@ vi.mock('@platform/core', () => {
     signRefreshToken: (userId: string) => {
       return _jwt.sign({ sub: userId, type: 'refresh' }, _getSecret(), { expiresIn: '7d' })
     },
+    
+    APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
+    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
     verifyAccessToken: (token: string) => {
       try {
         const decoded = _jwt.verify(token, _getSecret()) as Record<string, unknown>

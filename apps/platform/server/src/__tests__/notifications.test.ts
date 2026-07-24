@@ -46,6 +46,9 @@ vi.mock('@platform/core', () => {
       _jwt.sign({ sub: userId, type: 'refresh' as const }, _getSecret(), {
         expiresIn: '7d',
       }),
+    
+    APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
+    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
     verifyAccessToken: (token: string) => {
       try {
         const decoded = _jwt.verify(token, _getSecret()) as Record<string, unknown>
@@ -142,7 +145,7 @@ const userPayload = {
   email: 'user@test.com',
   name: 'Test User',
   isPlatformAdmin: false,
-  apps: { deposito: { activo: true }, ale_bet: { activo: false }, admin: { activo: false } },
+  apps: { deposito: { activo: true }, 'ale-bet': { activo: false }, admin: { activo: false } },
 }
 
 const adminPayload = {
@@ -150,7 +153,7 @@ const adminPayload = {
   email: 'admin@test.com',
   name: 'Admin',
   isPlatformAdmin: true,
-  apps: { deposito: { activo: true }, ale_bet: { activo: true }, admin: { activo: true } },
+  apps: { deposito: { activo: true }, 'ale-bet': { activo: true }, admin: { activo: true } },
 }
 
 const otherAppPayload = {
@@ -158,7 +161,7 @@ const otherAppPayload = {
   email: 'user2@test.com',
   name: 'Other User',
   isPlatformAdmin: false,
-  apps: { deposito: { activo: false }, ale_bet: { activo: true }, admin: { activo: false } },
+  apps: { deposito: { activo: false }, 'ale-bet': { activo: true }, admin: { activo: false } },
 }
 
 function createApp(): Express {

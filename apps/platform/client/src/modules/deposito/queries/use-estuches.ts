@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import type { Mercado } from '../components/inventory-shared/mercados'
 
 export interface Estuche {
   id: string
   productoId?: string | null
   articulo: string
-  mercado: string
+  mercado: Mercado
   cantidad: number
   updatedAt: string
 }
@@ -25,7 +26,7 @@ export function useEstuches() {
 export function useCreateEstuche() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { articulo: string; mercado: string; cantidad: number }) =>
+    mutationFn: (data: { articulo: string; mercado: Mercado; cantidad: number }) =>
       api.post<Estuche>('/estuches', data),
     onSuccess: () => qc.invalidateQueries({ queryKey: estuchesKeys.all }),
   })
@@ -34,7 +35,7 @@ export function useCreateEstuche() {
 export function useUpdateEstuche() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<{ articulo: string; cantidad: number }>) =>
+    mutationFn: ({ id, ...data }: { id: string } & Partial<{ articulo: string; mercado: Mercado; cantidad: number }>) =>
       api.put<Estuche>(`/estuches/${id}`, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: estuchesKeys.all }),
   })

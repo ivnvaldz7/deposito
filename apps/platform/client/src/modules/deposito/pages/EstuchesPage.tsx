@@ -34,15 +34,7 @@ import {
 } from '../components/ui/Dialog'
 import { PageHeader } from '../components/layout/PageHeader'
 
-interface Estuche {
-  id: string
-  productoId?: string | null
-  articulo: string
-  mercado: Mercado
-  cantidad: number
-  updatedAt: string
-}
-
+import type { Estuche } from '../queries/use-estuches'
 // ─── Sort ─────────────────────────────────────────────────────────────────────
 
 function sortEstuches(list: Estuche[]): Estuche[] {
@@ -160,7 +152,6 @@ function AgregarEstucheModal({
                   key={value}
                   type="button"
                   onClick={() => setValue('mercado', value)}
-                  className="px-3 py-1.5 rounded font-body text-xs transition-colors"
                   className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${
                     mercadoVal === value
                       ? 'bg-primary-container/20 text-primary'
@@ -297,7 +288,6 @@ function EditarEstucheModal({
                   key={value}
                   type="button"
                   onClick={() => setValue('mercado', value)}
-                  className="px-3 py-1.5 rounded font-body text-xs transition-colors"
                   className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${
                     mercadoVal === value
                       ? 'bg-primary-container/20 text-primary'
