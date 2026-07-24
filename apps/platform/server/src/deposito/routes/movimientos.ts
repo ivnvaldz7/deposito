@@ -7,15 +7,26 @@ import { authenticate } from '../middleware/auth'
 const router = Router()
 
 const TIPOS_VALIDOS = Object.values(DepositoTipoMovimiento)
+const CATEGORIAS_VALIDAS = ['droga', 'estuche', 'etiqueta', 'frasco'] as const
 
 // GET /api/movimientos — listar con filtros opcionales
 router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const { tipo, producto, desde, hasta } = req.query
+  const { tipo, producto, desde, hasta, categoria } = req.query
 
   const where: Prisma.MovimientoWhereInput = {}
 
   if (tipo && typeof tipo === 'string' && TIPOS_VALIDOS.includes(tipo as DepositoTipoMovimiento)) {
     where.tipo = tipo as DepositoTipoMovimiento
+  }
+
+  if (categoria && typeof categoria === 'string') {
+    if (categoria === 'mp') {
+      where.categoria = 'droga' as any
+    } else if (categoria === 'me') {
+      where.categoria = { in: ['estuche', 'etiqueta', 'frasco'] } as any
+    } else if (CATEGORIAS_VALIDAS.includes(categoria as typeof CATEGORIAS_VALIDAS[number])) {
+      where.categoria = categoria as any
+    }
   }
 
   if (producto && typeof producto === 'string' && producto.trim()) {

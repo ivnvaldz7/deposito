@@ -227,6 +227,19 @@ router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) 
 
   const numero = formatPedidoNumero()
 
+  // Validate stock before creating
+  for (const item of parsed.data.items) {
+    const lotes = await prisma.lote.findMany({
+      where: { productoId: item.productoId, activo: true },
+      select: { cajas: true, sueltos: true },
+    })
+    const disponible = lotes.reduce((sum, l) => sum + calcularUnidades(l.cajas, l.sueltos), 0)
+    if (disponible < item.cantidad) {
+      res.status(409).json({ error: `Stock insuficiente para completar el pedido. Disponible: ${disponible}u, solicitado: ${item.cantidad}u` })
+      return
+    }
+  }
+
   const pedido = await prisma.pedido.create({
     data: {
       numero,
@@ -250,7 +263,7 @@ router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) 
   res.status(201).json(enrichedPedido)
 })
 
-router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'supervisor', 'vendedor']), async (req, res) => {
   const pedidoId = String(req.params.id)
 
   const pedido = await prisma.pedido.findUnique({
@@ -297,11 +310,14 @@ router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (
   res.json(enrichedPedido)
 })
 
-router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'supervisor', 'armador']), async (req, res) => {
   const pedidoId = String(req.params.id)
   const user = req.user as JwtPayload
 
-  const pedido = await prisma.pedido.findUnique({ where: { id: pedidoId } })
+  const pedido = await prisma.pedido.findUnique({
+    where: { id: pedidoId },
+    include: { items: true },
+  })
 
   if (!pedido) {
     res.status(404).json({ error: 'Pedido no encontrado' })
@@ -316,17 +332,37 @@ router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador']), async (req
     return
   }
 
-  const updated = await prisma.pedido.update({
-    where: { id: pedido.id },
-    data: { armadorId: user.sub, estado: 'EN_ARMADO' as const },
-    include: { cliente: true, items: { include: { producto: true } } },
-  })
+  try {
+    const updated = await prisma.$transaction(async (tx) => {
+      const result = await tx.pedido.update({
+        where: { id: pedido.id },
+        data: { armadorId: user.sub, estado: 'EN_ARMADO' as const },
+        include: { cliente: true, items: { include: { producto: true } } },
+      })
 
-  const [enrichedPedido] = await enrichPedidos([updated])
-  res.json(enrichedPedido)
+      // Reserve stock: deduct all items immediately (FIFO)
+      for (const item of result.items) {
+        await descontarStockFIFO(
+          tx,
+          item.productoId,
+          item.cantidad,
+          user.sub,
+          result.id,
+        )
+      }
+
+      return result
+    })
+
+    const [enrichedPedido] = await enrichPedidos([updated])
+    res.json(enrichedPedido)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'No se pudo tomar el pedido'
+    res.status(409).json({ error: message })
+  }
 })
 
-router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'supervisor', 'armador']), async (req, res) => {
   const pedidoId = String(req.params.id)
   const itemId = String(req.params.itemId)
   const user = req.user as JwtPayload
@@ -368,16 +404,6 @@ router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'arma
       const allCompleted = refreshed.items.every((entry) => entry.completado)
 
       if (allCompleted) {
-        for (const currentItem of refreshed.items) {
-          await descontarStockFIFO(
-            tx,
-            currentItem.productoId,
-            currentItem.cantidad,
-            user.sub,
-            refreshed.id
-          )
-        }
-
         return tx.pedido.update({
           where: { id: refreshed.id },
           data: { estado: 'COMPLETADO' as const },

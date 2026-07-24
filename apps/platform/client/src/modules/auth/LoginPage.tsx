@@ -14,6 +14,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 const DEV_USERS = [
   { email: 'admin@example.com', label: 'Admin' },
+  { email: 'vendedor@ale-bet.com', label: 'Vendedor Ale-Bet' },
+  { email: 'armador@ale-bet.com', label: 'Armador Ale-Bet' },
   { email: 'encargado@deposito.com', label: 'Encargado Depósito' },
   { email: 'observador@ale-bet.com', label: 'Observador Ale-Bet' },
 ]

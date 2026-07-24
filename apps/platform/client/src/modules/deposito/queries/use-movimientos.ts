@@ -18,10 +18,12 @@ export const movimientosKeys = {
   list: (filters?: Record<string, string>) => [...movimientosKeys.all, 'list', filters] as const,
 }
 
-export function useMovimientos(filters?: { desde?: string; hasta?: string; categoria?: string }) {
+export function useMovimientos(filters?: { desde?: string; hasta?: string; producto?: string; tipo?: string; categoria?: string }) {
   const params = new URLSearchParams()
   if (filters?.desde) params.set('desde', filters.desde)
   if (filters?.hasta) params.set('hasta', filters.hasta)
+  if (filters?.producto) params.set('producto', filters.producto)
+  if (filters?.tipo) params.set('tipo', filters.tipo)
   if (filters?.categoria) params.set('categoria', filters.categoria)
   const qs = params.toString()
   return useQuery({

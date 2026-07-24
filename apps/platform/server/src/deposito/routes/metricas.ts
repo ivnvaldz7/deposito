@@ -173,6 +173,20 @@ router.get('/', authenticate, requireRole('encargado', 'observador'), async (req
   }
 })
 
+// GET /api/metricas/productos — catálogo de nombres para el autocomplete
+router.get('/productos', authenticate, async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const productos = await prisma.depositoProducto.findMany({
+      where: { activo: true },
+      select: { nombreCompleto: true },
+      orderBy: { nombreCompleto: 'asc' },
+    })
+    res.json(productos.map((p) => p.nombreCompleto))
+  } catch {
+    res.status(500).json({ message: 'Error interno del servidor' })
+  }
+})
+
 router.get('/exportar-pdf', authenticate, requireRole('encargado', 'observador'), async (req: Request, res: Response): Promise<void> => {
   const filters = parseQueryParams(req)
 

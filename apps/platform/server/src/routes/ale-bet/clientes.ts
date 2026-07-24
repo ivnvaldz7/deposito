@@ -60,4 +60,31 @@ router.put('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
   res.json(cliente)
 })
 
+const importSchema = z.object({
+  clientes: z.array(z.object({
+    nombre: z.string().min(1).max(120),
+    contacto: z.string().max(120).optional(),
+    direccion: z.string().max(300).optional(),
+  })).min(1).max(500),
+})
+
+router.post('/import', requireApp('ale-bet', ['admin']), async (req, res) => {
+  const parsed = importSchema.safeParse(req.body)
+
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
+    return
+  }
+
+  const result = await prisma.cliente.createMany({
+    data: parsed.data.clientes,
+    skipDuplicates: true,
+  })
+
+  res.status(201).json({
+    imported: result.count,
+    total: parsed.data.clientes.length,
+  })
+})
+
 export default router

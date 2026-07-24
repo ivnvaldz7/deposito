@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { type Producto } from '../lib/api'
+import { type Producto, type Lote } from '../lib/api'
 import { UNIDADES_POR_CAJA, MAX_SUELTOS } from '../lib/constants'
-import { useProductos, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useCreateLote } from '../queries'
+import { useProductos, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useUpdateLote } from '../queries'
+import { toast } from '@/lib/toast'
 
 export default function ProductosPage() {
   const { data: productos = [], isLoading, error } = useProductos()
   const createMutation = useCreateProducto()
   const updateMutation = useUpdateProducto()
   const deleteMutation = useDeleteProducto()
-  const createLoteMutation = useCreateLote()
+  const updateLoteMutation = useUpdateLote()
 
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
@@ -16,7 +17,8 @@ export default function ProductosPage() {
   const [form, setForm] = useState({ nombre: '', sku: '', stockMinimo: 100 })
   const [lotesProducto, setLotesProducto] = useState<Producto | null>(null)
   const { data: lotes = [] } = useLotes(lotesProducto?.id ?? '')
-  const [loteForm, setLoteForm] = useState({ cajas: 0, sueltos: 0, fechaProduccion: new Date().toISOString().split('T')[0] })
+  const [editingLoteId, setEditingLoteId] = useState<string | null>(null)
+  const [editLoteForm, setEditLoteForm] = useState({ cajas: 0, sueltos: 0 })
 
   function openCreate() {
     setEditing(null)
@@ -24,7 +26,8 @@ export default function ProductosPage() {
     setShowModal(true)
   }
 
-  function openEdit(p: Producto) {
+  function openEdit(p: Producto, e: React.MouseEvent) {
+    e.stopPropagation()
     setEditing(p)
     setForm({ nombre: p.nombre, sku: p.sku, stockMinimo: p.stockMinimo })
     setShowModal(true)
@@ -39,35 +42,46 @@ export default function ProductosPage() {
       }
       setShowModal(false)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al guardar')
+      toast.error(e instanceof Error ? e.message : 'Error al guardar')
     }
   }
 
-  function handleDelete(id: string) {
+  function handleDelete(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
     if (!confirm('¿Eliminar producto?')) return
     deleteMutation.mutate(id, {
-      onError: (e) => alert(e instanceof Error ? e.message : 'Error al eliminar'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al eliminar'),
     })
   }
 
   function openLotes(p: Producto) {
     setLotesProducto(p)
-    setLoteForm({ cajas: 0, sueltos: 0, fechaProduccion: new Date().toISOString().split('T')[0] })
+    setEditingLoteId(null)
   }
 
-  async function handleAddLote() {
+  function startEditLote(l: Lote, e: React.MouseEvent) {
+    e.stopPropagation()
+    setEditingLoteId(l.id)
+    setEditLoteForm({ cajas: l.cajas, sueltos: l.sueltos })
+  }
+
+  async function handleSaveLote(l: Lote) {
     if (!lotesProducto) return
     try {
-      await createLoteMutation.mutateAsync({
+      await updateLoteMutation.mutateAsync({
         productoId: lotesProducto.id,
-        cajas: loteForm.cajas,
-        sueltos: loteForm.sueltos,
-        fechaProduccion: new Date(loteForm.fechaProduccion).toISOString(),
+        loteId: l.id,
+        cajas: editLoteForm.cajas,
+        sueltos: editLoteForm.sueltos,
       })
-      setLoteForm({ cajas: 0, sueltos: 0, fechaProduccion: new Date().toISOString().split('T')[0] })
+      setEditingLoteId(null)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al crear lote')
+      toast.error(e instanceof Error ? e.message : 'Error al actualizar lote')
     }
+  }
+
+  function cancelEditLote() {
+    setEditingLoteId(null)
   }
 
   if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando productos...</p>
@@ -126,19 +140,41 @@ export default function ProductosPage() {
             <thead>
               <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
                 <th className="px-5 py-3 font-medium">Producto</th>
-                <th className="px-5 py-3 font-medium">SKU</th>
+                <th className="px-5 py-3 font-medium">Lotes</th>
                 <th className="px-5 py-3 font-medium text-right">Stock</th>
                 <th className="px-5 py-3 font-medium text-right">Mínimo</th>
                 <th className="px-5 py-3 font-medium text-center">Estado</th>
-                <th className="px-5 py-3 font-medium text-center">Lotes</th>
                 <th className="px-5 py-3 font-medium text-center">Acción</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map((p) => (
-                <tr key={p.id} className="border-b border-white/10 last:border-0">
+                <tr
+                  key={p.id}
+                  onClick={() => openLotes(p)}
+                  className="border-b border-white/10 last:border-0 cursor-pointer transition hover:bg-surface-variant/30"
+                >
                   <td className="px-5 py-4 font-semibold text-on-surface">{p.nombre}</td>
-                  <td className="px-5 py-4 text-outline">{p.sku}</td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap gap-1 max-w-[200px]">
+                      {p.lotes && p.lotes.length > 0 ? (
+                        p.lotes.slice(0, 3).map((l) => (
+                          <span
+                            key={l.id}
+                            onClick={(e) => { e.stopPropagation(); openLotes(p) }}
+                            className="inline-block rounded bg-surface-variant/60 px-2 py-1 font-mono text-[12px] font-bold text-on-surface-variant leading-tight cursor-pointer transition hover:bg-primary/30 hover:text-primary"
+                          >
+                            {l.numero}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="font-body text-[11px] text-outline">—</span>
+                      )}
+                      {p.lotes && p.lotes.length > 3 && (
+                        <span className="inline-block font-body text-[11px] text-outline">+{p.lotes.length - 3}</span>
+                      )}
+                    </div>
+                  </td>
                   <td className={`px-5 py-4 text-right font-medium ${p.stockBajo ? 'text-error' : 'text-on-surface'}`}>
                     {p.stock}
                   </td>
@@ -149,16 +185,11 @@ export default function ProductosPage() {
                     </span>
                   </td>
                   <td className="px-5 py-4 text-center">
-                    <button onClick={() => openLotes(p)} className="font-body text-[11px] text-primary transition hover:underline">
-                      Ver lotes
-                    </button>
-                  </td>
-                  <td className="px-5 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
-                      <button onClick={() => openEdit(p)} className="font-body text-[11px] text-outline transition hover:text-on-surface">
+                      <button onClick={(e) => openEdit(p, e)} className="font-body text-[11px] text-outline transition hover:text-on-surface">
                         Editar
                       </button>
-                      <button onClick={() => handleDelete(p.id)} className="font-body text-[11px] text-error transition hover:opacity-80">
+                      <button onClick={(e) => handleDelete(p.id, e)} className="font-body text-[11px] text-error transition hover:opacity-80">
                         Eliminar
                       </button>
                     </div>
@@ -201,74 +232,97 @@ export default function ProductosPage() {
       {/* Lotes modal */}
       {lotesProducto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesProducto(null)}>
-          <div className="max-h-[80vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-1 font-heading text-[18px] font-bold text-on-surface">
-              Lotes: {lotesProducto.nombre}
-            </h2>
-            <p className="mb-4 font-body text-[12px] text-outline">Stock total: {lotesProducto.stock} unidades</p>
+          <div className="max-h-[80vh] w-full max-w-xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-heading text-[20px] font-bold tracking-[-0.02em] text-on-surface">{lotesProducto.nombre}</h2>
+            <p className="mt-1 font-body text-[13px] font-medium text-on-surface-variant">
+              Stock total: <span className="font-semibold text-on-surface">{lotesProducto.stock} unidades</span>
+            </p>
 
             {lotes.length === 0 ? (
-              <p className="py-4 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados.</p>
+              <p className="mt-6 py-8 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados.</p>
             ) : (
-              <table className="mb-6 w-full text-left font-body text-[12px]">
-                <thead>
-                  <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                    <th className="pb-2 font-medium">Número</th>
-                    <th className="pb-2 font-medium text-right">Cajas</th>
-                    <th className="pb-2 font-medium text-right">Sueltos</th>
-                    <th className="pb-2 font-medium text-right">Unidades</th>
-                    <th className="pb-2 font-medium">Vencimiento</th>
-                    <th className="pb-2 font-medium text-center">Activo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lotes.map((l) => (
-                    <tr key={l.id} className="border-b border-white/10 last:border-0">
-                      <td className="py-3 font-medium text-on-surface">{l.numero}</td>
-                      <td className="py-3 text-right text-on-surface">{l.cajas}</td>
-                      <td className="py-3 text-right text-on-surface">{l.sueltos}</td>
-                      <td className="py-3 text-right font-medium text-on-surface">{l.unidades}</td>
-                      <td className="py-3 text-outline">
-                        {new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}
-                      </td>
-                      <td className="py-3 text-center">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 font-heading font-semibold text-xs ${l.activo ? 'bg-success/20 text-success' : 'bg-surface-highest text-on-surface-variant'}`}>
-                          {l.activo ? 'Sí' : 'No'}
+              <div className="mt-5 space-y-3">
+                {lotes.map((l) => (
+                  <div
+                    key={l.id}
+                    className="rounded-xl border border-white/10 bg-surface-container-high p-4"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="font-mono text-[16px] font-bold text-primary">{l.numero}</span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 font-heading font-semibold text-[10px] ${l.activo ? 'bg-success/20 text-success' : 'bg-surface-highest text-on-surface-variant'}`}>
+                          {l.activo ? 'Activo' : 'Inactivo'}
                         </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {editingLoteId === l.id ? (
+                          <>
+                            <button onClick={() => handleSaveLote(l)} className="rounded-full border border-primary px-3 py-1 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20">Guardar</button>
+                            <button onClick={cancelEditLote} className="rounded-full border border-white/10 px-3 py-1 font-body text-[11px] text-outline transition hover:text-on-surface">Cancelar</button>
+                          </>
+                        ) : (
+                          <button onClick={(e) => startEditLote(l, e)} className="font-body text-[11px] text-outline transition hover:text-primary">Editar</button>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-3 gap-4">
+                      {editingLoteId === l.id ? (
+                        <>
+                          <div>
+                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
+                            <input type="number" min={0} value={editLoteForm.cajas}
+                              onChange={(e) => setEditLoteForm({ ...editLoteForm, cajas: Number(e.target.value) })}
+                              className="input-field mt-1 text-right" onClick={(e) => e.stopPropagation()} />
+                          </div>
+                          <div>
+                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
+                            <input type="number" min={0} max={MAX_SUELTOS} value={editLoteForm.sueltos}
+                              onChange={(e) => setEditLoteForm({ ...editLoteForm, sueltos: Number(e.target.value) })}
+                              className="input-field mt-1 text-right" onClick={(e) => e.stopPropagation()} />
+                          </div>
+                          <div>
+                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Unidades</p>
+                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
+                              {editLoteForm.cajas * UNIDADES_POR_CAJA + editLoteForm.sueltos}
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>
+                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
+                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
+                              {l.cajas}
+                              <span className="ml-1 font-body text-[11px] font-normal text-outline">× {UNIDADES_POR_CAJA}u</span>
+                            </p>
+                          </div>
+                          <div>
+                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
+                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">{l.sueltos}</p>
+                          </div>
+                          <div>
+                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Total</p>
+                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">{l.unidades} <span className="font-body text-[11px] font-normal text-outline">uds</span></p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="mt-2 flex items-center gap-4">
+                      <p className="font-body text-[11px] text-outline">
+                        Vto: <span className="font-medium text-on-surface-variant">{new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}</span>
+                      </p>
+                      <p className="font-body text-[11px] text-outline">
+                        Prod: <span className="font-medium text-on-surface-variant">{new Date(l.fechaProduccion).toLocaleDateString('es-AR')}</span>
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
 
-            <div className="border-t border-white/10 pt-4">
-              <h3 className="mb-3 font-heading text-[14px] font-bold text-on-surface">Agregar lote</h3>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="font-body text-[11px] text-outline">Cajas</label>
-                  <input type="number" min={0} value={loteForm.cajas} onChange={(e) => setLoteForm({ ...loteForm, cajas: Number(e.target.value) })}
-                    className="input-field mt-1" />
-                </div>
-                <div>
-                  <label className="font-body text-[11px] text-outline">Sueltos (máx {MAX_SUELTOS})</label>
-                  <input type="number" min={0} max={MAX_SUELTOS} value={loteForm.sueltos} onChange={(e) => setLoteForm({ ...loteForm, sueltos: Number(e.target.value) })}
-                    className="input-field mt-1" />
-                </div>
-                <div>
-                  <label className="font-body text-[11px] text-outline">Fecha producción</label>
-                  <input type="date" value={loteForm.fechaProduccion} onChange={(e) => setLoteForm({ ...loteForm, fechaProduccion: e.target.value })}
-                    className="input-field mt-1" />
-                </div>
-              </div>
-              <button onClick={handleAddLote} className="mt-3 rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
-                Agregar lote
-              </button>
-            </div>
 
-            <div className="mt-4 flex justify-end">
-              <button onClick={() => setLotesProducto(null)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cerrar</button>
-            </div>
           </div>
         </div>
       )}

@@ -3,9 +3,11 @@ import { useLocation } from 'react-router-dom'
 import { type Pedido } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { Badge } from '@/components/ui/Badge'
+import { UNIDADES_POR_CAJA, MAX_SUELTOS } from '../lib/constants'
 import { usePedidos, useCreatePedido, useAprobarPedido, useTomarPedido, useCompletarItemPedido, useCancelarPedido } from '../queries'
 import { useClientes } from '../queries'
 import { useProductos } from '../queries'
+import { toast } from '@/lib/toast'
 
 const ESTADO_PRIORITY: Record<Pedido['estado'], number> = {
   APROBADO: 0,
@@ -35,21 +37,22 @@ export default function PedidosPage() {
 
   // Create modal state
   const [showCreate, setShowCreate] = useState(false)
-  const [createForm, setCreateForm] = useState<{ clienteId: string; items: Array<{ productoId: string; cantidad: number }> }>({
+  const [createForm, setCreateForm] = useState<{ clienteId: string; items: Array<{ productoId: string; cajas: number; sueltos: number }> }>({
     clienteId: '',
-    items: [{ productoId: '', cantidad: 1 }],
+    items: [{ productoId: '', cajas: 0, sueltos: 0 }],
   })
 
   const isAdmin = rol === 'admin'
+  const isSupervisor = rol === 'supervisor'
   const isVendedor = rol === 'vendedor'
   const isArmador = rol === 'armador'
 
   const filters = useMemo(() => {
     const f: { estado?: string; vendedorId?: string } = {}
     if (estadoFilter) f.estado = estadoFilter
-    if (isVendedor && user?.id) f.vendedorId = user.id
+    if (isVendedor && user?.sub) f.vendedorId = user.sub
     return f
-  }, [estadoFilter, isVendedor, user?.id])
+  }, [estadoFilter, isVendedor, user?.sub])
 
   const { data: pedidos = [], isLoading, error } = usePedidos(filters)
   const { data: clientes = [] } = useClientes()
@@ -77,13 +80,17 @@ export default function PedidosPage() {
     if (id) setExpandedId(id)
   }, [location.state])
 
+  function itemTotalUnidades(item: { cajas: number; sueltos: number }): number {
+    return item.cajas * UNIDADES_POR_CAJA + item.sueltos
+  }
+
   function openCreateModal() {
-    setCreateForm({ clienteId: '', items: [{ productoId: '', cantidad: 1 }] })
+    setCreateForm({ clienteId: '', items: [{ productoId: '', cajas: 0, sueltos: 0 }] })
     setShowCreate(true)
   }
 
   function addItemRow() {
-    setCreateForm((f) => ({ ...f, items: [...f.items, { productoId: '', cantidad: 1 }] }))
+    setCreateForm((f) => ({ ...f, items: [...f.items, { productoId: '', cajas: 0, sueltos: 0 }] }))
   }
 
   function removeItemRow(idx: number) {
@@ -93,7 +100,7 @@ export default function PedidosPage() {
     })
   }
 
-  function updateItem(idx: number, field: 'productoId' | 'cantidad', value: string | number) {
+  function updateItemField(idx: number, field: 'productoId' | 'cajas' | 'sueltos', value: string | number) {
     setCreateForm((f) => {
       const items = f.items.map((item, i) => (i === idx ? { ...item, [field]: value } : item))
       return { ...f, items }
@@ -101,64 +108,69 @@ export default function PedidosPage() {
   }
 
   async function handleCreate() {
-    if (!createForm.clienteId || createForm.items.some((i) => !i.productoId || i.cantidad < 1)) {
-      alert('Completá todos los campos')
+    const totalUnidades = (i: { productoId: string; cajas: number; sueltos: number }) => i.cajas * UNIDADES_POR_CAJA + i.sueltos
+    if (!createForm.clienteId || createForm.items.some((i) => !i.productoId || totalUnidades(i) < 1)) {
+      toast.warning('Completá todos los campos')
       return
     }
     try {
-      await createMutation.mutateAsync(createForm)
+      const payload = {
+        clienteId: createForm.clienteId,
+        items: createForm.items.map((i) => ({ productoId: i.productoId, cantidad: totalUnidades(i) })),
+      }
+      await createMutation.mutateAsync(payload)
       setShowCreate(false)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al crear pedido')
+      toast.error(e instanceof Error ? e.message : 'Error al crear pedido')
     }
   }
 
   function handleAprobar(id: string) {
     aprobarMutation.mutate(id, {
-      onError: (e) => alert(e instanceof Error ? e.message : 'Error al aprobar'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al aprobar'),
     })
   }
 
   function handleTomar(id: string) {
     tomarMutation.mutate(id, {
-      onError: (e) => alert(e instanceof Error ? e.message : 'Error al tomar pedido'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al tomar pedido'),
     })
   }
 
   function handleCompletarItem(pedidoId: string, itemId: string) {
     completarItemMutation.mutate({ pedidoId, itemId }, {
-      onError: (e) => alert(e instanceof Error ? e.message : 'Error al completar item'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al completar item'),
     })
   }
 
   function handleCancelar(id: string) {
     if (!confirm('¿Cancelar este pedido?')) return
     cancelarMutation.mutate(id, {
-      onError: (e) => alert(e instanceof Error ? e.message : 'Error al cancelar'),
+      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al cancelar'),
     })
   }
 
   function canAprobar(p: Pedido) {
     if (p.estado !== 'PENDIENTE') return false
-    if (isAdmin) return true
-    if (isVendedor) return p.vendedorId === user?.id
+    if (isAdmin || isSupervisor) return true
+    if (isVendedor) return p.vendedorId === user?.sub
     return false
   }
 
   function canTomar(p: Pedido) {
     if (p.estado !== 'APROBADO') return false
-    return isAdmin || isArmador
+    return isAdmin || isSupervisor || isArmador
   }
 
   function canCompletarItems(p: Pedido) {
     if (p.estado !== 'EN_ARMADO') return false
-    return isAdmin || isArmador
+    return isAdmin || isSupervisor || isArmador
   }
 
   function canCancelar(p: Pedido) {
     if (p.estado === 'COMPLETADO' || p.estado === 'CANCELADO') return false
-    if (isAdmin) return true
-    if (isVendedor) return p.estado === 'PENDIENTE' && p.vendedorId === user?.id
+    if (isAdmin || isSupervisor) return true
+    if (isVendedor) return p.estado === 'PENDIENTE' && p.vendedorId === user?.sub
     return false
   }
 
@@ -367,46 +379,86 @@ export default function PedidosPage() {
                   <button
                     type="button"
                     onClick={addItemRow}
-                    className="font-body text-[11px] font-medium text-primary transition hover:underline"
+                    className="rounded-full border border-primary/40 px-3 py-1 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
                   >
                     + Agregar item
                   </button>
                 </div>
                 <div className="space-y-3">
-                  {createForm.items.map((item, idx) => (
-                    <div key={idx} className="flex items-end gap-2">
-                      <div className="flex-1">
-                        <select
-                          value={item.productoId}
-                          onChange={(e) => updateItem(idx, 'productoId', e.target.value)}
-                          className="input-field"
-                        >
-                          <option value="">Producto</option>
-                          {activeProductos.map((pr) => (
-                            <option key={pr.id} value={pr.id}>{pr.nombre} ({pr.sku})</option>
-                          ))}
-                        </select>
+                  {createForm.items.map((item, idx) => {
+                    const total = itemTotalUnidades(item)
+                    const selectedProducto = activeProductos.find((pr) => pr.id === item.productoId)
+                    return (
+                      <div key={idx} className="rounded-lg border border-white/10 p-3">
+                        <div className="flex items-end gap-2">
+                          <div className="flex-1">
+                            <label className="font-body text-[10px] text-outline">Producto</label>
+                            <select
+                              value={item.productoId}
+                              onChange={(e) => updateItemField(idx, 'productoId', e.target.value)}
+                              className="input-field mt-1"
+                            >
+                              <option value="">Seleccionar</option>
+                              {activeProductos.map((pr) => (
+                                <option key={pr.id} value={pr.id} className="font-body">
+                                  {pr.nombre} ({pr.sku}) — stock: {pr.stock}u
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {createForm.items.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeItemRow(idx)}
+                              className="mb-1 font-body text-[13px] text-error transition hover:opacity-80"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+
+                        {selectedProducto && (
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="font-body text-[10px] text-outline">Cajas ({UNIDADES_POR_CAJA}u c/u)</label>
+                              <input
+                                type="number"
+                                min={0}
+                                value={item.cajas || ''}
+                                onChange={(e) => updateItemField(idx, 'cajas', Math.max(0, Number(e.target.value)))}
+                                className="input-field mt-1"
+                              />
+                            </div>
+                            <div>
+                              <label className="font-body text-[10px] text-outline">Sueltos (máx {MAX_SUELTOS})</label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={MAX_SUELTOS}
+                                value={item.sueltos || ''}
+                                onChange={(e) => updateItemField(idx, 'sueltos', Math.max(0, Math.min(MAX_SUELTOS, Number(e.target.value))))}
+                                className="input-field mt-1"
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {selectedProducto && total > 0 && (
+                          <p className="mt-1.5 text-right font-body text-[11px] font-medium text-on-surface-variant">
+                            Total: <span className="font-semibold text-on-surface">{total} unidades</span>
+                            {selectedProducto.stock > 0 && (
+                              <span className="ml-1 text-outline">
+                                · stock: {selectedProducto.stock}u
+                                {selectedProducto.stock < total && (
+                                  <span className="text-error"> (insuficiente)</span>
+                                )}
+                              </span>
+                            )}
+                          </p>
+                        )}
                       </div>
-                      <div className="w-20">
-                        <input
-                          type="number"
-                          min={1}
-                          value={item.cantidad}
-                          onChange={(e) => updateItem(idx, 'cantidad', Math.max(1, Number(e.target.value)))}
-                          className="input-field"
-                        />
-                      </div>
-                      {createForm.items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItemRow(idx)}
-                          className="mb-0.5 font-body text-[13px] text-error transition hover:opacity-80"
-                        >
-                          ✕
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 

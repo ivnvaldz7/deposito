@@ -1,23 +1,38 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { TrendingUp, TrendingDown, Scale, Activity, FileDown, BarChart2, Search, Check } from 'lucide-react'
+import { TrendingUp, TrendingDown, Scale, Activity, FileDown, BarChart2, Search, Check, Calendar } from 'lucide-react'
 import Fuse from 'fuse.js'
 import { useAuthStore } from '@/stores/auth-store'
 import { toast } from '../lib/toast'
 import { PageHeader } from '../components/layout/PageHeader'
 import { useMetricas, useProductosCatalogo } from '../queries'
+import type { MetricasData } from '../queries/use-metricas'
+
+// ─── Date Icon Button ───────────────────────────────────────────────────────
+
+function DateIconButton({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="w-[48px]">
+      <label className="font-heading text-xs uppercase tracking-widest text-on-surface-variant block mb-1">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="w-full h-[38px] border border-outline-variant rounded-lg flex items-center justify-center text-on-surface-variant transition-all pointer-events-none bg-surface-container">
+          <Calendar size={18} />
+        </div>
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-pointer [color-scheme:dark]"
+          aria-label={label}
+        />
+      </div>
+    </div>
+  )
+}
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
-
-interface MetricasData {
-  totalIngresos: number
-  totalEgresos: number
-  balance: number
-  movimientosPeriodo: number
-  ingresosPorCategoria: { categoria: string; total: number }[]
-  topProductosIngresados: { productoNombre: string; total: number }[]
-  topProductosSolicitados: { productoNombre: string; total: number }[]
-}
 
 interface MovimientoListItem {
   productoNombre: string
@@ -151,12 +166,20 @@ function ProductFilter({
   )
 
   const results = useMemo(() => {
-    if (!query.trim()) return options.slice(0, 8)
+    if (!query.trim()) return []
     return fuse
       .search(query.trim())
       .slice(0, 8)
       .map((result) => result.item.producto)
   }, [fuse, options, query])
+
+  useEffect(() => {
+    if (results.length > 0 && query.trim()) {
+      setOpen(true)
+    } else {
+      setOpen(false)
+    }
+  }, [results, query])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -170,7 +193,7 @@ function ProductFilter({
   }, [])
 
   return (
-    <div ref={containerRef} className="flex flex-col gap-1 min-w-[240px] flex-1">
+    <div ref={containerRef} className="flex flex-col gap-1 w-[260px]">
       <label htmlFor="metricas-producto" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
         Producto
       </label>
@@ -180,20 +203,26 @@ function ProductFilter({
           id="metricas-producto"
           type="text"
           value={query}
-          onFocus={() => setOpen(true)}
           onChange={(event) => {
             onQueryChange(event.target.value)
-            setOpen(true)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setOpen(false)
+            if (e.key === 'ArrowDown' && open) {
+              e.preventDefault()
+              const next = document.activeElement?.nextElementSibling as HTMLElement | null
+              next?.focus()
+            }
           }}
           placeholder="Buscar producto..."
-          className="input-field pl-9 pr-9"
+          className="w-full h-[38px] bg-surface-container border border-outline-variant rounded-lg pl-9 pr-9 text-on-surface text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           autoComplete="off"
         />
         {selected && query === selected && (
-          <Check size={14} strokeWidth={1.75} className="absolute right-3 top-1/2 -translate-y-1/2 text-success" />
+          <Check size={14} strokeWidth={1.75} className="absolute right-3 top-1/2 -translate-y-1/2 text-success pointer-events-none" />
         )}
         {open && results.length > 0 && (
-          <div className="absolute z-30 left-0 right-0 mt-1 rounded bg-surface-container-highest/95 backdrop-blur-md shadow-lg overflow-hidden border border-outline-variant/15">
+          <div className="absolute z-30 left-0 right-0 mt-1 rounded bg-surface-container-highest/95 backdrop-blur-md shadow-lg overflow-hidden border border-outline-variant/15 animate-fade-up origin-top">
             {results.map((producto) => (
               <button
                 key={producto}
@@ -211,11 +240,6 @@ function ProductFilter({
           </div>
         )}
       </div>
-      {query && query !== selected && (
-        <p className="font-body text-xs text-on-surface-variant">
-          Seleccioná un producto del listado para aplicar el filtro.
-        </p>
-      )}
     </div>
   )
 }
@@ -301,75 +325,52 @@ export default function MetricasPage() {
             Movimientos, balance y ranking de productos del período.
           </div>
 
-          <div className="flex flex-wrap gap-3 items-end">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="metricas-desde" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
-              Desde
-            </label>
-            <input
-              id="metricas-desde"
-              type="date"
-              value={desde}
-              onChange={(event) => setDesde(event.target.value)}
-              className="input-field"
+          <div className="flex flex-wrap gap-x-3 gap-y-2 items-end">
+            <DateIconButton label="Desde" value={desde} onChange={setDesde} />
+            <DateIconButton label="Hasta" value={hasta} onChange={setHasta} />
+
+            <div className="flex flex-col gap-1 min-w-[180px]">
+              <label htmlFor="metricas-categoria" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+                Categoría
+              </label>
+              <select
+                id="metricas-categoria"
+                value={categoria}
+                onChange={(event) => setCategoria(event.target.value)}
+                className="w-full h-[38px] bg-surface-container border border-outline-variant rounded-lg px-3 text-on-surface text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all appearance-none"
+              >
+                {CATEGORIAS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <ProductFilter
+              options={productOptions}
+              query={productoQuery}
+              selected={producto}
+              onQueryChange={(value) => {
+                setProductoQuery(value)
+                if (value !== producto) setProducto('')
+              }}
+              onSelect={(value) => {
+                setProducto(value)
+                setProductoQuery(value)
+              }}
             />
+
+            {(desde || hasta || categoria || producto || productoQuery) && (
+              <button
+                type="button"
+                onClick={handleClearFilters}
+                className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors py-2 underline mb-1"
+              >
+                Limpiar filtros
+              </button>
+            )}
           </div>
-
-          <div className="flex flex-col gap-1">
-            <label htmlFor="metricas-hasta" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
-              Hasta
-            </label>
-            <input
-              id="metricas-hasta"
-              type="date"
-              value={hasta}
-              onChange={(event) => setHasta(event.target.value)}
-              className="input-field"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1 min-w-[220px]">
-            <label htmlFor="metricas-categoria" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
-              Categoría
-            </label>
-            <select
-              id="metricas-categoria"
-              value={categoria}
-              onChange={(event) => setCategoria(event.target.value)}
-              className="input-field"
-            >
-              {CATEGORIAS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {item.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <ProductFilter
-            options={productOptions}
-            query={productoQuery}
-            selected={producto}
-            onQueryChange={(value) => {
-              setProductoQuery(value)
-              if (value !== producto) setProducto('')
-            }}
-            onSelect={(value) => {
-              setProducto(value)
-              setProductoQuery(value)
-            }}
-          />
-
-          {(desde || hasta || categoria || producto || productoQuery) && (
-            <button
-              type="button"
-              onClick={handleClearFilters}
-              className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors py-2 underline"
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
         </div>
       </PageHeader>
 

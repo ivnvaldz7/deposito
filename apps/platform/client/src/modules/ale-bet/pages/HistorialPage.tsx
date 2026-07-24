@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { type HistorialPedido } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { useHistorial } from '../queries'
+import { toast } from '@/lib/toast'
 import { useClientes } from '../queries'
 
 const ESTADOS = [
@@ -53,7 +54,7 @@ export default function HistorialPage() {
       a.click()
       window.URL.revokeObjectURL(url)
     } catch {
-      alert('Error al exportar')
+      toast.error('Error al exportar')
     } finally {
       setExporting(false)
     }
@@ -122,10 +123,10 @@ export default function HistorialPage() {
       </div>
 
       <div className="bg-surface-container-high rounded-xl overflow-hidden">
-        {loading ? (
+        {isLoading ? (
           <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">Cargando historial...</p>
         ) : error ? (
-          <p className="px-5 py-8 text-center font-body text-[13px] text-error">{error}</p>
+          <p className="px-5 py-8 text-center font-body text-[13px] text-error">{error instanceof Error ? error.message : 'Error al cargar el historial'}</p>
         ) : pedidos.length === 0 ? (
           <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No se encontraron pedidos.</p>
         ) : (

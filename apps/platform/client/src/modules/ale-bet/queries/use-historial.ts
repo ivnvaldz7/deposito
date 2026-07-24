@@ -10,5 +10,6 @@ export function useHistorial(filters?: { desde?: string; hasta?: string; estado?
   return useQuery({
     queryKey: historialKeys.list(filters),
     queryFn: () => aleBetApi.historial.list(filters),
+    placeholderData: (prev) => prev,
   })
 }

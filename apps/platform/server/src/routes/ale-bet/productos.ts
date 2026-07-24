@@ -140,6 +140,60 @@ router.get('/:id/lotes', requireApp('ale-bet', ['admin']), async (req, res) => {
   )
 })
 
+const updateLoteSchema = z.object({
+  cajas: z.number().int().min(0).optional(),
+  sueltos: z.number().int().min(0).max(MAX_SUELTOS).optional(),
+  activo: z.boolean().optional(),
+})
+
+router.put('/:id/lotes/:loteId', requireApp('ale-bet', ['admin']), async (req, res) => {
+  const productoId = String(req.params.id)
+  const loteId = String(req.params.loteId)
+  const user = req.user as JwtPayload
+  const parsed = updateLoteSchema.safeParse(req.body)
+
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
+    return
+  }
+
+  const lote = await prisma.lote.findUnique({ where: { id: loteId } })
+
+  if (!lote || lote.productoId !== productoId) {
+    res.status(404).json({ error: 'Lote no encontrado' })
+    return
+  }
+
+  const oldUnidades = calcularUnidades(lote.cajas, lote.sueltos)
+  const cajas = parsed.data.cajas ?? lote.cajas
+  const sueltos = parsed.data.sueltos ?? lote.sueltos
+  const newUnidades = calcularUnidades(cajas, sueltos)
+  const diff = newUnidades - oldUnidades
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const result = await tx.lote.update({
+      where: { id: loteId },
+      data: parsed.data,
+    })
+
+    if (diff !== 0) {
+      await tx.movimientoStock.create({
+        data: {
+          productoId,
+          cantidad: Math.abs(diff),
+          tipo: diff > 0 ? TipoMovimiento.ENTRADA_MANUAL : TipoMovimiento.AJUSTE,
+          referencia: loteId,
+          usuarioId: user.sub,
+        },
+      })
+    }
+
+    return result
+  })
+
+  res.json({ ...updated, unidades: calcularUnidades(updated.cajas, updated.sueltos) })
+})
+
 router.post('/:id/lotes', requireApp('ale-bet', ['admin']), async (req, res) => {
   const productoId = String(req.params.id)
   const user = req.user as JwtPayload

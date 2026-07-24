@@ -31,6 +31,8 @@ export interface ActaItem {
 export interface ActaItemSummary {
   lote: string
   productoNombre: string
+  cantidadIngresada: number
+  cantidadDistribuida: number
   temperaturaTransporte: string | null
   condicionEmbalaje: CondicionEmbalaje | null
   observacionesCalidad: string | null

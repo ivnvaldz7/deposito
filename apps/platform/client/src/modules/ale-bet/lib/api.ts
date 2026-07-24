@@ -125,6 +125,8 @@ export const aleBetApi = {
       list: (id: string) => apiClient.get<Lote[]>(`${BASE}/productos/${id}/lotes`),
       create: (id: string, data: { numero?: string; cajas: number; sueltos: number; fechaProduccion: string }) =>
         apiClient.post<Lote>(`${BASE}/productos/${id}/lotes`, data),
+      update: (id: string, loteId: string, data: { cajas?: number; sueltos?: number; activo?: boolean }) =>
+        apiClient.put<Lote>(`${BASE}/productos/${id}/lotes/${loteId}`, data),
     },
   },
 

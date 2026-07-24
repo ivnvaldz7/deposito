@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { type Cliente } from '../lib/api'
 import { Badge } from '@/components/ui/Badge'
 import { useClientes, useCreateCliente, useUpdateCliente } from '../queries'
+import { toast } from '@/lib/toast'
 
 export default function ClientesPage() {
   const { data: clientes = [], isLoading, error } = useClientes()
@@ -32,7 +33,7 @@ export default function ClientesPage() {
       }
       setShowModal(false)
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Error al guardar')
+      toast.error(e instanceof Error ? e.message : 'Error al guardar')
     }
   }
 
@@ -59,7 +60,6 @@ export default function ClientesPage() {
             <thead>
               <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
                 <th className="px-5 py-3 font-medium">Nombre</th>
-                <th className="px-5 py-3 font-medium">Contacto</th>
                 <th className="px-5 py-3 font-medium">Dirección</th>
                 <th className="px-5 py-3 font-medium text-center">Estado</th>
                 <th className="px-5 py-3 font-medium text-center">Acción</th>
@@ -69,7 +69,6 @@ export default function ClientesPage() {
               {clientes.map((c) => (
                 <tr key={c.id} className="border-b border-white/10 last:border-0">
                   <td className="px-5 py-4 font-semibold text-on-surface">{c.nombre}</td>
-                  <td className="px-5 py-4 text-outline">{c.contacto ?? '—'}</td>
                   <td className="px-5 py-4 text-outline">{c.direccion ?? '—'}</td>
                   <td className="px-5 py-4 text-center">
                     <Badge variant={c.activo ? 'success' : 'error'}>{c.activo ? 'Activo' : 'Inactivo'}</Badge>

@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { useMovimientos } from '../queries'
+import { api } from '../lib/api'
+import type { Producto } from '../components/ProductoSelector'
 import { ArrowDown, ArrowUp, Search, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 import {
   Table,
@@ -62,11 +64,47 @@ function CantidadCell({ cantidad, tipo }: { cantidad: number; tipo: string }) {
   )
 }
 
+// ─── Date Icon Button ────────────────────────────────────────────────────────
+
+function DateIconButton({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const hasValue = !!value
+
+  return (
+    <div className="w-[48px]">
+      <label className="block font-body text-[11px] text-on-surface-variant mb-xs font-medium tracking-wider uppercase">
+        {label}
+      </label>
+      <div className="relative">
+        {/* Visible icon button */}
+        <div
+          className={`w-full h-[38px] border rounded-lg flex items-center justify-center transition-all pointer-events-none ${
+            hasValue
+              ? 'border-primary text-primary'
+              : 'border-outline-variant text-on-surface-variant'
+          }`}
+        >
+          <Calendar size={18} />
+        </div>
+        {/* Invisible date input covers the whole area — opens native picker on click */}
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="absolute inset-0 opacity-0 cursor-pointer [color-scheme:dark]"
+          aria-label={label}
+        />
+      </div>
+    </div>
+  )
+}
+
 // ─── Filters bar ─────────────────────────────────────────────────────────────
 
 interface Filters {
   tipo: string
   producto: string
+  tipoProducto: string     // '' | 'mp' | 'me'
+  categoria: string        // '' | 'estuche' | 'etiqueta' | 'frasco'
   desde: string
   hasta: string
 }
@@ -79,23 +117,65 @@ interface FiltersBarProps {
 function FiltersBar({ filters, onChange }: FiltersBarProps) {
   const productoTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [productoLocal, setProductoLocal] = useState(filters.producto)
+  const [suggestions, setSuggestions] = useState<Producto[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [highlightIdx, setHighlightIdx] = useState(-1)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // Fetch product suggestions
+  const fetchSuggestions = useCallback(async (q: string) => {
+    if (!q.trim()) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+    try {
+      const data = await api.get<Producto[]>(`/productos?buscar=${encodeURIComponent(q)}`)
+      setSuggestions(data.slice(0, 8))
+      setShowSuggestions(data.length > 0)
+      setHighlightIdx(-1)
+    } catch {
+      // silencioso
+    }
+  }, [])
 
   function handleProductoChange(v: string) {
     setProductoLocal(v)
     if (productoTimer.current) clearTimeout(productoTimer.current)
     productoTimer.current = setTimeout(() => {
       onChange({ ...filters, producto: v })
-    }, 350)
+    }, 500)
+    fetchSuggestions(v)
   }
 
-  const hasFilters = filters.tipo || filters.producto || filters.desde || filters.hasta
+  function selectProduct(p: Producto) {
+    setProductoLocal(p.nombreCompleto)
+    onChange({ ...filters, producto: p.nombreCompleto })
+    setSuggestions([])
+    setShowSuggestions(false)
+  }
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    if (!showSuggestions) return
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showSuggestions])
+
+  const esME = filters.tipoProducto === 'me'
+  const hasFilters = filters.tipo || filters.producto || filters.tipoProducto || filters.categoria || filters.desde || filters.hasta
 
   return (
-    <div className="bg-surface-container-high rounded-lg p-md border border-white/10 flex flex-wrap gap-md items-end">
+    <div className="bg-surface-container-high rounded-lg p-md border border-white/10 flex flex-wrap gap-x-md gap-y-sm items-end">
       {/* Product Search */}
-      <div className="flex-1 min-w-[200px]">
+      <div ref={containerRef} className="flex-1 min-w-[200px] relative">
         <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
-          Product Search
+          Producto
         </label>
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-outline" />
@@ -103,14 +183,40 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
             type="text"
             value={productoLocal}
             onChange={(e) => handleProductoChange(e.target.value)}
-            placeholder="Scan or type ID..."
+            onKeyDown={(e) => {
+              if (!showSuggestions) return
+              if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx((i) => Math.min(i + 1, suggestions.length - 1)) }
+              else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx((i) => Math.max(i - 1, 0)) }
+              else if (e.key === 'Enter' && highlightIdx >= 0) { e.preventDefault(); selectProduct(suggestions[highlightIdx]!) }
+              else if (e.key === 'Escape') { setShowSuggestions(false) }
+            }}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            placeholder="Buscar producto..."
             className="w-full bg-surface-container border border-outline-variant rounded-lg pl-[36px] pr-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-xs outline-none"
+            autoComplete="off"
           />
         </div>
+        {showSuggestions && (
+          <div className="absolute z-30 w-full mt-1 bg-surface-highest/95 backdrop-blur-[8px] rounded-lg shadow-float overflow-hidden border border-white/10">
+            {suggestions.map((p, i) => (
+              <button
+                key={p.id}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); selectProduct(p) }}
+                className={`w-full text-left px-3 py-2 font-body text-sm transition-colors ${
+                  i === highlightIdx ? 'bg-primary-container/30 text-on-surface' : 'text-on-surface hover:bg-surface-bright'
+                }`}
+              >
+                <span className="font-medium">{p.nombreCompleto}</span>
+                <span className="ml-2 text-[11px] text-on-surface-variant uppercase">{p.categoria}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Movement Type */}
-      <div className="w-[180px]">
+      <div className="w-[150px]">
         <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
           Movement Type
         </label>
@@ -126,39 +232,61 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
         </select>
       </div>
 
-      {/* Date Range */}
-      <div className="w-[220px]">
+      {/* Product category: MP / ME */}
+      <div className="w-[110px]">
         <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
-          Date Range
+          Producto
         </label>
-        <div className="flex items-center bg-surface-container border border-outline-variant rounded-lg px-3 py-2 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all gap-2">
-          <Calendar size={16} className="text-outline shrink-0" />
-          <input
-            type="date"
-            value={filters.desde}
-            onChange={(e) => onChange({ ...filters, desde: e.target.value })}
-            className="bg-transparent border-none p-0 text-on-surface font-body text-sm outline-none w-full [color-scheme:dark]"
-            placeholder="Desde"
-          />
-          <span className="text-outline">—</span>
-          <input
-            type="date"
-            value={filters.hasta}
-            onChange={(e) => onChange({ ...filters, hasta: e.target.value })}
-            className="bg-transparent border-none p-0 text-on-surface font-body text-sm outline-none w-full [color-scheme:dark]"
-            placeholder="Hasta"
-          />
-        </div>
+        <select
+          value={filters.tipoProducto}
+          onChange={(e) => onChange({ ...filters, tipoProducto: e.target.value, categoria: '' })}
+          className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-body text-sm outline-none appearance-none"
+        >
+          <option value="">All</option>
+          <option value="mp">MP</option>
+          <option value="me">ME</option>
+        </select>
       </div>
+
+      {/* Sub-category (only when ME is selected) */}
+      {esME && (
+        <div className="w-[130px]">
+          <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
+            Categoría
+          </label>
+          <select
+            value={filters.categoria}
+            onChange={(e) => onChange({ ...filters, categoria: e.target.value })}
+            className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-body text-sm outline-none appearance-none"
+          >
+            <option value="">Todas</option>
+            <option value="estuche">Estuches</option>
+            <option value="etiqueta">Etiquetas</option>
+            <option value="frasco">Frascos</option>
+          </select>
+        </div>
+      )}
+
+      {/* Date Range — icon-only buttons with invisible native date picker */}
+      <DateIconButton
+        label="Desde"
+        value={filters.desde}
+        onChange={(v) => onChange({ ...filters, desde: v })}
+      />
+      <DateIconButton
+        label="Hasta"
+        value={filters.hasta}
+        onChange={(v) => onChange({ ...filters, hasta: v })}
+      />
 
       {/* Clear */}
       {hasFilters && (
         <button
           onClick={() => {
             setProductoLocal('')
-            onChange({ tipo: '', producto: '', desde: '', hasta: '' })
+            onChange({ tipo: '', producto: '', tipoProducto: '', categoria: '', desde: '', hasta: '' })
           }}
-          className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors py-2"
+          className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors py-2 mb-0"
         >
           Clear filters
         </button>
@@ -175,6 +303,8 @@ export default function MovimientosPage() {
   const [filters, setFilters] = useState<Filters>({
     tipo: '',
     producto: searchParams.get('producto') ?? '',
+    tipoProducto: '',
+    categoria: '',
     desde: '',
     hasta: '',
   })
@@ -190,7 +320,7 @@ export default function MovimientosPage() {
   }, [searchParams])
 
   const { data: movimientos = [], isLoading: loading, error } = useMovimientos(
-    filters.tipo || filters.producto || filters.desde || filters.hasta ? filters : undefined
+    filters.tipo || filters.producto || filters.tipoProducto || filters.categoria || filters.desde || filters.hasta ? filters : undefined
   )
 
   // Pagination
@@ -228,7 +358,7 @@ export default function MovimientosPage() {
         </div>
       ) : error ? (
         <div className="flex items-center justify-center h-48">
-          <p className="font-body text-error text-sm">{error}</p>
+          <p className="font-body text-error text-sm">{error instanceof Error ? error.message : 'Error al cargar movimientos'}</p>
         </div>
       ) : movimientos.length === 0 ? (
         <div className="flex items-center justify-center h-48 rounded-lg bg-surface-container-high border border-white/10">

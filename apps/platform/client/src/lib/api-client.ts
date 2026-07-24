@@ -25,8 +25,8 @@ interface RefreshResponse {
 let refreshPromise: Promise<string | null> | null = null
 
 async function parseError(res: Response): Promise<ApiError> {
-  const body = await res.json().catch(() => ({ message: 'Error desconocido' })) as { message?: string }
-  return new ApiError(res.status, body.message ?? 'Error del servidor')
+  const body = await res.json().catch(() => ({ error: 'Error desconocido' })) as { message?: string; error?: string }
+  return new ApiError(res.status, body.message ?? body.error ?? 'Error del servidor')
 }
 
 async function refreshAccessToken(): Promise<string | null> {

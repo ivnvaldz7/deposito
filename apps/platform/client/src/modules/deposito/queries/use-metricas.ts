@@ -2,8 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
 export interface MetricasData {
-  metrics: Record<string, number>
-  topProducts?: Array<{ nombre: string; cantidad: number }>
+  totalIngresos: number
+  totalEgresos: number
+  balance: number
+  movimientosPeriodo: number
+  ingresosPorCategoria: { categoria: string; total: number }[]
+  topProductosIngresados: { productoNombre: string; total: number }[]
+  topProductosSolicitados: { productoNombre: string; total: number }[]
 }
 
 export const metricasKeys = {
@@ -29,5 +34,7 @@ export function useProductosCatalogo() {
   return useQuery({
     queryKey: metricasKeys.productos(),
     queryFn: () => api.get<string[]>('/metricas/productos'),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
   })
 }

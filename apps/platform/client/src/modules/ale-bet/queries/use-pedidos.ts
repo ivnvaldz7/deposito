@@ -10,6 +10,7 @@ export function usePedidos(filters?: { estado?: string; vendedorId?: string }) {
   return useQuery({
     queryKey: pedidosKeys.list(filters),
     queryFn: () => aleBetApi.pedidos.list(filters),
+    placeholderData: (prev) => prev,
   })
 }
 

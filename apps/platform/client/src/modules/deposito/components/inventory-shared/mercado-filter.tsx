@@ -19,28 +19,26 @@ export function MercadoFilter({
       <button
         type="button"
         onClick={() => onChangeMercado('todos')}
-        className="px-3 py-1.5 rounded font-body text-xs transition-colors"
-        style={
+        className={`px-4 py-2 rounded-lg font-body text-sm font-medium transition-all duration-200 border ${
           mercadoActivo === 'todos'
-            ? { background: 'rgba(84,225,109,0.15)', color: '#54e16d' }
-            : { background: 'var(--color-surface-high)', color: '#bccbb8' }
-        }
+            ? 'bg-primary text-on-primary border-primary'
+            : 'bg-surface-container text-on-surface border-outline-variant hover:bg-surface-bright'
+        }`}
       >
-        Todos ({totalCount})
+        Todos <span className="tabular-nums">({totalCount})</span>
       </button>
       {MERCADOS.filter((m) => countsByMercado[m.value] > 0).map(({ value, label }) => (
         <button
           key={value}
           type="button"
           onClick={() => onChangeMercado(value)}
-          className="px-3 py-1.5 rounded font-body text-xs transition-colors"
-          style={
+          className={`px-4 py-2 rounded-lg font-body text-sm font-medium transition-all duration-200 border ${
             mercadoActivo === value
-              ? { background: 'rgba(84,225,109,0.15)', color: '#54e16d' }
-              : { background: 'var(--color-surface-high)', color: '#bccbb8' }
-          }
+              ? 'bg-primary text-on-primary border-primary'
+              : 'bg-surface-container text-on-surface border-outline-variant hover:bg-surface-bright'
+          }`}
         >
-          {label} ({countsByMercado[value]})
+          {label} <span className="tabular-nums">({countsByMercado[value]})</span>
         </button>
       ))}
     </div>
