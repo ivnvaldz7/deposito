@@ -65,7 +65,7 @@ export function useRechazarOrden() {
 export function useEjecutarOrden() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.put(`/ordenes/${id}/ejecutar`),
+    mutationFn: (id: string) => api.post(`/ordenes/${id}/ejecutar`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
   })
 }

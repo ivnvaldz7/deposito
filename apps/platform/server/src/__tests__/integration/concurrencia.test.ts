@@ -160,8 +160,8 @@ describe('Concurrencia e Idempotencia (Reproducción de Fallos Actuales)', () =>
       // Pre-flight to run JIT provisioning sequentially and avoid UniqueConstraintViolation on email
       await request(app).get(`/api/deposito/ordenes/${orden.id}`).set('Authorization', `Bearer ${token}`)
 
-      const req1 = request(app).put(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
-      const req2 = request(app).put(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
+      const req1 = request(app).post(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
+      const req2 = request(app).post(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
 
       const p1 = req1.then(r => r)
       const p2 = req2.then(r => r)
@@ -476,7 +476,7 @@ describe('Concurrencia e Idempotencia (Reproducción de Fallos Actuales)', () =>
 
     it('SD-07: Orden inexistente -> 404', async () => {
       const token = signTestToken('user-id', 'encargado', 'user@test.com')
-      const res = await request(app).put('/api/deposito/ordenes/non-existent-id/ejecutar').set('Authorization', `Bearer ${token}`)
+      const res = await request(app).post('/api/deposito/ordenes/non-existent-id/ejecutar').set('Authorization', `Bearer ${token}`)
       expect(res.status).toBe(404)
     })
 
@@ -493,7 +493,7 @@ describe('Concurrencia e Idempotencia (Reproducción de Fallos Actuales)', () =>
       })
 
       const token = signTestToken(user.id, 'encargado', 'encargado2@test.com')
-      const res = await request(app).put(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
+      const res = await request(app).post(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
       expect(res.status).toBe(409)
     })
 
@@ -546,7 +546,7 @@ describe('Concurrencia e Idempotencia (Reproducción de Fallos Actuales)', () =>
       })
 
       const token = signTestToken(user.id, 'encargado', 'encargado2@test.com')
-      const res = await request(app).put(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
+      const res = await request(app).post(`/api/deposito/ordenes/${orden.id}/ejecutar`).set('Authorization', `Bearer ${token}`)
 
       expect(res.status).toBe(409)
 
@@ -620,8 +620,8 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
       }
     })
 
-    const p1 = request(app).put(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).put(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
 
@@ -660,8 +660,8 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
       data: { solicitanteId: encargadoId, categoria: 'droga', productoNombre: 'Droga F', cantidad: 15, estado: 'aprobada' }
     })
 
-    const p1 = request(app).put(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).put(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
 
@@ -699,8 +699,8 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
       data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco G', cantidad: 10, estado: 'aprobada' }
     })
 
-    const p1 = request(app).put(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).put(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
     const codes = [res1.status, res2.status].sort()
@@ -728,8 +728,8 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     })
 
     const start = Date.now()
-    const p1 = request(app).put(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).put(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
     const end = Date.now()
@@ -779,7 +779,7 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
 
     try {
       const res = await request(app)
-        .put(`/api/deposito/ordenes/${orden.id}/ejecutar`)
+        .post(`/api/deposito/ordenes/${orden.id}/ejecutar`)
         .set('Authorization', `Bearer ${tokenEncargado}`)
 
       expect(res.status).toBe(500)
@@ -817,7 +817,7 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     })
 
     const res = await request(app)
-      .put(`/api/deposito/ordenes/${orden.id}/ejecutar`)
+      .post(`/api/deposito/ordenes/${orden.id}/ejecutar`)
       .set('Authorization', `Bearer ${tokenEncargado}`)
 
     // Debe fallar porque aunque hay 10 cajas (>= 5), el total es 40 (< 50 requeridas)

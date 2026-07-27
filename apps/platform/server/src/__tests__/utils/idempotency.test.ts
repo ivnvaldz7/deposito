@@ -41,6 +41,13 @@ describe('Idempotency Utils', () => {
       expect(h1).toEqual(h2)
     })
 
+    it('Falla si el método del fingerprint no es POST', () => {
+      // Se exige explícitamente usar POST para la idempotencia de ordenes
+      const h1 = calculateFingerprint('POST', 'deposito.orden.ejecutar', '1', {})
+      const h2 = calculateFingerprint('PUT', 'deposito.orden.ejecutar', '1', {})
+      expect(h1).not.toEqual(h2)
+    })
+
     it('Hash diferente para Pedido A vs pedido B', () => {
       const h1 = calculateFingerprint('POST', 'test', 'A', { a: 1 })
       const h2 = calculateFingerprint('POST', 'test', 'B', { a: 1 })

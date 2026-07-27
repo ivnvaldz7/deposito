@@ -7,10 +7,33 @@ import { requireRole } from '../middleware/require-role'
 import { sseManager, STOCK_BAJO_THRESHOLD, STOCK_BAJO_FRASCOS_THRESHOLD } from '../lib/sse-manager'
 import { eventBus } from '@platform/core'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
+import {
+  getSingleIdempotencyKey,
+  calculateFingerprint,
+  acquireIdempotencyRecord,
+  completeIdempotencyRecord,
+  toPersistableResponseBody,
+} from '../../utils/idempotency'
 
 const router = Router()
 
 const MERCADOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
+
+type HttpError = {
+  status: number
+  code?: string
+  message: string
+}
+
+function isHttpError(error: unknown): error is HttpError {
+  if (typeof error !== 'object' || error === null) return false
+  const candidate = error as Record<string, unknown>
+  return (
+    typeof candidate.status === 'number' &&
+    typeof candidate.message === 'string' &&
+    (candidate.code === undefined || typeof candidate.code === 'string')
+  )
+}
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -274,31 +297,57 @@ router.put(
   }
 )
 
-// ─── PUT /api/ordenes/:id/ejecutar — descuenta inventario, crea movimiento ───
+// ─── POST /api/ordenes/:id/ejecutar — descuenta inventario, crea movimiento ───
 
-router.put(
+router.post(
   '/:id/ejecutar',
   authenticate,
   requireRole('encargado'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
+    let idempotencyKey: string | undefined
     try {
-      const orden = await prisma.ordenProduccion.findUnique({ where: { id } })
-      if (!orden) {
-        res.status(404).json({ message: 'Orden no encontrada' })
+      idempotencyKey = getSingleIdempotencyKey(req.rawHeaders)
+    } catch (err: unknown) {
+      if (isHttpError(err)) {
+        res.status(err.status).json({ message: err.message, code: err.code })
         return
       }
-      if ((ESTADOS_FINALES as readonly string[]).includes(orden.estado)) {
-        res.status(409).json({ message: `No se puede ejecutar una orden en estado "${orden.estado}"` })
-        return
-      }
-      if (orden.estado !== 'aprobada') {
-        res.status(409).json({ message: 'La orden debe estar aprobada antes de ejecutarse' })
-        return
-      }
+      res.status(400).json({ message: 'Clave de idempotencia inválida' })
+      return
+    }
 
-      const updated = await prisma.$transaction(async (tx) => {
+    try {
+      const fingerprint = calculateFingerprint('POST', 'deposito.orden.ejecutar', id, {})
+
+      const txResult = await prisma.$transaction(async (tx) => {
+        let idempRecordId: string | undefined
+
+        if (idempotencyKey) {
+          const acq = await acquireIdempotencyRecord(
+            tx,
+            req.depositoUser!.id,
+            'deposito.orden.ejecutar',
+            idempotencyKey,
+            fingerprint
+          )
+          if (acq.type === 'REPLAY') {
+            return { type: 'REPLAY', status: acq.status, body: acq.body }
+          }
+          idempRecordId = acq.id
+        }
+
+        const orden = await tx.ordenProduccion.findUnique({ where: { id } })
+        if (!orden) {
+          throw new Error('HTTP_404: Orden no encontrada')
+        }
+        if ((ESTADOS_FINALES as readonly string[]).includes(orden.estado)) {
+          throw new Error(`HTTP_409: No se puede ejecutar una orden en estado "${orden.estado}"`)
+        }
+        if (orden.estado !== 'aprobada') {
+          throw new Error('HTTP_409: La orden debe estar aprobada antes de ejecutarse')
+        }
         const updateRes = await tx.ordenProduccion.updateMany({
           where: { id, estado: 'aprobada' },
           data: { estado: 'ejecutada' }
@@ -450,30 +499,43 @@ router.put(
           },
         })
 
-        return updatedOrden!
+        if (idempRecordId) {
+          const persistableBody = toPersistableResponseBody(updatedOrden)
+          await completeIdempotencyRecord(tx, idempRecordId, 200, persistableBody)
+        }
+
+        return { type: 'NEW', result: updatedOrden! }
       })
+
+      if (txResult.type === 'REPLAY') {
+        res.setHeader('Idempotency-Replayed', 'true')
+        res.status(txResult.status as number).json(txResult.body)
+        return
+      }
+
+      const updated = txResult.result!
 
       const ts = new Date().toISOString()
 
       sseManager.broadcastGlobal({
         tipo: 'stock_actualizado',
-        mensaje: `Stock de ${orden.productoNombre} actualizado (−${orden.cantidad})`,
-        datos: { producto: orden.productoNombre, categoria: orden.categoria, cantidad: orden.cantidad, tipo: 'egreso' },
+        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
+        datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: updated.cantidad, tipo: 'egreso' },
         timestamp: ts,
       })
       eventBus.emit({
         app: 'deposito',
         tipo: 'stock_actualizado',
         titulo: 'Stock actualizado',
-        mensaje: `Stock de ${orden.productoNombre} actualizado (−${orden.cantidad})`,
+        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
         timestamp: ts,
       })
 
       sseManager.broadcastToUser(
         {
           tipo: 'orden_actualizada',
-          mensaje: `Tu orden de ${orden.productoNombre} fue ejecutada`,
-          datos: { ordenId: updated.id, producto: orden.productoNombre, estado: 'ejecutada' },
+          mensaje: `Tu orden de ${updated.productoNombre} fue ejecutada`,
+          datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'ejecutada' },
           timestamp: ts,
         },
         updated.solicitanteId
@@ -482,32 +544,38 @@ router.put(
         app: 'deposito',
         tipo: 'orden_actualizada',
         titulo: 'Orden ejecutada',
-        mensaje: `Orden de ${orden.productoNombre} ejecutada`,
+        mensaje: `Orden de ${updated.productoNombre} ejecutada`,
         userId: updated.solicitanteId,
         link: `/deposito/ordenes/${updated.id}`,
         timestamp: ts,
       })
 
-      const nuevoStock = await checkStockBajo(orden.categoria, orden.productoNombre, orden.mercado)
+      const nuevoStock = await checkStockBajo(updated.categoria, updated.productoNombre, updated.mercado)
       if (nuevoStock !== null) {
         sseManager.broadcastGlobal({
           tipo: 'stock_bajo',
-          mensaje: `Stock bajo: ${orden.productoNombre} (${nuevoStock} restantes)`,
-          datos: { producto: orden.productoNombre, categoria: orden.categoria, cantidad: nuevoStock },
+          mensaje: `Stock bajo: ${updated.productoNombre} (${nuevoStock} restantes)`,
+          datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: nuevoStock },
           timestamp: ts,
         })
         eventBus.emit({
           app: 'deposito',
           tipo: 'stock_bajo',
           titulo: 'Stock bajo',
-          mensaje: `Stock bajo: ${orden.productoNombre} (${nuevoStock} restantes)`,
+          mensaje: `Stock bajo: ${updated.productoNombre} (${nuevoStock} restantes)`,
           link: `/deposito/drogas`,
           timestamp: ts,
         })
       }
 
       res.json(updated)
-    } catch (err) {
+    } catch (err: unknown) {
+      console.error('Error interno al ejecutar la orden')
+
+      if (isHttpError(err)) {
+        res.status(err.status).json({ message: err.message, code: err.code })
+        return
+      }
       const msg = err instanceof Error ? err.message : 'Error interno del servidor'
       if (msg.startsWith('HTTP_404: ')) {
         res.status(404).json({ message: msg.replace('HTTP_404: ', '') })

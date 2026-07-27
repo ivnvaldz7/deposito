@@ -1,3 +1,7 @@
+import { config } from 'dotenv'
+import { join } from 'path'
+config({ path: join(process.cwd(), '../../../.env.test') })
+
 import { URL } from 'url'
 
 export function validateTestEnvironment(env: NodeJS.ProcessEnv): { testDbUrl: string, dbName: string } {

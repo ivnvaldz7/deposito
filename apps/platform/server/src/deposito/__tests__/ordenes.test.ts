@@ -249,7 +249,7 @@ describe('Órdenes de producción críticas', () => {
     expect(approved.status).toBe(200)
 
     const executed = await request(app)
-      .put(`/api/ordenes/${created.body.id}/ejecutar`)
+      .post(`/api/ordenes/${created.body.id}/ejecutar`)
       .set('x-test-role', 'encargado')
       .set('x-test-user-id', 'enc-1')
 
@@ -287,7 +287,7 @@ describe('Órdenes de producción críticas', () => {
       .set('x-test-user-id', 'enc-1')
 
     const executed = await request(app)
-      .put(`/api/ordenes/${created.body.id}/ejecutar`)
+      .post(`/api/ordenes/${created.body.id}/ejecutar`)
       .set('x-test-role', 'encargado')
       .set('x-test-user-id', 'enc-1')
 
@@ -322,7 +322,7 @@ describe('Órdenes de producción críticas', () => {
       .set('x-test-user-id', 'enc-1')
 
     await request(app)
-      .put(`/api/ordenes/${created.body.id}/ejecutar`)
+      .post(`/api/ordenes/${created.body.id}/ejecutar`)
       .set('x-test-role', 'encargado')
       .set('x-test-user-id', 'enc-1')
 
