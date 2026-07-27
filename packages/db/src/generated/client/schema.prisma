@@ -62,6 +62,32 @@ enum AppId {
   @@schema("platform")
 }
 
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
+
+  @@schema("platform")
+}
+
+model IdempotencyRecord {
+  id             String            @id @default(cuid())
+  actorId        String
+  scope          String
+  idempotencyKey String            @db.VarChar(255)
+  requestHash    String            @db.VarChar(64)
+  status         IdempotencyStatus @default(PROCESSING)
+  responseStatus Int?
+  responseBody   Json?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  completedAt    DateTime?
+
+  @@unique([actorId, scope, idempotencyKey])
+  @@index([createdAt])
+  @@map("idempotency_records")
+  @@schema("platform")
+}
+
 // ─── Ale-Bet schema ──────────────────────────────────────────────────────────
 
 model Producto {

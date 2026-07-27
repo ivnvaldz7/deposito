@@ -154,6 +154,20 @@ exports.Prisma.NotificationScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.IdempotencyRecordScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  scope: 'scope',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  status: 'status',
+  responseStatus: 'responseStatus',
+  responseBody: 'responseBody',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  completedAt: 'completedAt'
+};
+
 exports.Prisma.ProductoScalarFieldEnum = {
   id: 'id',
   nombre: 'nombre',
@@ -382,6 +396,11 @@ exports.AppId = exports.$Enums.AppId = {
   admin: 'admin'
 };
 
+exports.IdempotencyStatus = exports.$Enums.IdempotencyStatus = {
+  PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED'
+};
+
 exports.EstadoPedido = exports.$Enums.EstadoPedido = {
   PENDIENTE: 'PENDIENTE',
   APROBADO: 'APROBADO',
@@ -464,6 +483,7 @@ exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
   AppAccess: 'AppAccess',
   Notification: 'Notification',
+  IdempotencyRecord: 'IdempotencyRecord',
   Producto: 'Producto',
   Lote: 'Lote',
   Cliente: 'Cliente',

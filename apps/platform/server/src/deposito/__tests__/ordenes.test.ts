@@ -75,6 +75,11 @@ const mocks = vi.hoisted(() => {
       if (!orden) return null
       return include ? includeOrden(orden) : orden
     }),
+    findUniqueOrThrow: vi.fn(async ({ where, include }: any) => {
+      const orden = state.ordenes.find((row) => row.id === where.id)
+      if (!orden) throw new Error('Orden no encontrada')
+      return include ? includeOrden(orden) : orden
+    }),
     findMany: vi.fn(async ({ where, include }: any) => {
       const filtered = state.ordenes.filter((orden) => {
         if (where?.solicitanteId && orden.solicitanteId !== where.solicitanteId) return false
@@ -88,6 +93,16 @@ const mocks = vi.hoisted(() => {
       if (!orden) throw new Error('Orden no encontrada')
       Object.assign(orden, data, { updatedAt: new Date() })
       return include ? includeOrden(orden) : orden
+    }),
+    updateMany: vi.fn(async ({ where, data }: any) => {
+      let count = 0
+      for (const orden of state.ordenes) {
+        if (where.id && orden.id !== where.id) continue
+        if (where.estado && orden.estado !== where.estado) continue
+        Object.assign(orden, data, { updatedAt: new Date() })
+        count++
+      }
+      return { count }
     }),
   }
 
@@ -103,11 +118,16 @@ const mocks = vi.hoisted(() => {
       state.inventarioEstuches.find((row) =>
         row.articulo === where.articulo_mercado.articulo && row.mercado === where.articulo_mercado.mercado
       ) ?? null),
-    update: vi.fn(async ({ where, data }: any) => {
-      const row = state.inventarioEstuches.find((inv) => inv.id === where.id)
-      if (!row) throw new Error('Inventario no encontrado')
-      if (data.cantidad?.decrement) row.cantidad -= data.cantidad.decrement
-      return row
+    updateMany: vi.fn(async ({ where, data }: any) => {
+      let count = 0
+      for (const row of state.inventarioEstuches) {
+        if (row.id === where.id) {
+          if (where.cantidad?.gte !== undefined && row.cantidad < where.cantidad.gte) continue
+          if (data.cantidad?.decrement) row.cantidad -= data.cantidad.decrement
+          count++
+        }
+      }
+      return { count }
     }),
   }
 
@@ -271,7 +291,7 @@ describe('Órdenes de producción críticas', () => {
       .set('x-test-role', 'encargado')
       .set('x-test-user-id', 'enc-1')
 
-    expect(executed.status).toBe(400)
+    expect(executed.status).toBe(409)
     expect(executed.body.message).toContain('Stock insuficiente')
   })
 

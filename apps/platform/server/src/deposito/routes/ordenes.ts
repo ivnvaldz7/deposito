@@ -1,6 +1,6 @@
 import { Request,  Router, Response  } from 'express'
 import { z } from 'zod'
-import { Mercado } from '@platform/db'
+import { Mercado, Prisma } from '@platform/db'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
@@ -299,31 +299,32 @@ router.put(
       }
 
       const updated = await prisma.$transaction(async (tx) => {
+        const updateRes = await tx.ordenProduccion.updateMany({
+          where: { id, estado: 'aprobada' },
+          data: { estado: 'ejecutada' }
+        })
+        if (updateRes.count === 0) {
+          throw new Error('HTTP_409: La orden debe estar aprobada antes de ejecutarse')
+        }
+
         const { categoria, productoNombre, mercado, cantidad } = orden
 
         if (categoria === 'droga') {
-          // FIFO: descontar empezando por el lote con vencimiento más próximo
-          const drogas_where = orden.productoId
-            ? { productoId: orden.productoId, cantidad: { gt: 0 } }
-            : { nombre: productoNombre, cantidad: { gt: 0 } }
-          const lotes = await tx.inventarioDroga.findMany({ where: drogas_where })
+          // FIFO: descontar empezando por el lote con vencimiento más próximo, usando FOR UPDATE ordenado para evitar deadlocks
+          const query = orden.productoId
+            ? Prisma.sql`SELECT id, cantidad, lote FROM deposito.inventario_drogas WHERE producto_id = ${orden.productoId} AND cantidad > 0 ORDER BY CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END, vencimiento ASC, id ASC FOR UPDATE`
+            : Prisma.sql`SELECT id, cantidad, lote FROM deposito.inventario_drogas WHERE nombre = ${productoNombre} AND cantidad > 0 ORDER BY CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END, vencimiento ASC, id ASC FOR UPDATE`
 
-          // Ordenar en app: vencimiento no-null ASC primero, luego null (sin vencimiento)
-          const sorted = [...lotes].sort((a, b) => {
-            if (!a.vencimiento && !b.vencimiento) return 0
-            if (!a.vencimiento) return 1
-            if (!b.vencimiento) return -1
-            return new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime()
-          })
+          const lotes = await tx.$queryRaw<{id: string, cantidad: number, lote: string | null}[]>(query)
 
-          const totalDisponible = sorted.reduce((s, l) => s + l.cantidad, 0)
+          const totalDisponible = lotes.reduce((s, l) => s + l.cantidad, 0)
           if (totalDisponible < cantidad) {
-            throw new Error(`Stock insuficiente de "${productoNombre}" (disponible: ${totalDisponible})`)
+            throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (disponible: ${totalDisponible})`)
           }
 
           let restante = cantidad
           const lotesMov: { lote: string | null; decrementado: number }[] = []
-          for (const lote of sorted) {
+          for (const lote of lotes) {
             if (restante <= 0) break
             const tomar = Math.min(lote.cantidad, restante)
             await tx.inventarioDroga.update({
@@ -350,56 +351,80 @@ router.put(
             })
           }
         } else if (categoria === 'estuche') {
-          if (!mercado) throw new Error('El campo mercado es obligatorio para estuches')
-          const estuche = orden.productoId
-            ? await tx.inventarioEstuche.findFirst({ where: { productoId: orden.productoId, mercado } })
+          if (!mercado) throw new Error('HTTP_400: El campo mercado es obligatorio para estuches')
+
+          let targetId = orden.productoId
+            ? (await tx.inventarioEstuche.findFirst({ where: { productoId: orden.productoId, mercado }, select: { id: true } }))?.id
             : null
-          let estucheResolved = estuche
-          if (!estucheResolved) {
+
+          if (!targetId) {
             const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioEstuche.findMany({ where: { mercado } })
-            estucheResolved = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar) ?? null
+            const candidatos = await tx.inventarioEstuche.findMany({ where: { mercado }, select: { id: true, articulo: true } })
+            targetId = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)?.id
           }
-          if (!estucheResolved) throw new Error('DepositoProducto no encontrado en inventario de estuches')
-          if (estucheResolved.cantidad < cantidad) throw new Error(`Stock insuficiente (disponible: ${estucheResolved.cantidad})`)
-          await tx.inventarioEstuche.update({
-            where: { id: estucheResolved.id },
+          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de estuches')
+
+          const resUpdate = await tx.inventarioEstuche.updateMany({
+            where: { id: targetId, cantidad: { gte: cantidad } },
             data: { cantidad: { decrement: cantidad } },
           })
+          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (estuche)`)
+
         } else if (categoria === 'etiqueta') {
-          if (!mercado) throw new Error('El campo mercado es obligatorio para etiquetas')
-          const etiqueta = orden.productoId
-            ? await tx.inventarioEtiqueta.findFirst({ where: { productoId: orden.productoId, mercado } })
+          if (!mercado) throw new Error('HTTP_400: El campo mercado es obligatorio para etiquetas')
+
+          let targetId = orden.productoId
+            ? (await tx.inventarioEtiqueta.findFirst({ where: { productoId: orden.productoId, mercado }, select: { id: true } }))?.id
             : null
-          let etiquetaResolved = etiqueta
-          if (!etiquetaResolved) {
+
+          if (!targetId) {
             const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioEtiqueta.findMany({ where: { mercado } })
-            etiquetaResolved = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar) ?? null
+            const candidatos = await tx.inventarioEtiqueta.findMany({ where: { mercado }, select: { id: true, articulo: true } })
+            targetId = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)?.id
           }
-          if (!etiquetaResolved) throw new Error('DepositoProducto no encontrado en inventario de etiquetas')
-          if (etiquetaResolved.cantidad < cantidad) throw new Error(`Stock insuficiente (disponible: ${etiquetaResolved.cantidad})`)
-          await tx.inventarioEtiqueta.update({
-            where: { id: etiquetaResolved.id },
+          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de etiquetas')
+
+          const resUpdate = await tx.inventarioEtiqueta.updateMany({
+            where: { id: targetId, cantidad: { gte: cantidad } },
             data: { cantidad: { decrement: cantidad } },
           })
+          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (etiqueta)`)
+
         } else if (categoria === 'frasco') {
-          const frasco = orden.productoId
-            ? await tx.inventarioFrasco.findFirst({ where: { productoId: orden.productoId } })
-            : null
-          let frascoResolved = frasco
-          if (!frascoResolved) {
-            const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioFrasco.findMany()
-            frascoResolved = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar) ?? null
+          let targetId: string | undefined = undefined
+          let uniPorCaja = 1
+
+          if (orden.productoId) {
+            const f = await tx.inventarioFrasco.findFirst({ where: { productoId: orden.productoId }, select: { id: true, unidadesPorCaja: true } })
+            if (f) {
+              targetId = f.id
+              uniPorCaja = f.unidadesPorCaja
+            }
           }
-          if (!frascoResolved) throw new Error('DepositoProducto no encontrado en inventario de frascos')
-          if (frascoResolved.cantidadCajas < cantidad) throw new Error(`Stock insuficiente (disponible: ${frascoResolved.cantidadCajas} cajas)`)
-          const nuevasCajas = frascoResolved.cantidadCajas - cantidad
-          await tx.inventarioFrasco.update({
-            where: { id: frascoResolved.id },
-            data: { cantidadCajas: nuevasCajas, total: nuevasCajas * frascoResolved.unidadesPorCaja },
+
+          if (!targetId) {
+            const buscar = normalizeForMatch(productoNombre)
+            const candidatos = await tx.inventarioFrasco.findMany({ select: { id: true, articulo: true, unidadesPorCaja: true } })
+            const match = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)
+            if (match) {
+              targetId = match.id
+              uniPorCaja = match.unidadesPorCaja
+            }
+          }
+          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de frascos')
+
+          const resUpdate = await tx.inventarioFrasco.updateMany({
+            where: {
+              id: targetId,
+              cantidadCajas: { gte: cantidad },
+              total: { gte: cantidad * uniPorCaja }
+            },
+            data: {
+              cantidadCajas: { decrement: cantidad },
+              total: { decrement: cantidad * uniPorCaja }
+            },
           })
+          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (frasco)`)
         }
 
         // Movimiento de auditoría para categorías no-droga (drogas crean movimientos en el loop FIFO)
@@ -417,14 +442,15 @@ router.put(
           })
         }
 
-        return tx.ordenProduccion.update({
+        const updatedOrden = await tx.ordenProduccion.findUnique({
           where: { id },
-          data: { estado: 'ejecutada' },
           include: {
             solicitante: { select: { id: true, name: true, role: true } },
             aprobador: { select: { id: true, name: true } },
           },
         })
+
+        return updatedOrden!
       })
 
       const ts = new Date().toISOString()
@@ -483,7 +509,15 @@ router.put(
       res.json(updated)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error interno del servidor'
-      res.status(400).json({ message: msg })
+      if (msg.startsWith('HTTP_404: ')) {
+        res.status(404).json({ message: msg.replace('HTTP_404: ', '') })
+      } else if (msg.startsWith('HTTP_409: ')) {
+        res.status(409).json({ message: msg.replace('HTTP_409: ', '') })
+      } else if (msg.startsWith('HTTP_400: ')) {
+        res.status(400).json({ message: msg.replace('HTTP_400: ', '') })
+      } else {
+        res.status(500).json({ message: 'Error interno del servidor' })
+      }
     }
   }
 )

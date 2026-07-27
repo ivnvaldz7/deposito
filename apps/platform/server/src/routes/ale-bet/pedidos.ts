@@ -1,11 +1,38 @@
 import { Router } from 'express'
+import crypto from 'crypto'
 import { z } from 'zod'
-import { platformDb as prisma, TipoMovimiento, type Prisma } from '@platform/db'
+import { platformDb as prisma, TipoMovimiento, Prisma } from '@platform/db'
+import {
+  validateIdempotencyKey,
+  getSingleIdempotencyKey,
+  calculateFingerprint,
+  acquireIdempotencyRecord,
+  completeIdempotencyRecord,
+  toPersistableResponseBody
+} from '../../utils/idempotency'
 import type { JwtPayload } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { MAX_SUELTOS, UNIDADES_POR_CAJA, calcularUnidades } from './constants'
 import { sseManager } from './sse-manager'
 import { eventBus, getAppAccess } from '@platform/core'
+
+type HttpError = {
+  status: number
+  code?: string
+  message: string
+}
+
+function isHttpError(error: unknown): error is HttpError {
+  if (typeof error !== 'object' || error === null) return false
+
+  const candidate = error as Record<string, unknown>
+
+  return (
+    typeof candidate.status === 'number' &&
+    typeof candidate.message === 'string' &&
+    (candidate.code === undefined || typeof candidate.code === 'string')
+  )
+}
 
 const router = Router()
 
@@ -128,26 +155,33 @@ type TransactionClient = Omit<
 async function descontarStockFIFO(
   tx: TransactionClient,
   productoId: string,
-  cantidad: number,
+  cantidades: number[],
   usuarioId: string,
   referencia: string
 ): Promise<void> {
-  let restante = cantidad
-  const lotes = await tx.lote.findMany({
-    where: { productoId, activo: true },
-    orderBy: { fechaVencimiento: 'asc' },
-  })
+  const cantidadTotal = cantidades.reduce((sum, q) => sum + q, 0)
+  const lotesRaw = await tx.$queryRaw<{ id: string; cajas: number; sueltos: number }[]>(
+    Prisma.sql`
+      SELECT id, cajas, sueltos
+      FROM "ale_bet"."Lote"
+      WHERE "productoId" = ${productoId} AND activo = true
+      ORDER BY "fechaVencimiento" ASC, id ASC
+      FOR UPDATE
+    `
+  )
 
-  const totalDisponible = lotes.reduce(
+  const totalDisponible = lotesRaw.reduce(
     (sum, lote) => sum + calcularUnidades(lote.cajas, lote.sueltos),
     0
   )
 
-  if (totalDisponible < cantidad) {
+  if (totalDisponible < cantidadTotal) {
     throw new Error('Stock insuficiente para completar el pedido')
   }
 
-  for (const lote of lotes) {
+  let restante = cantidadTotal
+
+  for (const lote of lotesRaw) {
     if (restante <= 0) {
       break
     }
@@ -175,15 +209,17 @@ async function descontarStockFIFO(
     restante -= aDescontar
   }
 
-  await tx.movimientoStock.create({
-    data: {
-      productoId,
-      cantidad: -cantidad,
-      tipo: TipoMovimiento.SALIDA_PEDIDO,
-      referencia,
-      usuarioId,
-    },
-  })
+  for (const cantidad of cantidades) {
+    await tx.movimientoStock.create({
+      data: {
+        productoId,
+        cantidad: -cantidad,
+        tipo: TipoMovimiento.SALIDA_PEDIDO,
+        referencia,
+        usuarioId,
+      },
+    })
+  }
 }
 
 router.get('/', requireApp('ale-bet'), async (req, res) => {
@@ -314,51 +350,95 @@ router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'supervisor', 'armador'
   const pedidoId = String(req.params.id)
   const user = req.user as JwtPayload
 
-  const pedido = await prisma.pedido.findUnique({
-    where: { id: pedidoId },
-    include: { items: true },
-  })
-
-  if (!pedido) {
-    res.status(404).json({ error: 'Pedido no encontrado' })
-    return
-  }
-
-  const canTakePedido =
-    pedido.estado === 'APROBADO' || (isTestRuntime && pedido.estado === 'PENDIENTE')
-
-  if (!canTakePedido) {
-    res.status(409).json({ error: 'Solo se puede tomar un pedido en estado APROBADO' })
-    return
-  }
-
   try {
-    const updated = await prisma.$transaction(async (tx) => {
-      const result = await tx.pedido.update({
-        where: { id: pedido.id },
-        data: { armadorId: user.sub, estado: 'EN_ARMADO' as const },
+    const idempotencyKey = getSingleIdempotencyKey(req.rawHeaders)
+    let requestHash: string | undefined
+
+    if (idempotencyKey) {
+      requestHash = calculateFingerprint(req.method, 'ale-bet.pedido.tomar', pedidoId, {})
+    }
+
+    const [result, replayed] = await prisma.$transaction(async (tx) => {
+      let idempotencyId: string | undefined
+
+      if (idempotencyKey && requestHash) {
+        const acq = await acquireIdempotencyRecord(tx, user.sub, 'ale-bet.pedido.tomar', idempotencyKey, requestHash)
+
+        if (acq.type === 'REPLAY') {
+          return [acq.body, true]
+        }
+        idempotencyId = acq.id
+      }
+
+      const allowedEstados: EstadoPedido[] = isTestRuntime ? ['APROBADO', 'PENDIENTE'] : ['APROBADO']
+
+      const updateResult = await tx.pedido.updateMany({
+        where: { id: pedidoId, estado: { in: allowedEstados } },
+        data: { armadorId: user.sub, estado: 'EN_ARMADO' },
+      })
+
+      if (updateResult.count === 0) {
+        const current = await tx.pedido.findUnique({ where: { id: pedidoId } })
+        if (!current) throw new Error('HTTP_404: Pedido no encontrado')
+        throw new Error('HTTP_409: Solo se puede tomar un pedido en estado APROBADO')
+      }
+
+      const refreshed = await tx.pedido.findUniqueOrThrow({
+        where: { id: pedidoId },
         include: { cliente: true, items: { include: { producto: true } } },
       })
 
-      // Reserve stock: deduct all items immediately (FIFO)
-      for (const item of result.items) {
+      const itemsMap = new Map<string, number[]>()
+      for (const item of refreshed.items) {
+        if (!itemsMap.has(item.productoId)) {
+          itemsMap.set(item.productoId, [])
+        }
+        itemsMap.get(item.productoId)!.push(item.cantidad)
+      }
+
+      const sortedProductIds = Array.from(itemsMap.keys()).sort((a, b) => a.localeCompare(b))
+
+      for (const productoId of sortedProductIds) {
+        const cantidades = itemsMap.get(productoId)!
         await descontarStockFIFO(
           tx,
-          item.productoId,
-          item.cantidad,
+          productoId,
+          cantidades,
           user.sub,
-          result.id,
+          refreshed.id,
         )
       }
 
-      return result
+      const [enrichedPedido] = await enrichPedidos([refreshed])
+
+      if (idempotencyId) {
+        await completeIdempotencyRecord(tx, idempotencyId, 200, toPersistableResponseBody(enrichedPedido))
+      }
+
+      return [enrichedPedido, false]
     })
 
-    const [enrichedPedido] = await enrichPedidos([updated])
-    res.json(enrichedPedido)
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'No se pudo tomar el pedido'
-    res.status(409).json({ error: message })
+    if (replayed) {
+      res.setHeader('Idempotency-Replayed', 'true')
+    }
+    res.status(200).json(result)
+  } catch (error: unknown) {
+    console.error('ERROR EN CATCH:', error);
+    if (isHttpError(error)) {
+      res.status(error.status).json({ error: (error.code ? error.code + ': ' : '') + error.message })
+      return
+    }
+
+    const msg = error instanceof Error ? error.message : 'No se pudo tomar el pedido'
+    if (msg.startsWith('HTTP_404: ')) {
+      res.status(404).json({ error: msg.replace('HTTP_404: ', '') })
+    } else if (msg.startsWith('HTTP_409: ')) {
+      res.status(409).json({ error: msg.replace('HTTP_409: ', '') })
+    } else if (msg.includes('Stock insuficiente')) {
+      res.status(409).json({ error: msg })
+    } else {
+      res.status(500).json({ message: 'Error interno del servidor' })
+    }
   }
 })
 

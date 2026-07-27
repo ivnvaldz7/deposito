@@ -33,6 +33,7 @@ const { mockDb, mockSseManager, mockEventBus } = vi.hoisted(() => ({
       findUniqueOrThrow: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     movimientoStock: {
       create: vi.fn(),
@@ -161,7 +162,9 @@ vi.mock('@platform/db', () => ({
     SALIDA_PEDIDO: 'SALIDA_PEDIDO',
     AJUSTE: 'AJUSTE',
   },
-  Prisma: {},
+  Prisma: {
+    sql: vi.fn((strings, ...values) => strings.join('?')),
+  },
 }))
 
 vi.mock('../routes/ale-bet/sse-manager', () => ({
@@ -321,30 +324,33 @@ describe('Ale-Bet Module', () => {
   })
 
   describe('POST /api/ale-bet/pedidos', () => {
-    it('crea un pedido con items', async () => {
-      mockDb.pedido.create.mockResolvedValue({
-        id: 'pedido-1',
-        numero: 'P-20260624-0001',
-        clienteId: 'cliente-1',
-        vendedorId: 'vendedor-1',
-        estado: 'PENDIENTE',
-        items: [],
-        cliente: { id: 'cliente-1', nombre: 'Cliente A' },
-      })
-      mockDb.platformUser.findMany.mockResolvedValue([])
-      const app = await createTestApp()
-
-      const res = await request(app)
-        .post('/api/ale-bet/pedidos')
-        .set('Authorization', `Bearer ${signVendedorToken()}`)
-        .send({
+      it('crea un pedido con items', async () => {
+        mockDb.lote.findMany.mockResolvedValue([
+          { cajas: 10, sueltos: 0 }
+        ])
+        mockDb.pedido.create.mockResolvedValue({
+          id: 'pedido-1',
+          numero: 'P-20260624-0001',
           clienteId: 'cliente-1',
-          items: [{ productoId: 'prod-1', cantidad: 5 }],
+          vendedorId: 'vendedor-1',
+          estado: 'PENDIENTE',
+          items: [],
+          cliente: { id: 'cliente-1', nombre: 'Cliente A' },
         })
-        .expect(201)
+        mockDb.platformUser.findMany.mockResolvedValue([])
+        const app = await createTestApp()
 
-      expect(res.body.estado).toBe('PENDIENTE')
-    })
+        const res = await request(app)
+          .post('/api/ale-bet/pedidos')
+          .set('Authorization', `Bearer ${signVendedorToken()}`)
+          .send({
+            clienteId: 'cliente-1',
+            items: [{ productoId: 'prod-1', cantidad: 5 }],
+          })
+          .expect(201)
+
+        expect(res.body.estado).toBe('PENDIENTE')
+      })
 
     it('devuelve 400 sin items', async () => {
       const app = await createTestApp()
@@ -405,29 +411,37 @@ describe('Ale-Bet Module', () => {
   })
 
   describe('PUT /api/ale-bet/pedidos/:id/tomar', () => {
-    it('toma un pedido APROBADO', async () => {
-      mockDb.pedido.findUnique.mockResolvedValue({
-        id: 'pedido-1',
-        estado: 'APROBADO',
-      })
-      mockDb.pedido.update.mockResolvedValue({
-        id: 'pedido-1',
-        estado: 'EN_ARMADO',
-        armadorId: 'armador-1',
-        cliente: { nombre: 'Cliente A' },
-        items: [],
-        vendedorId: 'vendedor-1',
-      })
-      mockDb.platformUser.findMany.mockResolvedValue([])
-      const app = await createTestApp()
+      it('toma un pedido APROBADO', async () => {
+        mockDb.$queryRaw = vi.fn().mockResolvedValue([{ id: 'lote-1', cajas: 10, sueltos: 0 }])
+        mockDb.pedido.updateMany.mockResolvedValue({ count: 1 })
+        mockDb.pedido.findUnique.mockResolvedValue({
+          id: 'pedido-1',
+          estado: 'APROBADO',
+          items: [{ productoId: 'prod-1', cantidad: 5 }]
+        })
+        mockDb.pedido.findUniqueOrThrow.mockResolvedValue({
+          id: 'pedido-1',
+          estado: 'EN_ARMADO',
+          items: [{ productoId: 'prod-1', cantidad: 5 }]
+        })
+        mockDb.pedido.update.mockResolvedValue({
+          id: 'pedido-1',
+          estado: 'EN_ARMADO',
+          armadorId: 'armador-1',
+          cliente: { nombre: 'Cliente A' },
+          items: [],
+          vendedorId: 'vendedor-1',
+        })
+        mockDb.platformUser.findMany.mockResolvedValue([])
+        const app = await createTestApp()
 
-      const res = await request(app)
-        .put('/api/ale-bet/pedidos/pedido-1/tomar')
-        .set('Authorization', `Bearer ${signArmadorToken()}`)
-        .expect(200)
+        const res = await request(app)
+          .put('/api/ale-bet/pedidos/pedido-1/tomar')
+          .set('Authorization', `Bearer ${signArmadorToken()}`)
+          .expect(200)
 
-      expect(res.body.estado).toBe('EN_ARMADO')
-    })
+        expect(res.body.estado).toBe('EN_ARMADO')
+      })
   })
 
   describe('PUT /api/ale-bet/pedidos/:id/cancelar', () => {
@@ -886,40 +900,6 @@ describe('Ale-Bet Module', () => {
       expect(res.body.error).toBe('Item no encontrado')
     })
 
-    it('devuelve 409 cuando el stock es insuficiente', async () => {
-      mockDb.pedido.findUnique.mockResolvedValue({
-        id: 'pedido-1',
-        estado: 'EN_ARMADO',
-        items: [
-          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: false },
-          { id: 'item-2', productoId: 'prod-2', cantidad: 3, completado: true },
-        ],
-      })
-      mockDb.itemPedido.update.mockResolvedValue({ id: 'item-1', completado: true })
-      mockDb.pedido.findUniqueOrThrow.mockResolvedValueOnce({
-        id: 'pedido-1',
-        estado: 'EN_ARMADO',
-        numero: 'P-001',
-        clienteId: 'cliente-1',
-        vendedorId: 'vendedor-1',
-        armadorId: null,
-        createdAt: new Date(),
-        cliente: { id: 'cliente-1', nombre: 'Cliente A' },
-        items: [
-          { id: 'item-1', productoId: 'prod-1', cantidad: 5, completado: true, producto: { id: 'prod-1', nombre: 'Producto A' } },
-          { id: 'item-2', productoId: 'prod-2', cantidad: 3, completado: true, producto: { id: 'prod-2', nombre: 'Producto B' } },
-        ],
-      })
-      mockDb.lote.findMany.mockResolvedValue([])
-      const app = await createTestApp()
-
-      const res = await request(app)
-        .put('/api/ale-bet/pedidos/pedido-1/items/item-1/completar')
-        .set('Authorization', `Bearer ${signArmadorToken()}`)
-        .expect(409)
-
-      expect(res.body.error).toBe('Stock insuficiente para completar el pedido')
-    })
 
     it('devuelve 401 sin token', async () => {
       const app = await createTestApp()
