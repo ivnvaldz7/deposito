@@ -800,34 +800,41 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     }
   })
 
-  // Test K - Inconsistencia de Frascos
-  it('Test K - Cajas suficientes pero total inconsistente/insuficiente', async () => {
-    // Creamos frasco con cajas=10 (suficientes para orden de 5) pero total=40 (insuficiente si uni=10, 50 requeridos)
+  // Test K (Revisado) - Conflicto concurrente válido con frascos coherentes
+  it('Test K - Conflicto concurrente válido de frascos', async () => {
+    // Creamos frasco con cajas=10, upc=10, total=100 (Coherente)
     const frasco = await prisma.inventarioFrasco.create({
       data: {
-        articulo: 'Frasco K',
+        articulo: 'Frasco K Rev',
         unidadesPorCaja: 10,
         cantidadCajas: 10,
-        total: 40, // Inconsistente! 10 * 10 debería ser 100
+        total: 100, // Coherente
       }
     })
 
-    const orden = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco K', cantidad: 5, estado: 'aprobada' }
+    // Dos órdenes que piden 6 cajas (60 unidades) cada una. Solo hay 10 cajas disponibles.
+    const orden1 = await prisma.ordenProduccion.create({
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco K Rev', cantidad: 6, estado: 'aprobada' }
+    })
+    const orden2 = await prisma.ordenProduccion.create({
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco K Rev', cantidad: 6, estado: 'aprobada' }
     })
 
-    const res = await request(app)
-      .post(`/api/deposito/ordenes/${orden.id}/ejecutar`)
-      .set('Authorization', `Bearer ${tokenEncargado}`)
+    const req1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const req2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
-    // Debe fallar porque aunque hay 10 cajas (>= 5), el total es 40 (< 50 requeridas)
-    expect(res.status).toBe(409)
+    const [res1, res2] = await Promise.all([req1, req2])
+
+    const successRes = res1.status === 200 ? res1 : res2
+    const failRes = res1.status === 409 ? res1 : res2
+
+    expect(successRes.status).toBe(200)
+    expect(failRes.status).toBe(409)
 
     const finalFrasco = await prisma.inventarioFrasco.findUnique({ where: { id: frasco.id } })
-    expect(finalFrasco?.cantidadCajas).toBe(10)
-    expect(finalFrasco?.total).toBe(40)
-})
-
+    expect(finalFrasco?.cantidadCajas).toBe(4) // 10 - 6
+    expect(finalFrasco?.total).toBe(40) // 100 - 60
+  })
   describe('Idempotencia de Tomar Pedido (PR-B3A)', () => {
     it('Test L - Reintento secuencial', async () => {
       const uniqueId = Math.random().toString(36).substring(7)

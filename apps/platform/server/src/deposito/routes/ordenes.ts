@@ -1,6 +1,7 @@
 import { Request,  Router, Response  } from 'express'
 import { z } from 'zod'
 import { Mercado, Prisma } from '@platform/db'
+import { extractDbConstraintViolation, isKnownInventoryConflict } from '../../utils/db-errors'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
@@ -576,6 +577,16 @@ router.post(
         res.status(err.status).json({ message: err.message, code: err.code })
         return
       }
+
+      const dbErr = extractDbConstraintViolation(err)
+      if (dbErr && isKnownInventoryConflict(dbErr.constraintName)) {
+        res.status(409).json({
+          message: 'La operación no puede completarse por una inconsistencia de stock',
+          code: 'INVENTORY_CONSTRAINT_VIOLATION'
+        })
+        return
+      }
+
       const msg = err instanceof Error ? err.message : 'Error interno del servidor'
       if (msg.startsWith('HTTP_404: ')) {
         res.status(404).json({ message: msg.replace('HTTP_404: ', '') })

@@ -8,11 +8,7 @@ export default defineConfig({
     env: {
       VITEST_ENV: 'integration'
     },
-    poolOptions: {
-      threads: {
-        singleThread: true
-      }
-    },
+    fileParallelism: false,
     hookTimeout: 30000,
     testTimeout: 10000
   }
