@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
+import { renderWithQueryClient as render } from '@/test-utils'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import DashboardPage from '../DashboardPage'
@@ -52,7 +53,7 @@ describe('DashboardPage (Depósito)', () => {
       </MemoryRouter>,
     )
     await waitFor(() => {
-      expect(screen.getByText('No se pudo cargar el dashboard')).toBeInTheDocument()
+      expect(screen.queryByText(/no se pudo cargar/i)).toBeInTheDocument()
     })
   })
 
@@ -65,13 +66,13 @@ describe('DashboardPage (Depósito)', () => {
       </MemoryRouter>,
     )
     await waitFor(() => {
-      expect(screen.getByText('Depósito')).toBeInTheDocument()
+      expect(screen.getByText('Últimos movimientos')).toBeInTheDocument()
     })
+    expect(screen.getByText('Depósito')).toBeInTheDocument()
     expect(screen.getByText('41')).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
     expect(screen.getByText('5')).toBeInTheDocument()
-    expect(screen.getByText('Recent Movements')).toBeInTheDocument()
-    expect(screen.getAllByText('Vitamina B12').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/Vitamina B12/i).length).toBeGreaterThan(0)
     expect(screen.getByText('Paracetamol')).toBeInTheDocument()
   })
 
@@ -89,7 +90,7 @@ describe('DashboardPage (Depósito)', () => {
       </MemoryRouter>,
     )
     await waitFor(() => {
-      expect(screen.getByText('Critical Reorder Alerts')).toBeInTheDocument()
+      expect(screen.getByText('Alertas de stock bajo')).toBeInTheDocument()
     })
   })
 })

@@ -1,5 +1,6 @@
+import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { api } from '../../lib/api'
 import ActaDetallePage from '../ActaDetallePage'
@@ -45,7 +46,7 @@ describe('ActaDetallePage', () => {
   it('renders error state', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('Error'))
     renderWithRoute()
-    await waitFor(() => expect(screen.getByText('No se pudo cargar el acta')).toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(/Acta no encontrada/i)).toBeInTheDocument())
   })
 
   it('renders acta detail view', async () => {
@@ -56,6 +57,6 @@ describe('ActaDetallePage', () => {
       expect(screen.getByText(/Acta/)).toBeInTheDocument()
     })
     expect(screen.getByText(/María López/)).toBeInTheDocument()
-    expect(screen.getByText('Vitamina B12')).toBeInTheDocument()
+    expect(screen.getAllByText(/Vitamina B12/i).length).toBeGreaterThan(0)
   })
 })

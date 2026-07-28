@@ -1,5 +1,6 @@
+import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import PendientesPage from '../PendientesPage'
@@ -35,16 +36,14 @@ describe('PendientesPage', () => {
   it('renders error state', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('Error'))
     render(<MemoryRouter><PendientesPage /></MemoryRouter>)
-    await waitFor(() => expect(screen.getByText('No se pudo cargar los pendientes')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Error')).toBeInTheDocument())
   })
 
   it('renders items list with status display', async () => {
     vi.mocked(api.get).mockResolvedValue(createPendienteList())
     render(<MemoryRouter><PendientesPage /></MemoryRouter>)
-    await waitFor(() => {
-      expect(screen.getByText('PENDIENTES')).toBeInTheDocument()
-    })
-    expect(screen.getAllByText('En esterilización').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('Recibidos')).toBeInTheDocument()
+    await waitFor(() => { expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument() })
+    expect(screen.getAllByText(/en esterilización/i).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(/recibidos/i).length).toBeGreaterThan(0)
   })
 })

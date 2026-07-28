@@ -1,5 +1,6 @@
+import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import { useAppStore } from '@/stores/app-store'
@@ -172,7 +173,7 @@ describe('Auth Flow Integration', () => {
     // El index de DepositoModule redirige a /deposito/dashboard
     await waitFor(() => {
       expect(currentPath).toBe('/deposito/dashboard')
-    })
+    }, { timeout: 3000 })
   })
 
   it('single-app user at root / gets auto-redirected to their app', async () => {

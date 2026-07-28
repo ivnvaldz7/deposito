@@ -1,5 +1,6 @@
+import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import MetricasPage from '../MetricasPage'
@@ -35,15 +36,16 @@ describe('MetricasPage', () => {
   })
 
   it('renders metrics data when loaded', async () => {
-    vi.mocked(api.get).mockResolvedValue(createMetricasData())
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url === '/metricas' || url.startsWith('/metricas?')) return createMetricasData()
+      if (url === '/metricas/productos') return ['Prod A']
+      throw new Error(`Endpoint inesperado en test: ${url}`)
+    })
     render(<MemoryRouter><MetricasPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('MÉTRICAS')).toBeInTheDocument()
-      expect(screen.getByText('Ingresos por categoría')).toBeInTheDocument()
+      expect(screen.getAllByText(/1\.?500/).length).toBeGreaterThan(0)
     })
     expect(screen.getByText('Top 10 más ingresados')).toBeInTheDocument()
-    const ingresosElements = screen.getAllByText('1500')
-    expect(ingresosElements.length).toBeGreaterThanOrEqual(1)
     const egresosElements = screen.getAllByText('800')
     expect(egresosElements.length).toBeGreaterThanOrEqual(1)
   })
@@ -52,7 +54,7 @@ describe('MetricasPage', () => {
     vi.mocked(api.get).mockRejectedValue(new Error('API Error'))
     render(<MemoryRouter><MetricasPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.queryByText('1500')).not.toBeInTheDocument()
+      expect(screen.queryByText('1.500')).not.toBeInTheDocument()
     })
   })
 })

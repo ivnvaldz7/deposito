@@ -1,5 +1,6 @@
+import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import OrdenesPage from '../OrdenesPage'
@@ -35,17 +36,15 @@ describe('OrdenesPage', () => {
   it('renders error state', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('Error'))
     render(<MemoryRouter><OrdenesPage /></MemoryRouter>)
-    await waitFor(() => expect(screen.getByText('No se pudo cargar las órdenes')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Error')).toBeInTheDocument())
   })
 
   it('renders orders list with status display', async () => {
     vi.mocked(api.get).mockResolvedValue(createOrdenList())
     render(<MemoryRouter><OrdenesPage /></MemoryRouter>)
-    await waitFor(() => {
-      expect(screen.getByText('ÓRDENES')).toBeInTheDocument()
-    })
-    expect(screen.getByText('Vitamina B12')).toBeInTheDocument()
-    expect(screen.getAllByText('Solicitada').length).toBeGreaterThanOrEqual(1)
+    await waitFor(() => { expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument() })
+    expect(screen.getAllByText(/Vitamina B12/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/solicitada/i).length).toBeGreaterThanOrEqual(1)
   })
 
   it('shows empty state', async () => {

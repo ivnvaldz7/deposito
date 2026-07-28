@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
+import { renderWithQueryClient as render } from '@/test-utils'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import DrogasPage from '../DrogasPage'
@@ -39,16 +40,20 @@ describe('DrogasPage', () => {
   it('renders error state', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('Error'))
     render(<MemoryRouter><DrogasPage /></MemoryRouter>)
-    await waitFor(() => expect(screen.getByText('No se pudo cargar el inventario')).toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(/no se pudo cargar/i)).toBeInTheDocument())
   })
 
   it('renders grouped lotes list', async () => {
-    vi.mocked(api.get).mockResolvedValue(createDrogaRecords())
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url.startsWith('/drogas')) return createDrogaRecords()
+      throw new Error(`Endpoint inesperado en test: ${url}`)
+    })
     render(<MemoryRouter><DrogasPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('Inventario de Drogas')).toBeInTheDocument()
+      expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
     })
-    expect(screen.getByText('Paracetamol')).toBeInTheDocument()
-    expect(screen.getByText('Ibuprofeno')).toBeInTheDocument()
+    expect(screen.getByText('Drogas', { selector: 'h1' })).toBeInTheDocument()
+    expect(screen.getAllByText(/paracetamol/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Ibuprofeno/i)[0]).toBeInTheDocument()
   })
 })

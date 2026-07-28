@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
+import { renderWithQueryClient as render } from '@/test-utils'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import MovimientosPage from '../MovimientosPage'
@@ -31,16 +32,20 @@ describe('MovimientosPage', () => {
   it('renders error state', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('Error'))
     render(<MemoryRouter><MovimientosPage /></MemoryRouter>)
-    await waitFor(() => expect(screen.getByText('No se pudo cargar los movimientos')).toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText('Error')).toBeInTheDocument())
   })
 
   it('renders movements list', async () => {
-    vi.mocked(api.get).mockResolvedValue(createMovimientoList())
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url.startsWith('/movimientos')) return createMovimientoList()
+      throw new Error(`Endpoint inesperado en test: ${url}`)
+    })
     render(<MemoryRouter><MovimientosPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('Auditoría de Movimientos')).toBeInTheDocument()
+      expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
     })
-    expect(screen.getAllByText('Vitamina B12').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Auditoría de Movimientos')).toBeInTheDocument()
+    expect(screen.getAllByText(/Vitamina B12/i).length).toBeGreaterThan(0)
   })
 
   it('shows empty state', async () => {

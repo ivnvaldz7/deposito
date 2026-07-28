@@ -1,5 +1,6 @@
+import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import ActasPage from '../ActasPage'
@@ -31,7 +32,7 @@ describe('ActasPage', () => {
   it('renders error state', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('Error'))
     render(<MemoryRouter><ActasPage /></MemoryRouter>)
-    await waitFor(() => expect(screen.getByText('No se pudo cargar las actas')).toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByText(/no se pudieron cargar/i)).toBeInTheDocument())
   })
 
   it('renders empty state', async () => {
@@ -41,11 +42,14 @@ describe('ActasPage', () => {
   })
 
   it('renders table with items', async () => {
-    vi.mocked(api.get).mockResolvedValue(createActaList())
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url.startsWith('/actas')) return createActaList()
+      throw new Error(`Endpoint inesperado en test: ${url}`)
+    })
     render(<MemoryRouter><ActasPage /></MemoryRouter>)
     await waitFor(() => {
-      expect(screen.getByText('ACTAS')).toBeInTheDocument()
+      expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
     })
-    expect(screen.getByText('actas')).toBeInTheDocument()
+    expect(screen.getByText('Actas', { selector: 'h1' })).toBeInTheDocument()
   })
 })

@@ -1,7 +1,52 @@
 import { type ReactElement } from 'react'
-import { render, type RenderOptions } from '@testing-library/react'
+import { render, renderHook, type RenderOptions, type RenderHookOptions } from '@testing-library/react'
 import { MemoryRouter, type MemoryRouterProps } from 'react-router-dom'
 import { type PlatformUser } from '@/stores/auth-store'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+export function createTestQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+      mutations: {
+        retry: false,
+      },
+    },
+  })
+}
+
+export function renderWithQueryClient(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
+  const queryClient = createTestQueryClient()
+  return {
+    queryClient,
+    ...render(
+      <QueryClientProvider client={queryClient}>
+        {ui}
+      </QueryClientProvider>,
+      options
+    ),
+  }
+}
+
+export function renderHookWithQueryClient<Result, Props>(
+  renderFn: (initialProps: Props) => Result,
+  options?: Omit<RenderHookOptions<Props>, 'wrapper'>
+) {
+  const queryClient = createTestQueryClient()
+  return {
+    queryClient,
+    ...renderHook(renderFn, {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      ),
+      ...options,
+    })
+  }
+}
 
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   initialEntries?: MemoryRouterProps['initialEntries']
