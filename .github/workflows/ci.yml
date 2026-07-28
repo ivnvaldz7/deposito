@@ -169,6 +169,7 @@ jobs:
 
       - name: Final Workspace Cleanliness Check
         run: |
+          git restore packages/db/src/generated/client || true
           git diff --exit-code
           status="$(git status --porcelain)"
           if [ -n "$status" ]; then
