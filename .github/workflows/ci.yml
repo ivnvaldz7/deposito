@@ -76,14 +76,14 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Build workspace dependencies
+        run: npm run build
+
       - name: Lint
         run: npm run lint
 
       - name: Typecheck
         run: npm run typecheck
-
-      - name: Build
-        run: npm run build
 
       - name: Unit Tests (Server)
         run: npm --workspace @platform/server run test
