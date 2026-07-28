@@ -35,8 +35,8 @@ jobs:
       CI: true
       NODE_ENV: test
       ALLOW_TEST_DB_RESET: "true"
-      PLATFORM_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deposito_test
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deposito_test
+      PLATFORM_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deposito_ci_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deposito_ci_test
       DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/deposito_test
 
     steps:
@@ -92,9 +92,14 @@ jobs:
         run: npm --workspace @platform/client run test
 
       - name: Database Migrations
+        env:
+          PLATFORM_DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
+          DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
         run: npm --workspace @platform/server run db:migrate
 
       - name: Verify Constraints PR-C1
+        env:
+          PLATFORM_DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
         run: |
           node -e "
           const { Client } = require('pg');
