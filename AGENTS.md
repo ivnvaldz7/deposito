@@ -1,73 +1,46 @@
 # AGENTS.md — Plataforma
 
-## Proyecto
+## Propósito
 
-Sistema SaaS de gestión operativa para depósitos de laboratorios veterinarios.
-Monorepo Turborepo con npm workspaces.
+Sistema SaaS de gestión operativa para depósitos de laboratorios veterinarios. Monorepo Turborepo con npm workspaces.
 
-## Stack
+## Inicio obligatorio
 
-- **Frontend:** React 19 + Vite 8 + TailwindCSS 4 + Zustand 5 + react-router-dom 7 + shadcn/ui
-- **Backend:** Express 4 + TypeScript strict + Prisma 7 + PostgreSQL (multi-schema)
-- **Auth:** Google OAuth + JWT (access 15min + refresh 7d httpOnly)
-- **Testing:** Vitest + Supertest + @testing-library/react
-- **Monorepo:** Turborepo ^2.5 + npm workspaces
+Antes de planificar, modificar, probar o revisar una funcionalidad, leer en este orden:
 
-## Documentación
+1. `.agents/current.md`.
+2. `docs/features/<feature>.md` (crear desde `docs/features/TEMPLATE.md` si aún no existe).
+3. `docs/PRD.md`, `docs/CONTEXT.md`, `docs/ARCHITECTURE.md` y `docs/GLOSSARY.md` antes de escribir código.
+4. El rol correspondiente en `.agents/`.
 
-Leer antes de escribir código:
-- `docs/PRD.md` — qué construimos y para quién
-- `docs/CONTEXT.md` — reglas de negocio y dominio
-- `docs/ARCHITECTURE.md` — cómo está armado el sistema
-- `docs/GLOSSARY.md` — vocabulario del dominio
+Este harness es fuente de verdad operativa compacta para Codex, Gemini, OpenCode y modelos OSS. No asumir que documentación no verificada refleja el estado actual.
 
-## Workflow de Desarrollo — SDD + TDD OBLIGATORIO
+## Flujo obligatorio
 
-Todo cambio debe pasar por el ciclo SDD:
+Todo cambio sigue SDD y TDD estricto:
 
-```
+```text
 sdd-propose → sdd-spec → sdd-design → sdd-tasks → sdd-apply → sdd-verify → sdd-archive
+RED → GREEN → REFACTOR
 ```
 
-Strict TDD mode habilitado: primero el test fallido (RED), luego la implementación (GREEN), después refactor.
+Para ejecutar trabajo, respetar el protocolo: **Planner → Builder → Tester → Reviewer → Verify**. Cada rol entrega su salida al siguiente; ningún rol aprueba su propio trabajo. Ante un bloqueo, registrar evidencia y estado `bloqueado`; no avanzar.
 
-## Archivos Clave
+## Reglas de colaboración y Git
 
-| Módulo | Server | Client |
-|--------|--------|--------|
-| Depósito | `apps/platform/server/src/deposito/routes/` | `apps/platform/client/src/modules/deposito/` |
-| Ale-Bet | `apps/platform/server/src/routes/ale-bet/` | `apps/platform/client/src/modules/ale-bet/` |
-| Admin | `apps/platform/server/src/routes/admin/` | `apps/platform/client/src/modules/admin/` |
-| Auth | `apps/platform/server/src/routes/auth/` | `apps/platform/client/src/modules/auth/` |
-| Core | `packages/platform-core/src/auth/` | — |
-| DB | `packages/db/prisma/schema.prisma` | — |
+- No hacer commits ni push sin pedido explícito del usuario.
+- No trabajar directamente sobre `master`.
+- Respetar un workspace sucio: no eliminar, resetear, restaurar ni sobrescribir cambios ajenos.
+- No expandir scope sin autorización explícita.
+- Commits, si se solicitan: Conventional Commits `type(scope): descripción`; sin `Co-Authored-By` ni atribución de IA.
+- TypeScript estricto: sin `any`, `as unknown` ni `@ts-ignore`.
 
-## Comandos
+## Riesgo y aprobación
 
-```bash
-# Development
-npm run dev                        # Turbo: platform/server + platform/client en paralelo
+| Nivel | Alcance | Requisito |
+|---|---|---|
+| Bajo | Solo documentación o comentarios | Flujo normal y Verify. |
+| Estándar | Código o tests normales | Flujo completo. |
+| Alto | Stock, auth, transacciones, permisos, Prisma/schema o CI | Reviewer independiente y Verify obligatorios. |
 
-# Testing
-npm run test --filter=@platform/server    # Tests backend
-npm run test --filter=@platform/client    # Tests frontend
-
-# Type checking
-npm run typecheck --filter=@platform/server
-npm run typecheck --filter=@platform/client
-
-# Build
-npm run build                      # Turbo build todos los workspaces
-```
-
-## Reglas
-
-1. **Conventional commits**: `type(scope): descripción` — type en (feat|fix|chore|docs|refactor|test)
-2. **TypeScript estricto**: no `any`, no `as unknown`, no `@ts-ignore`
-3. **SDD obligatorio**: todo feature nuevo arranca con `sdd-propose`
-4. **TDD obligatorio**: el test se escribe antes que la implementación
-5. **Consultar documentación** antes de escribir código
-6. **No expandir scope** sin autorización explícita
-7. **No Co-Authored-By** ni atribuciones AI en commits
-
-
+Usar `.agents/current.md` para rutas, comandos, salvaguardas y evidencia vigente.
