@@ -1,6 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
-import { useAuthStore } from '@/stores/auth-store'
 import type { Mercado } from '../components/inventory-shared/mercados'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,7 +47,14 @@ export interface ImportRow {
   producto?: ProductoFormData
 }
 
-export type ImportConfirmResult = Producto[]
+export interface ImportConfirmResult {
+  filas: ImportRow[]
+  importadas: number
+  omitidas: number
+  omitidasPorCarrera: number
+  total: number
+  productos: Producto[]
+}
 
 // ─── Query keys ───────────────────────────────────────────────────────────────
 
@@ -125,32 +131,14 @@ export function useDesactivarProducto() {
   })
 }
 
-// ─── Hooks: Import (multipart — uses native fetch) ──────────────────────────
-
-const BASE = '/deposito'
-
-function getAuthHeaders(): Record<string, string> {
-  const token = useAuthStore.getState().token
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
+// ─── Hooks: Import (multipart via shared apiClient — same auth as the rest of the app) ─
 
 export function useImportDryRun() {
   return useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: (file: File) => {
       const formData = new FormData()
       formData.append('archivo', file)
-      const baseUrl = import.meta.env.VITE_API_URL || ''
-      const res = await fetch(`${baseUrl}/api${BASE}/productos/importaciones/dry-run`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { ...getAuthHeaders() },
-        body: formData,
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Error en la importación' }))
-        throw new Error(body.message ?? body.error ?? 'Error en la importación')
-      }
-      return res.json() as Promise<ImportDryRunResult>
+      return api.postForm<ImportDryRunResult>('/productos/importaciones/dry-run', formData)
     },
   })
 }
@@ -158,21 +146,10 @@ export function useImportDryRun() {
 export function useImportConfirmar() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: (file: File) => {
       const formData = new FormData()
       formData.append('archivo', file)
-      const baseUrl = import.meta.env.VITE_API_URL || ''
-      const res = await fetch(`${baseUrl}/api${BASE}/productos/importaciones/confirmar`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { ...getAuthHeaders() },
-        body: formData,
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({ error: 'Error al confirmar la importación' }))
-        throw new Error(body.message ?? body.error ?? 'Error al confirmar la importación')
-      }
-      return res.json() as Promise<ImportConfirmResult>
+      return api.postForm<ImportConfirmResult>('/productos/importaciones/confirmar', formData)
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
   })

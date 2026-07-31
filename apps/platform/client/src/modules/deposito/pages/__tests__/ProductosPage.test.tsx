@@ -12,7 +12,7 @@ import { useAuthStore } from '@/stores/auth-store'
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
 vi.mock('../../lib/api', () => ({
-  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), del: vi.fn() },
+  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), del: vi.fn(), postForm: vi.fn() },
   ApiError: class ApiError extends Error {
     constructor(public status: number, message: string) { super(message); this.name = 'ApiError' }
   },
@@ -189,63 +189,109 @@ describe('ProductosPage', () => {
 
   // ─── 4.4: Import dry-run shows per-row errors ──────────────────────────────
 
-  describe('4.4: Import dry-run preview', () => {
-    const originalFetch = globalThis.fetch
-
-    afterEach(() => {
-      globalThis.fetch = originalFetch
-    })
-
-    it('shows valid and invalid rows after dry-run', async () => {
+  describe('4.4: Import dry-run preview (MVP-01)', () => {
+    it('handles mixed valid/invalid rows correctly (filters, warnings, partial confirm)', async () => {
       vi.mocked(api.get).mockResolvedValue(mockProductos)
       setupAuth('encargado')
 
-      globalThis.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          filas: [
-            { fila: 1, producto: { nombreBase: 'Producto A', nombreCompleto: 'Producto A', categoria: 'droga', codigo: null }, valido: true },
-            { fila: 2, producto: { nombreBase: 'Producto B', nombreCompleto: 'Producto B', categoria: 'etiqueta', codigo: 'IGET001' }, valido: true },
-            { fila: 3, valido: false, errores: { nombreBase: ['Nombre requerido'] } },
-          ],
-          validas: 2,
-          invalidas: 1,
-        }),
+      vi.mocked(api.postForm).mockResolvedValue({
+        filas: [
+          { fila: 1, producto: { nombreBase: 'Producto A', nombreCompleto: 'Producto A', categoria: 'droga', codigo: null }, valido: true },
+          { fila: 2, producto: { nombreBase: 'Producto B', nombreCompleto: 'Producto B', categoria: 'etiqueta', codigo: 'IGET001' }, valido: true },
+          { fila: 3, valido: false, errores: { nombreBase: ['Nombre requerido'] } },
+        ],
+        validas: 2,
+        invalidas: 1,
       })
 
       renderPage()
       await waitForLoad()
-
       fireEvent.click(screen.getByRole('button', { name: 'Importar' }))
-      await waitFor(() => {
-        expect(screen.getByText('Importar productos')).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByText('Importar productos')).toBeInTheDocument())
 
-      const fileInput = screen.getByLabelText(/Archivo/i) as HTMLInputElement
       const file = new File(['test'], 'test.csv', { type: 'text/csv' })
-      fireEvent.change(fileInput, { target: { files: [file] } })
+      fireEvent.change(screen.getByLabelText(/Archivo/i), { target: { files: [file] } })
 
-      // Wait for the preview button to appear
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: 'Previsualizar' })).toBeInTheDocument()
-      })
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Previsualizar' })).toBeInTheDocument())
       fireEvent.click(screen.getByRole('button', { name: 'Previsualizar' }))
 
+      // 1. mezcla válida/inválida NO muestra error rojo (el de 0 válidas)
+      // 9. no existen simultáneamente banner rojo + warning
       await waitFor(() => {
-        expect(screen.getByText('2 filas válidas')).toBeInTheDocument()
-        expect(screen.getByText('1 filas inválidas')).toBeInTheDocument()
+        expect(screen.queryByText(/No hay filas válidas para importar/i)).not.toBeInTheDocument()
       })
 
+      // 2. mezcla válida/inválida muestra warning no bloqueante
+      expect(screen.getByText('1 filas serán omitidas.')).toBeInTheDocument()
+
+      // 7. confirm sigue habilitado mientras haya >=1 válida
+      const confirmBtn = screen.getByRole('button', { name: /Confirmar importación \(2 productos\)/i })
+      expect(confirmBtn).not.toBeDisabled()
+
+      // 8. tabla mantiene las cantidades correctas al filtrar
+      // 4. filtro Todas no cambia validRows/invalidRows
+      expect(screen.getByText('2 válidas')).toBeInTheDocument()
+      expect(screen.getByText('1 inválidas')).toBeInTheDocument()
       expect(screen.getByText('Producto A')).toBeInTheDocument()
       expect(screen.getByText('Producto B')).toBeInTheDocument()
       expect(screen.getByText('Nombre requerido')).toBeInTheDocument()
-      expect(screen.getByText('Confirmar importación (2 productos)')).toBeInTheDocument()
+
+      // 5. filtro Válidas no cambia estado global
+      fireEvent.click(screen.getByRole('button', { name: 'Válidas' }))
+      expect(screen.getByText('2 válidas')).toBeInTheDocument() // still visible
+      expect(screen.getByText('1 inválidas')).toBeInTheDocument()
+      expect(screen.getByText('Producto A')).toBeInTheDocument()
+      expect(screen.queryByText('Nombre requerido')).not.toBeInTheDocument() // invalid row hidden
+
+      // 6. filtro Inválidas no cambia estado global
+      fireEvent.click(screen.getByRole('button', { name: 'Inválidas' }))
+      expect(screen.getByText('2 válidas')).toBeInTheDocument()
+      expect(screen.getByText('Nombre requerido')).toBeInTheDocument()
+      expect(screen.queryByText('Producto A')).not.toBeInTheDocument() // valid row hidden
+
+      // 10. confirm procesa solo filas válidas
+      vi.mocked(api.postForm).mockResolvedValue({ importadas: 2, omitidas: 1 })
+      fireEvent.click(confirmBtn)
+      await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('2 productos creados')))
+    })
+
+    it('shows blocking error when 0 valid rows exist', async () => {
+      vi.mocked(api.get).mockResolvedValue(mockProductos)
+      setupAuth('encargado')
+
+      vi.mocked(api.postForm).mockResolvedValue({
+        filas: [
+          { fila: 1, valido: false, errores: { nombreBase: ['Error 1'] } },
+          { fila: 2, valido: false, errores: { nombreBase: ['Error 2'] } },
+        ],
+        validas: 0,
+        invalidas: 2,
+      })
+
+      renderPage()
+      await waitForLoad()
+      fireEvent.click(screen.getByRole('button', { name: 'Importar' }))
+      await waitFor(() => expect(screen.getByText('Importar productos')).toBeInTheDocument())
+
+      const file = new File(['test'], 'test.csv', { type: 'text/csv' })
+      fireEvent.change(screen.getByLabelText(/Archivo/i), { target: { files: [file] } })
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Previsualizar' })).toBeInTheDocument())
+      fireEvent.click(screen.getByRole('button', { name: 'Previsualizar' }))
+
+      // 3. 0 válidas sí muestra error bloqueante
+      await waitFor(() => {
+        expect(screen.getByText(/No hay filas válidas para importar/i)).toBeInTheDocument()
+      })
+      // 9. no existen simultáneamente banner rojo + warning
+      expect(screen.queryByText(/filas serán omitidas/i)).not.toBeInTheDocument()
+
+      const confirmBtn = screen.getByRole('button', { name: /Confirmar importación/i })
+      expect(confirmBtn).toBeDisabled()
     })
 
     it('rejects an unsupported import file before any request is sent', async () => {
       vi.mocked(api.get).mockResolvedValue(mockProductos)
-      const fetchMock = vi.fn()
-      globalThis.fetch = fetchMock
       renderPage()
       await waitForLoad()
       fireEvent.click(screen.getByRole('button', { name: 'Importar' }))
@@ -253,8 +299,8 @@ describe('ProductosPage', () => {
       const file = new File(['not a catalog'], 'catalogo.pdf', { type: 'application/pdf' })
       fireEvent.change(screen.getByLabelText(/Archivo/i), { target: { files: [file] } })
 
-      expect(screen.getByText('Formato no soportado. Use CSV o XLSX.')).toBeInTheDocument()
-      expect(fetchMock).not.toHaveBeenCalled()
+      expect(screen.getByText('Formato no soportado. Use archivos .xls, .xlsx o .csv.')).toBeInTheDocument()
+      expect(api.postForm).not.toHaveBeenCalled()
     })
   })
 
@@ -877,8 +923,6 @@ describe('ProductosPage', () => {
 
     it('import Cerrar button resets the error state, closes without any request and keeps filters', async () => {
       vi.mocked(api.get).mockResolvedValue(mockProductos)
-      const fetchMock = vi.fn()
-      globalThis.fetch = fetchMock
       renderPage()
       await waitForLoad()
 
@@ -894,7 +938,7 @@ describe('ProductosPage', () => {
       // Unsupported file → error state
       const fileInput = screen.getByLabelText(/Archivo/i) as HTMLInputElement
       fireEvent.change(fileInput, { target: { files: [new File(['x'], 'catalogo.pdf', { type: 'application/pdf' })] } })
-      expect(screen.getByText('Formato no soportado. Use CSV o XLSX.')).toBeInTheDocument()
+      expect(screen.getByText('Formato no soportado. Use archivos .xls, .xlsx o .csv.')).toBeInTheDocument()
 
       const cerrarButton = screen.getByRole('button', { name: 'Cerrar' })
       expect(cerrarButton).toHaveAttribute('type', 'button')
@@ -903,7 +947,7 @@ describe('ProductosPage', () => {
       await waitFor(() => {
         expect(screen.queryByText('Importar productos')).not.toBeInTheDocument()
       })
-      expect(fetchMock).not.toHaveBeenCalled()
+      expect(api.postForm).not.toHaveBeenCalled()
       expectFiltersPreserved('etiqueta', 'ACTIVO')
 
       // Reopen → button routes through handleOpenChange → resetState() cleared error and file
@@ -911,15 +955,13 @@ describe('ProductosPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Importar productos')).toBeInTheDocument()
       })
-      expect(screen.queryByText('Formato no soportado. Use CSV o XLSX.')).not.toBeInTheDocument()
+      expect(screen.queryByText('Formato no soportado. Use archivos .xls, .xlsx o .csv.')).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Previsualizar' })).not.toBeInTheDocument()
       expect((screen.getByLabelText(/Archivo/i) as HTMLInputElement).value).toBe('')
     })
 
     it('import ESC close (handleOpenChange) resets the error state', async () => {
       vi.mocked(api.get).mockResolvedValue(mockProductos)
-      const fetchMock = vi.fn()
-      globalThis.fetch = fetchMock
       renderPage()
       await waitForLoad()
 
@@ -931,35 +973,31 @@ describe('ProductosPage', () => {
       // Unsupported file → error state
       const fileInput = screen.getByLabelText(/Archivo/i) as HTMLInputElement
       fireEvent.change(fileInput, { target: { files: [new File(['x'], 'catalogo.pdf', { type: 'application/pdf' })] } })
-      expect(screen.getByText('Formato no soportado. Use CSV o XLSX.')).toBeInTheDocument()
+      expect(screen.getByText('Formato no soportado. Use archivos .xls, .xlsx o .csv.')).toBeInTheDocument()
 
       // Escape routes through handleOpenChange → resetState() clears the error
       fireEvent.keyDown(document, { key: 'Escape' })
       await waitFor(() => {
         expect(screen.queryByText('Importar productos')).not.toBeInTheDocument()
       })
-      expect(fetchMock).not.toHaveBeenCalled()
+      expect(api.postForm).not.toHaveBeenCalled()
 
       // Reopen → error and file state were reset
       fireEvent.click(screen.getByRole('button', { name: 'Importar' }))
       await waitFor(() => {
         expect(screen.getByText('Importar productos')).toBeInTheDocument()
       })
-      expect(screen.queryByText('Formato no soportado. Use CSV o XLSX.')).not.toBeInTheDocument()
+      expect(screen.queryByText('Formato no soportado. Use archivos .xls, .xlsx o .csv.')).not.toBeInTheDocument()
       expect((screen.getByLabelText(/Archivo/i) as HTMLInputElement).value).toBe('')
     })
 
     it('import Cancelar button after a preview resets result and file state, closes without confirming and keeps filters', async () => {
       vi.mocked(api.get).mockResolvedValue(mockProductos)
-      const fetchMock = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          filas: [{ fila: 2, producto: { nombreBase: 'DROGA X', nombreCompleto: 'DROGA X', categoria: 'droga', codigo: null }, valido: true }],
-          validas: 1,
-          invalidas: 0,
-        }),
+      vi.mocked(api.postForm).mockResolvedValue({
+        filas: [{ fila: 2, producto: { nombreBase: 'DROGA X', nombreCompleto: 'DROGA X', categoria: 'droga', codigo: null }, valido: true }],
+        validas: 1,
+        invalidas: 0,
       })
-      globalThis.fetch = fetchMock
       renderPage()
       await waitForLoad()
 
@@ -979,7 +1017,7 @@ describe('ProductosPage', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: 'Previsualizar' }))
       await waitFor(() => {
-        expect(screen.getByText('1 filas válidas')).toBeInTheDocument()
+        expect(screen.getByText('1 válidas')).toBeInTheDocument()
       })
 
       const cancelButton = screen.getByRole('button', { name: 'Cancelar' })
@@ -990,7 +1028,7 @@ describe('ProductosPage', () => {
         expect(screen.queryByText('Importar productos')).not.toBeInTheDocument()
       })
       // Only the dry-run request may have happened — never the confirm one
-      expect(fetchMock.mock.calls.map((call) => String(call[0])).some((url) => url.includes('/confirmar'))).toBe(false)
+      expect(vi.mocked(api.postForm).mock.calls.map((call: any) => String(call[0])).some((url: string) => url.includes('/confirmar'))).toBe(false)
       expectFiltersPreserved('droga', 'PENDIENTE_REVISION')
 
       // Reopen → button routes through handleOpenChange → resetState() cleared result and file
@@ -998,22 +1036,18 @@ describe('ProductosPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Importar productos')).toBeInTheDocument()
       })
-      expect(screen.queryByText(/filas válidas/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/1 válidas/)).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Previsualizar' })).not.toBeInTheDocument()
       expect((screen.getByLabelText(/Archivo/i) as HTMLInputElement).value).toBe('')
     })
 
     it('import ESC close (handleOpenChange) resets result and file state after a preview', async () => {
       vi.mocked(api.get).mockResolvedValue(mockProductos)
-      const fetchMock = vi.fn().mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({
-          filas: [{ fila: 2, producto: { nombreBase: 'DROGA X', nombreCompleto: 'DROGA X', categoria: 'droga', codigo: null }, valido: true }],
-          validas: 1,
-          invalidas: 0,
-        }),
+      vi.mocked(api.postForm).mockResolvedValue({
+        filas: [{ fila: 2, producto: { nombreBase: 'DROGA X', nombreCompleto: 'DROGA X', categoria: 'droga', codigo: null }, valido: true }],
+        validas: 1,
+        invalidas: 0,
       })
-      globalThis.fetch = fetchMock
       renderPage()
       await waitForLoad()
 
@@ -1029,7 +1063,7 @@ describe('ProductosPage', () => {
       })
       fireEvent.click(screen.getByRole('button', { name: 'Previsualizar' }))
       await waitFor(() => {
-        expect(screen.getByText('1 filas válidas')).toBeInTheDocument()
+        expect(screen.getByText('1 válidas')).toBeInTheDocument()
       })
 
       // Escape routes through handleOpenChange → resetState() clears file/result/error
@@ -1043,7 +1077,7 @@ describe('ProductosPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Importar productos')).toBeInTheDocument()
       })
-      expect(screen.queryByText(/filas válidas/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/1 válidas/)).not.toBeInTheDocument()
       expect((screen.getByLabelText(/Archivo/i) as HTMLInputElement).value).toBe('')
     })
   })

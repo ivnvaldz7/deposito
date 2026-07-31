@@ -65,8 +65,12 @@ async function request<T>(
   attemptRefresh = true,
 ): Promise<T> {
   const activeToken = token ?? useAuthStore.getState().token
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+  const headers: Record<string, string> = {}
+
+  // Let the browser set `multipart/form-data` with its own boundary for FormData
+  // bodies — hardcoding a Content-Type here would break multipart uploads.
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
   }
 
   if (activeToken) {
@@ -100,6 +104,10 @@ export const apiClient = {
 
   post: <T>(path: string, body?: unknown, token?: string | null) =>
     request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }, token),
+
+  /** POST a multipart/form-data body (eg. file import). */
+  postForm: <T>(path: string, formData: FormData, token?: string | null) =>
+    request<T>(path, { method: 'POST', body: formData }, token),
 
   put: <T>(path: string, body?: unknown, token?: string | null) =>
     request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body) }, token),

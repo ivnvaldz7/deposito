@@ -38,7 +38,8 @@ const CATEGORIA_LABELS: Record<CategoriaProducto, string> = {
   frasco:  'Frasco',
 }
 
-const ACCEPTED_EXTENSIONS = '.csv,.xlsx'
+const ACCEPTED_EXTENSIONS = '.xls,.xlsx,.csv'
+const ACCEPTED_EXTENSIONS_LIST = ['xls', 'xlsx', 'csv']
 const mercadoSchema = z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable'])
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
@@ -476,6 +477,8 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
   const [file, setFile] = useState<File | null>(null)
   const [importResult, setImportResult] = useState<{ filas: ImportRow[]; validas: number; invalidas: number } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [rowFilter, setRowFilter] = useState<'todas' | 'validas' | 'invalidas'>('todas')
   const dryRunMutation = useImportDryRun()
   const confirmMutation = useImportConfirmar()
 
@@ -483,6 +486,8 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     setFile(null)
     setImportResult(null)
     setError(null)
+    setDragOver(false)
+    setRowFilter('todas')
     if (fileRef.current) fileRef.current.value = ''
   }
 
@@ -490,13 +495,20 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     if (!next) { resetState(); onOpenChange(false) }
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
+  // Single entry point for the file selector AND the drop zone: both run the
+  // same extension gate and the same dry-run flow.
+  function handleFile(f: File | undefined | null) {
     if (!f) return
 
     const ext = f.name.split('.').pop()?.toLowerCase()
-    if (!['csv', 'xlsx'].includes(ext ?? '')) {
-      setError('Formato no soportado. Use CSV o XLSX.')
+    if (!ACCEPTED_EXTENSIONS_LIST.includes(ext ?? '')) {
+      setError('Formato no soportado. Use archivos .xls, .xlsx o .csv.')
+      setFile(null)
+      return
+    }
+
+    if (f.size === 0) {
+      setError('El archivo está vacío')
       setFile(null)
       return
     }
@@ -504,6 +516,39 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     setFile(f)
     setError(null)
     setImportResult(null)
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    handleFile(e.target.files?.[0])
+  }
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(true)
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(true)
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    handleFile(e.dataTransfer.files?.[0])
+  }
+
+  function handleRemoveFile() {
+    setFile(null)
+    setImportResult(null)
+    setError(null)
+    setRowFilter('todas')
+    if (fileRef.current) fileRef.current.value = ''
   }
 
   async function handleDryRun() {
@@ -522,7 +567,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
     setError(null)
     try {
       const result = await confirmMutation.mutateAsync(file)
-      toast.success(`Importación completada: ${result.length} productos creados.`)
+      toast.success(`Importación completada: ${result.importadas} productos creados${result.omitidas > 0 ? `, ${result.omitidas} filas omitidas` : ''}.`)
       resetState()
       onOpenChange(false)
     } catch (err) {
@@ -532,116 +577,260 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
   const canPreview = file && !dryRunMutation.isPending && !importResult
 
+  const filteredRows = useMemo(() => {
+    if (!importResult) return []
+    if (rowFilter === 'validas') return importResult.filas.filter((r) => r.valido)
+    if (rowFilter === 'invalidas') return importResult.filas.filter((r) => !r.valido)
+    return importResult.filas
+  }, [importResult, rowFilter])
+
+  const invalidReason = (row: ImportRow) => Object.values(row.errores ?? {}).flat().join(', ')
+
+  const hasMixedRows = !!importResult && importResult.validas > 0 && importResult.invalidas > 0
+  const hasOnlyInvalidRows = !!importResult && importResult.validas === 0 && importResult.invalidas > 0
+  const totalRows = importResult ? importResult.validas + importResult.invalidas : 0
+
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>
-            <FileSpreadsheet size={18} />
-            Importar productos
-          </DialogTitle>
-          <DialogDescription>Subí un archivo CSV o XLSX para importar productos al catálogo.</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {/* File upload */}
-          <div className="space-y-2">
-            <label htmlFor="import-file" className="label-field">Archivo</label>
-            <div className="flex items-center gap-3">
-              <input
-                id="import-file"
-                ref={fileRef}
-                type="file"
-                accept={ACCEPTED_EXTENSIONS}
-                onChange={handleFileChange}
-                className="block w-full text-sm text-on-surface file:mr-3 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary-container/20 file:text-primary hover:file:bg-primary-container/30 transition-colors"
-              />
-              {canPreview && (
-                <button type="button" onClick={handleDryRun} disabled={dryRunMutation.isPending} className="btn-primary shrink-0 py-2 px-4 text-sm">
-                  {dryRunMutation.isPending ? 'Analizando...' : 'Previsualizar'}
-                </button>
-              )}
+    <Dialog large open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="flex flex-col h-full flex-1 min-h-0">
+        {!importResult ? (
+          <div className="flex flex-col h-full">
+            <div className="shrink-0 mb-4">
+              <DialogHeader>
+                <DialogTitle>
+                  <FileSpreadsheet size={18} />
+                  Importar productos
+                </DialogTitle>
+                <DialogDescription>Subí un archivo .xls, .xlsx o .csv para importar productos al catálogo.</DialogDescription>
+              </DialogHeader>
             </div>
-            <p className="text-on-surface-variant/60 text-xs">Formatos aceptados: CSV, XLSX</p>
-          </div>
 
-          {error && (
-            <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded flex items-center gap-2">
-              <AlertTriangle size={14} />
-              {error}
-            </div>
-          )}
-
-          {/* Dry-run loading */}
-          {dryRunMutation.isPending && (
-            <div className="flex items-center gap-2 text-on-surface-variant text-sm">
-              <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
-              Analizando archivo...
-            </div>
-          )}
-
-          {/* Results preview */}
-          {importResult && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 text-sm">
-                <span className="text-success font-medium">{importResult.validas} filas válidas</span>
-                {importResult.invalidas > 0 && (
-                  <span className="text-error font-medium">{importResult.invalidas} filas inválidas</span>
+            <div className="space-y-2 shrink-0">
+              <label htmlFor="import-file" className="label-field">Archivo</label>
+              <div className="flex items-center gap-3">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => fileRef.current?.click()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click() }
+                  }}
+                  onDragEnter={handleDragEnter}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`flex-1 rounded-lg border-2 border-dashed px-4 py-3 text-center cursor-pointer transition-colors ${
+                    dragOver
+                      ? 'border-primary bg-primary-container/10 text-primary'
+                      : 'border-outline-variant text-on-surface-variant hover:border-primary/50'
+                  }`}
+                >
+                  {file ? (
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <FileSpreadsheet size={16} />
+                      <span className="font-mono text-sm text-on-surface">{file.name}</span>
+                      <span className="text-xs text-on-surface-variant">({file.name.split('.').pop()?.toUpperCase()})</span>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveFile() }}
+                        className="ml-2 inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-error bg-error/10 hover:bg-error/20 transition-colors"
+                      >
+                        <X size={12} />
+                        Quitar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1.5">
+                      <Upload size={20} />
+                      <p className="font-body text-sm">Arrastrá un archivo aquí o hacé clic para seleccionar</p>
+                    </div>
+                  )}
+                  <input
+                    id="import-file"
+                    ref={fileRef}
+                    type="file"
+                    accept={ACCEPTED_EXTENSIONS}
+                    onChange={handleFileChange}
+                    className="sr-only"
+                  />
+                </div>
+                {canPreview && (
+                  <button type="button" onClick={handleDryRun} disabled={dryRunMutation.isPending} className="btn-primary shrink-0 py-2 px-4 text-sm">
+                    {dryRunMutation.isPending ? 'Analizando...' : 'Previsualizar'}
+                  </button>
                 )}
               </div>
+              <p className="text-on-surface-variant/60 text-xs">Formatos aceptados: .xls, .xlsx, .csv</p>
+            </div>
 
-              {importResult.filas.length > 0 && (
-                <div className="max-h-64 overflow-y-auto border border-outline-variant/20 rounded">
-                  <table className="w-full text-sm">
-                    <thead className="bg-surface-container-low sticky top-0">
-                      <tr className="border-b border-outline-variant/10">
-                        <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase">#</th>
-                        <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase">Nombre</th>
-                        <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase">Categoría</th>
-                        <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase">Estado</th>
+            {error && (
+              <div className="shrink-0 mt-4 bg-error/10 text-error font-body text-sm px-4 py-3 rounded flex items-start gap-2">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {dryRunMutation.isPending && (
+              <div className="shrink-0 mt-4 flex items-center gap-2 text-on-surface-variant text-sm">
+                <div className="animate-spin w-4 h-4 border-2 border-primary border-t-transparent rounded-full" />
+                Analizando archivo...
+              </div>
+            )}
+
+            <div className="flex-1" />
+
+            {!canPreview && !dryRunMutation.isPending && (
+              <div className="shrink-0 flex gap-3 pt-4">
+                <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+                  Cerrar
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col h-full flex-1 min-h-0">
+            {/* COMPACT HEADER */}
+            <div className="shrink-0 flex items-center justify-between pb-3 border-b border-outline-variant/20 mb-3">
+              <div className="flex items-center gap-2">
+                <FileSpreadsheet size={18} />
+                <h2 className="font-heading font-semibold text-lg text-on-surface">Importar productos</h2>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-sm text-on-surface-variant">{file?.name}</span>
+                <button
+                  type="button"
+                  onClick={handleRemoveFile}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold text-error bg-error/10 hover:bg-error/20 transition-colors"
+                >
+                  <X size={12} />
+                  Quitar
+                </button>
+              </div>
+            </div>
+
+            {/* ERROR GENERAL DE RED */}
+            {error && (
+              <div className="shrink-0 mb-3 bg-error/10 text-error font-body text-sm px-4 py-3 rounded flex items-start gap-2">
+                <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {/* COMPACT SUMMARY & FILTERS */}
+            <div className="shrink-0 flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                <span className="font-medium text-success">{importResult.validas} válidas</span>
+                <span>·</span>
+                <span className="font-medium text-error">{importResult.invalidas} inválidas</span>
+                <span>·</span>
+                <span className="font-medium">{totalRows} total</span>
+              </div>
+
+              <div role="group" aria-label="Filtrar filas" className="inline-flex rounded-lg border border-outline-variant/40 overflow-hidden">
+                {(['todas', 'validas', 'invalidas'] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setRowFilter(f)}
+                    aria-pressed={rowFilter === f}
+                    className={`px-3 py-1.5 font-heading text-xs font-semibold transition-colors ${
+                      rowFilter === f
+                        ? 'bg-primary-container/20 text-primary'
+                        : 'bg-transparent text-on-surface-variant hover:bg-surface-variant/40'
+                    }`}
+                  >
+                    {f === 'todas' ? 'Todas' : f === 'validas' ? 'Válidas' : 'Inválidas'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AVISOS CONTEXTUALES COMPACTOS */}
+            {importResult.validas === 0 ? (
+              <div className="shrink-0 mb-3 bg-error/10 text-error font-body text-sm px-3 py-2 rounded flex items-center gap-2">
+                <AlertTriangle size={14} className="shrink-0" />
+                <span>No hay filas válidas para importar. Corregí el archivo y volvé a intentarlo.</span>
+              </div>
+            ) : importResult.invalidas > 0 ? (
+              <div className="shrink-0 mb-3 bg-warning/10 text-warning font-body text-sm px-3 py-2 rounded flex items-center gap-2">
+                <AlertTriangle size={14} className="shrink-0" />
+                <span>{importResult.invalidas} filas serán omitidas.</span>
+              </div>
+            ) : null}
+
+            {/* TABLE */}
+            <div className="flex-1 min-h-0 border border-outline-variant/20 rounded overflow-hidden flex flex-col">
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <table className="w-full text-sm relative">
+                  <thead className="bg-surface-container-low sticky top-0 z-10 shadow-sm">
+                    <tr className="border-b border-outline-variant/10">
+                      <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase whitespace-nowrap w-12">#</th>
+                      <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase whitespace-nowrap min-w-[8rem]">Código</th>
+                      <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase min-w-[16rem] w-[35%]">Nombre</th>
+                      <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase whitespace-nowrap min-w-[6rem]">Categoría</th>
+                      <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase whitespace-nowrap min-w-[6rem]">Estado</th>
+                      <th className="px-3 py-2 text-left font-body text-xs font-medium text-on-surface-variant uppercase min-w-[16rem] w-[35%]">Motivo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredRows.map((row) => (
+                      <tr key={row.fila} className="border-b border-outline-variant/5 hover:bg-surface-variant/20 align-top">
+                        <td className="px-3 py-2 font-mono text-xs text-on-surface-variant whitespace-nowrap">{row.fila}</td>
+                        <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
+                          {row.producto?.codigo ?? <span className="italic text-on-surface-variant">—</span>}
+                        </td>
+                        <td className="px-3 py-2 font-body text-sm break-words">
+                          {row.producto?.nombreBase ?? <span className="italic text-on-surface-variant">—</span>}
+                        </td>
+                        <td className="px-3 py-2 font-body text-xs whitespace-nowrap">
+                          {row.producto?.categoria
+                            ? CATEGORIA_LABELS[row.producto.categoria] ?? row.producto.categoria
+                            : <span className="italic text-on-surface-variant">—</span>}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.valido ? (
+                            <span className="inline-flex items-center gap-1 text-success"><Check size={12} /> Válida</span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-error"><X size={12} /> Inválida</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 font-body text-sm break-words">
+                          {row.valido ? (
+                            <span className="text-on-surface-variant/60">—</span>
+                          ) : (
+                            <span className="text-error font-medium">{invalidReason(row) || 'Inválida'}</span>
+                          )}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {importResult.filas.map((row) => (
-                        <tr key={row.fila} className="border-b border-outline-variant/5 hover:bg-surface-variant/20">
-                          <td className="px-3 py-2 font-mono text-xs text-on-surface-variant">{row.fila}</td>
-                          <td className="px-3 py-2 font-body text-sm">{row.producto?.nombreBase ?? <span className="italic text-on-surface-variant">—</span>}</td>
-                          <td className="px-3 py-2 font-body text-xs">{row.producto?.categoria ?? <span className="italic text-on-surface-variant">—</span>}</td>
-                          <td className="px-3 py-2">
-                            {row.valido ? (
-                              <span className="flex items-center gap-1 text-success"><Check size={12} /> Válida</span>
-                            ) : (
-                              <span className="flex items-center gap-1 text-error" title={Object.values(row.errores ?? {}).flat().join(', ')}><X size={12} /> {Object.values(row.errores ?? {}).flat().join(', ') || 'Inválida'}</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {importResult.validas > 0 && (
-                <div className="flex gap-3 pt-2">
-                  <button type="button" onClick={handleConfirm} disabled={confirmMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
-                    {confirmMutation.isPending ? 'Importando...' : `Confirmar importación (${importResult.validas} productos)`}
-                  </button>
-                  <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
-                    Cancelar
-                  </button>
-                </div>
-              )}
+                    ))}
+                  </tbody>
+                </table>
+                {filteredRows.length === 0 && (
+                  <p className="px-4 py-6 text-center font-body text-sm text-on-surface-variant">
+                    No hay filas para mostrar con el filtro actual.
+                  </p>
+                )}
+              </div>
             </div>
-          )}
 
-          {!importResult && !canPreview && !dryRunMutation.isPending && (
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
-                Cerrar
-              </button>
+            {/* FOOTER */}
+            <div className="shrink-0 pt-4">
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleConfirm}
+                  disabled={confirmMutation.isPending || importResult.validas === 0}
+                  className="btn-primary flex-1 py-2.5 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {confirmMutation.isPending ? 'Importando...' : `Confirmar importación (${importResult.validas} productos)`}
+                </button>
+                <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+                  Cancelar
+                </button>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   )

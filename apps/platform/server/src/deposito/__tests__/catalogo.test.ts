@@ -1,5 +1,6 @@
 import request from 'supertest'
 import ExcelJS from 'exceljs'
+import * as XLSX from 'xlsx'
 import { Prisma } from '@platform/db'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestApp } from './helpers/create-test-app'
@@ -35,6 +36,7 @@ vi.mock('@platform/db', () => ({
 
 interface Producto {
   id: string
+  codigo: string | null
   nombreBase: string
   volumen: number | null
   unidad: string | null
@@ -45,15 +47,15 @@ interface Producto {
 }
 
 const MOCK_PRODUCTOS: Producto[] = [
-  { id: 'prod-1', nombreBase: 'ACIDO ACETILSALICILICO', volumen: 500, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'ACIDO ACETILSALICILICO 500 MG', activo: true },
-  { id: 'prod-2', nombreBase: 'IBUPROFENO', volumen: 400, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'IBUPROFENO 400 MG', activo: true },
-  { id: 'prod-3', nombreBase: 'ESTUCHE BASICO', volumen: null, unidad: null, variante: null, categoria: 'estuche', nombreCompleto: 'ESTUCHE BASICO', activo: true },
-  { id: 'prod-4', nombreBase: 'ESTUCHE PREMIUM', volumen: 1, unidad: 'L', variante: 'VIDRIO', categoria: 'estuche', nombreCompleto: 'ESTUCHE PREMIUM 1 L VIDRIO', activo: true },
-  { id: 'prod-5', nombreBase: 'ETIQUETA 10x5', volumen: null, unidad: null, variante: null, categoria: 'etiqueta', nombreCompleto: 'ETIQUETA 10x5', activo: true },
-  { id: 'prod-6', nombreBase: 'ETIQUETA 15x8', volumen: null, unidad: null, variante: null, categoria: 'etiqueta', nombreCompleto: 'ETIQUETA 15x8', activo: true },
-  { id: 'prod-7', nombreBase: 'FRASCO 100 ML', volumen: 100, unidad: 'ML', variante: null, categoria: 'frasco', nombreCompleto: 'FRASCO 100 ML', activo: true },
-  { id: 'prod-8', nombreBase: 'FRASCO 250 ML', volumen: 250, unidad: 'ML', variante: null, categoria: 'frasco', nombreCompleto: 'FRASCO 250 ML', activo: true },
-  { id: 'prod-9', nombreBase: 'PARACETAMOL', volumen: 500, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'PARACETAMOL 500 MG', activo: false },
+  { id: 'prod-1', codigo: null, nombreBase: 'ACIDO ACETILSALICILICO', volumen: 500, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'ACIDO ACETILSALICILICO 500 MG', activo: true },
+  { id: 'prod-2', codigo: null, nombreBase: 'IBUPROFENO', volumen: 400, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'IBUPROFENO 400 MG', activo: true },
+  { id: 'prod-3', codigo: null, nombreBase: 'ESTUCHE BASICO', volumen: null, unidad: null, variante: null, categoria: 'estuche', nombreCompleto: 'ESTUCHE BASICO', activo: true },
+  { id: 'prod-4', codigo: null, nombreBase: 'ESTUCHE PREMIUM', volumen: 1, unidad: 'L', variante: 'VIDRIO', categoria: 'estuche', nombreCompleto: 'ESTUCHE PREMIUM 1 L VIDRIO', activo: true },
+  { id: 'prod-5', codigo: null, nombreBase: 'ETIQUETA 10x5', volumen: null, unidad: null, variante: null, categoria: 'etiqueta', nombreCompleto: 'ETIQUETA 10x5', activo: true },
+  { id: 'prod-6', codigo: null, nombreBase: 'ETIQUETA 15x8', volumen: null, unidad: null, variante: null, categoria: 'etiqueta', nombreCompleto: 'ETIQUETA 15x8', activo: true },
+  { id: 'prod-7', codigo: null, nombreBase: 'FRASCO 100 ML', volumen: 100, unidad: 'ML', variante: null, categoria: 'frasco', nombreCompleto: 'FRASCO 100 ML', activo: true },
+  { id: 'prod-8', codigo: null, nombreBase: 'FRASCO 250 ML', volumen: 250, unidad: 'ML', variante: null, categoria: 'frasco', nombreCompleto: 'FRASCO 250 ML', activo: true },
+  { id: 'prod-9', codigo: null, nombreBase: 'PARACETAMOL', volumen: 500, unidad: 'MG', variante: null, categoria: 'droga', nombreCompleto: 'PARACETAMOL 500 MG', activo: false },
 ]
 
 const mocks = vi.hoisted(() => {
@@ -67,6 +69,7 @@ const mocks = vi.hoisted(() => {
         state.productos.filter((producto) => {
           if (where?.activo != null && producto.activo !== where.activo) return false
           if (where?.categoria && producto.categoria !== where.categoria) return false
+          if (where?.codigo?.in && !where.codigo.in.includes(producto.codigo)) return false
           if (where?.nombreCompleto?.contains) {
             return producto.nombreCompleto.toLowerCase().includes(where.nombreCompleto.contains.toLowerCase())
           }
@@ -80,6 +83,7 @@ const mocks = vi.hoisted(() => {
       create: vi.fn(async ({ data }: any) => {
         const producto: Producto = {
           id: `producto-${state.productos.length + 1}`,
+          codigo: data.codigo ?? null,
           nombreBase: data.nombreBase,
           volumen: data.volumen?.toNumber() ?? null,
           unidad: data.unidad ?? null,
@@ -108,11 +112,14 @@ const importMocks = vi.hoisted(() => ({
   createManual: vi.fn(async (producto: { codigo: string }) => ({ id: 'manual-1', ...producto, estado: 'ACTIVO' })),
   update: vi.fn(async (id: string, producto: { codigo: string }, actorId: string) => ({ id, ...producto, actorId })),
   reactivate: vi.fn(async (id: string, actorId: string) => ({ id, actorId, codigo: 'MP-LOAD-1', estado: 'ACTIVO', activo: true })),
-  createImportPendingBatch: vi.fn(async (productos: Array<{ codigo: string }>) => productos.map((producto, index) => ({
-    id: `importado-${index + 1}`,
-    ...producto,
-    estado: 'PENDIENTE_REVISION',
-  }))),
+  createImportPendingBatch: vi.fn(async (productos: Array<{ codigo: string }>) => ({
+    productos: productos.map((producto, index) => ({
+      id: `importado-${index + 1}`,
+      ...producto,
+      estado: 'PENDIENTE_REVISION',
+    })),
+    omitidosPorCarrera: 0,
+  })),
 }))
 
 vi.mock('../services/catalogo-producto-service', () => ({
@@ -139,6 +146,18 @@ vi.mock('../services/catalogo-producto-service', () => ({
 }))
 
 vi.mock('../lib/prisma', () => ({ prisma: mocks.prisma }))
+
+// Legacy supplier list equivalent: CODIGO ARTICULO + NOMBRE ARTICULO columns,
+// generated in-memory as real BIFF8 (the format of the user's .xls file).
+function buildLegacyXls(rows: Array<[string, string]>): Buffer {
+  const workbook = XLSX.utils.book_new()
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['CODIGO ARTICULO', 'NOMBRE ARTICULO'],
+    ...rows,
+  ])
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Listado')
+  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'biff8' }))
+}
 vi.mock('../middleware/auth', () => ({
   authenticate: (req: any, res: any, next: any) => {
     const role = req.header('x-test-role')
@@ -290,8 +309,12 @@ describe('Catálogo de productos', () => {
       .attach('archivo', Buffer.from(csv), { filename: 'catalogo.csv', contentType: 'text/csv' })
 
     expect(res.status).toBe(201)
-    expect(res.body).toHaveLength(2)
-    expect(res.body.every((producto: { estado: string }) => producto.estado === 'PENDIENTE_REVISION')).toBe(true)
+    expect(res.body.importadas).toBe(2)
+    expect(res.body.omitidas).toBe(0)
+    expect(res.body.omitidasPorCarrera).toBe(0)
+    expect(res.body.total).toBe(2)
+    expect(res.body.productos).toHaveLength(2)
+    expect(res.body.productos.every((producto: { estado: string }) => producto.estado === 'PENDIENTE_REVISION')).toBe(true)
     expect(importMocks.createImportPendingBatch).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ codigo: 'IGET-CONFIRM-1', categoria: 'etiqueta' }),
@@ -300,7 +323,7 @@ describe('Catálogo de productos', () => {
       'enc-1',
     )
   })
-  it('rechaza la confirmación completa si el archivo repite un código', async () => {
+  it('confirma parcialmente si el archivo repite un código: primera ocurrencia creada, repeticiones omitidas', async () => {
     const csv = [
       'nombreBase,nombreCompleto,categoria,codigo,presentacion,mercadosHabilitados',
       'ETIQUETA DUPLICADA A,ETIQUETA DUPLICADA A,etiqueta,IGET-DUPLICADO,10,argentina',
@@ -312,10 +335,17 @@ describe('Catálogo de productos', () => {
       .set('x-test-role', 'encargado')
       .attach('archivo', Buffer.from(csv), { filename: 'duplicados.csv', contentType: 'text/csv' })
 
-    expect(res.status).toBe(400)
-    expect(res.body.filas).toHaveLength(2)
+    expect(res.status).toBe(201)
+    expect(res.body.importadas).toBe(1)
+    expect(res.body.omitidas).toBe(1)
+    expect(res.body.total).toBe(2)
     expect(res.body.filas[1].valido).toBe(false)
-    expect(importMocks.createImportPendingBatch).not.toHaveBeenCalled()
+    expect(res.body.productos.map((producto: { codigo: string }) => producto.codigo)).toEqual(['IGET-DUPLICADO'])
+    // Only the FIRST occurrence is created; the repetition never reaches the service.
+    expect(importMocks.createImportPendingBatch).toHaveBeenCalledTimes(1)
+    const batch = importMocks.createImportPendingBatch.mock.calls[0][0] as Array<{ codigo: string }>
+    expect(batch).toHaveLength(1)
+    expect(batch[0].codigo).toBe('IGET-DUPLICADO')
   })
   it('analiza un XLSX multipart en dry-run sin mutar el catálogo', async () => {
     const workbook = new ExcelJS.Workbook()
@@ -463,7 +493,7 @@ describe('Catálogo de productos', () => {
     expect(res.body.message).toContain('código es obligatorio')
   })
 
-  it('rechaza una confirmación JSON con prefijo incorrecto en una fila de etiqueta', async () => {
+  it('rechaza una confirmación JSON sin filas válidas (prefijo incorrecto en una fila de etiqueta)', async () => {
     const res = await request(app)
       .post('/api/productos/importaciones/confirmar')
       .set('x-test-role', 'encargado')
@@ -479,6 +509,7 @@ describe('Catálogo de productos', () => {
       })
 
     expect(res.status).toBe(400)
+    expect(res.body.message).toBe('No hay filas válidas para importar.')
     expect(res.body.filas).toHaveLength(1)
     expect(res.body.filas[0].valido).toBe(false)
     // Evidence for the S1 cleanup: the message the user gets comes from the zod
@@ -505,6 +536,7 @@ describe('Catálogo de productos', () => {
       })
 
     expect(res.status).toBe(400)
+    expect(res.body.message).toBe('No hay filas válidas para importar.')
     expect(res.body.filas).toHaveLength(1)
     expect(res.body.filas[0].valido).toBe(false)
     // The dead branch would have produced a flat { codigo: [...] } object; the
@@ -600,5 +632,327 @@ describe('Catálogo de productos', () => {
     expect(res.body.validas).toBe(1)
     expect(res.body.filas[0].valido).toBe(true)
     expect(res.body.filas[0].producto.codigo).toBeNull()
+  })
+
+  // ─── MVP-01 corrective: legacy .xls + ENV frasco import ────────────────────
+
+  it('analiza un XLS legacy (CODIGO ARTICULO / NOMBRE ARTICULO) en dry-run como FRASCO sin mutar', async () => {
+    const bytes = buildLegacyXls([
+      ['ENV001', 'FRASCO AGROPECUARIO 25 ML'],
+      ['ENV006', 'BIDON 1 L'],
+    ])
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(bytes), { filename: 'listado.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.validas).toBe(2)
+    expect(res.body.invalidas).toBe(0)
+    expect(res.body.filas[0].producto).toMatchObject({
+      codigo: 'ENV001',
+      nombreBase: 'FRASCO AGROPECUARIO 25 ML',
+      categoria: 'frasco',
+    })
+    expect(res.body.filas[1].producto.codigo).toBe('ENV006')
+    expect(mocks.prisma.depositoProducto.create).not.toHaveBeenCalled()
+  })
+
+  it('confirma un XLS legacy como lote FRASCO pendiente (batch = filas únicas)', async () => {
+    const bytes = buildLegacyXls([
+      ['ENV001', 'FRASCO AGROPECUARIO 25 ML'],
+      ['ENV006', 'BIDON 1 L'],
+    ])
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/confirmar')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(bytes), { filename: 'listado.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.importadas).toBe(2)
+    expect(res.body.omitidas).toBe(0)
+    expect(res.body.total).toBe(2)
+    expect(res.body.productos).toHaveLength(2)
+    expect(res.body.productos.every((producto: { estado: string }) => producto.estado === 'PENDIENTE_REVISION')).toBe(true)
+    expect(importMocks.createImportPendingBatch).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ codigo: 'ENV001', categoria: 'frasco' }),
+        expect.objectContaining({ codigo: 'ENV006', categoria: 'frasco' }),
+      ]),
+      'enc-1',
+    )
+    // Route-level: confirm only goes through the batch service — no direct
+    // depositoProducto writes here. The batch service never creates
+    // inventory or movements (locked in catalogo-producto-service.test.ts).
+    expect(mocks.prisma.depositoProducto.create).not.toHaveBeenCalled()
+  })
+
+  it('reconoce encabezados legacy también en CSV (case/space tolerant)', async () => {
+    const csv = [
+      'CODIGO ARTICULO,NOMBRE ARTICULO',
+      'ENV001,FRASCO AGROPECUARIO 25 ML',
+      'ENV006,BIDON 1 L',
+    ].join('\n')
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(csv), { filename: 'legacy.csv', contentType: 'text/csv' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.validas).toBe(2)
+    expect(res.body.filas[0].producto).toMatchObject({ codigo: 'ENV001', categoria: 'frasco' })
+  })
+
+  it('marca el duplicado dentro del archivo como inválido con la razón visible (DUPLICADO_EN_ARCHIVO)', async () => {
+    const bytes = buildLegacyXls([
+      ['ENV001', 'FRASCO AGROPECUARIO 25 ML'],
+      ['ENV002', 'FRASCO AGROPECUARIO 100 ML'],
+      ['ENV001', 'FRASCO AGROPECUARIO 25 ML (repetido)'],
+    ])
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(bytes), { filename: 'duplicados.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.validas).toBe(2)
+    expect(res.body.invalidas).toBe(1)
+    expect(res.body.filas[2].valido).toBe(false)
+    expect(res.body.filas[2].errores.codigo).toEqual(['Código duplicado dentro del archivo'])
+    // The dry-run preview shows fila, código, nombre and the reason: the
+    // producto (with codigo) is kept on the invalid duplicate row.
+    expect(res.body.filas[2].producto.codigo).toBe('ENV001')
+
+    const confirm = await request(app)
+      .post('/api/productos/importaciones/confirmar')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(bytes), { filename: 'duplicados.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(confirm.status).toBe(201)
+    expect(confirm.body.importadas).toBe(2)
+    expect(confirm.body.omitidas).toBe(1)
+    expect(confirm.body.total).toBe(3)
+    expect(confirm.body.filas).toHaveLength(3)
+    // The duplicate row never reaches the batch service: only the first
+    // occurrences of ENV001/ENV002 are created.
+    expect(importMocks.createImportPendingBatch).toHaveBeenCalledTimes(1)
+    const batch = importMocks.createImportPendingBatch.mock.calls[0][0] as Array<{ codigo: string }>
+    expect(batch.map((producto) => producto.codigo)).toEqual(['ENV001', 'ENV002'])
+  })
+
+  it('detecta un código ya existente en el catálogo (CODIGO_YA_EXISTENTE)', async () => {
+    mocks.state.productos.push({
+      id: 'prod-env-existente', codigo: 'ENV001', nombreBase: 'FRASCO AGROPECUARIO 25 ML',
+      volumen: null, unidad: null, variante: null, categoria: 'frasco',
+      nombreCompleto: 'FRASCO AGROPECUARIO 25 ML', activo: true,
+    })
+    const bytes = buildLegacyXls([
+      ['ENV001', 'FRASCO AGROPECUARIO 25 ML'],
+      ['ENV002', 'FRASCO AGROPECUARIO 100 ML'],
+    ])
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(bytes), { filename: 'listado.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.filas[0].valido).toBe(false)
+    expect(res.body.filas[0].errores.codigo).toEqual(['Código ya existente'])
+    expect(res.body.filas[1].valido).toBe(true)
+
+    const confirm = await request(app)
+      .post('/api/productos/importaciones/confirmar')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(bytes), { filename: 'listado.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(confirm.status).toBe(201)
+    expect(confirm.body.importadas).toBe(1)
+    expect(confirm.body.omitidas).toBe(1)
+    expect(confirm.body.total).toBe(2)
+    // ENV001 already exists → skipped (no duplicate created); ENV002 imports.
+    expect(importMocks.createImportPendingBatch).toHaveBeenCalledTimes(1)
+    const batch = importMocks.createImportPendingBatch.mock.calls[0][0] as Array<{ codigo: string }>
+    expect(batch.map((producto) => producto.codigo)).toEqual(['ENV002'])
+  })
+
+  it('confirma parcialmente un archivo mixto 34 válidas / 27 inválidas creando solo las válidas', async () => {
+    // Fixture mirroring the user's real .xls shape: 34 unique codes, each with
+    // a duplicated row (26 duplicates), plus 1 incomplete row = 61 rows,
+    // 34 validas / 27 invalidas.
+    const rows: string[] = []
+    const expectedCodes: string[] = []
+    for (let i = 1; i <= 34; i += 1) {
+      const codigo = `ENV${String(i).padStart(3, '0')}`
+      const nombre = `FRASCO TEST ${i}`
+      rows.push(`${nombre},${nombre},frasco,${codigo},1,`)
+      expectedCodes.push(codigo)
+      if (i <= 26) rows.push(`${nombre},${nombre},frasco,${codigo},1,`)
+    }
+    rows.push(',,frasco,,1,')
+    expect(rows).toHaveLength(61)
+    const csv = ['nombreBase,nombreCompleto,categoria,codigo,presentacion,mercadosHabilitados', ...rows].join('\n')
+
+    const dry = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(csv), { filename: 'mixto.csv', contentType: 'text/csv' })
+
+    expect(dry.status).toBe(200)
+    expect(dry.body.validas).toBe(34)
+    expect(dry.body.invalidas).toBe(27)
+
+    const confirm = await request(app)
+      .post('/api/productos/importaciones/confirmar')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(csv), { filename: 'mixto.csv', contentType: 'text/csv' })
+
+    expect(confirm.status).toBe(201)
+    expect(confirm.body.importadas).toBe(34)
+    expect(confirm.body.omitidas).toBe(27)
+    expect(confirm.body.omitidasPorCarrera).toBe(0)
+    expect(confirm.body.total).toBe(61)
+    expect(confirm.body.productos).toHaveLength(34)
+    // Invalid rows never reach the batch service: exactly the 34 first
+    // occurrences are sent, in file order, duplicates and the incomplete row
+    // are excluded.
+    expect(importMocks.createImportPendingBatch).toHaveBeenCalledTimes(1)
+    const batch = importMocks.createImportPendingBatch.mock.calls[0][0] as Array<{ codigo: string }>
+    expect(batch).toHaveLength(34)
+    expect(batch.map((producto) => producto.codigo)).toEqual(expectedCodes)
+  })
+
+  it('omite una fila incompleta (FILA_INCOMPLETA) y crea las demás', async () => {
+    const csv = [
+      'nombreBase,nombreCompleto,categoria,codigo,presentacion,mercadosHabilitados',
+      'FRASCO VALIDO A,FRASCO VALIDO A,frasco,ENV900,1,',
+      ', ,frasco,ENV901,1,',
+      'FRASCO VALIDO B,FRASCO VALIDO B,frasco,ENV902,1,',
+    ].join('\n')
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/confirmar')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(csv), { filename: 'incompleto.csv', contentType: 'text/csv' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.importadas).toBe(2)
+    expect(res.body.omitidas).toBe(1)
+    expect(res.body.total).toBe(3)
+    expect(res.body.filas[1].valido).toBe(false)
+    const batch = importMocks.createImportPendingBatch.mock.calls[0][0] as Array<{ codigo: string }>
+    expect(batch.map((producto) => producto.codigo)).toEqual(['ENV900', 'ENV902'])
+  })
+
+  it('bloquea la confirmación con 400 cuando ninguna fila es válida', async () => {
+    const csv = [
+      'nombreBase,nombreCompleto,categoria,codigo,presentacion,mercadosHabilitados',
+      ', ,frasco,,1,',
+      ', ,frasco,,1,',
+    ].join('\n')
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/confirmar')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(csv), { filename: 'todo-invalido.csv', contentType: 'text/csv' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toBe('No hay filas válidas para importar.')
+    expect(res.body.filas).toHaveLength(2)
+    expect(res.body.filas.every((fila: { valido: boolean }) => fila.valido === false)).toBe(true)
+    expect(importMocks.createImportPendingBatch).not.toHaveBeenCalled()
+  })
+
+  it('MVP-01: permite confirmar parcialmente un archivo con filas válidas e inválidas, y procesa FRASCOS sin presentacion', async () => {
+    // 34 valid, 27 invalid
+    const csvLines = ['nombreBase,nombreCompleto,categoria,codigo,presentacion,mercadosHabilitados']
+    // Valid frascos without presentation
+    for(let i=0; i<34; i++) {
+      csvLines.push(`Valida${i},Valida${i},frasco,,,`)
+    }
+    // Invalid rows (missing category)
+    for(let i=0; i<27; i++) {
+      csvLines.push(`Invalida${i},Invalida${i},,,,`)
+    }
+    const csv = csvLines.join('\n')
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/confirmar')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(csv), { filename: 'mixed.csv', contentType: 'text/csv' })
+
+    // If it fails with 400, this expect will catch it
+    if (res.status === 400) {
+      console.log('HTTP 400 BAD REQUEST RESPONSE:', JSON.stringify(res.body, null, 2))
+    }
+    expect(res.status).toBe(201)
+    expect(res.body.importadas).toBe(34)
+    expect(res.body.omitidas).toBe(27)
+  })
+
+  it('rechaza un XLS legacy ambiguo (sin CATEGORIA y códigos no ENV) con error descriptivo', async () => {
+    const workbook = XLSX.utils.book_new()
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ['CODIGO ARTICULO', 'NOMBRE ARTICULO'],
+      ['ABC123', 'PRODUCTO SIN CATEGORIA'],
+    ])
+    XLSX.utils.book_append_sheet(workbook, sheet, 'Listado')
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'biff8' })), { filename: 'ambiguo.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toBe('No se pudo determinar la categoría automáticamente. Los códigos deben comenzar con ENV o se debe incluir la columna CATEGORIA.')
+  })
+
+  it('rechaza extensiones no soportadas con el mensaje actualizado', async () => {
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from('contenido'), { filename: 'catalogo.pdf', contentType: 'application/pdf' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toBe('Solo se aceptan archivos .xls, .xlsx o .csv')
+  })
+
+  it('rechaza un archivo vacío', async () => {
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.alloc(0), { filename: 'vacio.csv', contentType: 'text/csv' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toBe('El archivo está vacío')
+  })
+
+  it('rechaza un XLS corrupto con mensaje claro sin stack traces', async () => {
+    const valid = buildLegacyXls([['ENV001', 'FRASCO AGROPECUARIO 25 ML']])
+    const corrupt = Buffer.from(valid.subarray(0, 60))
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', corrupt, { filename: 'corrupto.xls', contentType: 'application/vnd.ms-excel' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toBe('El archivo está corrupto o no es un archivo Excel válido')
+  })
+
+  it('lista las columnas esperadas cuando no reconoce ninguna', async () => {
+    const csv = ['FOO,BAR', 'a,b'].join('\n')
+
+    const res = await request(app)
+      .post('/api/productos/importaciones/dry-run')
+      .set('x-test-role', 'encargado')
+      .attach('archivo', Buffer.from(csv), { filename: 'raro.csv', contentType: 'text/csv' })
+
+    expect(res.status).toBe(400)
+    expect(res.body.message).toContain('No se reconocen las columnas')
   })
 })

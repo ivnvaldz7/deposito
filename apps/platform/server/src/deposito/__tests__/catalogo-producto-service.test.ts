@@ -346,6 +346,7 @@ describe('catalogo product rules', () => {
         })
         return result
       },
+      depositoProducto: { findMany: async () => [] },
     }
     const service = new CatalogoProductoService(db as PrismaClient)
 
@@ -355,6 +356,47 @@ describe('catalogo product rules', () => {
     ], 'enc-1')
 
     expect(committed).toEqual(['__NULL__', '__NULL__'])
+  })
+
+  it('import batch never creates inventory or movements', async () => {
+    // The pending-import contract: depositoProducto PENDIENTE_REVISION +
+    // IMPORTACION_CREADA audit only. Inventory seeding happens exclusively on
+    // createManual/activate/reactivate; movements never belong to imports.
+    const writes: string[] = []
+    const tx = {
+      depositoProducto: {
+        findMany: async () => [] as Array<{ codigo: string }>,
+        create: async ({ data }: { data: { codigo: string | null } }) => {
+          writes.push(`depositoProducto:${data.codigo ?? 'null'}`)
+          return { id: `imp-${writes.length}`, codigo: data.codigo, estado: 'PENDIENTE_REVISION' }
+        },
+      },
+      auditoriaCatalogoProducto: {
+        create: async () => { writes.push('auditoriaCatalogoProducto'); return { id: 'audit-1' } },
+      },
+      inventarioDroga: { createMany: async () => { writes.push('inventarioDroga'); return { count: 1 } } },
+      inventarioEtiqueta: { createMany: async () => { writes.push('inventarioEtiqueta'); return { count: 1 } } },
+      inventarioEstuche: { createMany: async () => { writes.push('inventarioEstuche'); return { count: 1 } } },
+      inventarioFrasco: { createMany: async () => { writes.push('inventarioFrasco'); return { count: 1 } } },
+      movimiento: { create: async () => { writes.push('movimiento'); return { id: 'mov-1' } } },
+    }
+    const db = { 
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      depositoProducto: tx.depositoProducto 
+    }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    await service.createImportPendingBatch([
+      { nombreBase: 'FRASCO A', nombreCompleto: 'FRASCO A', categoria: 'frasco', codigo: 'ENV001', presentacion: 1, mercadosHabilitados: [] },
+      { nombreBase: 'FRASCO B', nombreCompleto: 'FRASCO B', categoria: 'frasco', codigo: 'ENV002', presentacion: 1, mercadosHabilitados: [] },
+    ], 'enc-1')
+
+    expect(writes).toEqual([
+      'depositoProducto:ENV001',
+      'auditoriaCatalogoProducto',
+      'depositoProducto:ENV002',
+      'auditoriaCatalogoProducto',
+    ])
   })
 
   it('permits reactivation of FRASCO without a code', () => {
@@ -404,7 +446,10 @@ describe('catalogo product rules', () => {
         },
       },
     }
-    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const db = { 
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      depositoProducto: tx.depositoProducto 
+    }
     const service = new CatalogoProductoService(db as PrismaClient)
 
     await expect(service.update(producto.id, { codigo: ' mp-load-1 ' }, 'enc-1')).resolves.toMatchObject({ codigo: 'MP-LOAD-1' })
@@ -451,7 +496,10 @@ describe('catalogo product rules', () => {
         },
       },
     }
-    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const db = { 
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      depositoProducto: tx.depositoProducto 
+    }
     const service = new CatalogoProductoService(db as PrismaClient)
 
     await service.activate(producto.id, 'enc-1')
@@ -482,17 +530,21 @@ describe('catalogo product rules', () => {
         deleteMany: async () => ({ count: 1 }),
       },
     }
-    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const db = { 
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      depositoProducto: tx.depositoProducto 
+    }
     const service = new CatalogoProductoService(db as PrismaClient)
 
     await expect(service.deletePending('pending-import')).resolves.toBeUndefined()
     expect(deleted).toEqual(['pending-import'])
   })
 
-  it('rolls back an import batch when a later row cannot be created', async () => {
+  it('does not roll back an import batch when a later row cannot be created due to an unknown error', async () => {
     const committed: string[] = []
     const staged: string[] = []
     const db = {
+      depositoProducto: { findMany: async () => [] },
       $transaction: async (callback: (tx: {
         depositoProducto: {
           findMany: () => Promise<Array<{ codigo: string }>>
@@ -528,6 +580,77 @@ describe('catalogo product rules', () => {
       { nombreBase: 'ETIQUETA B', nombreCompleto: 'ETIQUETA B', categoria: 'etiqueta', codigo: 'IGET-DUPLICADO', presentacion: 10, mercadosHabilitados: ['argentina'] },
     ], 'enc-1')).rejects.toThrow('unique constraint')
 
-    expect(committed).toEqual([])
+    expect(committed).toEqual(['IGET-1'])
+  })
+
+  it('skips rows whose code came to exist between preview and confirm (race) and imports the rest', async () => {
+    const committed: Array<{ codigo: string | null; estado: string; activo: boolean; origen: string }> = []
+    const tx = {
+      depositoProducto: {
+        // ENV001 now exists in the DB (created after the dry-run preview).
+        findMany: async () => [{ codigo: 'ENV001' }],
+        create: async ({ data }: { data: { codigo: string | null } }) => {
+          const created = { codigo: data.codigo, estado: 'PENDIENTE_REVISION', activo: false, origen: 'IMPORTACION' }
+          committed.push(created)
+          return { id: `prod-${committed.length}`, ...created }
+        },
+      },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
+    }
+    const db = { 
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      depositoProducto: tx.depositoProducto 
+    }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    const result = await service.createImportPendingBatch([
+      { nombreBase: 'FRASCO A', nombreCompleto: 'FRASCO A', categoria: 'frasco', codigo: 'ENV001', presentacion: 1, mercadosHabilitados: [] },
+      { nombreBase: 'FRASCO B', nombreCompleto: 'FRASCO B', categoria: 'frasco', codigo: 'ENV002', presentacion: 1, mercadosHabilitados: [] },
+      { nombreBase: 'FRASCO C', nombreCompleto: 'FRASCO C', categoria: 'frasco', codigo: 'ENV003', presentacion: 1, mercadosHabilitados: [] },
+    ], 'enc-1')
+
+    // The raced row is skipped: no duplicate of ENV001 is ever created.
+    expect(committed.map((producto) => producto.codigo)).toEqual(['ENV002', 'ENV003'])
+    expect(result.productos).toHaveLength(2)
+    expect(result.omitidosPorCarrera).toBe(1)
+    // No duplicate of the raced code exists anywhere in the created rows.
+    expect(committed.some((producto) => producto.codigo === 'ENV001')).toBe(false)
+  })
+
+  it('creates imported rows as PENDIENTE_REVISION, activo false, origen IMPORTACION, with no stock or movements', async () => {
+    const writes: string[] = []
+    const createdRows: Array<{ codigo: string | null; estado: string; activo: boolean; origen: string }> = []
+    const tx = {
+      depositoProducto: {
+        findMany: async () => [] as Array<{ codigo: string }>,
+        create: async ({ data }: { data: { codigo: string | null } }) => {
+          writes.push(`depositoProducto:${data.codigo ?? 'null'}`)
+          const created = { codigo: data.codigo, estado: 'PENDIENTE_REVISION', activo: false, origen: 'IMPORTACION' }
+          createdRows.push(created)
+          return { id: `imp-${createdRows.length}`, ...created }
+        },
+      },
+      auditoriaCatalogoProducto: {
+        create: async () => { writes.push('auditoriaCatalogoProducto'); return { id: 'audit-1' } },
+      },
+      inventarioDroga: { createMany: async () => { writes.push('inventarioDroga'); return { count: 1 } } },
+      inventarioEtiqueta: { createMany: async () => { writes.push('inventarioEtiqueta'); return { count: 1 } } },
+      inventarioEstuche: { createMany: async () => { writes.push('inventarioEstuche'); return { count: 1 } } },
+      inventarioFrasco: { createMany: async () => { writes.push('inventarioFrasco'); return { count: 1 } } },
+      movimiento: { create: async () => { writes.push('movimiento'); return { id: 'mov-1' } } },
+    }
+    const db = { 
+      $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx),
+      depositoProducto: tx.depositoProducto 
+    }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    await service.createImportPendingBatch([
+      { nombreBase: 'FRASCO A', nombreCompleto: 'FRASCO A', categoria: 'frasco', codigo: 'ENV001', presentacion: 1, mercadosHabilitados: [] },
+    ], 'enc-1')
+
+    expect(createdRows[0]).toEqual({ codigo: 'ENV001', estado: 'PENDIENTE_REVISION', activo: false, origen: 'IMPORTACION' })
+    // Only producto + audit writes: no inventory seeding, no movements.
+    expect(writes).toEqual(['depositoProducto:ENV001', 'auditoriaCatalogoProducto'])
   })
 })

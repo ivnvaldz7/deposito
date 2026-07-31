@@ -21,6 +21,9 @@ export const api = {
   post: <T>(path: string, body?: unknown, token?: string | null): Promise<T> =>
     apiClient.post<T>(dep(path), body, token),
 
+  postForm: <T>(path: string, formData: FormData, token?: string | null): Promise<T> =>
+    apiClient.postForm<T>(dep(path), formData, token),
+
   put: <T>(path: string, body?: unknown, token?: string | null): Promise<T> =>
     apiClient.put<T>(dep(path), body, token),
 

@@ -108,6 +108,123 @@ describe('apiClient', () => {
     })
   })
 
+  describe('postForm (multipart)', () => {
+    function login() {
+      useAuthStore.getState().login('test-token', {
+        sub: 'u1', email: 'a@b.com', name: 'Test',
+        apps: { deposito: { rol: 'encargado', activo: true } },
+        isPlatformAdmin: false,
+      })
+    }
+
+    function createImportFormData() {
+      const formData = new FormData()
+      formData.append('archivo', new File(['xls-bytes'], 'listado.xls', { type: 'application/vnd.ms-excel' }))
+      return formData
+    }
+
+    it('dry-run multipart sends authentication', async () => {
+      login()
+      mockFetch.mockResolvedValue(createJsonResponse({ filas: [], validas: 0, invalidas: 0 }))
+
+      await apiClient.postForm('/deposito/productos/importaciones/dry-run', createImportFormData())
+
+      const headers = mockFetch.mock.calls[0][1]?.headers as Record<string, string>
+      expect(headers['Authorization']).toBe('Bearer test-token')
+    })
+
+    it('confirm multipart sends authentication', async () => {
+      login()
+      mockFetch.mockResolvedValue(createJsonResponse([]))
+
+      await apiClient.postForm('/deposito/productos/importaciones/confirmar', createImportFormData())
+
+      const headers = mockFetch.mock.calls[0][1]?.headers as Record<string, string>
+      expect(headers['Authorization']).toBe('Bearer test-token')
+    })
+
+    it('preserves the FormData instance with the archivo File as body', async () => {
+      login()
+      mockFetch.mockResolvedValue(createJsonResponse({ filas: [], validas: 0, invalidas: 0 }))
+
+      const formData = createImportFormData()
+      await apiClient.postForm('/deposito/productos/importaciones/dry-run', formData)
+
+      const [url, init] = mockFetch.mock.calls[0]
+      expect(String(url)).toContain('/api/deposito/productos/importaciones/dry-run')
+      expect(init.method).toBe('POST')
+      expect(init.body).toBe(formData)
+      expect(init.body).toBeInstanceOf(FormData)
+      const file = formData.get('archivo') as File
+      expect(file).toBeInstanceOf(File)
+      expect(file.name).toBe('listado.xls')
+    })
+
+    it('does not set a manual Content-Type for FormData bodies', async () => {
+      login()
+      mockFetch.mockResolvedValue(createJsonResponse({ filas: [], validas: 0, invalidas: 0 }))
+
+      await apiClient.postForm('/deposito/productos/importaciones/dry-run', createImportFormData())
+
+      const headers = mockFetch.mock.calls[0][1]?.headers as Record<string, string>
+      expect(headers['Content-Type']).toBeUndefined()
+    })
+
+    it('still sets Content-Type application/json for JSON bodies', async () => {
+      login()
+      mockFetch.mockResolvedValue(createJsonResponse({}))
+
+      await apiClient.post('/deposito/productos', { name: 'x' })
+
+      const headers = mockFetch.mock.calls[0][1]?.headers as Record<string, string>
+      expect(headers['Content-Type']).toBe('application/json')
+    })
+
+    it('retries multipart with the refreshed token on 401', async () => {
+      login()
+      const refreshResponse = {
+        token: 'new-token',
+        user: {
+          sub: 'u1', email: 'a@b.com', name: 'Test',
+          apps: { deposito: { rol: 'encargado', activo: true } },
+          isPlatformAdmin: false,
+        },
+      }
+      const formData = createImportFormData()
+      const dryRunResult = { filas: [], validas: 1, invalidas: 0 }
+
+      mockFetch
+        .mockResolvedValueOnce(createJsonResponse({ message: 'Token inválido o expirado' }, 401))
+        .mockResolvedValueOnce(createJsonResponse(refreshResponse))
+        .mockResolvedValueOnce(createJsonResponse(dryRunResult))
+
+      const result = await apiClient.postForm('/deposito/productos/importaciones/dry-run', formData)
+
+      expect(result).toEqual(dryRunResult)
+      expect(mockFetch).toHaveBeenCalledTimes(3)
+      // Second call goes to /auth/refresh
+      expect(String(mockFetch.mock.calls[1][0])).toContain('/auth/refresh')
+      // Retry uses the refreshed token and keeps the same FormData body
+      const retryHeaders = mockFetch.mock.calls[2][1]?.headers as Record<string, string>
+      expect(retryHeaders['Authorization']).toBe('Bearer new-token')
+      expect(mockFetch.mock.calls[2][1]?.body).toBe(formData)
+      expect(useAuthStore.getState().token).toBe('new-token')
+    })
+
+    it('logs out on failed refresh and throws', async () => {
+      login()
+      mockFetch
+        .mockResolvedValueOnce(createJsonResponse({ message: 'Token inválido o expirado' }, 401))
+        .mockResolvedValueOnce(createJsonResponse({ message: 'Refresh failed' }, 401))
+
+      await expect(
+        apiClient.postForm('/deposito/productos/importaciones/dry-run', createImportFormData()),
+      ).rejects.toThrow(ApiError)
+      expect(useAuthStore.getState().token).toBeNull()
+      expect(useAuthStore.getState().user).toBeNull()
+    })
+  })
+
   describe('PUT', () => {
     it('sends PUT with JSON body', async () => {
       const body = { price: 150 }

@@ -4,9 +4,11 @@ interface DialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   children: ReactNode
+  /** Large variant: near-fullscreen desktop modal (e.g. import previews). */
+  large?: boolean
 }
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, large = false }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -36,7 +38,10 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
       <div
         ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg mx-4 rounded-lg shadow-xl"
+        data-size={large ? 'large' : 'default'}
+        className={large
+          ? 'relative flex flex-col w-full max-w-[min(90vw,1400px)] h-[85vh] mx-4 rounded-lg shadow-xl overflow-hidden'
+          : 'relative w-full max-w-lg mx-4 rounded-lg shadow-xl'}
         style={{ backgroundColor: 'var(--color-surface)' }}
         role="dialog"
         aria-modal="true"

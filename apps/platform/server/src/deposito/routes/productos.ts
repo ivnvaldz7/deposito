@@ -2,6 +2,11 @@ import { Categoria, EstadoProductoCatalogo, Mercado, Prisma } from '@platform/db
 import { Request, Response, Router } from 'express'
 import multer from 'multer'
 import ExcelJS from 'exceljs'
+// SheetJS CE (xlsx) is used ONLY for legacy BIFF .xls files, which ExcelJS
+// cannot read. It is the only mature npm package that supports them; it is
+// used strictly read-only and the existing 5 MB upload limit bounds the
+// attack surface of its known parser CVEs.
+import * as XLSX from 'xlsx'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
@@ -18,6 +23,50 @@ const estados = Object.values(EstadoProductoCatalogo) as [EstadoProductoCatalogo
 function normalizeName(value: string) {
   return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
+
+// ─── Import header recognition ────────────────────────────────────────────────
+// Headers are normalized once in parseImport (trim + uppercase + collapse
+// repeated spaces). coerceImportRow maps normalized headers to canonical
+// fields through this dictionary, so CSV/XLSX/XLS files accept e.g.
+// 'CODIGO ARTICULO' and 'CODIGO' for codigo, case-insensitive and
+// space-tolerant. The camelCase forms are the canonical JSON payload keys.
+const HEADER_ALIASES: Readonly<Record<string, string>> = {
+  CODIGO: 'codigo',
+  'CODIGO ARTICULO': 'codigo',
+  CODIGOARTICULO: 'codigo',
+  NOMBRE: 'nombre',
+  'NOMBRE ARTICULO': 'nombre',
+  NOMBREARTICULO: 'nombre',
+  'NOMBRE COMPLETO': 'nombreCompleto',
+  NOMBRECOMPLETO: 'nombreCompleto',
+  NOMBREBASE: 'nombreBase',
+  'NOMBRE BASE': 'nombreBase',
+  CATEGORIA: 'categoria',
+  'MERCADOS HABILITADOS': 'mercadosHabilitados',
+  MERCADOSHABILITADOS: 'mercadosHabilitados',
+  MERCADOS: 'mercados',
+  PRESENTACION: 'presentacion',
+  VOLUMEN: 'volumen',
+  UNIDAD: 'unidad',
+  VARIANTE: 'variante',
+}
+
+function normalizeHeader(value: string) {
+  return value.trim().replace(/\s+/g, ' ').toUpperCase()
+}
+
+function canonicalValue(row: Record<string, unknown>, field: string): unknown {
+  for (const [key, value] of Object.entries(row)) {
+    if (HEADER_ALIASES[normalizeHeader(key)] === field) return value
+  }
+  return undefined
+}
+
+const ERROR_UNSUPPORTED_EXTENSION = 'Solo se aceptan archivos .xls, .xlsx o .csv'
+const ERROR_EMPTY_FILE = 'El archivo está vacío'
+const ERROR_CORRUPT_EXCEL = 'El archivo está corrupto o no es un archivo Excel válido'
+const ERROR_UNKNOWN_COLUMNS = 'No se reconocen las columnas del archivo. Columnas esperadas: CODIGO, NOMBRE, NOMBRE COMPLETO, CATEGORIA, MERCADOS, PRESENTACION, VOLUMEN, UNIDAD, VARIANTE.'
+const ERROR_AMBIGUOUS_CATEGORY = 'No se pudo determinar la categoría automáticamente. Los códigos deben comenzar con ENV o se debe incluir la columna CATEGORIA.'
 
 const optionalText = z.string().trim().max(100).nullable().optional().transform((value) => {
   if (value === undefined) return undefined
@@ -51,7 +100,7 @@ const baseSchema = z.discriminatedUnion('categoria', [
   commonCatalogSchema.extend({
     categoria: z.literal('frasco'),
     codigo: z.string().trim().max(100).nullable().optional().transform(v => v || null),
-    presentacion: positivePresentation,
+    presentacion: positivePresentation.nullable().optional(),
     mercadosHabilitados: z.array(z.enum(mercados)).max(0).optional().default([]),
   }),
   commonCatalogSchema.extend({
@@ -83,11 +132,9 @@ function toCreateInput(value: CatalogoRow) {
 
 function sendError(res: Response, error: unknown) {
   if (error instanceof CatalogoError) {
-    res.status(error.code === 'NOT_FOUND' ? 404 : error.code === 'INVALID' ? 400 : 409).json({ message: error.message })
-    return
-  }
-  if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-    res.status(409).json({ message: 'El código debe ser globalmente único' })
+    if (error.code === 'CONFLICT') res.status(409).json({ message: error.message })
+    else if (error.code === 'NOT_FOUND') res.status(404).json({ message: error.message })
+    else res.status(400).json({ message: error.message })
     return
   }
   if (error instanceof Error) {
@@ -136,53 +183,98 @@ function parseCsvRecords(csv: string): Array<Record<string, string>> {
   if (row.some((value) => value.trim().length > 0)) rows.push(row)
   const [header, ...data] = rows
   if (!header) return []
-  const keys = header.map((key, index) => index === 0 ? key.replace(/^\uFEFF/, '').trim() : key.trim())
+  const keys = header.map((key) => normalizeHeader(key))
   return data.map((values) => Object.fromEntries(keys.map((key, index) => [key, values[index]?.trim() ?? ''])))
 }
 
 async function parseImport(bytes: Buffer, fileName: string) {
   const name = fileName.toLowerCase()
-  const rows: unknown[] = []
+  if (bytes.length === 0) throw new Error(ERROR_EMPTY_FILE)
+  const rows: Array<Record<string, unknown>> = []
   if (name.endsWith('.csv')) {
     rows.push(...parseCsvRecords(bytes.toString('utf8')))
   } else if (name.endsWith('.xlsx')) {
-    const book = new ExcelJS.Workbook()
-    await Reflect.apply(book.xlsx.load, book.xlsx, [bytes])
+    let book: ExcelJS.Workbook
+    try {
+      book = new ExcelJS.Workbook()
+      await Reflect.apply(book.xlsx.load, book.xlsx, [bytes])
+    } catch {
+      throw new Error(ERROR_CORRUPT_EXCEL)
+    }
     const sheet = book.worksheets[0]
-    if (!sheet) return []
+    if (!sheet) throw new Error(ERROR_CORRUPT_EXCEL)
     const headerRow = sheet.getRow(1)
-    const header = Array.from({ length: headerRow.cellCount }, (_, column) => String(headerRow.getCell(column + 1).value ?? '').trim())
+    const header = Array.from({ length: headerRow.cellCount }, (_, column) => normalizeHeader(String(headerRow.getCell(column + 1).value ?? '')))
     sheet.eachRow((row, index) => {
       if (index === 1) return
       rows.push(Object.fromEntries(header.map((key, column) => [key, row.getCell(column + 1).value])))
     })
+  } else if (name.endsWith('.xls')) {
+    // Legacy BIFF `.xls` files cannot be read by ExcelJS. SheetJS CE is the
+    // only mature npm package that reads them; see the import comment at the
+    // top of this file for the read-only + 5 MB limit mitigation rationale.
+    let matrix: unknown[][]
+    try {
+      const book = XLSX.read(bytes, { type: 'buffer' })
+      const sheet = book.Sheets[book.SheetNames[0]]
+      if (!sheet) throw new Error(ERROR_CORRUPT_EXCEL)
+      matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as unknown[][]
+    } catch (error) {
+      if (error instanceof Error && error.message === ERROR_CORRUPT_EXCEL) throw error
+      throw new Error(ERROR_CORRUPT_EXCEL)
+    }
+    if (matrix.length === 0) throw new Error(ERROR_CORRUPT_EXCEL)
+    const header = (matrix[0] ?? []).map((cell) => normalizeHeader(String(cell ?? '')))
+    rows.push(...matrix.slice(1).map((values) => Object.fromEntries(header.map((key, column) => [key, values[column]]))))
   } else {
-    throw new Error('Solo se aceptan archivos CSV o XLSX')
+    throw new Error(ERROR_UNSUPPORTED_EXTENSION)
+  }
+  return annotateImportRows(rows)
+}
+
+function annotateImportRows(rows: Array<Record<string, unknown>>): Array<Record<string, unknown>> {
+  if (rows.length === 0) return rows
+  const headerKeys = Object.keys(rows[0])
+  const hasKnownColumn = headerKeys.some((key) => HEADER_ALIASES[normalizeHeader(key)] !== undefined)
+  if (!hasKnownColumn) throw new Error(ERROR_UNKNOWN_COLUMNS)
+  const hasCategoriaColumn = headerKeys.some((key) => HEADER_ALIASES[normalizeHeader(key)] === 'categoria')
+  // Legacy supplier lists (exactly CODIGO ARTICULO + NOMBRE ARTICULO, no
+  // CATEGORIA column) where ALL non-empty codes start with ENV are
+  // interpreted as FRASCO. This is SCOPED to this legacy format detected
+  // during import — it is NOT a global business rule. Ambiguous files (no
+  // category column and codes that are not all ENV) are rejected with a
+  // descriptive dry-run error instead of inventing a category. FRASCO
+  // presentation is allowed to be null during import (PENDIENTE_REVISION),
+  // and the encargado reviews/edits them before activation.
+  if (!hasCategoriaColumn) {
+    const codes = rows
+      .map((row) => String(canonicalValue(row, 'codigo') ?? '').trim())
+      .filter((code) => code.length > 0)
+    const allEnv = codes.length > 0 && codes.every((code) => code.toUpperCase().startsWith('ENV'))
+    if (!allEnv) throw new Error(ERROR_AMBIGUOUS_CATEGORY)
+    for (const row of rows) {
+      row['CATEGORIA'] = 'frasco'
+    }
   }
   return rows
 }
 
 function coerceImportRow(row: Record<string, unknown>) {
-  const marketsRaw = String(row.mercadosHabilitados ?? row.mercados ?? '')
+  const get = (field: string) => canonicalValue(row, field)
+  const marketsRaw = String(get('mercadosHabilitados') ?? get('mercados') ?? '')
   return {
-    nombreBase: String(row.nombreBase ?? row.nombre ?? ''),
-    nombreCompleto: String(row.nombreCompleto ?? row.nombre ?? ''),
-    categoria: String(row.categoria ?? '').toLowerCase(),
-    codigo: String(row.codigo ?? ''),
-    presentacion: row.presentacion === '' || row.presentacion == null ? undefined : Number(row.presentacion),
+    nombreBase: String(get('nombreBase') ?? get('nombre') ?? ''),
+    nombreCompleto: String(get('nombreCompleto') ?? get('nombre') ?? ''),
+    categoria: String(get('categoria') ?? '').toLowerCase(),
+    codigo: String(get('codigo') ?? ''),
+    presentacion: get('presentacion') === '' || get('presentacion') == null ? undefined : Number(get('presentacion')),
     mercadosHabilitados: marketsRaw ? marketsRaw.split('|').map((market) => market.trim()) : [],
-    volumen: row.volumen === '' || row.volumen == null ? undefined : Number(row.volumen),
-    unidad: row.unidad == null ? undefined : String(row.unidad),
-    variante: row.variante == null ? undefined : String(row.variante),
+    volumen: get('volumen') === '' || get('volumen') == null ? undefined : Number(get('volumen')),
+    unidad: get('unidad') == null ? undefined : String(get('unidad')),
+    variante: get('variante') == null ? undefined : String(get('variante')),
   }
 }
 
-
-class ImportValidationError extends Error {
-  constructor(public readonly filas: ImportResult[]) {
-    super('El archivo contiene filas inválidas')
-  }
-}
 
 function validateImportRows(rows: unknown[]): ImportResult[] {
   const codes = new Set<string>()
@@ -200,6 +292,7 @@ function validateImportRows(rows: unknown[]): ImportResult[] {
         codigo,
         mercadosHabilitados: parsed.data.mercadosHabilitados,
         presentacion: parsed.data.presentacion,
+        estado: 'PENDIENTE_REVISION',
       })
     } catch (error) {
       return { fila: index + 2, valido: false, errores: { categoria: [error instanceof Error ? error.message : 'Categoría inválida'] } }
@@ -224,12 +317,36 @@ async function validateImportAgainstCatalog(rows: unknown[]): Promise<ImportResu
   const existing = validCodes.length
     ? await prisma.depositoProducto.findMany({ where: { codigo: { in: validCodes } }, select: { codigo: true } })
     : []
+  
+  const validProducts = result.filter((row) => row.valido && row.producto).map(r => r.producto!)
+  const existingNames = validProducts.length
+    ? await prisma.depositoProducto.findMany({
+        where: { OR: validProducts.map(p => ({ nombreCompleto: p.nombreCompleto, categoria: p.categoria })) },
+        select: { nombreCompleto: true, categoria: true }
+      })
+    : []
+
   const existingCodes = new Set(existing.map((item) => item.codigo))
+  const existingNamesSet = new Set(existingNames.map((item) => `${item.nombreCompleto}|${item.categoria}`))
+
   for (const row of result) {
-    if (row.valido && row.producto && existingCodes.has(normalizeCodigo(row.producto.codigo))) {
+    if (!row.valido || !row.producto) continue
+    
+    const codigo = normalizeCodigo(row.producto.codigo)
+    if (codigo && existingCodes.has(codigo)) {
       row.valido = false
-      row.errores = { codigo: ['Código global ya existente'] }
+      row.errores = { codigo: ['Código ya existente'] }
+      continue
     }
+    
+    if (existingNamesSet.has(`${row.producto.nombreCompleto}|${row.producto.categoria}`)) {
+      row.valido = false
+      row.errores = { nombreBase: ['Producto ya existente con este nombre y categoría'] }
+      continue
+    }
+    
+    if (codigo) existingCodes.add(codigo)
+    existingNamesSet.add(`${row.producto.nombreCompleto}|${row.producto.categoria}`)
   }
   return result
 }
@@ -312,18 +429,40 @@ router.post('/importaciones/dry-run', authenticate, requireRole('encargado'), up
   }
 })
 
+// Partial-import confirmation (MVP-01): invalid rows are OMITTED, only the
+// valid rows are created. The ONLY blocking case is a file with zero valid
+// rows. `omitidas` reports every row that did not become a product (invalid
+// rows + rows skipped because their code came to exist between preview and
+// confirm); `omitidasPorCarrera` isolates the race-skipped ones so the client
+// can tell them apart. `productos` carries the created rows for counts.
+async function confirmPendingImport(res: Response, result: ImportResult[], usuarioId: string): Promise<void> {
+  const validRows = result.filter((row) => row.valido)
+  const invalidas = result.length - validRows.length
+  if (validRows.length === 0) {
+    res.status(400).json({ message: 'No hay filas válidas para importar.', filas: result })
+    return
+  }
+  const productos = validRows
+    .map((row) => row.producto)
+    .filter((producto): producto is CatalogoRow => producto !== undefined)
+    .map(toCreateInput)
+  const created = await service.createImportPendingBatch(productos, usuarioId)
+  res.status(201).json({
+    filas: result,
+    importadas: created.productos.length,
+    omitidas: invalidas + created.omitidosPorCarrera,
+    omitidasPorCarrera: created.omitidosPorCarrera,
+    total: result.length,
+    productos: created.productos,
+  })
+}
+
 router.post('/importaciones/confirmar', authenticate, requireRole('encargado'), upload.single('archivo'), async (req, res): Promise<void> => {
   const multipart = getMultipartFile(req)
   try {
     if (multipart) {
       const result = await validateImportAgainstCatalog(await parseImport(multipart.bytes, multipart.fileName))
-      if (result.some((row) => !row.valido)) throw new ImportValidationError(result)
-      const productos = result
-        .map((row) => row.producto)
-        .filter((producto): producto is CatalogoRow => producto !== undefined)
-        .map(toCreateInput)
-      const created = await service.createImportPendingBatch(productos, req.depositoUser!.id)
-      res.status(201).json(created)
+      await confirmPendingImport(res, result, req.depositoUser!.id)
       return
     }
 
@@ -335,18 +474,8 @@ router.post('/importaciones/confirmar', authenticate, requireRole('encargado'), 
     // JSON bodies share the SAME per-row validation as the multipart path so
     // category rules, IGET/IGES prefixes, duplicates and global codes all apply.
     const result = await validateImportAgainstCatalog(payload.data.productos)
-    if (result.some((row) => !row.valido)) throw new ImportValidationError(result)
-    const productos = result
-      .map((row) => row.producto)
-      .filter((producto): producto is CatalogoRow => producto !== undefined)
-      .map(toCreateInput)
-    const created = await service.createImportPendingBatch(productos, req.depositoUser!.id)
-    res.status(201).json(created)
+    await confirmPendingImport(res, result, req.depositoUser!.id)
   } catch (error) {
-    if (error instanceof ImportValidationError) {
-      res.status(400).json({ message: error.message, filas: error.filas })
-      return
-    }
     sendError(res, error)
   }
 })

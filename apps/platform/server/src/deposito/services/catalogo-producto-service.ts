@@ -19,6 +19,7 @@ export interface CatalogoValidationInput {
   codigo?: string | null
   mercadosHabilitados?: Mercado[]
   presentacion?: number | null
+  estado?: EstadoProductoCatalogo | null
 }
 
 export interface CatalogoCreateInput extends CatalogoValidationInput {
@@ -81,7 +82,10 @@ export function validateCatalogoInput(input: CatalogoValidationInput): void {
   const requiresPresentation = PRESENTATION_CATEGORIES.includes(input.categoria)
   if (usesMarkets && mercados.length === 0) throw new Error('La categoría requiere al menos un mercado habilitado')
   if (!usesMarkets && mercados.length > 0) throw new Error('La categoría no utiliza mercados habilitados')
-  if (requiresPresentation && (!Number.isInteger(input.presentacion) || (input.presentacion ?? 0) <= 0)) {
+
+  const canDeferPresentation = input.estado === 'PENDIENTE_REVISION' && input.categoria === 'frasco'
+
+  if (requiresPresentation && !canDeferPresentation && (!Number.isInteger(input.presentacion) || (input.presentacion ?? 0) <= 0)) {
     throw new Error('La presentación es obligatoria para esta categoría')
   }
 }
@@ -171,28 +175,33 @@ export class CatalogoProductoService {
     const codigo = normalizeCodigo(input.codigo)
     validateCodigoPrefix(input.categoria, codigo)
     validateTransition(null, 'ACTIVO', codigo, input.categoria)
-    return this.db.$transaction(async (tx) => {
-      const producto = await tx.depositoProducto.create({
-        data: {
-          nombreBase: input.nombreBase,
-          nombreCompleto: input.nombreCompleto,
-          categoria: input.categoria,
-          codigo,
-          estado: 'ACTIVO',
-          activo: true,
-          origen: 'MANUAL',
-          presentacion: input.presentacion ?? null,
-          mercadosHabilitados: input.mercadosHabilitados ?? [],
-          volumen: input.volumen ?? null,
-          unidad: input.unidad ?? null,
-          variante: input.variante ?? null,
-        },
-      })
-      await seedInitialInventory(tx, producto)
-      await audit(tx, producto.id, usuarioId, 'CREADO', null, { estado: producto.estado, codigo: producto.codigo })
-      await audit(tx, producto.id, usuarioId, 'ACTIVADO', null, { estado: producto.estado })
-      return producto
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+    try {
+      return await this.db.$transaction(async (tx) => {
+        const producto = await tx.depositoProducto.create({
+          data: {
+            nombreBase: input.nombreBase,
+            nombreCompleto: input.nombreCompleto,
+            categoria: input.categoria,
+            codigo,
+            estado: 'ACTIVO',
+            activo: true,
+            origen: 'MANUAL',
+            presentacion: input.presentacion ?? null,
+            mercadosHabilitados: input.mercadosHabilitados ?? [],
+            volumen: input.volumen ?? null,
+            unidad: input.unidad ?? null,
+            variante: input.variante ?? null,
+          },
+        })
+        await seedInitialInventory(tx, producto)
+        await audit(tx, producto.id, usuarioId, 'CREADO', null, { estado: producto.estado, codigo: producto.codigo })
+        await audit(tx, producto.id, usuarioId, 'ACTIVADO', null, { estado: producto.estado })
+        return producto
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+    } catch (e: any) {
+      if (e && typeof e === 'object' && e.code === 'P2002') throw new CatalogoError('CONFLICT', 'El código o producto ya existe')
+      throw e
+    }
   }
 
   async activate(productoId: string, usuarioId: string) {
@@ -201,7 +210,7 @@ export class CatalogoProductoService {
       if (!producto) throw new CatalogoError('NOT_FOUND', 'Producto no encontrado')
       if (producto.estado === 'ACTIVO') return producto
       if (producto.estado !== 'PENDIENTE_REVISION') throw new CatalogoError('CONFLICT', 'Solo un producto pendiente puede activarse')
-      validateCatalogoInput(producto)
+      validateCatalogoInput({ ...producto, estado: 'ACTIVO' })
       validateCodigoPrefix(producto.categoria, producto.codigo)
       validateTransition(producto.estado, 'ACTIVO', producto.codigo, producto.categoria)
       const actualizado = await tx.depositoProducto.update({ where: { id: producto.id }, data: { estado: 'ACTIVO', activo: true } })
@@ -220,7 +229,7 @@ export class CatalogoProductoService {
       if (!producto) throw new CatalogoError('NOT_FOUND', 'Producto no encontrado')
       if (producto.estado === 'ACTIVO') return producto
       if (producto.estado !== 'INACTIVO') throw new CatalogoError('CONFLICT', 'Solo un producto inactivo puede reactivarse')
-      validateCatalogoInput(producto)
+      validateCatalogoInput({ ...producto, estado: 'ACTIVO' })
       validateCodigoPrefix(producto.categoria, producto.codigo)
       validateTransition(producto.estado, 'ACTIVO', producto.codigo, producto.categoria)
       const actualizado = await tx.depositoProducto.update({ where: { id: producto.id }, data: { estado: 'ACTIVO', activo: true } })
@@ -243,48 +252,53 @@ export class CatalogoProductoService {
   }
 
   async update(productoId: string, input: CatalogoUpdateInput, usuarioId: string) {
-    return this.db.$transaction(async (tx) => {
-      const producto = await tx.depositoProducto.findUnique({ where: { id: productoId } })
-      if (!producto) throw new CatalogoError('NOT_FOUND', 'Producto no encontrado')
-      const categoria = input.categoria ?? producto.categoria
-      const mercados = input.mercadosHabilitados ?? producto.mercadosHabilitados
-      const codigo = input.codigo === undefined ? producto.codigo : normalizeCodigo(input.codigo)
-      const presentacion = input.presentacion === undefined ? producto.presentacion : input.presentacion
-      validateCatalogoUpdate(producto.estado, producto, input)
-      validateCatalogoInput({ categoria, mercadosHabilitados: mercados, codigo, presentacion })
-      // For etiqueta/estuche the RESULTING code (input.codigo if provided, else the
-      // existing one) must remain valid and prefix-correct. This closes the gap where
-      // a PATCH could clear or omit the code of a pending etiqueta/estuche.
-      validateResultingCodigo(categoria, codigo)
-      const data: Prisma.DepositoProductoUpdateInput = {
-        ...(input.nombreBase !== undefined ? { nombreBase: input.nombreBase } : {}),
-        ...(input.nombreCompleto !== undefined ? { nombreCompleto: input.nombreCompleto } : {}),
-        ...(input.presentacion !== undefined ? { presentacion: input.presentacion } : {}),
-        ...(input.codigo !== undefined ? { codigo } : {}),
-        ...(input.categoria !== undefined ? { categoria } : {}),
-        ...(input.mercadosHabilitados !== undefined ? { mercadosHabilitados: mercados } : {}),
-        ...(input.volumen !== undefined ? { volumen: input.volumen } : {}),
-        ...(input.unidad !== undefined ? { unidad: input.unidad } : {}),
-        ...(input.variante !== undefined ? { variante: input.variante } : {}),
-      }
-      const actualizado = await tx.depositoProducto.update({ where: { id: productoId }, data })
-      const tipo = input.codigo !== undefined
-        ? 'CODIGO_ACTUALIZADO'
-        : input.nombreCompleto !== undefined || input.nombreBase !== undefined
-          ? 'NOMBRE_ACTUALIZADO'
-          : input.presentacion !== undefined
-            ? 'PRESENTACION_ACTUALIZADA'
-            : 'EDITADO'
-      await audit(
-        tx,
-        productoId,
-        usuarioId,
-        tipo,
-        JSON.parse(JSON.stringify(producto)) as Prisma.InputJsonValue,
-        JSON.parse(JSON.stringify(actualizado)) as Prisma.InputJsonValue,
-      )
-      return actualizado
-    })
+    try {
+      return await this.db.$transaction(async (tx) => {
+        const producto = await tx.depositoProducto.findUnique({ where: { id: productoId } })
+        if (!producto) throw new CatalogoError('NOT_FOUND', 'Producto no encontrado')
+        const categoria = input.categoria ?? producto.categoria
+        const mercados = input.mercadosHabilitados ?? producto.mercadosHabilitados
+        const codigo = input.codigo === undefined ? producto.codigo : normalizeCodigo(input.codigo)
+        const presentacion = input.presentacion === undefined ? producto.presentacion : input.presentacion
+        validateCatalogoUpdate(producto.estado, producto, input)
+        validateCatalogoInput({ categoria, mercadosHabilitados: mercados, codigo, presentacion, estado: producto.estado })
+        // For etiqueta/estuche the RESULTING code (input.codigo if provided, else the
+        // existing one) must remain valid and prefix-correct. This closes the gap where
+        // a PATCH could clear or omit the code of a pending etiqueta/estuche.
+        validateResultingCodigo(categoria, codigo)
+        const data: Prisma.DepositoProductoUpdateInput = {
+          ...(input.nombreBase !== undefined ? { nombreBase: input.nombreBase } : {}),
+          ...(input.nombreCompleto !== undefined ? { nombreCompleto: input.nombreCompleto } : {}),
+          ...(input.presentacion !== undefined ? { presentacion: input.presentacion } : {}),
+          ...(input.codigo !== undefined ? { codigo } : {}),
+          ...(input.categoria !== undefined ? { categoria } : {}),
+          ...(input.mercadosHabilitados !== undefined ? { mercadosHabilitados: mercados } : {}),
+          ...(input.volumen !== undefined ? { volumen: input.volumen } : {}),
+          ...(input.unidad !== undefined ? { unidad: input.unidad } : {}),
+          ...(input.variante !== undefined ? { variante: input.variante } : {}),
+        }
+        const actualizado = await tx.depositoProducto.update({ where: { id: productoId }, data })
+        const tipo = input.codigo !== undefined
+          ? 'CODIGO_ACTUALIZADO'
+          : input.nombreCompleto !== undefined || input.nombreBase !== undefined
+            ? 'NOMBRE_ACTUALIZADO'
+            : input.presentacion !== undefined
+              ? 'PRESENTACION_ACTUALIZADA'
+              : 'EDITADO'
+        await audit(
+          tx,
+          productoId,
+          usuarioId,
+          tipo,
+          JSON.parse(JSON.stringify(producto)) as Prisma.InputJsonValue,
+          JSON.parse(JSON.stringify(actualizado)) as Prisma.InputJsonValue,
+        )
+        return actualizado
+      })
+    } catch (e: any) {
+      if (e && typeof e === 'object' && e.code === 'P2002') throw new CatalogoError('CONFLICT', 'El código o producto ya existe')
+      throw e
+    }
   }
 
   async deletePending(productoId: string) {
@@ -311,41 +325,71 @@ export class CatalogoProductoService {
   }
 
   async createImportPending(input: CatalogoCreateInput, usuarioId: string) {
-    const [producto] = await this.createImportPendingBatch([input], usuarioId)
-    return producto
+    const { productos } = await this.createImportPendingBatch([input], usuarioId)
+    return productos[0]
   }
 
   async createImportPendingBatch(inputs: CatalogoCreateInput[], usuarioId: string) {
     for (const input of inputs) {
-      validateCatalogoInput(input)
+      validateCatalogoInput({ ...input, estado: 'PENDIENTE_REVISION' })
       validateCodigoPrefix(input.categoria, input.codigo)
     }
     const codes = inputs.map((input) => normalizeCodigo(input.codigo)).filter((codigo): codigo is string => codigo !== null)
     if (new Set(codes).size !== codes.length) throw new CatalogoError('CONFLICT', 'El archivo contiene códigos duplicados')
-    return this.db.$transaction(async (tx) => {
-      const existing = codes.length
-        ? await tx.depositoProducto.findMany({ where: { codigo: { in: codes } }, select: { codigo: true } })
-        : []
-      if (existing.length) throw new CatalogoError('CONFLICT', 'Uno o más códigos ya existen globalmente')
-      const productos: Prisma.DepositoProductoGetPayload<null>[] = []
-      for (const input of inputs) {
-        const codigo = normalizeCodigo(input.codigo)
-        const producto = await tx.depositoProducto.create({
-          data: {
-            ...input,
-            codigo,
-            estado: 'PENDIENTE_REVISION',
-            activo: false,
-            origen: OrigenProductoCatalogo.IMPORTACION,
-            presentacion: input.presentacion ?? null,
-            mercadosHabilitados: input.mercadosHabilitados ?? [],
-          },
-        })
-        await audit(tx, producto.id, usuarioId, 'IMPORTACION_CREADA', null, { estado: producto.estado, codigo: producto.codigo })
-        productos.push(producto)
+    const existing = codes.length
+      ? await this.db.depositoProducto.findMany({ where: { codigo: { in: codes } }, select: { codigo: true } })
+      : []
+    const existingNames = await this.db.depositoProducto.findMany({
+      where: {
+        OR: inputs.map(input => ({
+          nombreCompleto: input.nombreCompleto,
+          categoria: input.categoria
+        }))
+      },
+      select: { nombreCompleto: true, categoria: true }
+    })
+    const existingCodes = new Set(existing.map((item) => item.codigo))
+    const existingNamesSet = new Set(existingNames.map((item) => `${item.nombreCompleto}|${item.categoria}`))
+    const productos: Prisma.DepositoProductoGetPayload<null>[] = []
+    let omitidosPorCarrera = 0
+    for (const input of inputs) {
+      const codigo = normalizeCodigo(input.codigo)
+      if (codigo !== null && existingCodes.has(codigo)) {
+        omitidosPorCarrera++
+        continue
       }
-      return productos
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+      if (existingNamesSet.has(`${input.nombreCompleto}|${input.categoria}`)) {
+        omitidosPorCarrera++
+        continue
+      }
+      existingNamesSet.add(`${input.nombreCompleto}|${input.categoria}`)
+      
+      try {
+        const producto = await this.db.$transaction(async (tx) => {
+          const prod = await tx.depositoProducto.create({
+            data: {
+              ...input,
+              codigo,
+              estado: 'PENDIENTE_REVISION',
+              activo: false,
+              origen: OrigenProductoCatalogo.IMPORTACION,
+              presentacion: input.presentacion ?? null,
+              mercadosHabilitados: input.mercadosHabilitados ?? [],
+            },
+          })
+          await audit(tx, prod.id, usuarioId, 'IMPORTACION_CREADA', null, { estado: prod.estado, codigo: prod.codigo })
+          return prod
+        })
+        productos.push(producto)
+      } catch (e: any) {
+        if (e && typeof e === 'object' && e.code === 'P2002') {
+          omitidosPorCarrera++
+          continue
+        }
+        throw e
+      }
+    }
+    return { productos, omitidosPorCarrera }
   }
 }
 
