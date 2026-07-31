@@ -51,7 +51,7 @@ const agregarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
   mercado: z.enum([
     'argentina', 'colombia', 'mexico', 'ecuador',
-    'bolivia', 'paraguay', 'no_exportable',
+    'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable',
   ] as const),
   cantidad: z
     .string()
@@ -161,7 +161,7 @@ function AgregarEtiquetaModal({
 
 const editarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
-  mercado: z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'no_exportable'] as const),
+  mercado: z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable'] as const),
   cantidad: z.string().min(1, 'Requerido').refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Debe ser número positivo'),
 })
 

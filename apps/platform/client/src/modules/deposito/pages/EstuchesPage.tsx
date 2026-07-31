@@ -57,7 +57,7 @@ const agregarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
   mercado: z.enum([
     'argentina', 'colombia', 'mexico', 'ecuador',
-    'bolivia', 'paraguay', 'no_exportable',
+    'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable',
   ] as const),
   cantidad: z
     .string()
@@ -212,7 +212,7 @@ const editarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
   mercado: z.enum([
     'argentina', 'colombia', 'mexico', 'ecuador',
-    'bolivia', 'paraguay', 'no_exportable',
+    'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable',
   ] as const),
   cantidad: z
     .string()

@@ -213,6 +213,7 @@ model User {
   insumoPendientes       InsumoPendiente[]
   ordenesComoSolicitante OrdenProduccion[] @relation("OrdenesComoSolicitante")
   ordenesComoAprobador   OrdenProduccion[] @relation("OrdenesComoAprobador")
+  auditoriasCatalogo     AuditoriaCatalogoProducto[]
 
   @@map("users")
 
@@ -300,6 +301,7 @@ enum Mercado {
   ecuador
   bolivia
   paraguay
+  VENEZUELA
   no_exportable
 
   @@schema("deposito")
@@ -310,6 +312,54 @@ enum CondicionEmbalaje {
   regular
   malo
 
+  @@schema("deposito")
+}
+
+enum EstadoProductoCatalogo {
+  PENDIENTE_REVISION
+  ACTIVO
+  INACTIVO
+
+  @@schema("deposito")
+}
+
+enum OrigenProductoCatalogo {
+  MANUAL
+  IMPORTACION
+  MIGRACION
+
+  @@schema("deposito")
+}
+
+enum TipoAuditoriaCatalogo {
+  CREADO
+  EDITADO
+  CODIGO_ACTUALIZADO
+  NOMBRE_ACTUALIZADO
+  PRESENTACION_ACTUALIZADA
+  ACTIVADO
+  REACTIVADO
+  DESACTIVADO
+  IMPORTACION_CREADA
+  IMPORTACION_APROBADA
+
+  @@schema("deposito")
+}
+
+model AuditoriaCatalogoProducto {
+  id            String                @id @default(uuid())
+  productoId    String                @map("producto_id")
+  tipo          TipoAuditoriaCatalogo
+  valorAnterior Json?                 @map("valor_anterior")
+  valorNuevo    Json?                 @map("valor_nuevo")
+  usuarioId     String                @map("usuario_id")
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  producto DepositoProducto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  usuario  User             @relation(fields: [usuarioId], references: [id])
+
+  @@index([productoId, createdAt])
+  @@map("auditorias_catalogo_producto")
   @@schema("deposito")
 }
 
@@ -330,6 +380,7 @@ model InventarioDroga {
   @@unique([nombre, lote])
   @@index([productoId])
   @@index([productoId, lote])
+  @@unique([productoId, lote])
   @@map("inventario_drogas")
 
   @@schema("deposito")
@@ -351,6 +402,7 @@ model InventarioEstuche {
   @@unique([articulo, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
+  @@unique([productoId, mercado])
   @@map("inventario_estuches")
 
   @@schema("deposito")
@@ -372,6 +424,7 @@ model InventarioEtiqueta {
   @@unique([articulo, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
+  @@unique([productoId, mercado])
   @@map("inventario_etiquetas")
 
   @@schema("deposito")
@@ -392,6 +445,7 @@ model InventarioFrasco {
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@index([productoId])
+  @@unique([productoId])
   @@map("inventario_frascos")
 
   @@schema("deposito")
@@ -524,6 +578,11 @@ model DepositoProducto {
   categoria      Categoria
   nombreCompleto String    @map("nombre_completo")
   activo         Boolean   @default(true)
+  estado         EstadoProductoCatalogo? @map("estado")
+  codigo         String?   @unique
+  origen         OrigenProductoCatalogo @default(MIGRACION)
+  presentacion   Int?
+  mercadosHabilitados Mercado[] @default([]) @map("mercados_habilitados")
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
@@ -533,6 +592,7 @@ model DepositoProducto {
   inventarioFrascos   InventarioFrasco[]
   actaItems           ActaItem[]
   ordenes             OrdenProduccion[]
+  auditoriasCatalogo   AuditoriaCatalogoProducto[]
 
   @@unique([nombreCompleto, categoria])
   @@map("productos")

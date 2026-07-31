@@ -208,8 +208,9 @@ model User {
   actas                  Acta[]
   movimientos            Movimiento[]
   insumoPendientes       InsumoPendiente[]
-  ordenesComoSolicitante OrdenProduccion[] @relation("OrdenesComoSolicitante")
-  ordenesComoAprobador   OrdenProduccion[] @relation("OrdenesComoAprobador")
+  ordenesComoSolicitante OrdenProduccion[]           @relation("OrdenesComoSolicitante")
+  ordenesComoAprobador   OrdenProduccion[]           @relation("OrdenesComoAprobador")
+  auditoriasCatalogo     AuditoriaCatalogoProducto[]
 
   @@map("users")
   @@schema("deposito")
@@ -294,6 +295,7 @@ enum Mercado {
   ecuador
   bolivia
   paraguay
+  VENEZUELA
   no_exportable
 
   @@schema("deposito")
@@ -304,6 +306,54 @@ enum CondicionEmbalaje {
   regular
   malo
 
+  @@schema("deposito")
+}
+
+enum EstadoProductoCatalogo {
+  PENDIENTE_REVISION
+  ACTIVO
+  INACTIVO
+
+  @@schema("deposito")
+}
+
+enum OrigenProductoCatalogo {
+  MANUAL
+  IMPORTACION
+  MIGRACION
+
+  @@schema("deposito")
+}
+
+enum TipoAuditoriaCatalogo {
+  CREADO
+  EDITADO
+  CODIGO_ACTUALIZADO
+  NOMBRE_ACTUALIZADO
+  PRESENTACION_ACTUALIZADA
+  ACTIVADO
+  REACTIVADO
+  DESACTIVADO
+  IMPORTACION_CREADA
+  IMPORTACION_APROBADA
+
+  @@schema("deposito")
+}
+
+model AuditoriaCatalogoProducto {
+  id            String                @id @default(uuid())
+  productoId    String                @map("producto_id")
+  tipo          TipoAuditoriaCatalogo
+  valorAnterior Json?                 @map("valor_anterior")
+  valorNuevo    Json?                 @map("valor_nuevo")
+  usuarioId     String                @map("usuario_id")
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  producto DepositoProducto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  usuario  User             @relation(fields: [usuarioId], references: [id])
+
+  @@index([productoId, createdAt])
+  @@map("auditorias_catalogo_producto")
   @@schema("deposito")
 }
 
@@ -322,6 +372,7 @@ model InventarioDroga {
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@unique([nombre, lote])
+  @@unique([productoId, lote])
   @@index([productoId])
   @@index([productoId, lote])
   @@map("inventario_drogas")
@@ -342,6 +393,7 @@ model InventarioEstuche {
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@unique([articulo, mercado])
+  @@unique([productoId, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
   @@map("inventario_estuches")
@@ -362,6 +414,7 @@ model InventarioEtiqueta {
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@unique([articulo, mercado])
+  @@unique([productoId, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
   @@map("inventario_etiquetas")
@@ -382,6 +435,7 @@ model InventarioFrasco {
 
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
+  @@unique([productoId])
   @@index([productoId])
   @@map("inventario_frascos")
   @@schema("deposito")
@@ -503,16 +557,21 @@ enum EstadoOrden {
 // CATÁLOGO DE PRODUCTOS
 // ============================================================
 model DepositoProducto {
-  id             String    @id @default(uuid())
-  nombreBase     String    @map("nombre_base")
-  volumen        Decimal?  @db.Decimal(10, 3)
-  unidad         String?
-  variante       String?
-  categoria      Categoria
-  nombreCompleto String    @map("nombre_completo")
-  activo         Boolean   @default(true)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                  String                  @id @default(uuid())
+  nombreBase          String                  @map("nombre_base")
+  volumen             Decimal?                @db.Decimal(10, 3)
+  unidad              String?
+  variante            String?
+  categoria           Categoria
+  nombreCompleto      String                  @map("nombre_completo")
+  activo              Boolean                 @default(true)
+  estado              EstadoProductoCatalogo? @map("estado")
+  codigo              String?                 @unique
+  origen              OrigenProductoCatalogo  @default(MIGRACION)
+  presentacion        Int?
+  mercadosHabilitados Mercado[]               @default([]) @map("mercados_habilitados")
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
 
   inventarioDrogas    InventarioDroga[]
   inventarioEstuches  InventarioEstuche[]
@@ -520,6 +579,7 @@ model DepositoProducto {
   inventarioFrascos   InventarioFrasco[]
   actaItems           ActaItem[]
   ordenes             OrdenProduccion[]
+  auditoriasCatalogo  AuditoriaCatalogoProducto[]
 
   @@unique([nombreCompleto, categoria])
   @@map("productos")

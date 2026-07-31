@@ -267,6 +267,16 @@ exports.Prisma.ActaItemScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.AuditoriaCatalogoProductoScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  tipo: 'tipo',
+  valorAnterior: 'valorAnterior',
+  valorNuevo: 'valorNuevo',
+  usuarioId: 'usuarioId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.InventarioDrogaScalarFieldEnum = {
   id: 'id',
   productoId: 'productoId',
@@ -360,6 +370,11 @@ exports.Prisma.DepositoProductoScalarFieldEnum = {
   categoria: 'categoria',
   nombreCompleto: 'nombreCompleto',
   activo: 'activo',
+  estado: 'estado',
+  codigo: 'codigo',
+  origen: 'origen',
+  presentacion: 'presentacion',
+  mercadosHabilitados: 'mercadosHabilitados',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -447,7 +462,21 @@ exports.Mercado = exports.$Enums.Mercado = {
   ecuador: 'ecuador',
   bolivia: 'bolivia',
   paraguay: 'paraguay',
+  VENEZUELA: 'VENEZUELA',
   no_exportable: 'no_exportable'
+};
+
+exports.TipoAuditoriaCatalogo = exports.$Enums.TipoAuditoriaCatalogo = {
+  CREADO: 'CREADO',
+  EDITADO: 'EDITADO',
+  CODIGO_ACTUALIZADO: 'CODIGO_ACTUALIZADO',
+  NOMBRE_ACTUALIZADO: 'NOMBRE_ACTUALIZADO',
+  PRESENTACION_ACTUALIZADA: 'PRESENTACION_ACTUALIZADA',
+  ACTIVADO: 'ACTIVADO',
+  REACTIVADO: 'REACTIVADO',
+  DESACTIVADO: 'DESACTIVADO',
+  IMPORTACION_CREADA: 'IMPORTACION_CREADA',
+  IMPORTACION_APROBADA: 'IMPORTACION_APROBADA'
 };
 
 exports.DepositoTipoMovimiento = exports.$Enums.DepositoTipoMovimiento = {
@@ -479,6 +508,18 @@ exports.EstadoOrden = exports.$Enums.EstadoOrden = {
   rechazada: 'rechazada'
 };
 
+exports.EstadoProductoCatalogo = exports.$Enums.EstadoProductoCatalogo = {
+  PENDIENTE_REVISION: 'PENDIENTE_REVISION',
+  ACTIVO: 'ACTIVO',
+  INACTIVO: 'INACTIVO'
+};
+
+exports.OrigenProductoCatalogo = exports.$Enums.OrigenProductoCatalogo = {
+  MANUAL: 'MANUAL',
+  IMPORTACION: 'IMPORTACION',
+  MIGRACION: 'MIGRACION'
+};
+
 exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
   AppAccess: 'AppAccess',
@@ -493,6 +534,7 @@ exports.Prisma.ModelName = {
   User: 'User',
   Acta: 'Acta',
   ActaItem: 'ActaItem',
+  AuditoriaCatalogoProducto: 'AuditoriaCatalogoProducto',
   InventarioDroga: 'InventarioDroga',
   InventarioEstuche: 'InventarioEstuche',
   InventarioEtiqueta: 'InventarioEtiqueta',

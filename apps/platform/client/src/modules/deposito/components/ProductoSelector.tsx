@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import Fuse from 'fuse.js'
 import { api } from '../lib/api'
+import type { Mercado } from './inventory-shared/mercados'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,13 +16,15 @@ export interface Producto {
   categoria: CategoriaProducto
   nombreCompleto: string
   activo: boolean
+  estado: 'PENDIENTE_REVISION' | 'ACTIVO' | 'INACTIVO'
+  mercadosHabilitados: Mercado[]
 }
 
 interface ProductoSelectorProps {
   id?: string
   categoria: CategoriaProducto
   displayValue: string    // texto visible en el input
-  onChange: (productoId: string, nombreCompleto: string) => void
+  onChange: (productoId: string, nombreCompleto: string, producto?: Producto) => void
   placeholder?: string
   disabled?: boolean
 }
@@ -49,7 +52,7 @@ export function ProductoSelector({
 
   useEffect(() => {
     api
-      .get<Producto[]>(`/productos?categoria=${categoria}`)
+      .get<Producto[]>(`/productos?categoria=${categoria}&estado=ACTIVO`)
       .then((data) => {
         fuseRef.current = new Fuse(data, { keys: ['nombreCompleto'], threshold: 0.4 })
       })
@@ -74,7 +77,7 @@ export function ProductoSelector({
 
   function select(producto: Producto) {
     setQuery(producto.nombreCompleto)
-    onChange(producto.id, producto.nombreCompleto)
+    onChange(producto.id, producto.nombreCompleto, producto)
     setResults([])
     setOpen(false)
     setHighlightIndex(-1)

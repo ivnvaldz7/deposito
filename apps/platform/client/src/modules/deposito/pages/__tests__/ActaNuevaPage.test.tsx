@@ -32,8 +32,8 @@ const UUID_A = '550e8400-e29b-41d4-a716-446655440000'
 const UUID_B = '550e8400-e29b-41d4-a716-446655440001'
 
 const PRODUCTOS_MOCK = [
-  { id: UUID_A, nombreBase: 'AMOXICILINA', volumen: '500', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'AMOXICILINA 500 ML', activo: true },
-  { id: UUID_B, nombreBase: 'VITAMINA B12', volumen: '100', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'VITAMINA B12 100 ML', activo: true },
+  { id: UUID_A, nombreBase: 'AMOXICILINA', volumen: '500', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'AMOXICILINA 500 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
+  { id: UUID_B, nombreBase: 'VITAMINA B12', volumen: '100', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'VITAMINA B12 100 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,9 +69,8 @@ describe('ActaNuevaPage', () => {
       user: createMockUser(),
       token: 'token',
     })
-    // Mock catalog fetch for ProductoSelector + lote autofill
+    // Mock active catalog fetch for ProductoSelector.
     vi.mocked(api.get).mockImplementation((path: string) => {
-      if (path === '/lotes/siguiente') return Promise.resolve({ lote: '1' })
       return Promise.resolve(PRODUCTOS_MOCK)
     })
   })
@@ -163,23 +162,25 @@ describe('ActaNuevaPage', () => {
     })
   })
 
-  it('shows lote as optional for drogas with helper text', async () => {
+  it('requires lote and vencimiento for MP', async () => {
     render(<ActaNuevaPage />)
     await waitFor(() => {
-      expect(screen.getByText('El lote es obligatorio para drogas.')).toBeInTheDocument()
+      expect(screen.getByLabelText('Lote')).toBeInTheDocument()
+      expect(screen.getByLabelText('Vencimiento')).toBeInTheDocument()
     })
   })
 
-  it('shows lote placeholder with auto-generation hint for ME category', async () => {
+  it('does not generate a lote for packaging categories', async () => {
     render(<ActaNuevaPage />)
     fireEvent.click(screen.getByText('Material de Empaque'))
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Auto-generado, editable')).toBeInTheDocument()
+      expect(screen.queryByLabelText('Lote')).not.toBeInTheDocument()
+      expect(screen.getByLabelText('Mercado')).toBeInTheDocument()
     })
   })
 
-  it('submits the form successfully and navigates to /actas', async () => {
+  it('submits the form successfully and navigates to /deposito/actas', async () => {
     vi.mocked(api.post).mockResolvedValue({
       id: 'acta-1',
       fecha: '2026-07-23',
@@ -210,6 +211,8 @@ describe('ActaNuevaPage', () => {
     // Fill cantidad
     const cantidadInput = screen.getByPlaceholderText('0')
     fireEvent.change(cantidadInput, { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText('Lote'), { target: { value: 'MP-001' } })
+    fireEvent.change(screen.getByLabelText('Vencimiento'), { target: { value: '2027-07-23' } })
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))
@@ -218,11 +221,15 @@ describe('ActaNuevaPage', () => {
       expect(api.post).toHaveBeenCalledWith('/ingresos', {
         fecha: '2026-07-23',
         productoId: UUID_A,
-        lote: undefined,
+        lote: 'MP-001',
+        vencimiento: '2027-07-23',
+        mercado: undefined,
         cantidad: 100,
+        cantidadCajas: undefined,
+        unidadesPorCaja: undefined,
         observaciones: undefined,
       })
-      expect(mockNavigate).toHaveBeenCalledWith('/actas')
+      expect(mockNavigate).toHaveBeenCalledWith('/deposito/actas')
     })
   })
 
@@ -232,7 +239,7 @@ describe('ActaNuevaPage', () => {
       expect(screen.getByText('Cancelar')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByText('Cancelar'))
-    expect(mockNavigate).toHaveBeenCalledWith('/actas')
+    expect(mockNavigate).toHaveBeenCalledWith('/deposito/actas')
   })
 
   it('requires encargado role to show the form', async () => {
@@ -268,6 +275,8 @@ describe('ActaNuevaPage', () => {
 
     // Fill cantidad
     fireEvent.change(screen.getByPlaceholderText('0'), { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText('Lote'), { target: { value: 'MP-001' } })
+    fireEvent.change(screen.getByLabelText('Vencimiento'), { target: { value: '2027-07-23' } })
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))

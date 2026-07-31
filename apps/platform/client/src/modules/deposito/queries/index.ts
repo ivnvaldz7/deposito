@@ -86,6 +86,27 @@ export {
 export type { MetricasData } from './use-metricas'
 
 export {
+  useProductos,
+  useCreateProducto,
+  useUpdateProducto,
+  useDeleteProducto,
+  useActivarProducto,
+  useReactivarProducto,
+  useDesactivarProducto,
+  useImportDryRun,
+  useImportConfirmar,
+  productosKeys,
+} from './use-productos'
+export type {
+  Producto,
+  ProductoFormData,
+  EstadoProducto,
+  CategoriaProducto,
+  ImportDryRunResult,
+  ImportConfirmResult,
+} from './use-productos'
+
+export {
   useDashboard,
   dashboardKeys,
 } from './use-dashboard'

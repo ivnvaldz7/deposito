@@ -268,7 +268,7 @@
   }
 
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 font-heading text-sm font-semibold text-on-primary bg-primary-container hover:bg-primary transition-colors shadow-float scale-hover;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-5 py-2.5 font-heading text-sm font-semibold text-on-primary bg-primary hover:bg-primary/85 transition-colors shadow-float scale-hover;
   }
 }
 

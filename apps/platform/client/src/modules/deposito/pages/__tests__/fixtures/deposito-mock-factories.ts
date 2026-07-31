@@ -279,3 +279,49 @@ export function createUsuarioList() {
     createUsuario({ id: 'user-3', email: 'ana@test.com', name: 'Ana García', role: 'observador' as const }),
   ]
 }
+
+// ─── Productos ─────────────────────────────────────────────────────────────────
+
+export function createProducto(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'prod-1',
+    nombreBase: 'AMANTINA',
+    codigo: 'AMT-001',
+    categoria: 'droga',
+    nombreCompleto: 'AMANTINA - MP',
+    presentacion: null,
+    estado: 'ACTIVO',
+    mercadosHabilitados: [],
+    activo: true,
+    origen: 'MANUAL',
+    volumen: null,
+    unidad: null,
+    variante: null,
+    createdAt: '2026-07-01T00:00:00.000Z',
+    updatedAt: '2026-07-01T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+export function createProductoList() {
+  return [
+    createProducto(),
+    createProducto({
+      id: 'prod-2',
+      nombreBase: 'VITAMINA B12',
+      codigo: 'VIT-001',
+      categoria: 'etiqueta',
+      presentacion: 250,
+      mercadosHabilitados: ['argentina', 'colombia'],
+      estado: 'PENDIENTE_REVISION',
+    }),
+    createProducto({
+      id: 'prod-3',
+      nombreBase: 'PARACETAMOL',
+      codigo: null,
+      categoria: 'frasco',
+      presentacion: 500,
+      estado: 'INACTIVO',
+    }),
+  ]
+}

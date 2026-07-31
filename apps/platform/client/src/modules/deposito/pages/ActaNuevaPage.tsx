@@ -9,20 +9,37 @@ import { ApiError } from '../lib/api'
 import { api } from '../lib/api'
 import { toast } from '../lib/toast'
 import { ProductoSelector } from '../components/ProductoSelector'
-import type { CategoriaProducto } from '../components/ProductoSelector'
+import type { CategoriaProducto, Producto as ProductoCatalogo } from '../components/ProductoSelector'
+import { type Mercado } from '../components/inventory-shared/mercados'
 import { DatePickerInput } from '../components/ui/DatePickerInput'
 
 const ingresoSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
   productoId: z.string().uuid('Seleccioná un producto del catálogo'),
   productoNombre: z.string().min(1),
-  categoria: z.string().min(1),
+  categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
   lote: z.string().max(50).optional(),
-  cantidad: z
-    .string()
-    .min(1, 'Requerido')
-    .refine((v) => Number.isInteger(Number(v)) && Number(v) > 0, 'Debe ser un número entero positivo'),
+  vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Vencimiento inválido').optional(),
+  mercado: z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable']).optional(),
+  cantidad: z.string().optional(),
+  cantidadCajas: z.string().optional(),
+  unidadesPorCaja: z.string().optional(),
   observaciones: z.string().max(500).optional(),
+}).superRefine((value, ctx) => {
+  const positiveInteger = (candidate: string | undefined) => Number.isInteger(Number(candidate)) && Number(candidate) > 0
+  if (value.categoria === 'frasco') {
+    if (!positiveInteger(value.cantidadCajas)) ctx.addIssue({ code: 'custom', path: ['cantidadCajas'], message: 'Las cajas son obligatorias' })
+    if (!positiveInteger(value.unidadesPorCaja)) ctx.addIssue({ code: 'custom', path: ['unidadesPorCaja'], message: 'Las unidades por caja son obligatorias' })
+    return
+  }
+  if (!positiveInteger(value.cantidad)) ctx.addIssue({ code: 'custom', path: ['cantidad'], message: 'La cantidad es obligatoria' })
+  if (value.categoria === 'droga') {
+    if (!value.lote?.trim()) ctx.addIssue({ code: 'custom', path: ['lote'], message: 'El lote es obligatorio para MP' })
+    if (!value.vencimiento) ctx.addIssue({ code: 'custom', path: ['vencimiento'], message: 'El vencimiento es obligatorio para MP' })
+  }
+  if ((value.categoria === 'etiqueta' || value.categoria === 'estuche') && !value.mercado) {
+    ctx.addIssue({ code: 'custom', path: ['mercado'], message: 'El mercado es obligatorio' })
+  }
 })
 
 type IngresoFormData = z.infer<typeof ingresoSchema>
@@ -46,6 +63,7 @@ export default function ActaNuevaPage() {
   const [submitting, setSubmitting] = useState(false)
   const [tipoIngreso, setTipoIngreso] = useState<TipoIngreso>('MP')
   const [mercadoCat, setMercadoCat] = useState<CategoriaProducto>('estuche')
+  const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoCatalogo | null>(null)
 
   const resolvedCategoria: CategoriaProducto = tipoIngreso === 'MP' ? 'droga' : mercadoCat
   const esME = tipoIngreso === 'ME'
@@ -64,7 +82,11 @@ export default function ActaNuevaPage() {
       productoNombre: '',
       categoria: resolvedCategoria,
       lote: '',
+      vencimiento: '',
+      mercado: undefined,
       cantidad: '',
+      cantidadCajas: '',
+      unidadesPorCaja: '',
       observaciones: '',
     },
   })
@@ -78,15 +100,12 @@ export default function ActaNuevaPage() {
     setValue('categoria', resolvedCategoria, { shouldValidate: true })
   }, [resolvedCategoria, setValue])
 
-  // Auto-popular lote cuando cambia a ME
   useEffect(() => {
-    if (!esME) return
-    api.get<{ lote: string }>('/lotes/siguiente')
-      .then((data) => setValue('lote', data.lote, { shouldValidate: false }))
-      .catch(() => {
-        // Si falla el endpoint, dejar el campo vacío
-      })
-  }, [esME, mercadoCat, setValue])
+    setProductoSeleccionado(null)
+    setValue('productoId', '', { shouldValidate: false })
+    setValue('productoNombre', '', { shouldValidate: false })
+    setValue('mercado', undefined, { shouldValidate: false })
+  }, [resolvedCategoria, setValue])
 
   async function onSubmit(data: IngresoFormData) {
     setServerError(null)
@@ -95,12 +114,16 @@ export default function ActaNuevaPage() {
       await api.post('/ingresos', {
         fecha: data.fecha,
         productoId: data.productoId,
-        lote: data.lote?.trim() || undefined,
-        cantidad: Number(data.cantidad),
+        lote: data.categoria === 'droga' ? data.lote?.trim() : undefined,
+        vencimiento: data.categoria === 'droga' ? data.vencimiento : undefined,
+        mercado: data.categoria === 'etiqueta' || data.categoria === 'estuche' ? data.mercado : undefined,
+        cantidad: data.categoria === 'frasco' ? undefined : Number(data.cantidad),
+        cantidadCajas: data.categoria === 'frasco' ? Number(data.cantidadCajas) : undefined,
+        unidadesPorCaja: data.categoria === 'frasco' ? Number(data.unidadesPorCaja) : undefined,
         observaciones: data.observaciones?.trim() || undefined,
       })
       toast.success('Ingreso registrado correctamente.')
-      navigate('/actas')
+      navigate('/deposito/actas')
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al registrar el ingreso')
     } finally {
@@ -114,7 +137,7 @@ export default function ActaNuevaPage() {
       <header className="bg-surface/80 backdrop-blur-md border-b border-white/10 px-margin-desktop py-md flex items-center justify-between shrink-0">
         <div className="flex items-center gap-md">
           <button
-            onClick={() => navigate('/actas')}
+            onClick={() => navigate('/deposito/actas')}
             className="text-on-surface-variant hover:text-primary transition-colors flex items-center"
           >
             <ArrowLeft size={24} />
@@ -201,9 +224,10 @@ export default function ActaNuevaPage() {
                     id="ingreso-producto"
                     categoria={resolvedCategoria}
                     displayValue={productoNombre}
-                    onChange={(id, nombre) => {
+                    onChange={(id, nombre, producto) => {
                       setValue('productoId', id || '', { shouldValidate: true })
                       setValue('productoNombre', nombre, { shouldValidate: true })
+                      setProductoSeleccionado(producto ?? null)
                     }}
                     placeholder={tipoIngreso === 'MP' ? 'Buscá una droga del catálogo...' : `Buscá ${mercadoCat === 'estuche' ? 'un estuche' : mercadoCat === 'frasco' ? 'un frasco' : 'una etiqueta'} del catálogo...`}
                   />
@@ -232,7 +256,8 @@ export default function ActaNuevaPage() {
                   </p>
                 </div>
 
-                {/* Lote */}
+                {/* Lote y vencimiento: datos físicos obligatorios de MP. */}
+                {categoria === 'droga' && <>
                 <div className="space-y-1">
                   <label htmlFor="ingreso-lote" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Lote
@@ -243,20 +268,40 @@ export default function ActaNuevaPage() {
                       id="ingreso-lote"
                       {...register('lote')}
                       type="text"
-                      placeholder={categoria === 'droga' ? 'Ej: L240901 (obligatorio para drogas)' : 'Auto-generado, editable'}
+                      placeholder="Ej: L240901"
                       className="input-field pl-10"
                     />
                   </div>
                   {errors.lote && <p className="font-body text-error text-xs">{errors.lote.message}</p>}
-                  {categoria === 'droga' && (
-                    <p className="font-body text-xs text-on-surface-variant mt-0.5">
-                      El lote es obligatorio para drogas.
-                    </p>
-                  )}
                 </div>
 
-                {/* Cantidad */}
                 <div className="space-y-1">
+                  <label htmlFor="ingreso-vencimiento" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">Vencimiento</label>
+                  <input id="ingreso-vencimiento" {...register('vencimiento')} type="date" className="input-field" />
+                  {errors.vencimiento && <p className="font-body text-error text-xs">{errors.vencimiento.message}</p>}
+                </div>
+                </>}
+
+                {(categoria === 'etiqueta' || categoria === 'estuche') && (
+                  <div className="space-y-1">
+                    <label htmlFor="ingreso-mercado" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">Mercado</label>
+                    <select
+                      id="ingreso-mercado"
+                      {...register('mercado')}
+                      className="input-field"
+                      disabled={!productoSeleccionado}
+                    >
+                      <option value="">Seleccioná un mercado habilitado</option>
+                      {(productoSeleccionado?.mercadosHabilitados ?? []).map((mercado: Mercado) => (
+                        <option key={mercado} value={mercado}>{mercado}</option>
+                      ))}
+                    </select>
+                    {errors.mercado && <p className="font-body text-error text-xs">{errors.mercado.message}</p>}
+                  </div>
+                )}
+
+                {/* Cantidad */}
+                {categoria !== 'frasco' && <div className="space-y-1">
                   <label htmlFor="ingreso-cantidad" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Cantidad
                   </label>
@@ -272,7 +317,20 @@ export default function ActaNuevaPage() {
                     />
                   </div>
                   {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
-                </div>
+                </div>}
+
+                {categoria === 'frasco' && <>
+                  <div className="space-y-1">
+                    <label htmlFor="ingreso-cantidad-cajas" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">Cantidad de cajas</label>
+                    <input id="ingreso-cantidad-cajas" {...register('cantidadCajas')} type="number" min="1" className="input-field" />
+                    {errors.cantidadCajas && <p className="font-body text-error text-xs">{errors.cantidadCajas.message}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <label htmlFor="ingreso-unidades-por-caja" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">Unidades por caja</label>
+                    <input id="ingreso-unidades-por-caja" {...register('unidadesPorCaja')} type="number" min="1" className="input-field" />
+                    {errors.unidadesPorCaja && <p className="font-body text-error text-xs">{errors.unidadesPorCaja.message}</p>}
+                  </div>
+                </>}
 
                 {/* Observaciones */}
                 <div className="space-y-1">
@@ -309,7 +367,7 @@ export default function ActaNuevaPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => navigate('/actas')}
+                    onClick={() => navigate('/deposito/actas')}
                     className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
                   >
                     Cancelar

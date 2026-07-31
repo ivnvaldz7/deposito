@@ -11,6 +11,7 @@ import { useSidebarStore } from '../../stores/sidebar-store'
 
 const navItems = [
   { path: '/deposito/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
+  { path: '/deposito/productos',   label: 'Productos',   icon: Package },
   { path: '/deposito/drogas',      label: 'Drogas',       icon: FlaskConical },
   { path: '/deposito/estuches',    label: 'Estuches',     icon: Package },
   { path: '/deposito/etiquetas',   label: 'Etiquetas',    icon: Tag },

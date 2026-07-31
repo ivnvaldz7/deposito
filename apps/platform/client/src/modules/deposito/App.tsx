@@ -15,6 +15,7 @@ const MovimientosPage = lazy(() => import('./pages/MovimientosPage'))
 const PendientesPage = lazy(() => import('./pages/PendientesPage'))
 const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
 const UsuariosPage = lazy(() => import('./pages/UsuariosPage'))
+const ProductosPage = lazy(() => import('./pages/ProductosPage'))
 const MetricasPage = lazy(() => import('./pages/MetricasPage'))
 
 function LoadingFallback() {
@@ -30,11 +31,12 @@ export default function DepositoModule() {
     <AppLayout>
       <Suspense fallback={<LoadingFallback />}>
         <Routes>
-          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route index element={<Navigate to="/deposito/dashboard" replace />} />
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="drogas" element={<DrogasPage />} />
           <Route path="estuches" element={<EstuchesPage />} />
           <Route path="etiquetas" element={<EtiquetasPage />} />
+          <Route path="productos" element={<ProductosPage />} />
           <Route path="frascos" element={<FrascosPage />} />
           <Route path="actas" element={<ActasPage />} />
           <Route path="actas/:id" element={<ActaDetallePage />} />
@@ -45,7 +47,7 @@ export default function DepositoModule() {
           <Route path="ordenes" element={<OrdenesPage />} />
           <Route path="usuarios" element={<UsuariosPage />} />
           <Route path="metricas" element={<MetricasPage />} />
-          <Route path="*" element={<Navigate to="dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/deposito/dashboard" replace />} />
         </Routes>
       </Suspense>
     </AppLayout>

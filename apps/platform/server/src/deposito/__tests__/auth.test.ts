@@ -50,8 +50,12 @@ vi.mock('@platform/db', () => {
       ecuador: 'ecuador',
       bolivia: 'bolivia',
       paraguay: 'paraguay',
+      VENEZUELA: 'VENEZUELA',
       no_exportable: 'no_exportable',
     },
+    EstadoProductoCatalogo: { PENDIENTE_REVISION: 'PENDIENTE_REVISION', ACTIVO: 'ACTIVO', INACTIVO: 'INACTIVO' },
+    OrigenProductoCatalogo: { MANUAL: 'MANUAL', IMPORTACION: 'IMPORTACION', MIGRACION: 'MIGRACION' },
+    TipoAuditoriaCatalogo: {},
     CondicionEmbalaje: {
       bueno: 'bueno',
       regular: 'regular',

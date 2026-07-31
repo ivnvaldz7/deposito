@@ -24,6 +24,9 @@ export const api = {
   put: <T>(path: string, body?: unknown, token?: string | null): Promise<T> =>
     apiClient.put<T>(dep(path), body, token),
 
+  patch: <T>(path: string, body?: unknown, token?: string | null): Promise<T> =>
+    apiClient.patch<T>(dep(path), body, token),
+
   del: <T>(path: string, token?: string | null): Promise<T> =>
     apiClient.del<T>(dep(path), token),
 

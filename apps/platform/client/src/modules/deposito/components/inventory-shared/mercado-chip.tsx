@@ -7,6 +7,7 @@ const MERCADO_STYLES: Record<string, { color: string; bg: string }> = {
   ecuador:       { color: '#54e16d', bg: 'rgba(84,225,109,0.10)' },
   bolivia:       { color: '#54e16d', bg: 'rgba(84,225,109,0.10)' },
   paraguay:      { color: '#54e16d', bg: 'rgba(84,225,109,0.10)' },
+  VENEZUELA:     { color: '#54e16d', bg: 'rgba(84,225,109,0.10)' },
   no_exportable: { color: '#bccbb8', bg: 'rgba(188,203,184,0.10)' },
 }
 

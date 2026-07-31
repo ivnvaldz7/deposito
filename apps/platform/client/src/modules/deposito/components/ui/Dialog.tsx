@@ -75,7 +75,7 @@ export function DialogDescription({ children }: { children: ReactNode }) {
   )
 }
 
-export function DialogClose({ children, asChild }: { children: ReactNode; asChild?: boolean }) {
+export function DialogClose({ children, asChild, onClick }: { children: ReactNode; asChild?: boolean; onClick?: () => void }) {
   if (asChild) return <>{children}</>
-  return <>{children}</>
+  return <button type="button" onClick={onClick}>{children}</button>
 }
