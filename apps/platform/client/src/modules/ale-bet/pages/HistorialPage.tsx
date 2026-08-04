@@ -14,15 +14,15 @@ const ESTADOS = [
   { value: 'CANCELADO', label: 'Cancelado' },
 ]
 
-function getEstadoBadge(estado: HistorialPedido['estado']) {
-  const map: Record<HistorialPedido['estado'], string> = {
+function getEstadoBadge(estado: string) {
+  const map: Record<string, string> = {
     PENDIENTE: 'bg-surface-highest text-on-surface-variant',
     APROBADO: 'bg-warning/20 text-warning',
     EN_ARMADO: 'bg-primary-container/20 text-primary-container',
     COMPLETADO: 'bg-success/20 text-success',
     CANCELADO: 'bg-error/20 text-error',
   }
-  return map[estado]
+  return map[estado] ?? 'bg-surface-highest text-on-surface-variant'
 }
 
 export default function HistorialPage() {

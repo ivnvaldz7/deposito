@@ -98,28 +98,33 @@ async function request<T>(
   return res.json() as Promise<T>
 }
 
-export const apiClient = {
-  get: <T>(path: string, token?: string | null) =>
-    request<T>(path, { method: 'GET' }, token),
+export interface ApiRequestOptions {
+  headers?: Record<string, string>
+  signal?: AbortSignal
+}
 
-  post: <T>(path: string, body?: unknown, token?: string | null) =>
-    request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }, token),
+export const apiClient = {
+  get: <T>(path: string, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'GET', headers: options?.headers, signal: options?.signal }, token),
+
+  post: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), headers: options?.headers, signal: options?.signal }, token),
 
   /** POST a multipart/form-data body (eg. file import). */
-  postForm: <T>(path: string, formData: FormData, token?: string | null) =>
-    request<T>(path, { method: 'POST', body: formData }, token),
+  postForm: <T>(path: string, formData: FormData, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'POST', body: formData, headers: options?.headers, signal: options?.signal }, token),
 
-  put: <T>(path: string, body?: unknown, token?: string | null) =>
-    request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body) }, token),
+  put: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body), headers: options?.headers, signal: options?.signal }, token),
 
-  patch: <T>(path: string, body?: unknown, token?: string | null) =>
-    request<T>(path, { method: 'PATCH', body: body === undefined ? undefined : JSON.stringify(body) }, token),
+  patch: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'PATCH', body: body === undefined ? undefined : JSON.stringify(body), headers: options?.headers, signal: options?.signal }, token),
 
-  del: <T>(path: string, token?: string | null) =>
-    request<T>(path, { method: 'DELETE' }, token),
+  del: <T>(path: string, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'DELETE', headers: options?.headers, signal: options?.signal }, token),
 
-  /** Download a blob (eg. Excel export) */
-  getBlob: async (path: string): Promise<Blob> => {
+  /** Download a blob (eg. Excel export, PDF remito) */
+  getBlob: async (path: string, options?: ApiRequestOptions): Promise<Blob> => {
     const token = useAuthStore.getState().token
     const headers: Record<string, string> = {}
 
@@ -130,7 +135,8 @@ export const apiClient = {
     const res = await fetch(buildApiUrl(path), {
       method: 'GET',
       credentials: 'include',
-      headers,
+      headers: { ...headers, ...(options?.headers ?? {}) },
+      signal: options?.signal,
     })
 
     if (!res.ok) {

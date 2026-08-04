@@ -55,7 +55,7 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
 
   const stockCritico = productos.filter((producto) => {
     const stock = producto.lotes.reduce(
-      (total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos),
+      (total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos, producto.unidadesPorCaja),
       0
     )
 

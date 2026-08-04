@@ -25,7 +25,7 @@ router.get('/', requireApp('ale-bet', ['admin']), async (_req, res) => {
   res.json({
     productos: productos.map((producto) => {
       const stock = producto.lotes.reduce(
-        (total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos),
+        (total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos, producto.unidadesPorCaja),
         0
       )
 

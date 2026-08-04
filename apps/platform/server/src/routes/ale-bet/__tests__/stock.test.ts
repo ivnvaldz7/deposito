@@ -57,7 +57,7 @@ vi.mock('@platform/core', () => {
     signAccessToken: (payload: Record<string, unknown>) => {
       return _jwt.sign(payload, _getSecret(), { expiresIn: '15m' })
     },
-    
+
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
     getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
     verifyAccessToken: (token: string) => {
@@ -142,6 +142,7 @@ describe('Ale-Bet Stock', () => {
           nombre: 'Producto A',
           sku: 'SKU001',
           stockMinimo: 10,
+          unidadesPorCaja: 20,
           activo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -179,8 +180,8 @@ describe('Ale-Bet Stock', () => {
         .expect(200)
 
       expect(res.body.productos).toHaveLength(1)
-      // 2 cajas * 15 + 5 sueltos = 35
-      expect(res.body.productos[0].stock).toBe(35)
+      // 2 cajas * 20 + 5 sueltos = 45
+      expect(res.body.productos[0].stock).toBe(45)
       expect(res.body.productos[0].stockBajo).toBe(false)
       expect(res.body.movimientos).toHaveLength(1)
       expect(res.body.movimientos[0].tipo).toBe('SALIDA_PEDIDO')
@@ -193,6 +194,7 @@ describe('Ale-Bet Stock', () => {
           nombre: 'Producto A',
           sku: 'SKU001',
           stockMinimo: 100,
+          unidadesPorCaja: 12,
           activo: true,
           createdAt: new Date(),
           updatedAt: new Date(),

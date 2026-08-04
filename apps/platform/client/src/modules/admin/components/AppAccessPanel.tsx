@@ -13,7 +13,7 @@ interface AppAccessPanelProps {
 
 const appRoleOptions: Record<AppId, string[]> = {
   deposito: ['encargado', 'observador', 'solicitante'],
-  ale_bet: ['operador', 'supervisor'],
+  ale_bet: ['admin', 'vendedor', 'armador', 'facturacion', 'observador'],
 }
 
 export function AppAccessPanel({
@@ -26,7 +26,7 @@ export function AppAccessPanel({
     if (!user) {
       return {
         deposito: { activo: false, rol: 'encargado' },
-        ale_bet: { activo: false, rol: 'operador' },
+        ale_bet: { activo: false, rol: 'vendedor' },
       }
     }
 
@@ -41,7 +41,7 @@ export function AppAccessPanel({
         activo:
           user.appAccess.find((item) => item.app === 'ale_bet')?.activo ?? false,
         rol:
-          user.appAccess.find((item) => item.app === 'ale_bet')?.rol ?? 'operador',
+          user.appAccess.find((item) => item.app === 'ale_bet')?.rol ?? 'vendedor',
       },
     }
   }, [user])

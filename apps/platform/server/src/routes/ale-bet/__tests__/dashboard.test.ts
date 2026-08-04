@@ -61,7 +61,7 @@ vi.mock('@platform/core', () => {
     signAccessToken: (payload: Record<string, unknown>) => {
       return _jwt.sign(payload, _getSecret(), { expiresIn: '15m' })
     },
-    
+
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
     getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
     verifyAccessToken: (token: string) => {
@@ -145,12 +145,14 @@ describe('Ale-Bet Dashboard', () => {
           id: 'prod-1',
           nombre: 'Producto A',
           stockMinimo: 10,
+          unidadesPorCaja: 15,
           lotes: [{ cajas: 2, sueltos: 5 }], // stock = 35, not critical
         },
         {
           id: 'prod-2',
           nombre: 'Producto B',
           stockMinimo: 100,
+          unidadesPorCaja: 15,
           lotes: [{ cajas: 1, sueltos: 0 }], // stock = 15, critical!
         },
       ])

@@ -1,482 +1,503 @@
-import { useEffect, useState, useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
-import { type Pedido } from '../lib/api'
+import { useEffect, useMemo, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { FileText } from 'lucide-react'
+import { type Pedido, type PedidoEstado } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { Badge } from '@/components/ui/Badge'
-import { UNIDADES_POR_CAJA, MAX_SUELTOS } from '../lib/constants'
-import { usePedidos, useCreatePedido, useAprobarPedido, useTomarPedido, useCompletarItemPedido, useCancelarPedido } from '../queries'
-import { useClientes } from '../queries'
-import { useProductos } from '../queries'
+import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { cn } from '@/lib/utils'
 import { toast } from '@/lib/toast'
+import {
+  ESTADO_META,
+  canAprobar,
+  canCancelarDirecto,
+  canDespachar,
+  canEmitirRemito,
+  canPreparar,
+  canSolicitarCancelacion,
+  canTomar,
+  esArmadorAsignado,
+  pedidoClientePendiente,
+} from '../lib/estados'
+import {
+  usePedidos,
+  useAprobarPedido,
+  useTomarPedido,
+  usePrepararPedido,
+  useCancelarPedido,
+  useDespacharPedido,
+} from '../queries'
 
-const ESTADO_PRIORITY: Record<Pedido['estado'], number> = {
-  APROBADO: 0,
-  EN_ARMADO: 1,
-  PENDIENTE: 2,
-  COMPLETADO: 3,
-  CANCELADO: 4,
+const FILTROS: Array<{ valor: PedidoEstado | ''; etiqueta: string }> = [
+  { valor: '', etiqueta: 'Todos' },
+  { valor: 'BORRADOR', etiqueta: 'Borrador' },
+  { valor: 'APROBADO', etiqueta: 'Aprobado' },
+  { valor: 'EN_ARMADO', etiqueta: 'En armado' },
+  { valor: 'PREPARADO', etiqueta: 'Preparado' },
+  { valor: 'DESPACHADO', etiqueta: 'Despachado' },
+  { valor: 'CANCELADO', etiqueta: 'Cancelado' },
+]
+
+type ConfirmAccion = 'aprobar' | 'tomar' | 'preparar' | 'despachar' | 'cancelar'
+
+interface ConfirmState {
+  pedido: Pedido
+  accion: ConfirmAccion
 }
 
-function getEstadoVariant(estado: Pedido['estado']): 'default' | 'success' | 'warning' | 'error' | 'info' {
-  switch (estado) {
-    case 'PENDIENTE': return 'default'
-    case 'APROBADO': return 'warning'
-    case 'EN_ARMADO': return 'info'
-    case 'COMPLETADO': return 'success'
-    case 'CANCELADO': return 'error'
-  }
+const DIALOGOS: Record<ConfirmAccion, { titulo: string; mensaje: (p: Pedido) => string; accion: string }> = {
+  aprobar: {
+    titulo: 'Aprobar pedido',
+    mensaje: (p) => `¿Aprobar ${p.numero}? Se reservará el stock.`,
+    accion: 'Aprobar',
+  },
+  tomar: {
+    titulo: 'Tomar pedido',
+    mensaje: (p) => `¿Tomar ${p.numero}? Quedará asignado a vos para el armado.`,
+    accion: 'Tomar',
+  },
+  preparar: {
+    titulo: 'Marcar preparado',
+    mensaje: (p) => `¿Marcar ${p.numero} como preparado?`,
+    accion: 'Preparar',
+  },
+  despachar: {
+    titulo: 'Confirmar despacho',
+    mensaje: () => 'Esta acción descontará definitivamente el stock.',
+    accion: 'Despachar',
+  },
+  cancelar: {
+    titulo: 'Cancelar pedido',
+    mensaje: () => 'Se liberará la reserva si existe.',
+    accion: 'Cancelar',
+  },
+}
+
+function newIdempotencyKey(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function porActualizadoDesc(a: { updatedAt: string }, b: { updatedAt: string }): number {
+  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+}
+
+function rankBandeja(pedido: Pedido, rol: string, userId: string): number {
+  const propioEnArmado = pedido.estado === 'EN_ARMADO' && (rol === 'admin' || esArmadorAsignado(pedido, userId))
+  if (propioEnArmado) return 0.5
+  return ESTADO_META[pedido.estado].priority
+}
+
+function puedePreparar(pedido: Pedido, rol: string, userId: string): boolean {
+  if (pedido.estado !== 'EN_ARMADO') return false
+  if (rol !== 'admin' && rol !== 'armador') return false
+  if (rol !== 'admin' && !esArmadorAsignado(pedido, userId)) return false
+  return true
+}
+
+function formatFecha(dateString: string): string {
+  const date = new Date(dateString)
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${day}/${month}/${date.getFullYear()}`
+}
+
+interface PedidoCardProps {
+  pedido: Pedido
+  rol: string
+  userId: string
+  onAbrir: () => void
+  onAprobar: () => void
+  onTomar: () => void
+  onPreparar: () => void
+  onDespachar: () => void
+  onCancelar: () => void
+  onEmitirRemito: () => void
+  onSolicitarCancelacion: () => void
+}
+
+const botonAccionBase =
+  'rounded-full border px-3 py-[6px] font-body text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50'
+
+function PedidoCard({
+  pedido,
+  rol,
+  userId,
+  onAbrir,
+  onAprobar,
+  onTomar,
+  onPreparar,
+  onDespachar,
+  onCancelar,
+  onEmitirRemito,
+  onSolicitarCancelacion,
+}: PedidoCardProps) {
+  const meta = ESTADO_META[pedido.estado]
+  const totalUnidades = pedido.items.reduce((acc, item) => acc + item.cantidad, 0)
+  const itemsPendientes = pedido.items.filter((item) => !item.completado).length
+  const remitoVigente = Boolean(pedido.remitos?.some((r) => r.estado === 'VIGENTE'))
+  const clientePendiente = pedidoClientePendiente(pedido)
+
+  const showAprobar = canAprobar(pedido, rol, userId)
+  const showTomar = canTomar(pedido, rol, userId)
+  const showPreparar = puedePreparar(pedido, rol, userId)
+  const showDespachar = canDespachar(pedido, rol, userId)
+  const showCancelar = canCancelarDirecto(pedido, rol, userId)
+  const showEmitirRemito = canEmitirRemito(pedido, rol)
+  const showSolicitarCancelacion = canSolicitarCancelacion(pedido, rol, userId)
+  const prepararListo = canPreparar(pedido, rol, userId)
+
+  return (
+    <article
+      data-testid={`pedido-card-${pedido.id}`}
+      onClick={onAbrir}
+      className="flex cursor-pointer flex-col gap-3 rounded-xl border border-white/10 bg-surface-container-high p-4 transition-colors hover:border-primary/50"
+    >
+      <header className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p data-testid="pedido-numero" className="font-heading text-[14px] font-semibold text-on-surface">
+            {pedido.numero}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge variant={meta.variant} className="justify-center">
+            {meta.label}
+          </Badge>
+          {clientePendiente && <Badge variant="warning">Cliente pendiente</Badge>}
+        </div>
+      </header>
+
+      <div className="grid grid-cols-2 gap-3 rounded-lg border border-white/10 bg-surface-container-low/50 px-3 py-2.5">
+        <div className="min-w-0">
+          <p className="font-body text-[9px] font-semibold uppercase tracking-[0.12em] text-outline">Cliente</p>
+          <p className="mt-1 break-words font-body text-[13px] font-semibold leading-snug text-on-surface">
+            {pedido.cliente.nombre}
+          </p>
+        </div>
+        <div className="min-w-0">
+          <p className="font-body text-[9px] font-semibold uppercase tracking-[0.12em] text-outline">Vendedor</p>
+          <p className="mt-1 break-words font-body text-[13px] font-semibold leading-snug text-on-surface">
+            {pedido.vendedorNombre ?? 'Sin asignar'}
+          </p>
+        </div>
+        {pedido.armadorNombre && (
+          <div className="col-span-2 border-t border-white/10 pt-2">
+            <span className="font-body text-[10px] font-semibold uppercase tracking-[0.1em] text-outline">Armador</span>{' '}
+            <span className="font-body text-[12px] font-medium text-on-surface">{pedido.armadorNombre}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-white/10 pt-3">
+        <span className="font-body text-[11px] font-medium text-on-surface-variant">
+          {pedido.items.length} items · {totalUnidades} unidades
+        </span>
+        {remitoVigente && (
+          <span className="inline-flex items-center gap-1 font-body text-[11px] font-medium text-primary">
+            <FileText size={13} aria-hidden="true" />
+            Remito vigente
+          </span>
+        )}
+        {pedido.cancelacionSolicitadaAt && <Badge variant="warning">Cancelación solicitada</Badge>}
+        <time
+          dateTime={pedido.updatedAt}
+          className="ml-auto font-body text-[10px] font-medium text-on-surface-variant"
+        >
+          Actualizado {formatFecha(pedido.updatedAt)}
+        </time>
+      </div>
+
+      <footer className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-3" onClick={(e) => e.stopPropagation()}>
+        {showAprobar && (
+          <div className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              onClick={onAprobar}
+              disabled={clientePendiente}
+              className={cn(botonAccionBase, 'border-warning/40 text-warning hover:bg-warning/20')}
+            >
+              Aprobar
+            </button>
+            {clientePendiente && (
+              <span className="font-body text-[10px] text-warning">Facturación debe validar el cliente</span>
+            )}
+          </div>
+        )}
+        {showTomar && (
+          <button
+            type="button"
+            onClick={onTomar}
+            className={cn(botonAccionBase, 'border-primary/40 text-primary hover:bg-primary/20')}
+          >
+            Tomar
+          </button>
+        )}
+        {showPreparar && (
+          <div className="flex flex-col gap-0.5">
+            <button
+              type="button"
+              onClick={onPreparar}
+              disabled={!prepararListo}
+              className={cn(botonAccionBase, 'border-primary/40 text-primary hover:bg-primary/20')}
+            >
+              Preparar
+            </button>
+            {itemsPendientes > 0 && (
+              <span className="font-body text-[10px] text-warning">Faltan {itemsPendientes} items</span>
+            )}
+          </div>
+        )}
+        {showDespachar && (
+          <button
+            type="button"
+            onClick={onDespachar}
+            className={cn(botonAccionBase, 'border-error/40 text-error hover:bg-error/10')}
+          >
+            Confirmar despacho
+          </button>
+        )}
+        {showCancelar && (
+          <button
+            type="button"
+            onClick={onCancelar}
+            className={cn(botonAccionBase, 'border-error/30 text-error hover:bg-error/10')}
+          >
+            Cancelar
+          </button>
+        )}
+        {showEmitirRemito && (
+          <button
+            type="button"
+            onClick={onEmitirRemito}
+            className={cn(botonAccionBase, 'border-white/10 text-on-surface-variant hover:text-on-surface')}
+          >
+            Emitir remito
+          </button>
+        )}
+        {showSolicitarCancelacion && (
+          <button
+            type="button"
+            onClick={onSolicitarCancelacion}
+            className={cn(botonAccionBase, 'border-warning/40 text-warning hover:bg-warning/20')}
+          >
+            Solicitar cancelación
+          </button>
+        )}
+      </footer>
+    </article>
+  )
 }
 
 export default function PedidosPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const userId = user?.sub ?? ''
+  const esOperativo = rol === 'armador' || rol === 'admin'
+  const puedeCrear = rol === 'admin' || rol === 'vendedor'
 
-  const [estadoFilter, setEstadoFilter] = useState<string>('')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [estadoFilter, setEstadoFilter] = useState<PedidoEstado | ''>((location.state as any)?.estadoFilter ?? '')
+  const [soloHoy, setSoloHoy] = useState((location.state as any)?.pedidosHoy ?? false)
+  const [confirm, setConfirm] = useState<ConfirmState | null>(null)
+  const [ejecutando, setEjecutando] = useState(false)
 
-  // Create modal state
-  const [showCreate, setShowCreate] = useState(false)
-  const [createForm, setCreateForm] = useState<{ clienteId: string; items: Array<{ productoId: string; cajas: number; sueltos: number }> }>({
-    clienteId: '',
-    items: [{ productoId: '', cajas: 0, sueltos: 0 }],
-  })
-
-  const isAdmin = rol === 'admin'
-  const isSupervisor = rol === 'supervisor'
-  const isVendedor = rol === 'vendedor'
-  const isArmador = rol === 'armador'
-
-  const filters = useMemo(() => {
-    const f: { estado?: string; vendedorId?: string } = {}
-    if (estadoFilter) f.estado = estadoFilter
-    if (isVendedor && user?.sub) f.vendedorId = user.sub
-    return f
-  }, [estadoFilter, isVendedor, user?.sub])
-
-  const { data: pedidos = [], isLoading, error } = usePedidos(filters)
-  const { data: clientes = [] } = useClientes()
-  const { data: productos = [] } = useProductos()
-  const createMutation = useCreatePedido()
+  const { data: pedidos = [], isLoading, error } = usePedidos()
   const aprobarMutation = useAprobarPedido()
   const tomarMutation = useTomarPedido()
-  const completarItemMutation = useCompletarItemPedido()
+  const prepararMutation = usePrepararPedido()
   const cancelarMutation = useCancelarPedido()
-
-  const sortedPedidos = useMemo(() => {
-    return [...pedidos].sort((a, b) => {
-      const pa = ESTADO_PRIORITY[a.estado]
-      const pb = ESTADO_PRIORITY[b.estado]
-      if (pa !== pb) return pa - pb
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-  }, [pedidos])
-
-  const activeClientes = useMemo(() => clientes.filter((c) => c.activo), [clientes])
-  const activeProductos = useMemo(() => productos.filter((p) => p.activo), [productos])
+  const despacharMutation = useDespacharPedido()
 
   useEffect(() => {
     const id = (location.state as { openPedidoId?: string } | null)?.openPedidoId
-    if (id) setExpandedId(id)
-  }, [location.state])
+    if (id) navigate(`/ale-bet/pedidos/${id}`)
+  }, [location.state, navigate])
 
-  function itemTotalUnidades(item: { cajas: number; sueltos: number }): number {
-    return item.cajas * UNIDADES_POR_CAJA + item.sueltos
-  }
-
-  function openCreateModal() {
-    setCreateForm({ clienteId: '', items: [{ productoId: '', cajas: 0, sueltos: 0 }] })
-    setShowCreate(true)
-  }
-
-  function addItemRow() {
-    setCreateForm((f) => ({ ...f, items: [...f.items, { productoId: '', cajas: 0, sueltos: 0 }] }))
-  }
-
-  function removeItemRow(idx: number) {
-    setCreateForm((f) => {
-      const items = f.items.filter((_, i) => i !== idx)
-      return { ...f, items }
-    })
-  }
-
-  function updateItemField(idx: number, field: 'productoId' | 'cajas' | 'sueltos', value: string | number) {
-    setCreateForm((f) => {
-      const items = f.items.map((item, i) => (i === idx ? { ...item, [field]: value } : item))
-      return { ...f, items }
-    })
-  }
-
-  async function handleCreate() {
-    const totalUnidades = (i: { productoId: string; cajas: number; sueltos: number }) => i.cajas * UNIDADES_POR_CAJA + i.sueltos
-    if (!createForm.clienteId || createForm.items.some((i) => !i.productoId || totalUnidades(i) < 1)) {
-      toast.warning('Completá todos los campos')
-      return
+  const filtrados = useMemo(() => {
+    let result = pedidos
+    if (estadoFilter) result = result.filter((p) => p.estado === estadoFilter)
+    if (soloHoy) {
+      const hoy = new Date().toDateString()
+      result = result.filter(p => new Date(p.createdAt).toDateString() === hoy)
     }
+    return result
+  }, [pedidos, estadoFilter, soloHoy])
+
+  const ordenados = useMemo(() => {
+    const lista = [...filtrados]
+    if (!esOperativo) return lista.sort(porActualizadoDesc)
+    return lista.sort((a, b) => {
+      const ra = rankBandeja(a, rol, userId)
+      const rb = rankBandeja(b, rol, userId)
+      if (ra !== rb) return ra - rb
+      return porActualizadoDesc(a, b)
+    })
+  }, [filtrados, esOperativo, rol, userId])
+
+  async function ejecutarAccion(pedido: Pedido, accion: ConfirmAccion) {
+    setEjecutando(true)
     try {
-      const payload = {
-        clienteId: createForm.clienteId,
-        items: createForm.items.map((i) => ({ productoId: i.productoId, cantidad: totalUnidades(i) })),
+      if (accion === 'aprobar') {
+        const aprobado = await aprobarMutation.mutateAsync({
+          id: pedido.id,
+          expectedVersion: pedido.version,
+          idempotencyKey: newIdempotencyKey(),
+        })
+        toast.success(`Pedido ${aprobado.numero} aprobado`)
+      } else if (accion === 'tomar') {
+        await tomarMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version })
+        toast.success(`Pedido ${pedido.numero} tomado`)
+      } else if (accion === 'preparar') {
+        await prepararMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version })
+        toast.success(`Pedido ${pedido.numero} preparado`)
+      } else if (accion === 'despachar') {
+        await despacharMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version })
+        toast.success('Pedido despachado')
+      } else {
+        await cancelarMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version })
+        toast.success(`Pedido ${pedido.numero} cancelado`)
       }
-      await createMutation.mutateAsync(payload)
-      setShowCreate(false)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error al crear pedido')
+      toast.error(e instanceof Error ? e.message : 'Error al ejecutar la acción')
+    } finally {
+      setEjecutando(false)
+      setConfirm(null)
     }
   }
 
-  function handleAprobar(id: string) {
-    aprobarMutation.mutate(id, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al aprobar'),
-    })
+  const header = (
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Pedidos</h1>
+        <p className="font-body text-[13px] text-on-surface-variant">Bandeja operativa de pedidos</p>
+      </div>
+      {puedeCrear && (
+        <button
+          type="button"
+          onClick={() => navigate('/ale-bet/pedidos/nuevo')}
+          className="shrink-0 rounded-full bg-primary px-5 py-2.5 font-body text-[13px] font-bold text-on-primary transition hover:bg-primary/90 shadow-sm"
+        >
+          + Nuevo pedido
+        </button>
+      )}
+    </div>
+  )
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Skeleton variant="card" className="h-44" />
+          <Skeleton variant="card" className="h-44" />
+          <Skeleton variant="card" className="h-44" />
+        </div>
+        <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
+      </div>
+    )
   }
 
-  function handleTomar(id: string) {
-    tomarMutation.mutate(id, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al tomar pedido'),
-    })
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar pedidos'}</p>
+      </div>
+    )
   }
-
-  function handleCompletarItem(pedidoId: string, itemId: string) {
-    completarItemMutation.mutate({ pedidoId, itemId }, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al completar item'),
-    })
-  }
-
-  function handleCancelar(id: string) {
-    if (!confirm('¿Cancelar este pedido?')) return
-    cancelarMutation.mutate(id, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al cancelar'),
-    })
-  }
-
-  function canAprobar(p: Pedido) {
-    if (p.estado !== 'PENDIENTE') return false
-    if (isAdmin || isSupervisor) return true
-    if (isVendedor) return p.vendedorId === user?.sub
-    return false
-  }
-
-  function canTomar(p: Pedido) {
-    if (p.estado !== 'APROBADO') return false
-    return isAdmin || isSupervisor || isArmador
-  }
-
-  function canCompletarItems(p: Pedido) {
-    if (p.estado !== 'EN_ARMADO') return false
-    return isAdmin || isSupervisor || isArmador
-  }
-
-  function canCancelar(p: Pedido) {
-    if (p.estado === 'COMPLETADO' || p.estado === 'CANCELADO') return false
-    if (isAdmin || isSupervisor) return true
-    if (isVendedor) return p.estado === 'PENDIENTE' && p.vendedorId === user?.sub
-    return false
-  }
-
-  function canCreate() {
-    return isAdmin || isVendedor
-  }
-
-  if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
-  if (error) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar pedidos'}</p>
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Pedidos</h1>
-          <p className="font-body text-[13px] text-on-surface-variant">Gestión de pedidos y armado</p>
-        </div>
-        {canCreate() && (
-          <button onClick={openCreateModal} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
-            + Nuevo pedido
-          </button>
-        )}
-      </div>
+      {header}
 
-      <div className="flex gap-4">
-        <select
-          value={estadoFilter}
-          onChange={(e) => setEstadoFilter(e.target.value)}
-          className="input-field max-w-xs"
+      <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" aria-label="Filtrar por estado">
+        {FILTROS.map((f) => {
+          const activo = estadoFilter === f.valor
+          return (
+            <button
+              key={f.valor || 'todos'}
+              type="button"
+              aria-pressed={activo}
+              onClick={() => setEstadoFilter(f.valor)}
+              className={cn(
+                'shrink-0 rounded-full border px-3.5 py-1.5 font-body text-[12px] font-semibold transition',
+                activo
+                  ? 'border-primary bg-primary/15 text-primary'
+                  : 'border-white/10 text-on-surface-variant hover:text-on-surface',
+              )}
+            >
+              {f.etiqueta}
+            </button>
+          )
+        })}
+        <button
+          type="button"
+          aria-pressed={soloHoy}
+          onClick={() => setSoloHoy(!soloHoy)}
+          className={cn(
+            'shrink-0 rounded-full border px-3.5 py-1.5 font-body text-[12px] font-semibold transition ml-auto',
+            soloHoy
+              ? 'border-primary bg-primary/15 text-primary'
+              : 'border-white/10 text-on-surface-variant hover:text-on-surface'
+          )}
         >
-          <option value="">Todos los estados</option>
-          <option value="PENDIENTE">Pendiente</option>
-          <option value="APROBADO">Aprobado</option>
-          <option value="EN_ARMADO">En armado</option>
-          <option value="COMPLETADO">Completado</option>
-          <option value="CANCELADO">Cancelado</option>
-        </select>
+          Solo hoy
+        </button>
       </div>
 
-      <div className="bg-surface-container-high rounded-xl overflow-hidden">
-        {sortedPedidos.length === 0 ? (
-          <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay pedidos.</p>
-        ) : (
-          <table className="w-full text-left font-body text-[12px]">
-            <thead>
-              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                <th className="px-5 py-3 font-medium">N°</th>
-                <th className="px-5 py-3 font-medium">Cliente</th>
-                <th className="px-5 py-3 font-medium">Estado</th>
-                <th className="px-5 py-3 font-medium">Vendedor</th>
-                <th className="px-5 py-3 font-medium text-center">Items</th>
-                <th className="px-5 py-3 font-medium text-center">Fecha</th>
-                <th className="px-5 py-3 font-medium text-center">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedPedidos.map((p) => {
-                const isExpanded = expandedId === p.id
-                const variant = getEstadoVariant(p.estado)
-                return (
-                  <tr key={p.id} className="border-b border-white/10 last:border-0">
-                    <td className="px-5 py-4 font-semibold text-on-surface">{p.numero}</td>
-                    <td className="px-5 py-4 text-on-surface">{p.cliente.nombre}</td>
-                    <td className="px-5 py-4"><Badge variant={getEstadoVariant(p.estado)} className="w-[88px] justify-center">{p.estado.replace('_', ' ')}</Badge></td>
-                    <td className="px-5 py-4 text-outline">{p.vendedorNombre ?? '—'}</td>
-                    <td className="px-5 py-4 text-center text-outline">{p.items.length}</td>
-                    <td className="px-5 py-4 text-center text-outline">
-                      {new Date(p.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                          className="font-body text-[11px] text-outline transition hover:text-on-surface"
-                        >
-                          {isExpanded ? 'Cerrar' : 'Ver'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {ordenados.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">
+          {pedidos.length === 0 ? 'No hay pedidos.' : 'No hay pedidos en este estado.'}
+        </p>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {ordenados.map((p) => (
+            <PedidoCard
+              key={p.id}
+              pedido={p}
+              rol={rol}
+              userId={userId}
+              onAbrir={() => navigate(`/ale-bet/pedidos/${p.id}`)}
+              onAprobar={() => setConfirm({ pedido: p, accion: 'aprobar' })}
+              onTomar={() => setConfirm({ pedido: p, accion: 'tomar' })}
+              onPreparar={() => setConfirm({ pedido: p, accion: 'preparar' })}
+              onDespachar={() => setConfirm({ pedido: p, accion: 'despachar' })}
+              onCancelar={() => setConfirm({ pedido: p, accion: 'cancelar' })}
+              onEmitirRemito={() => navigate(`/ale-bet/pedidos/${p.id}`)}
+              onSolicitarCancelacion={() => navigate(`/ale-bet/pedidos/${p.id}`)}
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Pedido detail rows */}
-      {sortedPedidos.filter((p) => expandedId === p.id).map((p) => (
+      {confirm && (
         <div
-          key={`detail-${p.id}`}
-          className="bg-surface-container-high rounded-xl -mt-4"
-          style={{ borderLeft: `3px solid ${
-            p.estado === 'PENDIENTE' ? 'var(--color-on-surface-variant)' :
-            p.estado === 'APROBADO' ? 'var(--color-warning)' :
-            p.estado === 'EN_ARMADO' ? 'var(--color-primary)' :
-            p.estado === 'COMPLETADO' ? 'var(--color-success)' :
-            'var(--color-error)'
-          }` }}
+          data-testid="confirm-dialog"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setConfirm(null)}
         >
-          <div className="space-y-4 p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-heading text-[14px] font-bold text-on-surface">
-                  {p.numero} — {p.cliente.nombre}
-                </p>
-                <p className="mt-1 font-body text-[11px] text-outline">
-                  Vendedor: {p.vendedorNombre ?? '—'}{p.armadorNombre ? ` | Armador: ${p.armadorNombre}` : ''}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {canAprobar(p) && (
-                  <button
-                    onClick={() => handleAprobar(p.id)}
-                    className="rounded-full border border-warning/40 px-3 py-[6px] font-body text-[11px] font-semibold text-warning transition hover:bg-warning/20"
-                  >
-                    Aprobar
-                  </button>
-                )}
-                {canTomar(p) && (
-                  <button
-                    onClick={() => handleTomar(p.id)}
-                    className="rounded-full border border-primary/40 px-3 py-[6px] font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
-                  >
-                    Tomar
-                  </button>
-                )}
-                {canCancelar(p) && (
-                  <button
-                    onClick={() => handleCancelar(p.id)}
-                    className="rounded-full border border-error/30 px-3 py-[6px] font-body text-[11px] font-semibold text-error transition hover:bg-error/10"
-                  >
-                    Cancelar
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-lg border border-white/10">
-              <table className="w-full text-left font-body text-[12px]">
-                <thead>
-                  <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                    <th className="px-4 py-2.5 font-medium">Producto</th>
-                    <th className="px-4 py-2.5 font-medium text-right">Cantidad</th>
-                    <th className="px-4 py-2.5 font-medium text-center">Completado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {p.items.map((item) => (
-                    <tr key={item.id} className="border-b border-white/10 last:border-0">
-                      <td className="px-4 py-3 font-medium text-on-surface">{item.producto.nombre}</td>
-                      <td className="px-4 py-3 text-right text-outline">{item.cantidad}</td>
-                      <td className="px-4 py-3 text-center">
-                        {canCompletarItems(p) ? (
-                          <label className="inline-flex cursor-pointer items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={item.completado}
-                              onChange={() => handleCompletarItem(p.id, item.id)}
-                              className="h-4 w-4 rounded border-white/10 bg-surface-container text-primary accent-primary"
-                            />
-                            <span className={`font-body text-[11px] ${item.completado ? 'text-primary' : 'text-outline'}`}>
-                              {item.completado ? 'Listo' : 'Pendiente'}
-                            </span>
-                          </label>
-                        ) : (
-                          <span className={`font-body text-[11px] ${item.completado ? 'text-primary' : 'text-outline'}`}>
-                            {item.completado ? 'Sí' : 'No'}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* Create modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreate(false)}>
-          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 font-heading text-[18px] font-bold text-on-surface">
-              Nuevo pedido
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="font-body text-[11px] text-outline">Cliente</label>
-                <select
-                  value={createForm.clienteId}
-                  onChange={(e) => setCreateForm({ ...createForm, clienteId: e.target.value })}
-                  className="input-field mt-1"
-                >
-                  <option value="">Seleccionar cliente</option>
-                   {activeClientes.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="font-body text-[11px] text-outline">Items</label>
-                  <button
-                    type="button"
-                    onClick={addItemRow}
-                    className="rounded-full border border-primary/40 px-3 py-1 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
-                  >
-                    + Agregar item
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {createForm.items.map((item, idx) => {
-                    const total = itemTotalUnidades(item)
-                    const selectedProducto = activeProductos.find((pr) => pr.id === item.productoId)
-                    return (
-                      <div key={idx} className="rounded-lg border border-white/10 p-3">
-                        <div className="flex items-end gap-2">
-                          <div className="flex-1">
-                            <label className="font-body text-[10px] text-outline">Producto</label>
-                            <select
-                              value={item.productoId}
-                              onChange={(e) => updateItemField(idx, 'productoId', e.target.value)}
-                              className="input-field mt-1"
-                            >
-                              <option value="">Seleccionar</option>
-                              {activeProductos.map((pr) => (
-                                <option key={pr.id} value={pr.id} className="font-body">
-                                  {pr.nombre} ({pr.sku}) — stock: {pr.stock}u
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          {createForm.items.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeItemRow(idx)}
-                              className="mb-1 font-body text-[13px] text-error transition hover:opacity-80"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-
-                        {selectedProducto && (
-                          <div className="mt-2 grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="font-body text-[10px] text-outline">Cajas ({UNIDADES_POR_CAJA}u c/u)</label>
-                              <input
-                                type="number"
-                                min={0}
-                                value={item.cajas || ''}
-                                onChange={(e) => updateItemField(idx, 'cajas', Math.max(0, Number(e.target.value)))}
-                                className="input-field mt-1"
-                              />
-                            </div>
-                            <div>
-                              <label className="font-body text-[10px] text-outline">Sueltos (máx {MAX_SUELTOS})</label>
-                              <input
-                                type="number"
-                                min={0}
-                                max={MAX_SUELTOS}
-                                value={item.sueltos || ''}
-                                onChange={(e) => updateItemField(idx, 'sueltos', Math.max(0, Math.min(MAX_SUELTOS, Number(e.target.value))))}
-                                className="input-field mt-1"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedProducto && total > 0 && (
-                          <p className="mt-1.5 text-right font-body text-[11px] font-medium text-on-surface-variant">
-                            Total: <span className="font-semibold text-on-surface">{total} unidades</span>
-                            {selectedProducto.stock > 0 && (
-                              <span className="ml-1 text-outline">
-                                · stock: {selectedProducto.stock}u
-                                {selectedProducto.stock < total && (
-                                  <span className="text-error"> (insuficiente)</span>
-                                )}
-                              </span>
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={createMutation.isPending}
-                  className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
-                >
-                  {createMutation.isPending ? 'Guardando...' : 'Crear pedido'}
-                </button>
-              </div>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={DIALOGOS[confirm.accion].titulo}
+            className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-heading text-[16px] font-bold text-on-surface">{DIALOGOS[confirm.accion].titulo}</h2>
+            <p className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">
+              {DIALOGOS[confirm.accion].mensaje(confirm.pedido)}
+            </p>
+            <div className="mt-5 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setConfirm(null)} disabled={ejecutando}>
+                Volver
+              </Button>
+              <Button
+                onClick={() => void ejecutarAccion(confirm.pedido, confirm.accion)}
+                loading={ejecutando}
+              >
+                {DIALOGOS[confirm.accion].accion}
+              </Button>
             </div>
           </div>
         </div>

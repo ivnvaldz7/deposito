@@ -95,6 +95,7 @@ model Producto {
   nombre      String
   sku         String      @unique
   stockMinimo Int         @default(100)
+  unidadesPorCaja Int
   activo      Boolean     @default(true)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -115,19 +116,28 @@ model Lote {
   fechaVencimiento DateTime
   activo           Boolean   @default(true)
   createdAt        DateTime  @default(now())
+  reservas         ReservaStock[]
 
   @@unique([numero, productoId])
   @@schema("ale_bet")
 }
 
 model Cliente {
-  id        String   @id @default(cuid())
-  nombre    String   @unique
-  contacto  String?
-  direccion String?
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  pedidos   Pedido[]
+  id            String       @id @default(cuid())
+  nombre        String       @unique
+  contacto      String?
+  referencia    String?
+  direccion     String?
+  localidad     String?
+  provincia     String?
+  cuit          String?
+  condicionIva  String?
+  condicionVenta String?
+  estado        EstadoCliente @default(VALIDADO)
+  activo        Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  pedidos       Pedido[]
 
   @@schema("ale_bet")
 }
@@ -139,8 +149,19 @@ model Pedido {
   cliente    Cliente      @relation(fields: [clienteId], references: [id])
   vendedorId String
   armadorId  String?
-  estado     EstadoPedido @default(PENDIENTE)
+  estado     EstadoPedido @default(BORRADOR)
+  version    Int          @default(1)
+  cancelacionSolicitadaAt DateTime?
+  cancelacionSolicitadaPor String?
+  motivoCancelacion String?
+  aprobadoAt DateTime?
+  preparadoAt DateTime?
+  despachadoAt DateTime?
+  canceladoAt DateTime?
   items      ItemPedido[]
+  reservas   ReservaStock[]
+  auditorias PedidoAuditoria[]
+  remitos    Remito[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
@@ -156,6 +177,7 @@ model ItemPedido {
   cantidad   Int
   completado Boolean  @default(false)
   createdAt  DateTime @default(now())
+  reservas   ReservaStock[]
 
   @@schema("ale_bet")
 }
@@ -167,17 +189,117 @@ model MovimientoStock {
   tipo       TipoMovimiento
   referencia String?
   usuarioId  String
+  pedidoId   String?
+  loteId     String?
+  reservaId  String?
   createdAt  DateTime       @default(now())
 
   @@schema("ale_bet")
 }
 
+model ReservaStock {
+  id            String        @id @default(cuid())
+  pedidoId      String
+  pedido        Pedido        @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  // Released reservations remain as allocation evidence after an APROBADO edit.
+  // The live item may be replaced, so retain the reservation and detach its link.
+  itemPedidoId  String?
+  itemPedido    ItemPedido?   @relation(fields: [itemPedidoId], references: [id], onDelete: SetNull)
+  loteId        String
+  lote          Lote          @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  cantidad      Int
+  estado        EstadoReserva @default(ACTIVA)
+  createdAt     DateTime      @default(now())
+  releasedAt    DateTime?
+  consumedAt    DateTime?
+
+  @@unique([itemPedidoId, loteId])
+  @@index([loteId, estado])
+  @@index([pedidoId, estado])
+  @@schema("ale_bet")
+}
+
+model PedidoAuditoria {
+  id        String   @id @default(cuid())
+  pedidoId  String
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  actorId   String
+  accion    String
+  motivo    String?
+  anterior  Json?
+  nuevo     Json?
+  createdAt DateTime @default(now())
+
+  @@index([pedidoId, createdAt])
+  @@schema("ale_bet")
+}
+
+model Transportista {
+  id        String   @id @default(cuid())
+  nombre    String
+  direccion String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  remitos   Remito[]
+
+  @@unique([nombre, direccion])
+  @@schema("ale_bet")
+}
+
+model Remito {
+  id                   String       @id @default(cuid())
+  pedidoId             String
+  pedido               Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  numero               String       @unique
+  fecha                DateTime     @default(now())
+  transportistaId      String?
+  transportista        Transportista? @relation(fields: [transportistaId], references: [id])
+  transporteNombre     String
+  transporteDireccion  String
+  clienteSnapshot      Json
+  transporteSnapshot   Json
+  itemsSnapshot        Json
+  estado               EstadoRemito @default(VIGENTE)
+  invalidadoAt         DateTime?
+  invalidadoPor        String?
+  motivoInvalidacion   String?
+  createdBy            String
+  createdAt            DateTime     @default(now())
+
+  @@index([pedidoId, estado])
+  @@schema("ale_bet")
+}
+
 enum EstadoPedido {
-  PENDIENTE
+  BORRADOR
   APROBADO
   EN_ARMADO
-  COMPLETADO
+  PREPARADO
+  DESPACHADO
   CANCELADO
+
+  @@schema("ale_bet")
+}
+
+enum EstadoCliente {
+  PENDIENTE_CLIENTE
+  VALIDADO
+
+  @@schema("ale_bet")
+}
+
+enum EstadoReserva {
+  ACTIVA
+  LIBERADA
+  CONSUMIDA
+
+  @@schema("ale_bet")
+}
+
+enum EstadoRemito {
+  VIGENTE
+  INVALIDADO
 
   @@schema("ale_bet")
 }

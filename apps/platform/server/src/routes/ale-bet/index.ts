@@ -6,6 +6,8 @@ import stockRoutes from './stock'
 import dashboardRoutes from './dashboard'
 import notificacionesRoutes from './notificaciones'
 import historialRoutes from './historial'
+import transportistasRoutes from './transportistas'
+import remitosRoutes from './remitos'
 
 export function createAleBetRoutes(): Router {
   const router = Router()
@@ -17,6 +19,8 @@ export function createAleBetRoutes(): Router {
   router.use('/dashboard', dashboardRoutes)
   router.use('/notificaciones', notificacionesRoutes)
   router.use('/historial', historialRoutes)
+  router.use('/transportistas', transportistasRoutes)
+  router.use('/pedidos', remitosRoutes)
 
   return router
 }

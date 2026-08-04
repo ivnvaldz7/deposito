@@ -30,8 +30,12 @@ export function createProducto(overrides: Record<string, unknown> = {}) {
     nombre: 'Producto A',
     sku: 'SKU-001',
     stockMinimo: 100,
+    unidadesPorCaja: 15,
     activo: true,
     stock: 500,
+    fisico: 500,
+    reservado: 0,
+    disponible: 500,
     stockBajo: false,
     lotes: [],
     ...overrides,
@@ -41,8 +45,21 @@ export function createProducto(overrides: Record<string, unknown> = {}) {
 export function createProductoList() {
   return [
     createProducto(),
-    createProducto({ id: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', stock: 50, stockBajo: true }),
+    createProducto({ id: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', stock: 50, fisico: 50, reservado: 0, disponible: 50, stockBajo: true }),
   ]
+}
+
+export function createProductoSearchResult(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'prod-1',
+    nombre: 'Producto A',
+    sku: 'SKU-001',
+    unidadesPorCaja: 15,
+    fisico: 500,
+    reservado: 0,
+    disponible: 500,
+    ...overrides,
+  }
 }
 
 export function createLote(overrides: Record<string, unknown> = {}) {
@@ -55,6 +72,7 @@ export function createLote(overrides: Record<string, unknown> = {}) {
     fechaVencimiento: '2028-01-15T00:00:00.000Z',
     activo: true,
     unidades: 155,
+    unidadesPorCaja: 15,
     ...overrides,
   }
 }
@@ -64,8 +82,17 @@ export function createCliente(overrides: Record<string, unknown> = {}) {
     id: 'cliente-1',
     nombre: 'Cliente A',
     contacto: 'cliente@test.com',
+    referencia: null,
     direccion: 'Calle 123',
+    localidad: null,
+    provincia: null,
+    cuit: null,
+    condicionIva: null,
+    condicionVenta: null,
+    estado: 'VALIDADO' as const,
     activo: true,
+    createdAt: '2026-07-17T10:00:00.000Z',
+    updatedAt: '2026-07-17T10:00:00.000Z',
     ...overrides,
   }
 }
@@ -73,8 +100,63 @@ export function createCliente(overrides: Record<string, unknown> = {}) {
 export function createClienteList() {
   return [
     createCliente(),
-    createCliente({ id: 'cliente-2', nombre: 'Cliente B', contacto: null, direccion: null }),
+    createCliente({ id: 'cliente-2', nombre: 'Cliente B', contacto: null, referencia: null, direccion: null }),
   ]
+}
+
+export function createClientePendiente(overrides: Record<string, unknown> = {}) {
+  return createCliente({ id: 'cliente-2', nombre: 'Cliente B', contacto: null, referencia: null, estado: 'PENDIENTE_CLIENTE' as const, ...overrides })
+}
+
+export function createTransportista(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'trans-1',
+    nombre: 'Transporte A',
+    direccion: 'Calle 1 234',
+    activo: true,
+    createdAt: '2026-07-17T10:00:00.000Z',
+    updatedAt: '2026-07-17T10:00:00.000Z',
+    ...overrides,
+  }
+}
+
+export function createTransportistaList() {
+  return [
+    createTransportista(),
+    createTransportista({ id: 'trans-2', nombre: 'Transporte B', direccion: 'Calle 2 567', activo: false }),
+  ]
+}
+
+export function createPedidoItem(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'item-1',
+    productoId: 'prod-1',
+    cantidad: 10,
+    completado: false,
+    producto: { id: 'prod-1', nombre: 'Producto A', sku: 'SKU-001', unidadesPorCaja: 15 },
+    ...overrides,
+  }
+}
+
+export function createRemito(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'remito-1',
+    pedidoId: 'pedido-1',
+    numero: 'R-001',
+    fecha: '2026-07-17T10:00:00.000Z',
+    transportistaId: null,
+    transporteNombre: 'Transporte A',
+    transporteDireccion: 'Calle 1',
+    clienteSnapshot: {},
+    transporteSnapshot: {},
+    itemsSnapshot: [{ productoId: 'prod-1', nombre: 'Producto A', cantidad: 10 }],
+    estado: 'VIGENTE' as const,
+    invalidadoAt: null,
+    invalidadoPor: null,
+    motivoInvalidacion: null,
+    createdBy: 'user-1',
+    ...overrides,
+  }
 }
 
 export function createPedido(overrides: Record<string, unknown> = {}) {
@@ -84,17 +166,25 @@ export function createPedido(overrides: Record<string, unknown> = {}) {
     clienteId: 'cliente-1',
     vendedorId: 'vendedor-1',
     armadorId: null,
-    estado: 'PENDIENTE' as const,
+    estado: 'BORRADOR' as const,
+    version: 1,
+    cancelacionSolicitadaAt: null,
+    cancelacionSolicitadaPor: null,
+    motivoCancelacion: null,
+    aprobadoAt: null,
+    preparadoAt: null,
+    despachadoAt: null,
+    canceladoAt: null,
     createdAt: '2026-07-17T10:00:00.000Z',
     updatedAt: '2026-07-17T10:00:00.000Z',
-    cliente: { id: 'cliente-1', nombre: 'Cliente A', contacto: 'c@test.com', direccion: 'Calle 123', activo: true },
+    cliente: createCliente(),
     items: [
       {
         id: 'item-1',
         productoId: 'prod-1',
         cantidad: 10,
         completado: false,
-        producto: { id: 'prod-1', nombre: 'Producto A', sku: 'SKU-001' },
+        producto: { id: 'prod-1', nombre: 'Producto A', sku: 'SKU-001', unidadesPorCaja: 15 },
       },
     ],
     vendedorNombre: 'Vendedor 1',

@@ -4,10 +4,13 @@ import Sidebar from './components/Sidebar'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const PedidosPage = lazy(() => import('./pages/PedidosPage'))
+const NuevoPedidoPage = lazy(() => import('./pages/NuevoPedidoPage'))
+const PedidoDetailPage = lazy(() => import('./pages/PedidoDetailPage'))
 const ProductosPage = lazy(() => import('./pages/ProductosPage'))
 const ClientesPage = lazy(() => import('./pages/ClientesPage'))
 const StockPage = lazy(() => import('./pages/StockPage'))
 const HistorialPage = lazy(() => import('./pages/HistorialPage'))
+const TransportistasPage = lazy(() => import('./pages/TransportistasPage'))
 
 function LoadingFallback() {
   return (
@@ -28,10 +31,13 @@ export default function AleBetModule() {
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="pedidos" element={<PedidosPage />} />
+              <Route path="pedidos/nuevo" element={<NuevoPedidoPage />} />
+              <Route path="pedidos/:id" element={<PedidoDetailPage />} />
               <Route path="productos" element={<ProductosPage />} />
               <Route path="clientes" element={<ClientesPage />} />
               <Route path="stock" element={<StockPage />} />
               <Route path="historial" element={<HistorialPage />} />
+              <Route path="transportistas" element={<TransportistasPage />} />
               <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Routes>
           </Suspense>

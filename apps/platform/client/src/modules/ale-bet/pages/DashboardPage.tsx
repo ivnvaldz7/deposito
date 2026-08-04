@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { type Pedido, type DashboardPedidoReciente } from '../lib/api'
+import { type DashboardPedidoReciente } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/Badge'
@@ -36,13 +36,16 @@ function isAdminVendor(name: string): boolean {
   return name.includes('Admin') || name.includes('admin')
 }
 
-function getEstadoBadgeVariant(estado: Pedido['estado']): 'default' | 'success' | 'warning' | 'error' | 'info' {
+function getEstadoBadgeVariant(estado: string): 'default' | 'success' | 'warning' | 'error' | 'info' {
   switch (estado) {
-    case 'PENDIENTE': return 'default'
+    case 'PENDIENTE':
+    case 'BORRADOR': return 'default'
     case 'APROBADO': return 'warning'
     case 'EN_ARMADO': return 'info'
-    case 'COMPLETADO': return 'success'
+    case 'COMPLETADO':
+    case 'DESPACHADO': return 'success'
     case 'CANCELADO': return 'error'
+    default: return 'default'
   }
 }
 
@@ -70,37 +73,54 @@ function MetricCard({
   )
 }
 
-function PedidoRow({ pedido, onComplete }: { pedido: DashboardPedidoReciente; onComplete: (pedidoId: string) => void }) {
+function PedidoRow({ pedido, onOpen }: { pedido: DashboardPedidoReciente; onOpen: (pedidoId: string) => void }) {
   const adminVendor = isAdminVendor(pedido.vendedorNombre)
   const variant = getEstadoBadgeVariant(pedido.estado)
 
   return (
-    <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] items-center gap-4 border-b border-white/10 px-5 py-4">
-      <div className="min-w-0">
-        <p className="truncate font-heading text-[12px] font-semibold text-on-surface">
-          {pedido.clienteNombre}
-        </p>
-        <p className="mt-1 font-body text-[10px] text-outline">{pedido.numero} · {pedido.cantidadItems} items</p>
+    <div
+      className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 lg:grid lg:grid-cols-[1.8fr_1fr_1fr_100px_100px] lg:items-center lg:gap-4 hover:bg-white/5 cursor-pointer transition-colors"
+      onClick={() => onOpen(pedido.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') onOpen(pedido.id) }}
+    >
+      <div className="flex items-start justify-between lg:block">
+        <div className="min-w-0">
+          <p className="truncate font-heading text-[14px] lg:text-[12px] font-semibold text-on-surface">
+            {pedido.clienteNombre}
+          </p>
+          <p className="mt-1 font-body text-[12px] lg:text-[10px] text-outline">{pedido.numero} · {pedido.cantidadItems} items</p>
+        </div>
+        <div className="lg:hidden shrink-0 ml-2">
+          <Badge variant={variant} className="justify-center">{pedido.estado.replace('_', ' ')}</Badge>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className={`inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] font-semibold ${
-          adminVendor ? 'border-primary/40 bg-primary/20 text-primary' : 'border-outline/30 bg-surface-variant text-on-surface-variant'
-        }`}>
-          {getInitials(pedido.vendedorNombre)}
-        </span>
-        <span className={`truncate font-body text-[11px] ${adminVendor ? 'font-bold text-on-surface-variant' : 'text-outline'}`}>
-          {pedido.vendedorNombre}
-        </span>
+      <div className="flex items-center justify-between lg:justify-start gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] font-semibold ${
+            adminVendor ? 'border-primary/40 bg-primary/20 text-primary' : 'border-outline/30 bg-surface-variant text-on-surface-variant'
+          }`}>
+            {getInitials(pedido.vendedorNombre)}
+          </span>
+          <span className={`truncate font-body text-[11px] ${adminVendor ? 'font-bold text-on-surface-variant' : 'text-outline'}`}>
+            {pedido.vendedorNombre}
+          </span>
+        </div>
+        <div className="font-body text-[11px] text-outline lg:hidden">{formatDashboardDate(pedido.createdAt)}</div>
       </div>
-      <div className="font-body text-[11px] text-outline">{formatDashboardDate(pedido.createdAt)}</div>
-      <div className="flex justify-center">
+      <div className="hidden lg:block font-body text-[11px] text-outline">{formatDashboardDate(pedido.createdAt)}</div>
+      <div className="hidden lg:flex justify-center">
         <Badge variant={variant} className="w-[88px] justify-center">{pedido.estado.replace('_', ' ')}</Badge>
       </div>
-      <div className="flex justify-center">
+      <div className="hidden lg:flex justify-center">
         {pedido.estado === 'EN_ARMADO' ? (
           <button
             type="button"
-            onClick={() => onComplete(pedido.id)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpen(pedido.id)
+            }}
             className="w-[88px] rounded-full border border-primary px-3 py-[7px] font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
           >
             Completar
@@ -149,9 +169,9 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={isAdmin ? () => navigate('/ale-bet/productos') : undefined} />
-        <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
-        <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
+        <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={isAdmin ? () => navigate('/ale-bet/productos', { state: { stockCritico: true } }) : undefined} />
+        <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { pedidosHoy: true } }) : undefined} />
+        <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } }) : undefined} />
         <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/stock') : undefined} />
       </div>
 
@@ -164,7 +184,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-surface-container-high rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] gap-4 border-b border-white/10 px-5 py-3 font-body text-[10px] uppercase tracking-[0.8px] text-outline">
+          <div className="hidden lg:grid grid-cols-[1.8fr_1fr_1fr_100px_100px] gap-4 border-b border-white/10 px-5 py-3 font-body text-[10px] uppercase tracking-[0.8px] text-outline">
             <div>Cliente</div>
             <div>Vendedor</div>
             <div>Fecha</div>
@@ -174,7 +194,7 @@ export default function DashboardPage() {
 
           {data.pedidosRecientes.map((pedido) => (
             <div key={pedido.id} className={animatedPedidoId === pedido.id ? (animatedTone === 'danger' ? 'alebet-flash-danger' : 'alebet-flash-success') : ''}>
-              <PedidoRow pedido={pedido} onComplete={(id) => navigate('/ale-bet/pedidos', { state: { openPedidoId: id } })} />
+              <PedidoRow pedido={pedido} onOpen={(id) => navigate('/ale-bet/pedidos', { state: { openPedidoId: id } })} />
             </div>
           ))}
 

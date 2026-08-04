@@ -14,10 +14,19 @@ export function useProductos() {
   })
 }
 
+export function useProductosSearch(q: string) {
+  return useQuery({
+    queryKey: [...productosKeys.all, 'search', q] as const,
+    queryFn: () => aleBetApi.productos.search(q),
+    enabled: q.trim().length > 0,
+    placeholderData: (prev) => prev,
+  })
+}
+
 export function useCreateProducto() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { nombre: string; sku: string; stockMinimo?: number }) =>
+    mutationFn: (data: { nombre: string; sku: string; stockMinimo?: number; unidadesPorCaja: number }) =>
       aleBetApi.productos.create(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
   })
@@ -26,7 +35,7 @@ export function useCreateProducto() {
 export function useUpdateProducto() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; nombre?: string; stockMinimo?: number; activo?: boolean }) =>
+    mutationFn: ({ id, ...data }: { id: string; nombre?: string; stockMinimo?: number; unidadesPorCaja?: number; activo?: boolean }) =>
       aleBetApi.productos.update(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
   })

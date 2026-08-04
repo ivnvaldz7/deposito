@@ -1,42 +1,122 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
+import { useLocation } from 'react-router-dom'
+import { ChevronDown, ChevronUp, Check, AlertTriangle, X } from 'lucide-react'
 import { type Producto, type Lote } from '../lib/api'
-import { UNIDADES_POR_CAJA, MAX_SUELTOS } from '../lib/constants'
+import { calcularUnidades, maxSueltos } from '../lib/constants'
+import { useAuthStore } from '@/stores/auth-store'
+import { Badge } from '@/components/ui/Badge'
 import { useProductos, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useUpdateLote } from '../queries'
+import { StockIndicator } from '../components/StockIndicator'
 import { toast } from '@/lib/toast'
 
+function stockBadge(p: Producto) {
+  if (p.disponible <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-error/30 bg-error/10 px-2.5 py-1 text-[11px] font-bold text-error uppercase tracking-[0.05em]">
+        <X className="h-3 w-3" /> Sin stock
+      </span>
+    )
+  }
+  if (p.stockBajo) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[11px] font-bold text-warning uppercase tracking-[0.05em]">
+        <AlertTriangle className="h-3 w-3" /> Stock bajo
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-bold text-success uppercase tracking-[0.05em]">
+      <Check className="h-3 w-3" /> Disponible
+    </span>
+  )
+}
+
+function LotesInline({ producto }: { producto: Producto }) {
+  const { data: lotes = [], isLoading } = useLotes(producto.id)
+
+  if (isLoading) {
+    return <div className="py-6 text-center font-body text-[12px] text-on-surface-variant">Cargando lotes...</div>
+  }
+
+  const activos = lotes.filter(l => l.activo)
+  if (activos.length === 0) {
+    return <div className="py-6 text-center font-body text-[12px] text-on-surface-variant">No hay lotes activos.</div>
+  }
+
+  return (
+    <div className="p-4 bg-surface-container-highest/10 md:p-5">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {activos.map(l => (
+          <div key={l.id} className="rounded-xl border border-white/10 bg-surface-container-high p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-mono text-[14px] font-bold text-primary">LOTE {l.numero}</span>
+              <span className="font-body text-[11px] text-on-surface-variant">Vto: {new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}</span>
+            </div>
+            <div className="mt-3 flex justify-between rounded-lg bg-surface-container/50 p-2 text-center">
+              <div>
+                <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
+                <p className="mt-0.5 font-heading text-[15px] font-bold text-on-surface">{l.cajas}</p>
+              </div>
+              <div>
+                <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
+                <p className="mt-0.5 font-heading text-[15px] font-bold text-on-surface">{l.sueltos}</p>
+              </div>
+              <div>
+                <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Total</p>
+                <p className="mt-0.5 font-heading text-[15px] font-bold text-on-surface">{l.unidades}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function ProductosPage() {
+  const user = useAuthStore((state) => state.user)
+  const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const esAdmin = rol === 'admin'
+
   const { data: productos = [], isLoading, error } = useProductos()
   const createMutation = useCreateProducto()
   const updateMutation = useUpdateProducto()
   const deleteMutation = useDeleteProducto()
   const updateLoteMutation = useUpdateLote()
 
+  const location = useLocation()
   const [search, setSearch] = useState('')
+  const [soloCritico, setSoloCritico] = useState((location.state as any)?.stockCritico ?? false)
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Producto | null>(null)
-  const [form, setForm] = useState({ nombre: '', sku: '', stockMinimo: 100 })
+  const [form, setForm] = useState({ nombre: '', sku: '', stockMinimo: 100, unidadesPorCaja: 0 })
   const [lotesProducto, setLotesProducto] = useState<Producto | null>(null)
   const { data: lotes = [] } = useLotes(lotesProducto?.id ?? '')
   const [editingLoteId, setEditingLoteId] = useState<string | null>(null)
   const [editLoteForm, setEditLoteForm] = useState({ cajas: 0, sueltos: 0 })
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
+
+  function toggleRow(id: string) {
+    setExpandedRow(prev => prev === id ? null : id)
+  }
 
   function openCreate() {
     setEditing(null)
-    setForm({ nombre: '', sku: '', stockMinimo: 100 })
+    setForm({ nombre: '', sku: '', stockMinimo: 100, unidadesPorCaja: 0 })
     setShowModal(true)
   }
 
   function openEdit(p: Producto, e: React.MouseEvent) {
     e.stopPropagation()
     setEditing(p)
-    setForm({ nombre: p.nombre, sku: p.sku, stockMinimo: p.stockMinimo })
+    setForm({ nombre: p.nombre, sku: p.sku, stockMinimo: p.stockMinimo, unidadesPorCaja: p.unidadesPorCaja })
     setShowModal(true)
   }
 
   async function handleSave() {
     try {
       if (editing) {
-        await updateMutation.mutateAsync({ id: editing.id, ...form })
+        await updateMutation.mutateAsync({ id: editing.id, nombre: form.nombre, stockMinimo: form.stockMinimo })
       } else {
         await createMutation.mutateAsync(form)
       }
@@ -54,7 +134,8 @@ export default function ProductosPage() {
     })
   }
 
-  function openLotes(p: Producto) {
+  function openLotes(p: Producto, e: React.MouseEvent) {
+    e.stopPropagation()
     setLotesProducto(p)
     setEditingLoteId(null)
   }
@@ -87,30 +168,46 @@ export default function ProductosPage() {
   if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando productos...</p>
   if (error) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar productos'}</p>
 
-  const filtered = productos.filter(
-    (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = productos.filter((p) => {
+    if (soloCritico && !p.stockBajo) return false
+    return p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
+  })
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4">
         <div>
           <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Productos</h1>
-          <p className="font-body text-[13px] text-on-surface-variant">Gestión de productos y lotes</p>
+          <p className="font-body text-[13px] text-on-surface-variant">Catálogo y stock de productos</p>
         </div>
-        <button onClick={openCreate} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
-          + Nuevo producto
-        </button>
+        {esAdmin && (
+          <button onClick={openCreate} className="shrink-0 rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
+            + Nuevo producto
+          </button>
+        )}
       </div>
 
       <div className="flex gap-4">
-        <input
-          type="text"
-          placeholder="Buscar productos..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-field max-w-sm"
-        />
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Buscar producto o SKU..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-white/10 bg-surface-container-high px-4 py-2 font-body text-[13px] text-on-surface focus:border-primary focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setSoloCritico(!soloCritico)}
+              className={`shrink-0 rounded-lg border px-4 py-2 font-body text-[13px] font-medium transition-colors ${
+                soloCritico
+                  ? 'border-error/40 bg-error/20 text-error'
+                  : 'border-white/10 bg-surface-container-high text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              Stock crítico
+            </button>
+          </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -132,74 +229,168 @@ export default function ProductosPage() {
         </div>
       </div>
 
-      <div className="bg-surface-container-high rounded-xl overflow-hidden">
-        {filtered.length === 0 ? (
-          <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay productos.</p>
-        ) : (
-          <table className="w-full text-left font-body text-[12px]">
-            <thead>
-              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                <th className="px-5 py-3 font-medium">Producto</th>
-                <th className="px-5 py-3 font-medium">Lotes</th>
-                <th className="px-5 py-3 font-medium text-right">Stock</th>
-                <th className="px-5 py-3 font-medium text-right">Mínimo</th>
-                <th className="px-5 py-3 font-medium text-center">Estado</th>
-                <th className="px-5 py-3 font-medium text-center">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr
+      {filtered.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">
+          No hay productos.
+        </p>
+      ) : (
+        <>
+          <div className="space-y-3 md:hidden" data-testid="productos-mobile">
+            {filtered.map((p) => {
+              const isExpanded = expandedRow === p.id
+              const lotesCount = p.lotes?.filter(l => l.activo).length ?? 0
+              return (
+                <article
                   key={p.id}
-                  onClick={() => openLotes(p)}
-                  className="border-b border-white/10 last:border-0 cursor-pointer transition hover:bg-surface-variant/30"
+                  className="rounded-xl border border-white/10 bg-surface-container-high overflow-hidden"
                 >
-                  <td className="px-5 py-4 font-semibold text-on-surface">{p.nombre}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-1 max-w-[200px]">
-                      {p.lotes && p.lotes.length > 0 ? (
-                        p.lotes.slice(0, 3).map((l) => (
-                          <span
-                            key={l.id}
-                            onClick={(e) => { e.stopPropagation(); openLotes(p) }}
-                            className="inline-block rounded bg-surface-variant/60 px-2 py-1 font-mono text-[12px] font-bold text-on-surface-variant leading-tight cursor-pointer transition hover:bg-primary/30 hover:text-primary"
-                          >
-                            {l.numero}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="font-body text-[11px] text-outline">—</span>
-                      )}
-                      {p.lotes && p.lotes.length > 3 && (
-                        <span className="inline-block font-body text-[11px] text-outline">+{p.lotes.length - 3}</span>
-                      )}
+                  <div
+                    className="p-4 cursor-pointer select-none transition hover:bg-surface-variant/30"
+                    onClick={() => toggleRow(p.id)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-heading text-[15px] font-bold uppercase tracking-wide text-on-surface">{p.nombre}</p>
+                        <p className="mt-1 font-mono text-[12px] text-outline">SKU: {p.sku}</p>
+                        <p className="mt-0.5 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-[0.05em]">
+                           {lotesCount} {lotesCount === 1 ? 'Lote activo' : 'Lotes activos'}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-on-surface-variant">
+                        {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                      </div>
                     </div>
-                  </td>
-                  <td className={`px-5 py-4 text-right font-medium ${p.stockBajo ? 'text-error' : 'text-on-surface'}`}>
-                    {p.stock}
-                  </td>
-                  <td className="px-5 py-4 text-right text-outline">{p.stockMinimo}</td>
-                  <td className="px-5 py-4 text-center">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 font-heading font-semibold text-xs ${p.stockBajo ? 'bg-error/20 text-error' : 'bg-success/20 text-success'}`}>
-                      {p.stockBajo ? 'Stock bajo' : 'OK'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={(e) => openEdit(p, e)} className="font-body text-[11px] text-outline transition hover:text-on-surface">
-                        Editar
-                      </button>
-                      <button onClick={(e) => handleDelete(p.id, e)} className="font-body text-[11px] text-error transition hover:opacity-80">
-                        Eliminar
-                      </button>
+
+                    <div className="mt-4">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-body text-[11px] font-bold uppercase tracking-[0.05em] text-outline">Disponible</span>
+                        <span className="font-heading text-[20px] font-bold text-on-surface">{p.disponible}</span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 font-body text-[12px] text-on-surface-variant">
+                        <span>Físico {p.fisico}</span>
+                        <span className="text-white/20">·</span>
+                        <span>Reservado {p.reservado}</span>
+                      </div>
                     </div>
-                  </td>
+
+                    <div className="mt-4 flex items-center justify-between">
+                      {stockBadge(p)}
+                    </div>
+
+                    {esAdmin && isExpanded && (
+                      <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-white/10 pt-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={(e) => openEdit(p, e)}
+                          className="min-h-11 rounded-full border border-primary px-4 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDelete(p.id, e)}
+                          className="min-h-11 rounded-full border border-error/40 px-4 font-body text-[12px] font-semibold text-error transition hover:bg-error/10"
+                        >
+                          Eliminar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => openLotes(p, e)}
+                          className="ml-auto min-h-11 rounded-full border border-white/10 px-4 font-body text-[12px] font-semibold text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
+                        >
+                          Config
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {isExpanded && (
+                    <div className="border-t border-white/10">
+                      <LotesInline producto={p} />
+                    </div>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-xl bg-surface-container-high md:block" data-testid="productos-table">
+            <table className="w-full text-left font-body text-[13px]">
+              <thead>
+                <tr className="border-b border-white/10 text-[11px] uppercase tracking-[0.8px] text-outline">
+                  <th className="px-5 py-4 font-semibold w-1/2">Producto</th>
+                  <th className="px-5 py-4 font-semibold w-1/4">Stock</th>
+                  <th className="px-5 py-4 font-semibold w-1/4 text-right">Estado</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {filtered.map((p) => {
+                  const isExpanded = expandedRow === p.id
+                  const lotesCount = p.lotes?.filter(l => l.activo).length ?? 0
+                  return (
+                    <Fragment key={p.id}>
+                      <tr
+                        onClick={() => toggleRow(p.id)}
+                        className={`border-b border-white/10 last:border-0 cursor-pointer transition hover:bg-surface-variant/30 ${isExpanded ? 'bg-surface-variant/20 border-b-0' : ''}`}
+                      >
+                        <td className="px-5 py-4">
+                          <p className="font-heading text-[15px] font-bold uppercase tracking-wide text-on-surface">{p.nombre}</p>
+                          <div className="mt-1 flex items-center gap-3">
+                            <p className="font-mono text-[12px] text-outline">SKU: {p.sku}</p>
+                            <span className="text-white/20">·</span>
+                            <p className="font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-[0.05em]">
+                              {lotesCount} {lotesCount === 1 ? 'Lote activo' : 'Lotes activos'}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-baseline gap-2">
+                            <span className="font-body text-[11px] font-bold uppercase tracking-[0.05em] text-outline">Disponible</span>
+                            <span className="font-heading text-[20px] font-bold text-on-surface">{p.disponible}</span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 font-body text-[12px] text-on-surface-variant">
+                            <span>Físico {p.fisico}</span>
+                            <span className="text-white/20">·</span>
+                            <span>Reservado {p.reservado}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-4 text-right">
+                          <div className="flex items-center justify-end gap-4">
+                            {stockBadge(p)}
+                            <div className="text-on-surface-variant transition-colors group-hover:text-on-surface">
+                              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-white/10 last:border-0">
+                          <td colSpan={3} className="p-0">
+                            <LotesInline producto={p} />
+                            {esAdmin && (
+                              <div className="flex items-center gap-2 bg-surface-container-highest/5 px-5 py-4 border-t border-white/5">
+                                <span className="font-body text-[11px] uppercase tracking-[0.8px] text-outline mr-2">Acciones admin:</span>
+                                <button onClick={(e) => openEdit(p, e)} className="rounded-full border border-primary px-3 py-1.5 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20">
+                                  Editar
+                                </button>
+                                <button onClick={(e) => handleDelete(p.id, e)} className="rounded-full border border-error/40 px-3 py-1.5 font-body text-[11px] font-semibold text-error transition hover:bg-error/10">
+                                  Eliminar
+                                </button>
+                                <button onClick={(e) => openLotes(p, e)} className="rounded-full border border-white/10 px-3 py-1.5 font-body text-[11px] font-semibold text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface">
+                                  Configurar Lotes
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {/* Producto modal */}
       {showModal && (
@@ -218,6 +409,13 @@ export default function ProductosPage() {
                 <input type="number" min={0} value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: Number(e.target.value) })}
                   className="input-field mt-1" />
               </div>
+              {!editing && (
+                <div>
+                  <label className="font-body text-[11px] text-outline">Unidades por caja</label>
+                  <input type="number" min={1} value={form.unidadesPorCaja || ''} onChange={(e) => setForm({ ...form, unidadesPorCaja: Number(e.target.value) })}
+                    className="input-field mt-1" required />
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setShowModal(false)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cancelar</button>
                 <button onClick={handleSave} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
@@ -277,14 +475,14 @@ export default function ProductosPage() {
                           </div>
                           <div>
                             <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
-                            <input type="number" min={0} max={MAX_SUELTOS} value={editLoteForm.sueltos}
+                            <input type="number" min={0} max={maxSueltos(l.unidadesPorCaja)} value={editLoteForm.sueltos}
                               onChange={(e) => setEditLoteForm({ ...editLoteForm, sueltos: Number(e.target.value) })}
                               className="input-field mt-1 text-right" onClick={(e) => e.stopPropagation()} />
                           </div>
                           <div>
                             <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Unidades</p>
                             <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
-                              {editLoteForm.cajas * UNIDADES_POR_CAJA + editLoteForm.sueltos}
+                              {calcularUnidades(editLoteForm.cajas, editLoteForm.sueltos, l.unidadesPorCaja)}
                             </p>
                           </div>
                         </>
@@ -294,7 +492,7 @@ export default function ProductosPage() {
                             <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
                             <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
                               {l.cajas}
-                              <span className="ml-1 font-body text-[11px] font-normal text-outline">× {UNIDADES_POR_CAJA}u</span>
+                              <span className="ml-1 font-body text-[11px] font-normal text-outline">× {l.unidadesPorCaja}u</span>
                             </p>
                           </div>
                           <div>

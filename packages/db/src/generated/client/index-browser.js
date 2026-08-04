@@ -173,6 +173,7 @@ exports.Prisma.ProductoScalarFieldEnum = {
   nombre: 'nombre',
   sku: 'sku',
   stockMinimo: 'stockMinimo',
+  unidadesPorCaja: 'unidadesPorCaja',
   activo: 'activo',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -194,9 +195,17 @@ exports.Prisma.ClienteScalarFieldEnum = {
   id: 'id',
   nombre: 'nombre',
   contacto: 'contacto',
+  referencia: 'referencia',
   direccion: 'direccion',
+  localidad: 'localidad',
+  provincia: 'provincia',
+  cuit: 'cuit',
+  condicionIva: 'condicionIva',
+  condicionVenta: 'condicionVenta',
+  estado: 'estado',
   activo: 'activo',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PedidoScalarFieldEnum = {
@@ -206,6 +215,14 @@ exports.Prisma.PedidoScalarFieldEnum = {
   vendedorId: 'vendedorId',
   armadorId: 'armadorId',
   estado: 'estado',
+  version: 'version',
+  cancelacionSolicitadaAt: 'cancelacionSolicitadaAt',
+  cancelacionSolicitadaPor: 'cancelacionSolicitadaPor',
+  motivoCancelacion: 'motivoCancelacion',
+  aprobadoAt: 'aprobadoAt',
+  preparadoAt: 'preparadoAt',
+  despachadoAt: 'despachadoAt',
+  canceladoAt: 'canceladoAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -226,6 +243,60 @@ exports.Prisma.MovimientoStockScalarFieldEnum = {
   tipo: 'tipo',
   referencia: 'referencia',
   usuarioId: 'usuarioId',
+  pedidoId: 'pedidoId',
+  loteId: 'loteId',
+  reservaId: 'reservaId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ReservaStockScalarFieldEnum = {
+  id: 'id',
+  pedidoId: 'pedidoId',
+  itemPedidoId: 'itemPedidoId',
+  loteId: 'loteId',
+  cantidad: 'cantidad',
+  estado: 'estado',
+  createdAt: 'createdAt',
+  releasedAt: 'releasedAt',
+  consumedAt: 'consumedAt'
+};
+
+exports.Prisma.PedidoAuditoriaScalarFieldEnum = {
+  id: 'id',
+  pedidoId: 'pedidoId',
+  actorId: 'actorId',
+  accion: 'accion',
+  motivo: 'motivo',
+  anterior: 'anterior',
+  nuevo: 'nuevo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.TransportistaScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  direccion: 'direccion',
+  activo: 'activo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RemitoScalarFieldEnum = {
+  id: 'id',
+  pedidoId: 'pedidoId',
+  numero: 'numero',
+  fecha: 'fecha',
+  transportistaId: 'transportistaId',
+  transporteNombre: 'transporteNombre',
+  transporteDireccion: 'transporteDireccion',
+  clienteSnapshot: 'clienteSnapshot',
+  transporteSnapshot: 'transporteSnapshot',
+  itemsSnapshot: 'itemsSnapshot',
+  estado: 'estado',
+  invalidadoAt: 'invalidadoAt',
+  invalidadoPor: 'invalidadoPor',
+  motivoInvalidacion: 'motivoInvalidacion',
+  createdBy: 'createdBy',
   createdAt: 'createdAt'
 };
 
@@ -389,6 +460,10 @@ exports.Prisma.NullableJsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
+exports.Prisma.JsonNullValueInput = {
+  JsonNull: Prisma.JsonNull
+};
+
 exports.Prisma.QueryMode = {
   default: 'default',
   insensitive: 'insensitive'
@@ -416,11 +491,17 @@ exports.IdempotencyStatus = exports.$Enums.IdempotencyStatus = {
   COMPLETED: 'COMPLETED'
 };
 
+exports.EstadoCliente = exports.$Enums.EstadoCliente = {
+  PENDIENTE_CLIENTE: 'PENDIENTE_CLIENTE',
+  VALIDADO: 'VALIDADO'
+};
+
 exports.EstadoPedido = exports.$Enums.EstadoPedido = {
-  PENDIENTE: 'PENDIENTE',
+  BORRADOR: 'BORRADOR',
   APROBADO: 'APROBADO',
   EN_ARMADO: 'EN_ARMADO',
-  COMPLETADO: 'COMPLETADO',
+  PREPARADO: 'PREPARADO',
+  DESPACHADO: 'DESPACHADO',
   CANCELADO: 'CANCELADO'
 };
 
@@ -428,6 +509,17 @@ exports.TipoMovimiento = exports.$Enums.TipoMovimiento = {
   ENTRADA_MANUAL: 'ENTRADA_MANUAL',
   SALIDA_PEDIDO: 'SALIDA_PEDIDO',
   AJUSTE: 'AJUSTE'
+};
+
+exports.EstadoReserva = exports.$Enums.EstadoReserva = {
+  ACTIVA: 'ACTIVA',
+  LIBERADA: 'LIBERADA',
+  CONSUMIDA: 'CONSUMIDA'
+};
+
+exports.EstadoRemito = exports.$Enums.EstadoRemito = {
+  VIGENTE: 'VIGENTE',
+  INVALIDADO: 'INVALIDADO'
 };
 
 exports.Role = exports.$Enums.Role = {
@@ -531,6 +623,10 @@ exports.Prisma.ModelName = {
   Pedido: 'Pedido',
   ItemPedido: 'ItemPedido',
   MovimientoStock: 'MovimientoStock',
+  ReservaStock: 'ReservaStock',
+  PedidoAuditoria: 'PedidoAuditoria',
+  Transportista: 'Transportista',
+  Remito: 'Remito',
   User: 'User',
   Acta: 'Acta',
   ActaItem: 'ActaItem',

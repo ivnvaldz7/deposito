@@ -16,6 +16,7 @@
     "db:seed-users:staging": "tsx src/seed/seed-staging-users.ts",
     "db:seed-deposito": "tsx src/seed/seed-deposito.ts",
     "db:seed-ale-bet": "tsx src/seed/seed-ale-bet.ts",
+    "db:seed-ale-bet-demo": "tsx src/seed/seed-ale-bet-demo.ts",
     "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed-deposito && npm run db:seed-ale-bet && npm run db:create-superadmin"
   },
   "dependencies": {
