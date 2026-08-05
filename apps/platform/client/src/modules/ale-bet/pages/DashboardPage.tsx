@@ -64,7 +64,7 @@ function MetricCard({
     >
       <div onClick={onClick} onKeyDown={clickable ? (e) => { if (e.key === 'Enter') onClick?.() } : undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}>
         <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">{label}</p>
-        <p className={`mt-4 font-heading text-[48px] font-bold leading-none ${valueClassName}`}>
+        <p className={`mt-4 text-[48px] font-bold leading-none ${valueClassName}`}>
           {value}
         </p>
         <p className="mt-3 max-w-[20ch] font-body text-[11px] text-on-surface-variant">{subtitle}</p>
@@ -87,7 +87,7 @@ function PedidoRow({ pedido, onOpen }: { pedido: DashboardPedidoReciente; onOpen
     >
       <div className="flex items-start justify-between lg:block">
         <div className="min-w-0">
-          <p className="truncate font-heading text-[14px] lg:text-[12px] font-semibold text-on-surface">
+          <p className="truncate text-[14px] lg:text-[12px] font-semibold text-on-surface">
             {pedido.clienteNombre}
           </p>
           <p className="mt-1 font-body text-[12px] lg:text-[10px] text-outline">{pedido.numero} · {pedido.cantidadItems} items</p>
@@ -164,7 +164,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 text-on-surface">
       <div className="space-y-1">
-        <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Dashboard</h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Dashboard</h1>
         <p className="font-body text-[13px] text-on-surface-variant">Vista operativa consolidada</p>
       </div>
 
@@ -177,7 +177,7 @@ export default function DashboardPage() {
 
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="font-heading text-[24px] font-bold tracking-[-0.02em] text-on-surface">Pedidos recientes</h2>
+          <h2 className="text-[24px] font-bold tracking-tight text-on-surface">Pedidos recientes</h2>
           <button type="button" onClick={() => navigate('/ale-bet/pedidos')} className="font-body text-[12px] font-medium text-on-surface-variant transition hover:text-on-surface">
             Ver todos →
           </button>

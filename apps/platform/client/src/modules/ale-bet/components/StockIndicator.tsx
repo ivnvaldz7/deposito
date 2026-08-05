@@ -34,7 +34,7 @@ export function StockIndicator({ disponible, reservado, cantidadPedida, classNam
     <div className={cn('space-y-0.5', className)}>
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span aria-label={`Stock ${nivel}`} className={cn('h-2.5 w-2.5 rounded-full', NIVEL_CLASSES[nivel])} />
-        <span className="font-heading text-[12px] font-bold text-on-surface">Disponible {disponible}</span>
+        <span className="text-[12px] font-bold text-on-surface">Disponible {disponible}</span>
         {muestraFaltante && (
           <span className="font-body text-[11px] font-semibold text-error">Faltan {faltan}u</span>
         )}

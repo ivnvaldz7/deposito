@@ -16,12 +16,12 @@ const TIPO_LABELS: Record<string, string> = {
   'pedido:completado': 'Pedido',
 }
 
-const TIPO_CHIP_COLORS: Record<string, { color: string; bg: string }> = {
+const TIPO_CHIP_COLORS: Record<string, { color: string; bg: string; border?: string }> = {
   ingreso_creado:    { color: 'var(--color-accent)', bg: 'var(--color-accent-bg)' },
   stock_actualizado: { color: 'var(--color-accent)', bg: 'var(--color-accent-bg)' },
   orden_creada:      { color: 'var(--color-warning)', bg: 'color-mix(in srgb, var(--color-warning) 10%, transparent)' },
   orden_actualizada: { color: 'var(--color-accent)', bg: 'var(--color-accent-bg)' },
-  stock_bajo:        { color: 'var(--color-danger)', bg: 'color-mix(in srgb, var(--color-danger) 10%, transparent)' },
+  stock_bajo:        { color: '#A06869', bg: '#F5ECEC', border: '1px solid #D5B4B5' },
   vencimiento_proximo: { color: 'var(--color-warning)', bg: 'color-mix(in srgb, var(--color-warning) 10%, transparent)' },
   'pedido:aprobado': { color: 'var(--color-accent)', bg: 'var(--color-accent-bg)' },
   'pedido:completado':{ color: 'var(--color-success, #22c55e)', bg: 'color-mix(in srgb, #22c55e 10%, transparent)' },
@@ -59,7 +59,7 @@ export function FeedItem({ notification: n, onMarkRead }: FeedItemProps) {
           )}
           <span
             className="inline-block font-body text-xs font-medium px-1.5 py-0.5 rounded shrink-0"
-            style={{ color: chipStyle.color, backgroundColor: chipStyle.bg }}
+            style={{ color: chipStyle.color, backgroundColor: chipStyle.bg, border: chipStyle.border ?? '1px solid transparent' }}
           >
             {TIPO_LABELS[n.tipo] ?? n.tipo}
           </span>

@@ -194,7 +194,7 @@ function AgregarEstucheModal({
             <DialogClose asChild>
               <button
                 type="button"
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
+                className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
               >
                 Cancelar
               </button>
@@ -312,7 +312,7 @@ function EditarEstucheModal({
             <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
               {updateMutation.isPending ? 'Guardando...' : 'Guardar'}
             </button>
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
               Cancelar
             </button>
           </div>

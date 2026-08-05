@@ -30,7 +30,7 @@ function auth(userId: string, role: 'admin' | 'vendedor' | 'armador'): string {
 async function fixture(state: 'APROBADO' | 'PREPARADO' = 'PREPARADO') {
   const id = crypto.randomUUID()
   const cliente = await prisma.cliente.create({ data: { nombre: `Cliente ${id}`, contacto: 'UAT' } })
-  const producto = await prisma.producto.create({ data: { nombre: `Producto ${id}`, sku: `SKU-${id}` } })
+  const producto = await prisma.producto.create({ data: { nombre: `Producto ${id}`, sku: `SKU-${id}`, unidadesPorCaja: 15 } })
   const lote = await prisma.lote.create({
     data: { numero: `L-${id}`, productoId: producto.id, cajas: 0, sueltos: 5, fechaProduccion: new Date(), fechaVencimiento: new Date(Date.now() + 86_400_000) },
   })
@@ -53,6 +53,27 @@ async function fixture(state: 'APROBADO' | 'PREPARADO' = 'PREPARADO') {
     })
   }
   return { cliente, producto, lote, pedido, reserva }
+}
+
+async function draftFixture() {
+  const id = crypto.randomUUID()
+  const cliente = await prisma.cliente.create({ data: { nombre: `Cliente borrador ${id}`, contacto: 'UAT' } })
+  const producto = await prisma.producto.create({ data: { nombre: `Producto borrador ${id}`, sku: `SKU-BORRADOR-${id}`, unidadesPorCaja: 15 } })
+  const lote = await prisma.lote.create({
+    data: { numero: `L-BORRADOR-${id}`, productoId: producto.id, cajas: 0, sueltos: 5, fechaProduccion: new Date(), fechaVencimiento: new Date(Date.now() + 86_400_000) },
+  })
+  const pedido = await prisma.pedido.create({
+    data: {
+      numero: `P-BORRADOR-${id}`,
+      clienteId: cliente.id,
+      vendedorId: 'seller-1',
+      estado: 'BORRADOR',
+      items: { create: [{ productoId: producto.id, cantidad: 5 }] },
+    },
+    include: { items: true },
+  })
+  await prisma.pedidoAuditoria.create({ data: { pedidoId: pedido.id, actorId: 'seller-1', accion: 'PEDIDO_CREADO' } })
+  return { cliente, producto, lote, pedido }
 }
 
 describe('ALEBET-01 verify fixes - database integration', () => {
@@ -87,6 +108,56 @@ describe('ALEBET-01 verify fixes - database integration', () => {
       { estado: 'LIBERADA', itemPedidoId: null, loteId: data.lote.id, cantidad: 5 },
       { estado: 'ACTIVA', itemPedidoId: expect.any(String), loteId: data.lote.id, cantidad: 4 },
     ])
+  })
+
+  it('discards a BORRADOR from detail, lists, dashboard, and dependent records without touching stock', async () => {
+    const data = await draftFixture()
+    const stockBefore = await prisma.lote.findUniqueOrThrow({ where: { id: data.lote.id }, select: { cajas: true, sueltos: true } })
+
+    const response = await request(app).put(`/api/ale-bet/pedidos/${data.pedido.id}/cancelar`)
+      .set('Authorization', auth('seller-1', 'vendedor')).send({ expectedVersion: 1 }).expect(200)
+
+    expect(response.body).toEqual({ discarded: true, requested: false, pedidoId: data.pedido.id })
+    await request(app).get(`/api/ale-bet/pedidos/${data.pedido.id}`).set('Authorization', auth('seller-1', 'vendedor')).expect(404)
+    const list = await request(app).get('/api/ale-bet/pedidos').set('Authorization', auth('seller-1', 'vendedor')).expect(200)
+    expect(list.body).not.toContainEqual(expect.objectContaining({ id: data.pedido.id }))
+    const dashboard = await request(app).get('/api/ale-bet/dashboard').set('Authorization', auth('seller-1', 'vendedor')).expect(200)
+    expect(dashboard.body.pedidosRecientes).not.toContainEqual(expect.objectContaining({ id: data.pedido.id }))
+    expect(await prisma.itemPedido.count({ where: { pedidoId: data.pedido.id } })).toBe(0)
+    expect(await prisma.pedidoAuditoria.count({ where: { pedidoId: data.pedido.id } })).toBe(0)
+    expect(await prisma.reservaStock.count({ where: { pedidoId: data.pedido.id } })).toBe(0)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: data.pedido.id } })).toBe(0)
+    expect(await prisma.cliente.count({ where: { id: data.cliente.id } })).toBe(1)
+    expect(await prisma.producto.count({ where: { id: data.producto.id } })).toBe(1)
+    expect(await prisma.lote.findUnique({ where: { id: data.lote.id }, select: { cajas: true, sueltos: true } })).toEqual(stockBefore)
+  })
+
+  it('keeps an APROBADO order as CANCELADO and releases its reservation', async () => {
+    const data = await fixture('APROBADO')
+
+    await request(app).put(`/api/ale-bet/pedidos/${data.pedido.id}/cancelar`)
+      .set('Authorization', auth('seller-1', 'vendedor')).send({ expectedVersion: 1 }).expect(200)
+
+    expect(await prisma.pedido.findUnique({ where: { id: data.pedido.id }, select: { estado: true, canceladoAt: true } })).toEqual({ estado: 'CANCELADO', canceladoAt: expect.any(Date) })
+    expect(await prisma.reservaStock.findUnique({ where: { id: data.reserva.id }, select: { estado: true } })).toEqual({ estado: 'LIBERADA' })
+    expect(await prisma.pedidoAuditoria.findMany({ where: { pedidoId: data.pedido.id }, select: { accion: true } })).toContainEqual({ accion: 'PEDIDO_CANCELADO' })
+  })
+
+  it('keeps an EN_ARMADO order after requested cancellation until the armador confirms it', async () => {
+    const data = await fixture('APROBADO')
+    await prisma.pedido.update({ where: { id: data.pedido.id }, data: { estado: 'EN_ARMADO', armadorId: 'picker-1' } })
+
+    const requested = await request(app).put(`/api/ale-bet/pedidos/${data.pedido.id}/cancelar`)
+      .set('Authorization', auth('seller-1', 'vendedor')).send({ expectedVersion: 1, motivo: 'Cliente pidió detener el armado' }).expect(202)
+    expect(requested.body).toEqual(expect.objectContaining({ requested: true }))
+    expect(await prisma.pedido.findUnique({ where: { id: data.pedido.id }, select: { estado: true } })).toEqual({ estado: 'EN_ARMADO' })
+
+    await request(app).put(`/api/ale-bet/pedidos/${data.pedido.id}/confirmar-cancelacion`)
+      .set('Authorization', auth('picker-1', 'armador')).send({ expectedVersion: 2, motivo: 'Cancelación confirmada en armado' }).expect(200)
+
+    expect(await prisma.pedido.findUnique({ where: { id: data.pedido.id }, select: { estado: true } })).toEqual({ estado: 'CANCELADO' })
+    expect(await prisma.reservaStock.findUnique({ where: { id: data.reserva.id }, select: { estado: true } })).toEqual({ estado: 'LIBERADA' })
+    expect(await prisma.pedidoAuditoria.findMany({ where: { pedidoId: data.pedido.id }, select: { accion: true } })).toEqual(expect.arrayContaining([{ accion: 'CANCELACION_SOLICITADA' }, { accion: 'CANCELACION_CONFIRMADA' }]))
   })
 
   it('rejects disabling a lot with an active reservation instead of hiding reserved physical stock', async () => {

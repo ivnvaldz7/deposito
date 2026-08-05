@@ -86,7 +86,7 @@ export function UserModal({ open, onClose, onCreate }: UserModalProps) {
       <div className="w-full max-w-xl rounded-xl border border-white/10 bg-surface-container-low p-6 shadow-float">
         <div className="mb-6 flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-semibold font-heading text-on-surface">Nuevo usuario</h2>
+            <h2 className="text-xl font-semibold text-on-surface">Nuevo usuario</h2>
             <p className="mt-1 font-body text-sm text-on-surface-variant">
               Creá credenciales y accesos por app.
             </p>

@@ -35,7 +35,7 @@ export function PageHeader({
       >
         <div className="space-y-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <h1 className="font-heading text-2xl font-bold uppercase tracking-tight text-on-surface">
+            <h1 className="text-2xl font-bold uppercase tracking-tight text-on-surface">
               {title}
             </h1>
 
@@ -44,7 +44,7 @@ export function PageHeader({
                 <button
                   type="button"
                   onClick={primaryAction.onClick}
-                  className="inline-flex w-auto items-center gap-2 self-start rounded px-5 py-2.5 font-heading text-sm font-semibold transition-[box-shadow] hover:[box-shadow:inset_0_0_0_999px_rgba(255,255,255,0.10)]"
+                  className="inline-flex w-auto items-center gap-2 self-start rounded px-5 py-2.5 text-sm font-semibold transition-[box-shadow] hover:[box-shadow:inset_0_0_0_999px_rgba(255,255,255,0.10)]"
                   style={{ backgroundColor: 'var(--color-accent)', color: 'var(--color-bg)' }}
                 >
                   {primaryAction.icon}
@@ -58,7 +58,7 @@ export function PageHeader({
             {stats.map((stat) => (
               <div key={stat.label} className="min-w-[110px]">
                 <p
-                  className="font-heading text-3xl font-bold leading-none"
+                  className="text-3xl font-bold leading-none"
                   style={{ color: stat.warning ? 'var(--color-warning)' : 'var(--color-accent)' }}
                 >
                   {stat.value}
@@ -77,7 +77,7 @@ export function PageHeader({
                   key={action.label}
                   type="button"
                   onClick={action.onClick}
-                  className="inline-flex w-auto items-center justify-center gap-2 self-start rounded px-4 py-2 font-heading text-sm font-semibold text-on-surface transition-colors hover:bg-surface-bright"
+                  className="inline-flex w-auto items-center justify-center gap-2 self-start rounded px-4 py-2 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-bright"
                   style={{ backgroundColor: 'var(--color-accent-bg)' }}
                 >
                   {action.icon}

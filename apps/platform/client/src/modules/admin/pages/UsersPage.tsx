@@ -64,7 +64,7 @@ export default function UsersPage() {
             <p className="font-body text-xs uppercase tracking-[0.2em] text-primary">
               Platform
             </p>
-            <h1 className="mt-2 text-3xl font-bold font-heading text-on-surface">
+            <h1 className="mt-2 text-3xl font-bold text-on-surface">
               Plataforma Admin
             </h1>
             <p className="mt-2 font-body text-sm text-on-surface-variant">
@@ -76,7 +76,7 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary font-heading transition hover:bg-primary-dim scale-hover"
+              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-primary-dim scale-hover"
             >
               Nuevo usuario
             </button>

@@ -251,7 +251,7 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
               {createMutation.isPending ? 'Creando...' : 'Crear producto'}
             </button>
-            <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+            <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
               Cancelar
             </button>
           </div>
@@ -420,7 +420,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
             <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
               {updateMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
             </button>
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
               Cancelar
             </button>
           </div>
@@ -453,7 +453,7 @@ function ConfirmActionDialog({
             type="button"
             onClick={onConfirm}
             disabled={loading}
-            className={`flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors ${
+            className={`flex-1 py-2.5 text-sm font-semibold rounded transition-colors ${
               danger
                 ? 'bg-error text-white hover:opacity-90'
                 : 'btn-primary flex-1 py-2.5 text-sm'
@@ -461,7 +461,7 @@ function ConfirmActionDialog({
           >
             {loading ? 'Procesando...' : confirmLabel}
           </button>
-          <button type="button" onClick={() => onOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+          <button type="button" onClick={() => onOpenChange(false)} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
             Cancelar
           </button>
         </div>
@@ -628,7 +628,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                   {file ? (
                     <div className="flex flex-wrap items-center justify-center gap-2">
                       <FileSpreadsheet size={16} />
-                      <span className="font-mono text-sm text-on-surface">{file.name}</span>
+                      <span className="text-sm text-on-surface">{file.name}</span>
                       <span className="text-xs text-on-surface-variant">({file.name.split('.').pop()?.toUpperCase()})</span>
                       <button
                         type="button"
@@ -681,7 +681,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 
             {!canPreview && !dryRunMutation.isPending && (
               <div className="shrink-0 flex gap-3 pt-4">
-                <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+                <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                   Cerrar
                 </button>
               </div>
@@ -693,10 +693,10 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
             <div className="shrink-0 flex items-center justify-between pb-3 border-b border-outline-variant/20 mb-3">
               <div className="flex items-center gap-2">
                 <FileSpreadsheet size={18} />
-                <h2 className="font-heading font-semibold text-lg text-on-surface">Importar productos</h2>
+                <h2 className="font-semibold text-lg text-on-surface">Importar productos</h2>
               </div>
               <div className="flex items-center gap-3">
-                <span className="font-mono text-sm text-on-surface-variant">{file?.name}</span>
+                <span className="text-sm text-on-surface-variant">{file?.name}</span>
                 <button
                   type="button"
                   onClick={handleRemoveFile}
@@ -733,7 +733,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                     type="button"
                     onClick={() => setRowFilter(f)}
                     aria-pressed={rowFilter === f}
-                    className={`px-3 py-1.5 font-heading text-xs font-semibold transition-colors ${
+                    className={`px-3 py-1.5 text-xs font-semibold transition-colors ${
                       rowFilter === f
                         ? 'bg-primary-container/20 text-primary'
                         : 'bg-transparent text-on-surface-variant hover:bg-surface-variant/40'
@@ -775,8 +775,8 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                   <tbody>
                     {filteredRows.map((row) => (
                       <tr key={row.fila} className="border-b border-outline-variant/5 hover:bg-surface-variant/20 align-top">
-                        <td className="px-3 py-2 font-mono text-xs text-on-surface-variant whitespace-nowrap">{row.fila}</td>
-                        <td className="px-3 py-2 font-mono text-xs whitespace-nowrap">
+                        <td className="px-3 py-2 text-xs text-on-surface-variant whitespace-nowrap">{row.fila}</td>
+                        <td className="px-3 py-2 text-xs whitespace-nowrap">
                           {row.producto?.codigo ?? <span className="italic text-on-surface-variant">—</span>}
                         </td>
                         <td className="px-3 py-2 font-body text-sm break-words">
@@ -824,7 +824,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                 >
                   {confirmMutation.isPending ? 'Importando...' : `Confirmar importación (${importResult.validas} productos)`}
                 </button>
-                <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+                <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                   Cancelar
                 </button>
               </div>
@@ -959,10 +959,10 @@ export default function ProductosPage() {
       {/* Header */}
       <header className="shrink-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-lg">
         <div className="flex items-center gap-md">
-          <h1 className="font-heading text-xl font-semibold text-on-surface tracking-tight">
+          <h1 className="text-xl font-semibold text-on-surface tracking-tight">
             Productos
           </h1>
-          <span className="bg-surface-variant text-on-surface-variant font-mono text-xs px-2 py-1 rounded-md border border-white/5">
+          <span className="bg-surface-variant text-on-surface-variant text-xs px-2 py-1 rounded-md border border-white/5">
             {productos.length} en catálogo
           </span>
         </div>
@@ -1003,7 +1003,7 @@ export default function ProductosPage() {
 
           {isEncargado && (
             <>
-              <button type="button" onClick={() => setShowImport(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-heading font-semibold text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+              <button type="button" onClick={() => setShowImport(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                 <Upload size={14} />
                 Importar
               </button>
@@ -1051,7 +1051,7 @@ export default function ProductosPage() {
                     <TableCell>
                       <span className="font-body text-sm font-medium">{p.nombreBase}</span>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
+                    <TableCell className="text-sm">
                       {p.codigo ?? <span className="italic text-on-surface-variant">Código pendiente</span>}
                     </TableCell>
                     <TableCell>
@@ -1059,7 +1059,7 @@ export default function ProductosPage() {
                     </TableCell>
                     <TableCell>
                       {p.presentacion != null
-                        ? <span className="font-mono text-sm">{p.presentacion}</span>
+                        ? <span className="text-sm">{p.presentacion}</span>
                         : <span className="italic text-on-surface-variant">—</span>
                       }
                     </TableCell>

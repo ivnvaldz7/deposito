@@ -72,7 +72,7 @@ export function Button({
       onClick={onClick}
       className={cn(
         'inline-flex items-center justify-center gap-2',
-        'font-heading font-semibold',
+        'font-semibold',
         'transition-colors rounded',
         variantStyles[variant],
         sizeStyles[size],

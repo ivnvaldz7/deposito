@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { useHistorial } from '../queries'
 import { toast } from '@/lib/toast'
 import { useClientes } from '../queries'
+import { DatePicker } from '@/components/ui/DatePicker'
 
 const ESTADOS = [
   { value: '', label: 'Todos los estados' },
@@ -64,7 +65,7 @@ export default function HistorialPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Historial</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Historial</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Historial de pedidos</p>
         </div>
         <button
@@ -79,20 +80,20 @@ export default function HistorialPage() {
       <div className="flex flex-wrap gap-4">
         <div>
           <label className="mb-1 block font-body text-[10px] uppercase tracking-[0.8px] text-outline">Desde</label>
-          <input
-            type="date"
+          <DatePicker
             value={desde}
-            onChange={(e) => setDesde(e.target.value)}
-            className="input-field"
+            onChange={setDesde}
+            className="input-field min-w-[140px]"
+            placeholder="Desde"
           />
         </div>
         <div>
           <label className="mb-1 block font-body text-[10px] uppercase tracking-[0.8px] text-outline">Hasta</label>
-          <input
-            type="date"
+          <DatePicker
             value={hasta}
-            onChange={(e) => setHasta(e.target.value)}
-            className="input-field"
+            onChange={setHasta}
+            className="input-field min-w-[140px]"
+            placeholder="Hasta"
           />
         </div>
         <div>
@@ -133,31 +134,35 @@ export default function HistorialPage() {
           <table className="w-full text-left font-body text-[12px]">
             <thead>
               <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                <th className="px-5 py-3 font-medium">Número</th>
                 <th className="px-5 py-3 font-medium">Cliente</th>
+                <th className="px-5 py-3 font-medium">Estado</th>
                 <th className="px-5 py-3 font-medium">Vendedor</th>
                 <th className="px-5 py-3 font-medium">Armador</th>
-                <th className="px-5 py-3 font-medium text-right">Items</th>
+                <th className="px-5 py-3 font-medium">Número</th>
                 <th className="px-5 py-3 font-medium">Fecha</th>
-                <th className="px-5 py-3 font-medium text-center">Estado</th>
+                <th className="px-5 py-3 font-medium text-center">Items</th>
               </tr>
             </thead>
             <tbody>
               {pedidos.map((p) => (
                 <tr key={p.id} className="border-b border-white/10 last:border-0">
-                  <td className="px-5 py-4 font-semibold text-on-surface">{p.numero}</td>
-                  <td className="px-5 py-4 text-on-surface">{p.clienteNombre}</td>
-                  <td className="px-5 py-4 text-outline">{p.vendedorNombre}</td>
-                  <td className="px-5 py-4 text-outline">{p.armadorNombre ?? '—'}</td>
-                  <td className="px-5 py-4 text-right text-outline">{p.items.length}</td>
-                  <td className="px-5 py-4 text-outline">
-                    {new Date(p.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <span className={`inline-flex items-center justify-center rounded-full font-heading font-semibold text-xs px-2 py-0.5 w-[88px] ${getEstadoBadge(p.estado)}`}>
+                  <td className="px-5 py-4 font-bold text-[14px] text-on-surface">{p.clienteNombre}</td>
+                  <td className="px-5 py-4">
+                    <span className={`inline-flex items-center justify-center rounded-full font-semibold text-[11px] px-2 py-0.5 whitespace-nowrap ${getEstadoBadge(p.estado)}`}>
                       {p.estado.replace('_', ' ')}
                     </span>
                   </td>
+                  <td className="px-5 py-4 font-medium text-[13px] text-on-surface">{p.vendedorNombre}</td>
+                  <td className="px-5 py-4 font-medium text-[13px] text-on-surface">
+                    {p.armadorNombre ? p.armadorNombre : (
+                      <span className="text-on-surface-variant/60 italic font-normal">Sin asignar</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-4 text-[12px] text-on-surface-variant">{p.numero}</td>
+                  <td className="px-5 py-4 text-[12px] text-on-surface-variant whitespace-nowrap">
+                    {new Date(p.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}
+                  </td>
+                  <td className="px-5 py-4 text-[12px] text-on-surface-variant text-center">{p.items.length}</td>
                 </tr>
               ))}
             </tbody>

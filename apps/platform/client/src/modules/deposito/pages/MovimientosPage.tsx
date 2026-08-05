@@ -56,7 +56,7 @@ function CantidadCell({ cantidad, tipo }: { cantidad: number; tipo: string }) {
   const prefix = tipo === 'ingreso_acta' ? '+' : '-'
   return (
     <span
-      className="font-mono text-sm font-bold tabular-nums"
+      className="text-sm font-bold tabular-nums"
       style={{ color }}
     >
       {prefix}{Math.abs(cantidad)}
@@ -192,7 +192,7 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
             }}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder="Buscar producto..."
-            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-[36px] pr-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-xs outline-none"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-[36px] pr-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all text-xs outline-none"
             autoComplete="off"
           />
         </div>
@@ -339,7 +339,7 @@ export default function MovimientosPage() {
     <div className="flex flex-col h-full space-y-lg">
       {/* Header */}
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-on-surface tracking-tight">
+        <h1 className="text-2xl font-semibold text-on-surface tracking-tight">
           Auditoría de Movimientos
         </h1>
         <p className="font-body text-sm text-on-surface-variant mt-1">
@@ -370,7 +370,7 @@ export default function MovimientosPage() {
         <>
           {/* Desktop Table */}
           <div className="hidden md:block bg-surface-container border border-white/10 rounded-xl overflow-hidden flex-1 shadow-float">
-            <table className="w-full text-left border-collapse font-mono text-xs">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="bg-surface-container-highest border-b border-white/10">
                 <tr>
                   <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-12 text-center">Dir</th>
@@ -395,7 +395,7 @@ export default function MovimientosPage() {
                         <DirectionIcon tipo={mov.tipo} />
                       </td>
                       <td className={`p-sm ${isFlagged ? 'text-error' : 'text-outline'}`}>
-                        <span className="font-mono text-xs">TX-{mov.id.slice(0, 5).toUpperCase()}</span>
+                        <span className="text-xs">TX-{mov.id.slice(0, 5).toUpperCase()}</span>
                       </td>
                       <td className="p-sm">
                         <div className={`font-body text-sm font-medium group-hover:text-primary transition-colors ${isFlagged ? 'text-error' : 'text-on-surface'} flex items-center gap-2`}>
@@ -411,13 +411,13 @@ export default function MovimientosPage() {
                           {mov.categoria} · Ref: {mov.referenciaId ? mov.referenciaId.slice(0, 8) : '—'}
                         </div>
                       </td>
-                      <td className="p-sm text-on-surface-variant font-mono text-xs">
+                      <td className="p-sm text-on-surface-variant text-xs">
                         {formatFechaCompleta(mov.createdAt)}
                       </td>
                       <td className="p-sm text-right">
                         <CantidadCell cantidad={mov.cantidad} tipo={mov.tipo} />
                       </td>
-                      <td className="p-sm text-center text-outline font-mono text-xs">
+                      <td className="p-sm text-center text-outline text-xs">
                         {mov.user.name.length > 4
                           ? mov.user.name.split(' ').map((n) => n[0]).join('').slice(0, 3).toUpperCase()
                           : mov.user.name}
@@ -430,7 +430,7 @@ export default function MovimientosPage() {
 
             {/* Pagination */}
             <div className="border-t border-white/10 p-sm flex items-center justify-between bg-surface-container-low">
-              <span className="font-mono text-xs text-outline-variant">
+              <span className="text-xs text-outline-variant">
                 Showing {(currentPage - 1) * perPage + 1}–{Math.min(currentPage * perPage, movimientos.length)} of {movimientos.length} entries
               </span>
               <div className="flex gap-1">
@@ -462,7 +462,7 @@ export default function MovimientosPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <DirectionIcon tipo={mov.tipo} />
-                    <span className="font-mono text-xs text-outline">
+                    <span className="text-xs text-outline">
                       TX-{mov.id.slice(0, 5).toUpperCase()}
                     </span>
                   </div>
@@ -473,7 +473,7 @@ export default function MovimientosPage() {
                 </p>
                 <div className="flex items-center justify-between text-xs text-on-surface-variant">
                   <span>{formatFechaCompleta(mov.createdAt)}</span>
-                  <span className="font-mono text-outline">{mov.user.name}</span>
+                  <span className="text-outline">{mov.user.name}</span>
                 </div>
               </div>
             ))}

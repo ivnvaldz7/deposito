@@ -8,9 +8,11 @@ export const pedidosKeys = {
   detail: (id: string) => [...pedidosKeys.all, 'detail', id] as const,
 }
 
-function invalidatePedido(qc: QueryClient, pedido: Pick<Pedido, 'id'>) {
+function invalidatePedido(qc: QueryClient, pedido: Pick<Pedido, 'id'> | string) {
+  const pedidoId = typeof pedido === 'string' ? pedido : pedido.id
   qc.invalidateQueries({ queryKey: pedidosKeys.all })
-  qc.invalidateQueries({ queryKey: pedidosKeys.detail(pedido.id) })
+  qc.invalidateQueries({ queryKey: pedidosKeys.detail(pedidoId) })
+  qc.invalidateQueries({ queryKey: ['ale-bet', 'dashboard'] })
 }
 
 export function usePedidos(filters?: { estado?: PedidoEstado; vendedorId?: string }) {
@@ -91,7 +93,7 @@ export function useCancelarPedido() {
   return useMutation({
     mutationFn: ({ id, expectedVersion, motivo, idempotencyKey }: { id: string; expectedVersion: number; motivo?: string; idempotencyKey?: string }) =>
       aleBetApi.pedidos.cancelar(id, { expectedVersion, motivo }, idempotencyKey ? { idempotencyKey } : undefined),
-    onSuccess: ({ pedido }) => invalidatePedido(qc, pedido),
+    onSuccess: (response, { id }) => invalidatePedido(qc, response.discarded ? response.pedidoId : response.pedido.id ?? id),
   })
 }
 

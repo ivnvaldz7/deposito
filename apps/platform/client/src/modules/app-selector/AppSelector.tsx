@@ -35,7 +35,7 @@ function EmptyState() {
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container">
           <Shield size={28} className="text-on-surface-variant" />
         </div>
-        <h1 className="mb-2 font-heading text-2xl font-bold text-on-surface">
+        <h1 className="mb-2 text-2xl font-bold text-on-surface">
           Sin apps disponibles
         </h1>
         <p className="font-body text-sm text-on-surface-variant">
@@ -77,7 +77,7 @@ export default function AppSelector() {
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary-container">
             <Package size={24} className="text-on-primary-container" />
           </div>
-          <h1 className="mb-1 font-heading text-2xl font-bold tracking-tight text-on-surface">
+          <h1 className="mb-1 text-2xl font-bold tracking-tight text-on-surface">
             Plataforma
           </h1>
           <p className="font-body text-sm text-on-surface-variant">
@@ -118,7 +118,7 @@ export default function AppSelector() {
 
                   {/* Text content */}
                   <div className="min-w-0 flex-1">
-                    <h2 className="font-heading text-base font-semibold text-on-surface group-hover:text-primary transition-colors">
+                    <h2 className="text-base font-semibold text-on-surface group-hover:text-primary transition-colors">
                       {info.name}
                     </h2>
                     {info.desc && (
@@ -127,7 +127,7 @@ export default function AppSelector() {
                       </p>
                     )}
 
-                    <span className="mt-2 inline-flex items-center gap-1.5 font-heading text-xs font-medium text-primary/80 group-hover:text-primary transition-colors">
+                    <span className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary/80 group-hover:text-primary transition-colors">
                       Ingresar
                       <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
                     </span>

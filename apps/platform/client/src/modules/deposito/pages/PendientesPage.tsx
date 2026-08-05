@@ -393,14 +393,14 @@ function EnviarModal({
               <button
                 type="button"
                 onClick={() => handleOpenChange(false)}
-                className="px-3 py-2 font-heading text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+                className="px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedFrasco}
-                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
+                className="flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
               >
                 <Plus size={13} strokeWidth={2} />
                 {isSubmitting ? 'Guardando...' : 'Enviar'}
@@ -474,7 +474,7 @@ function RecibirModal({
       <button
         type="button"
         onClick={() => handleOpenChange(true)}
-        className="flex items-center gap-1.5 rounded px-3 py-1.5 font-heading text-xs font-semibold transition-opacity bg-primary text-on-primary"
+        className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-opacity bg-primary text-on-primary"
       >
         <Check size={12} strokeWidth={2} />
         Marcar como recibido
@@ -493,19 +493,19 @@ function RecibirModal({
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Enviadas</p>
-                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                <p className="mt-1 text-lg font-semibold text-on-surface tabular-nums">
                   {pendiente.cantidad}
                 </p>
               </div>
               <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Recibidas</p>
-                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                <p className="mt-1 text-lg font-semibold text-on-surface tabular-nums">
                   {Number.isFinite(cantidadRecibida) ? cantidadRecibida : 0}
                 </p>
               </div>
               <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Siguen afuera</p>
-                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                <p className="mt-1 text-lg font-semibold text-on-surface tabular-nums">
                   {cantidadRestante}
                 </p>
               </div>
@@ -539,14 +539,14 @@ function RecibirModal({
               <button
                 type="button"
                 onClick={() => handleOpenChange(false)}
-                className="px-3 py-2 font-heading text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+                className="px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
+                className="flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
               >
                 <Check size={13} strokeWidth={2} />
                 {isSubmitting ? 'Guardando...' : 'Confirmar recepción'}
@@ -611,7 +611,7 @@ function PendienteCard({
           <button
             type="button"
             onClick={() => onCrearIngreso(pendiente)}
-            className="flex items-center gap-1.5 rounded bg-surface-container-high px-3 py-1.5 font-heading text-xs font-semibold text-on-surface transition-colors hover:bg-surface-bright"
+            className="flex items-center gap-1.5 rounded bg-surface-container-high px-3 py-1.5 text-xs font-semibold text-on-surface transition-colors hover:bg-surface-bright"
           >
             <PackagePlus size={12} strokeWidth={1.5} />
             Crear ingreso
@@ -689,7 +689,7 @@ export default function PendientesPage() {
       ) : (
         <div className="space-y-8">
           <section className="space-y-3">
-            <h2 className="font-heading text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               En esterilización
               {enEsterilizacion.length > 0 && (
                 <span
@@ -720,7 +720,7 @@ export default function PendientesPage() {
           </section>
 
           <section className="space-y-3">
-            <h2 className="font-heading text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               Recibidos
               {recibidos.length > 0 && (
                 <span

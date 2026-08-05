@@ -116,7 +116,7 @@ function ClienteFormModal({
         className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-surface-container-low shadow-float animate-slide-up lg:static lg:mx-auto lg:max-h-[calc(100dvh-3rem)] lg:w-full lg:max-w-lg lg:animate-none lg:rounded-xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-          <h3 className="font-heading text-[15px] font-bold text-on-surface">{titulo}</h3>
+          <h3 className="text-[15px] font-bold text-on-surface">{titulo}</h3>
           <button
             type="button"
             onClick={onClose}
@@ -189,7 +189,7 @@ function ClienteCard({ cliente, puedeEditar, onEditar }: ClienteCardProps) {
     <article className="rounded-xl border border-white/10 bg-surface-container-high p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-heading text-[14px] font-semibold text-on-surface">{cliente.nombre}</p>
+          <p className="truncate text-[14px] font-semibold text-on-surface">{cliente.nombre}</p>
           <p className="mt-0.5 truncate font-body text-[11px] text-on-surface-variant">
             {cliente.contacto ?? cliente.referencia ?? '—'}
           </p>
@@ -337,7 +337,7 @@ export default function ClientesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Clientes</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Clientes</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Gestión de clientes</p>
         </div>
         {puedeCrear && (
@@ -362,7 +362,7 @@ export default function ClientesPage() {
       {pendientes.length > 0 && (
         <section data-testid="clientes-pendientes" className="rounded-2xl border border-warning/40 bg-warning/10 p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-heading text-[16px] font-bold text-on-surface">Clientes pendientes</h2>
+            <h2 className="text-[16px] font-bold text-on-surface">Clientes pendientes</h2>
             <Badge variant="warning">{pendientes.length}</Badge>
           </div>
           <p className="mt-1 font-body text-[12px] text-on-surface-variant">
@@ -377,7 +377,7 @@ export default function ClientesPage() {
                 className="flex items-center justify-between gap-3 rounded-xl border border-warning/20 bg-surface-container-high px-4 py-3"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-heading text-[13px] font-semibold text-on-surface">{c.nombre}</p>
+                  <p className="truncate text-[13px] font-semibold text-on-surface">{c.nombre}</p>
                   <p className="truncate font-body text-[11px] text-on-surface-variant">
                     {c.contacto ?? c.referencia ?? 'Sin contacto ni referencia'}
                   </p>
@@ -484,7 +484,7 @@ export default function ClientesPage() {
             className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-heading text-[16px] font-bold text-on-surface">
+            <h2 className="text-[16px] font-bold text-on-surface">
               {confirmar.activo ? 'Desactivar cliente' : 'Activar cliente'}
             </h2>
             <p className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">

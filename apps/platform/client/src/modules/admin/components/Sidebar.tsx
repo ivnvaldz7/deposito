@@ -43,17 +43,17 @@ export default function AdminSidebar() {
     <aside className="hidden md:flex flex-col h-full w-72 rounded-r-xl border-r border-white/10 bg-surface-container-low shadow-float py-lg z-40 fixed top-0 left-0">
       {/* Profile Header */}
       <div className="px-4 mb-xl flex items-center space-x-3">
-        <div className="w-12 h-12 rounded-full bg-surface-variant border-2 border-primary flex items-center justify-center text-primary font-heading font-bold text-lg shrink-0">
+        <div className="w-12 h-12 rounded-full bg-surface-variant border-2 border-primary flex items-center justify-center text-primary font-bold text-lg shrink-0">
           {user?.name?.charAt(0)?.toUpperCase() ?? '?'}
         </div>
         <div className="min-w-0">
-          <div className="font-heading text-sm font-semibold text-primary truncate">
+          <div className="text-sm font-semibold text-primary truncate">
             {user?.name ?? 'Sin usuario'}
           </div>
           <div className="font-body text-xs text-on-surface-variant truncate">
             Admin
           </div>
-          <div className="font-mono text-[11px] text-outline mt-0.5">
+          <div className="text-[11px] text-outline mt-0.5">
             Plataforma
           </div>
         </div>

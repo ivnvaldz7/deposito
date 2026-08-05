@@ -22,7 +22,7 @@ const {
     producto: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
     lote: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
     itemPedido: { findFirst: vi.fn(), update: vi.fn(), deleteMany: vi.fn() },
-    pedido: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
+    pedido: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     cliente: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), createMany: vi.fn() },
     reservaStock: { findMany: vi.fn(), updateMany: vi.fn(), create: vi.fn(), aggregate: vi.fn() },
     movimientoStock: { create: vi.fn() },
@@ -161,6 +161,23 @@ describe('ALEBET-01 HTTP contracts', () => {
       .send({ expectedVersion: 1, motivo: 'Cliente pidió detener el armado' }).expect(202)
     expect(response.body.requested).toBe(true)
     expect(releaseActiveReservations).not.toHaveBeenCalled()
+  })
+
+  it('discards a BORRADOR by deleting its items and order without releasing stock', async () => {
+    mockDb.pedido.findUnique.mockResolvedValue(pedido({ estado: 'BORRADOR' }))
+    mockDb.itemPedido.deleteMany.mockResolvedValue({ count: 1 })
+    mockDb.pedido.delete.mockResolvedValue(pedido({ estado: 'BORRADOR' }))
+    const server = await app()
+
+    const response = await request(server).put('/api/ale-bet/pedidos/pedido-1/cancelar').set('Authorization', `Bearer ${token('vendedor')}`)
+      .send({ expectedVersion: 1 }).expect(200)
+
+    expect(response.body).toEqual({ discarded: true, requested: false, pedidoId: 'pedido-1' })
+    expect(mockDb.itemPedido.deleteMany).toHaveBeenCalledWith({ where: { pedidoId: 'pedido-1' } })
+    expect(mockDb.pedido.delete).toHaveBeenCalledWith({ where: { id: 'pedido-1' } })
+    expect(releaseActiveReservations).not.toHaveBeenCalled()
+    expect(mockDb.movimientoStock.create).not.toHaveBeenCalled()
+    expect(mockDb.pedidoAuditoria.create).not.toHaveBeenCalled()
   })
 
   it('only armador or admin can confirm an EN_ARMADO cancellation', async () => {

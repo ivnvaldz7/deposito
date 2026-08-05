@@ -142,7 +142,7 @@ export default function ActaNuevaPage() {
           >
             <ArrowLeft size={24} />
           </button>
-          <h1 className="font-heading text-lg font-semibold text-primary">Nuevo Ingreso</h1>
+          <h1 className="text-lg font-semibold text-primary">Nuevo Ingreso</h1>
         </div>
       </header>
 
@@ -154,7 +154,7 @@ export default function ActaNuevaPage() {
 
             <div className="p-lg">
               <div className="mb-lg">
-                <h2 className="font-heading text-lg font-semibold text-on-surface mb-1">Registrar ingreso</h2>
+                <h2 className="text-lg font-semibold text-on-surface mb-1">Registrar ingreso</h2>
                 <p className="font-body text-sm text-on-surface-variant">
                   Completá los datos del producto que ingresa al depósito.
                 </p>
@@ -168,7 +168,7 @@ export default function ActaNuevaPage() {
                       key={tipo}
                       type="button"
                       onClick={() => setTipoIngreso(tipo)}
-                      className={`flex-1 py-2 text-sm font-heading font-semibold rounded-md transition-all duration-200 ${
+                      className={`flex-1 py-2 text-sm font-semibold rounded-md transition-all duration-200 ${
                         tipoIngreso === tipo
                           ? 'bg-primary text-on-primary shadow-sm'
                           : 'text-on-surface-variant hover:text-on-surface'
@@ -186,7 +186,7 @@ export default function ActaNuevaPage() {
                         key={cat.value}
                         type="button"
                         onClick={() => setMercadoCat(cat.value)}
-                        className={`flex-1 py-1.5 text-xs font-heading font-semibold rounded-md transition-all duration-200 ${
+                        className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${
                           mercadoCat === cat.value
                             ? 'bg-secondary-container text-secondary'
                             : 'bg-surface-high text-on-surface-variant hover:text-on-surface'
@@ -368,7 +368,7 @@ export default function ActaNuevaPage() {
                   <button
                     type="button"
                     onClick={() => navigate('/deposito/actas')}
-                    className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
+                    className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors"
                   >
                     Cancelar
                   </button>

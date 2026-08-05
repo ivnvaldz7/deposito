@@ -153,10 +153,9 @@ export interface Remito {
   createdBy: string
 }
 
-export interface CancelarPedidoResponse {
-  requested: boolean
-  pedido: Pedido
-}
+export type CancelarPedidoResponse =
+  | { discarded: true; requested: false; pedidoId: string }
+  | { discarded?: false; requested: boolean; pedido: Pedido }
 
 // ─── Legacy types (dashboard/stock/historial remain misaligned on the server) ─
 

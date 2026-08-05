@@ -51,7 +51,7 @@ export function ArmadorActionBar({
         {enArmado && (
           <>
             <div className="flex shrink-0 flex-col items-center leading-none">
-              <span className="font-heading text-[16px] font-bold text-on-surface">
+              <span className="text-[16px] font-bold text-on-surface">
                 {itemsCompletados}/{pedido.items.length}
               </span>
               <span className="font-body text-[9px] font-semibold uppercase tracking-wide text-outline">items</span>

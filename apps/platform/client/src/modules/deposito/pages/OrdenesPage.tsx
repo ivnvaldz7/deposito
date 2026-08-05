@@ -277,7 +277,7 @@ function NuevaOrdenModal({
               {isSubmitting ? 'Enviando...' : 'Enviar orden'}
             </button>
             <DialogClose asChild>
-              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+              <button type="button" className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                 Cancelar
               </button>
             </DialogClose>
@@ -323,7 +323,7 @@ function RechazarModal({
       <button
         type="button"
         onClick={() => { setOpen(true); setError(null) }}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs transition-colors text-error bg-error/10"
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded font-semibold text-xs transition-colors text-error bg-error/10"
       >
         <X size={12} strokeWidth={2} />
         Rechazar
@@ -356,14 +356,14 @@ function RechazarModal({
                 type="button"
                 onClick={handleRechazar}
                 disabled={rejectMutation.isPending}
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded transition-colors bg-error text-white disabled:opacity-50"
+                className="flex-1 py-2.5 text-sm font-semibold rounded transition-colors bg-error text-white disabled:opacity-50"
               >
                 {rejectMutation.isPending ? 'Rechazando...' : 'Confirmar rechazo'}
               </button>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
+                className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
               >
                 Cancelar
               </button>
@@ -470,7 +470,7 @@ function OrdenCard({
               type="button"
               onClick={() => handleAction('aprobar')}
               disabled={approveMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity text-primary bg-primary-container/10"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50 transition-opacity text-primary bg-primary-container/10"
             >
               <Check size={12} strokeWidth={2} />
               {approveMutation.isPending ? 'Aprobando...' : 'Aprobar'}
@@ -481,7 +481,7 @@ function OrdenCard({
               type="button"
               onClick={() => handleAction('ejecutar')}
               disabled={executeMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs disabled:opacity-50 transition-opacity bg-primary text-on-primary"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-semibold text-xs disabled:opacity-50 transition-opacity bg-primary text-on-primary"
             >
               <Check size={12} strokeWidth={2} />
               {executeMutation.isPending ? 'Ejecutando...' : 'Ejecutar'}
@@ -492,7 +492,7 @@ function OrdenCard({
               type="button"
               onClick={() => handleAction('completar')}
               disabled={completeMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-heading font-semibold text-xs bg-surface-container-high hover:bg-surface-bright transition-colors disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded font-semibold text-xs bg-surface-container-high hover:bg-surface-bright transition-colors disabled:opacity-50"
             >
               {completeMutation.isPending ? 'Completando...' : 'Marcar completada'}
             </button>

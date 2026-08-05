@@ -204,7 +204,7 @@ function ItemRow({
                 setDistributing(true)
                 setError(null)
               }}
-              className="px-3 py-1 rounded font-heading font-semibold text-xs transition-colors bg-primary-container/20 text-primary"
+              className="px-3 py-1 rounded font-semibold text-xs transition-colors bg-primary-container/20 text-primary"
             >
               Distribuir
             </button>
@@ -216,7 +216,7 @@ function ItemRow({
 
       <div className="bg-surface-container-high/40 rounded px-3 py-3 space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <p className="font-heading text-on-surface text-xs uppercase tracking-widest font-semibold">
+          <p className="text-on-surface text-xs uppercase tracking-widest font-semibold">
             Control de Calidad
           </p>
           <div className="flex items-center gap-2">
@@ -225,7 +225,7 @@ function ItemRow({
                 type="button"
                 onClick={handleAprobarCalidad}
                 disabled={approvingQuality || aprobarCalidad.isPending}
-                className="px-3 py-1 rounded font-heading font-semibold text-xs transition-opacity disabled:opacity-50 bg-primary-container/20 text-primary"
+                className="px-3 py-1 rounded font-semibold text-xs transition-opacity disabled:opacity-50 bg-primary-container/20 text-primary"
               >
                 {approvingQuality || aprobarCalidad.isPending ? 'Aprobando...' : 'Aprobar calidad'}
               </button>
@@ -297,7 +297,7 @@ function ItemRow({
               type="button"
               onClick={confirm}
               disabled={distribuirItem.isPending}
-              className="px-3 py-1.5 rounded font-heading font-semibold text-xs transition-opacity bg-primary text-on-primary disabled:opacity-50"
+              className="px-3 py-1.5 rounded font-semibold text-xs transition-opacity bg-primary text-on-primary disabled:opacity-50"
             >
               {distribuirItem.isPending ? '...' : 'Confirmar'}
             </button>
@@ -422,7 +422,7 @@ export default function ActaDetallePage() {
       <div className="bg-surface-container-low rounded px-5 py-4 space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="font-heading text-on-surface font-semibold text-xl">
+            <h1 className="text-on-surface font-semibold text-xl">
               Acta {formatFecha(acta.fecha)}
             </h1>
             <p className="font-body text-on-surface-variant text-xs mt-1">

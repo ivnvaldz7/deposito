@@ -66,7 +66,7 @@ function ClienteCard({ cliente, onSelect }: { cliente: Cliente; onSelect: () => 
       className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-surface-container-high p-4 text-left transition enabled:active:scale-[0.99]"
     >
       <div className="min-w-0">
-        <p className="truncate font-heading text-[14px] font-semibold text-on-surface">{cliente.nombre}</p>
+        <p className="truncate text-[14px] font-semibold text-on-surface">{cliente.nombre}</p>
         <p className="mt-0.5 truncate font-body text-[11px] text-outline">
           {cliente.contacto ?? cliente.referencia ?? '—'}
         </p>
@@ -96,7 +96,7 @@ function LineaCarrito({
       className={cn('space-y-2 rounded-xl border bg-surface-container p-3', conflicto ? 'border-error/60' : 'border-white/10')}
     >
       <div className="flex items-center justify-between gap-2">
-        <p className="min-w-0 truncate font-heading text-[13px] font-semibold text-on-surface">{nombre}</p>
+        <p className="min-w-0 truncate text-[13px] font-semibold text-on-surface">{nombre}</p>
         <button
           type="button"
           onClick={onEliminar}
@@ -521,7 +521,7 @@ export default function NuevoPedidoPage() {
     return (
       <div className="mx-auto w-full max-w-lg space-y-5 pb-[max(env(safe-area-inset-bottom),1rem)]">
         <header className="space-y-1">
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Nuevo pedido</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Nuevo pedido</h1>
           <p className="font-body text-[13px] text-on-surface-variant">¿Para quién es el pedido?</p>
         </header>
 
@@ -537,7 +537,7 @@ export default function NuevoPedidoPage() {
 
         {busquedaCliente.trim() === '' && clientesRecientes.length > 0 && (
           <section aria-label="Clientes recientes" className="space-y-2">
-            <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">Recientes</h2>
+            <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-outline">Recientes</h2>
             {clientesRecientes.map((c) => (
               <ClienteCard key={c.id} cliente={c} onSelect={() => seleccionarCliente(c)} />
             ))}
@@ -545,7 +545,7 @@ export default function NuevoPedidoPage() {
         )}
 
         <section aria-label="Lista de clientes" className="space-y-2">
-          <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
+          <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-outline">
             {busquedaCliente.trim() === '' ? 'Todos los clientes' : 'Resultados'}
           </h2>
           {clientesLista.length === 0 ? (
@@ -584,7 +584,7 @@ export default function NuevoPedidoPage() {
     <div className="space-y-5 pb-[calc(env(safe-area-inset-bottom)+8rem)] lg:pb-8">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Nuevo pedido</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Nuevo pedido</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Agregá productos al pedido</p>
         </div>
         <div
@@ -615,7 +615,7 @@ export default function NuevoPedidoPage() {
           className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error/40 bg-error/10 p-4"
         >
           <div className="min-w-0">
-            <p className="font-heading text-[13px] font-bold text-error">Stock insuficiente</p>
+            <p className="text-[13px] font-bold text-error">Stock insuficiente</p>
             <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">
               {stockError.message}
               {stockError.ids.length > 0 && (
@@ -649,7 +649,7 @@ export default function NuevoPedidoPage() {
 
           {busquedaProducto.trim() !== '' ? (
             <section aria-label="Resultados de búsqueda" className="space-y-2">
-              <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
+              <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-outline">
                 Resultados para “{busquedaProducto.trim()}”
               </h2>
               {resultadosBusqueda.length === 0 ? (
@@ -673,7 +673,7 @@ export default function NuevoPedidoPage() {
             <>
               {frecuentes.length > 0 && (
                 <section aria-label="Frecuentes" className="space-y-2">
-                  <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
+                  <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-outline">
                     Frecuentes del cliente
                   </h2>
                   {frecuentes.map((p) => (
@@ -690,7 +690,7 @@ export default function NuevoPedidoPage() {
               )}
               {recientes.length > 0 && (
                 <section aria-label="Recientes" className="space-y-2">
-                  <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
+                  <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-outline">
                     Recientes
                   </h2>
                   {recientes.map((p) => (

@@ -86,7 +86,7 @@ export default function ActasPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold text-on-surface tracking-tight">
+          <h1 className="text-2xl font-bold text-on-surface tracking-tight">
             Actas
           </h1>
           <p className="font-body text-sm text-on-surface-variant mt-1">
@@ -198,7 +198,7 @@ export default function ActasPage() {
                         </span>
                       )}
                     </TableCell>
-                    <TableCell className="font-body text-on-surface-variant text-sm font-mono">
+                    <TableCell className="font-body text-on-surface-variant text-sm">
                       {firstItem?.lote ?? '—'}
                     </TableCell>
                     <TableCell className="font-body text-on-surface tabular-nums">

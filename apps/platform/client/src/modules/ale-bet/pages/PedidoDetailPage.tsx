@@ -52,7 +52,7 @@ import { BottomSheet } from '../components/BottomSheet'
 import { ArmadorActionBar } from '../components/ArmadorActionBar'
 import { ProductCard, type ProductoCardDatos } from '../components/ProductCard'
 import { QuantityStepper } from '../components/QuantityStepper'
-import { StockIndicator } from '../components/StockIndicator'
+
 
 interface CartLine {
   cajas: number
@@ -120,7 +120,7 @@ function ConfirmDialog({ open, titulo, mensaje, accion, loading, onCancel, onCon
         className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="font-heading text-[16px] font-bold text-on-surface">{titulo}</h2>
+        <h2 className="text-[16px] font-bold text-on-surface">{titulo}</h2>
         <p className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">{mensaje}</p>
         <div className="mt-5 flex justify-end gap-3">
           <Button variant="outline" onClick={onCancel} disabled={loading}>
@@ -143,8 +143,8 @@ function ClienteOption({ cliente, onSelect }: { cliente: Cliente; onSelect: () =
       className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-surface-container-high p-4 text-left transition enabled:active:scale-[0.99]"
     >
       <div className="min-w-0">
-        <p className="truncate font-heading text-[14px] font-semibold text-on-surface">{cliente.nombre}</p>
-        <p className="mt-0.5 truncate font-body text-[11px] text-outline">
+        <p className="truncate text-[16px] font-semibold text-on-surface">{cliente.nombre}</p>
+        <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">
           {cliente.contacto ?? cliente.referencia ?? '—'}
         </p>
       </div>
@@ -284,14 +284,14 @@ function CambiarClienteSheet({ open, onClose, clientes, recientes, onSelect }: C
           />
           {busqueda.trim() === '' && recientes.length > 0 && (
             <section aria-label="Clientes recientes" className="space-y-2">
-              <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">Recientes</h2>
+              <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Recientes</h2>
               {recientes.map((c) => (
                 <ClienteOption key={c.id} cliente={c} onSelect={() => onSelect(c)} />
               ))}
             </section>
           )}
           <section aria-label="Lista de clientes" className="space-y-2">
-            <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
+            <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
               {busqueda.trim() === '' ? 'Todos los clientes' : 'Resultados'}
             </h2>
             {lista.length === 0 ? (
@@ -356,53 +356,81 @@ function LineaDetalle({
     <div
       data-testid={`linea-${productoId}`}
       className={cn(
-        'space-y-2 rounded-xl border bg-surface-container p-3',
-        ceroUnidades ? 'border-warning/50' : 'border-white/10',
+        'group flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4 px-4 lg:px-8 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors',
+        ceroUnidades && 'opacity-50 bg-error/5',
       )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate font-heading text-[13px] font-semibold text-on-surface">{nombre}</p>
-          <p className="mt-0.5 font-body text-[11px] text-outline">{sku}</p>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-[14px] font-semibold text-on-surface">{nombre}</p>
+          {completado && <Badge variant="success" className="h-5 px-1.5 text-[10px]">Listo</Badge>}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {completado && <Badge variant="success">Listo</Badge>}
-          {editable && onEliminar && (
-            <button
-              type="button"
-              onClick={onEliminar}
-              aria-label={`Eliminar ${nombre}`}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 text-[14px] text-outline transition hover:border-error/50 hover:text-error"
-            >
-              ✕
-            </button>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[12px] text-on-surface-variant">
+          <span className="font-medium text-on-surface/80">{sku}</span>
+
+          {(disponible !== undefined || reservado !== undefined) && (
+            <div className="flex items-center gap-2 border-l border-white/10 pl-3">
+              {disponible !== undefined && (
+                <span className={cn(disponible <= 0 && 'text-warning font-medium')}>
+                  Disp: {disponible}
+                </span>
+              )}
+              {reservado !== undefined && reservado > 0 && (
+                <span className="text-on-surface/60">
+                  Res: {reservado}
+                </span>
+              )}
+            </div>
           )}
+        </div>
+        {ceroUnidades && (
+          <p className="mt-1 font-body text-[11px] font-medium text-warning">0 unidades — se eliminará al guardar</p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 lg:gap-6 shrink-0 lg:w-auto">
+        <div className="flex-1 lg:flex-none">
+          {editable && onChange ? (
+            <QuantityStepper cajas={cajas} sueltos={sueltos} unidadesPorCaja={unidadesPorCaja} onChange={onChange} />
+          ) : (
+            <div className="font-body text-[13px] text-on-surface-variant flex items-center gap-3">
+              <span className="bg-surface-container-high px-2 py-1 rounded text-on-surface">{cajas} cj</span>
+              <span className="bg-surface-container-high px-2 py-1 rounded text-on-surface">{sueltos} un</span>
+            </div>
+          )}
+        </div>
+
+        <div className="w-20 text-right font-body text-[15px] font-bold text-on-surface">
+          {unidades} un
+        </div>
+
+        <div className="w-24 flex justify-end gap-2 shrink-0">
           {completable && onToggleCompletar && (
             <button
               type="button"
               onClick={onToggleCompletar}
               className={cn(
-                'rounded-full border px-3 py-1.5 font-body text-[11px] font-semibold transition',
+                'rounded border px-3 py-1 font-body text-[11px] font-bold transition h-8',
                 completado
-                  ? 'border-white/10 text-on-surface-variant hover:text-on-surface'
-                  : 'border-primary/40 text-primary hover:bg-primary/20',
+                  ? 'border-success/30 text-success bg-success/10 hover:bg-success/20'
+                  : 'border-primary/40 text-primary hover:bg-primary/10',
               )}
             >
-              {completado ? 'Desmarcar' : 'Marcar preparado'}
+              {completado ? 'Desmarcar' : 'Preparar'}
+            </button>
+          )}
+          {editable && onEliminar && (
+            <button
+              type="button"
+              onClick={onEliminar}
+              aria-label={`Eliminar ${nombre}`}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-outline hover:text-error hover:bg-error/10 transition lg:opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0"
+            >
+              ✕
             </button>
           )}
         </div>
       </div>
-      <p className="font-body text-[12px] text-on-surface-variant">
-        {cajas} caja{cajas === 1 ? '' : 's'} · {sueltos} suelto{sueltos === 1 ? '' : 's'} · {unidades} unidades
-      </p>
-      {disponible !== undefined && reservado !== undefined && (
-        <StockIndicator disponible={disponible} reservado={reservado} cantidadPedida={unidades} />
-      )}
-      {editable && onChange && <QuantityStepper cajas={cajas} sueltos={sueltos} unidadesPorCaja={unidadesPorCaja} onChange={onChange} />}
-      {ceroUnidades && (
-        <p className="font-body text-[11px] font-medium text-warning">0 unidades — se eliminará al guardar</p>
-      )}
     </div>
   )
 }
@@ -581,6 +609,8 @@ export default function PedidoDetailPage() {
   const itemsCompletados = pedido?.items.filter((i) => i.completado).length ?? 0
   const itemsPendientes = pedido ? pedido.items.length - itemsCompletados : 0
 
+  const [modalCarrito, setModalCarrito] = useState<Carrito | null>(null)
+
   function cambiarCantidad(productoId: string, cajas: number, sueltos: number) {
     setCarrito((prev) => ({ ...prev, [productoId]: { cajas, sueltos } }))
   }
@@ -593,12 +623,54 @@ export default function PedidoDetailPage() {
     })
   }
 
-  function agregarAlCarrito(producto: ProductoCardDatos) {
-    setCarrito((prev) => {
+  function abrirModalProductos() {
+    setBusquedaProducto('')
+    setModalCarrito({ ...carrito })
+    setSheetProductos(true)
+  }
+
+  function cerrarModalProductos() {
+    setModalCarrito(null)
+    setSheetProductos(false)
+  }
+
+  function confirmarModalProductos() {
+    if (modalCarrito) setCarrito(modalCarrito)
+    cerrarModalProductos()
+  }
+
+  function cambiarCantidadModal(productoId: string, cajas: number, sueltos: number) {
+    setModalCarrito((prev) => prev ? { ...prev, [productoId]: { cajas, sueltos } } : null)
+  }
+
+  function agregarAlCarritoModal(producto: ProductoCardDatos) {
+    setModalCarrito((prev) => {
+      if (!prev) return null
       const actual = prev[producto.id]
       return { ...prev, [producto.id]: { cajas: (actual?.cajas ?? 0) + 1, sueltos: actual?.sueltos ?? 0 } }
     })
   }
+
+  const modalHayCambios = useMemo(() => {
+    if (!modalCarrito) return false
+    return JSON.stringify(modalCarrito) !== JSON.stringify(carrito)
+  }, [modalCarrito, carrito])
+
+  const modalResumen = useMemo(() => {
+    if (!modalCarrito) return null
+    let productos = 0
+    let cajas = 0
+    let sueltos = 0
+    for (const v of Object.values(modalCarrito)) {
+      if (v.cajas > 0 || v.sueltos > 0) {
+        productos++
+        cajas += v.cajas
+        sueltos += v.sueltos
+      }
+    }
+    if (productos === 0) return 'Sin productos'
+    return `${productos} producto${productos === 1 ? '' : 's'} · ${cajas} caja${cajas === 1 ? '' : 's'} · ${sueltos} suelto${sueltos === 1 ? '' : 's'}`
+  }, [modalCarrito])
 
   function buildItems(): PedidoItemInput[] {
     return Object.entries(carrito)
@@ -682,6 +754,11 @@ export default function PedidoDetailPage() {
         })
         if (res.requested) {
           toast.success('Solicitud enviada')
+        } else if (res.discarded) {
+          toast.success('Borrador descartado')
+          invalidarTodo()
+          navigate('/ale-bet/pedidos')
+          return
         } else {
           toast.success(pedido.estado === 'APROBADO' ? 'Pedido cancelado y reserva liberada' : 'Pedido cancelado')
         }
@@ -882,7 +959,7 @@ export default function PedidoDetailPage() {
   if (error || !pedido) {
     return (
       <div className="space-y-4">
-        <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em] text-on-surface">Detalle de pedido</h1>
+        <h1 className="text-[22px] font-bold tracking-tight text-on-surface">Detalle de pedido</h1>
         <p className="font-body text-[13px] text-error">{error instanceof Error ? error.message : 'Pedido no encontrado'}</p>
       </div>
     )
@@ -894,8 +971,8 @@ export default function PedidoDetailPage() {
   const barraArmadorVisible = canAccionesBarraArmador(pedido, rol, userId)
 
   return (
-    <div className={cn('space-y-5', barraArmadorVisible && 'pb-[calc(env(safe-area-inset-bottom)+7rem)] lg:pb-0')}>
-      <div className="-mb-2">
+    <div className={cn('mx-auto w-full max-w-[1000px] flex flex-col', barraArmadorVisible && 'pb-[calc(env(safe-area-inset-bottom)+7rem)] lg:pb-0')}>
+      <div className="mb-4">
         <button
           type="button"
           onClick={() => {
@@ -908,97 +985,105 @@ export default function PedidoDetailPage() {
           Pedidos
         </button>
       </div>
-      <section className="rounded-xl border border-white/10 bg-surface-container-high overflow-hidden">
-        {/* Header y Acciones */}
-        <div className="p-4 lg:p-6 border-b border-white/10">
-          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
-            <div className="min-w-0 flex-1">
-              <h1 data-testid="pedido-numero" className="font-heading text-[22px] font-bold tracking-[-0.02em] text-on-surface">
-                Pedido {pedido.numero}
-              </h1>
-              <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                <Badge variant={meta.variant} className="justify-center">
-                  {meta.label}
-                </Badge>
-                {clientePendiente && <Badge variant="warning">Cliente pendiente de validación</Badge>}
-              </div>
-              <p className="mt-2 font-body text-[12px] text-on-surface-variant">Creado el {formatFechaHora(pedido.createdAt)}</p>
-              <div className="mt-0.5 font-body text-[11px] text-outline">
-                {pedido.vendedorNombre && <p>Vendedor: {pedido.vendedorNombre}</p>}
-                {pedido.armadorNombre && <p>Armador: {pedido.armadorNombre}</p>}
-              </div>
-              {clientePendiente && (
-                <p className="mt-1 font-body text-[11px] font-medium text-warning">Facturación debe completar los datos</p>
-              )}
 
-              <div className="mt-6">
-                <div className="flex items-center gap-3">
-                  <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">Cliente</h2>
-                  {canEditar && (
-                    <button
-                      type="button"
-                      onClick={() => setSheetCliente(true)}
-                      className="font-body text-[12px] font-semibold text-primary transition hover:underline"
-                    >
-                      Cambiar cliente
-                    </button>
-                  )}
-                </div>
-                <p className="mt-1 font-heading text-[15px] font-semibold text-on-surface">{clienteActualNombre}</p>
-                {clienteCambio && (
-                  <p className="mt-1 font-body text-[11px] font-medium text-warning">Cambio de cliente sin guardar</p>
-                )}
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 font-body text-[12px]">
-                  {clienteActual?.contacto && <div className="flex gap-1.5"><dt className="text-outline">Contacto:</dt><dd className="text-on-surface-variant">{clienteActual.contacto}</dd></div>}
-                  {clienteActual?.cuit && <div className="flex gap-1.5"><dt className="text-outline">CUIT:</dt><dd className="text-on-surface-variant">{clienteActual.cuit}</dd></div>}
-                  {clienteActual?.direccion && (
-                    <div className="flex gap-1.5">
-                      <dt className="text-outline">Dirección:</dt>
-                      <dd className="text-on-surface-variant">{clienteActual.direccion}{clienteActual?.localidad ? `, ${clienteActual.localidad}` : ''}</dd>
-                    </div>
-                  )}
-                </div>
+      <section className="bg-surface-container-high overflow-hidden shadow-sm lg:rounded-2xl">
+        {/* Header Compacto */}
+        <div className="px-4 py-5 lg:px-8 lg:py-7 border-b border-white/10 bg-surface-container-low">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Badge variant={meta.variant}>{meta.label}</Badge>
+                {clientePendiente && <Badge variant="warning">Pendiente de validación</Badge>}
               </div>
+              <h1 className="text-[22px] md:text-[26px] font-bold tracking-tight text-on-surface leading-tight">
+                {clienteActualNombre}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                <span data-testid="pedido-numero" className="font-semibold text-on-surface">Pedido {pedido.numero}</span>
+                <span className="hidden md:inline text-outline/40">•</span>
+                <span>Creado {formatFechaHora(pedido.createdAt)}</span>
+                {pedido.vendedorNombre && (
+                  <>
+                    <span className="hidden md:inline text-outline/40">•</span>
+                    <span>Vendedor: {pedido.vendedorNombre}</span>
+                  </>
+                )}
+                {pedido.armadorNombre && (
+                  <>
+                    <span className="hidden md:inline text-outline/40">•</span>
+                    <span>Armador: {pedido.armadorNombre}</span>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                {clienteActual?.cuit && <span>CUIT {clienteActual.cuit}</span>}
+                {clienteActual?.direccion && (
+                  <>
+                    {clienteActual?.cuit && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>{clienteActual.direccion}{clienteActual?.localidad ? `, ${clienteActual.localidad}` : ''}</span>
+                  </>
+                )}
+                {clienteActual?.contacto && (
+                  <>
+                    {(clienteActual?.cuit || clienteActual?.direccion) && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>Contacto: {clienteActual.contacto}</span>
+                  </>
+                )}
+              </div>
+              {clientePendiente && <p className="mt-2 font-body text-[12px] font-medium text-warning">Facturación debe completar los datos</p>}
+              {clienteCambio && <p className="mt-2 font-body text-[12px] font-medium text-warning">Cambio de cliente sin guardar</p>}
             </div>
 
-            <div className="flex flex-col gap-2 shrink-0 lg:w-48">
+            <div className="flex flex-wrap md:flex-col md:items-end justify-start gap-2 shrink-0 md:w-56">
               {canAprobar(pedido, rol, userId) && (
-                <>
-                  <Button onClick={() => setConfirm('aprobar')} disabled={clientePendiente} className="min-h-10 w-full">Aprobar</Button>
-                  {clientePendiente && <p className="font-body text-[11px] font-medium text-warning text-center">El cliente debe ser validado por Facturación antes de aprobar</p>}
-                </>
-              )}
-              {canTomar(pedido, rol, userId) && (
-                <div data-testid="accion-tomar-desktop" className="hidden lg:block">
-                  <Button variant="outline" onClick={() => setConfirm('tomar')} className="min-h-10 w-full">Tomar</Button>
+                <div className="w-full md:w-auto">
+                  <Button onClick={() => setConfirm('aprobar')} disabled={clientePendiente} className="h-9 w-full md:w-auto px-4 text-[13px]">Aprobar</Button>
+                  {clientePendiente && <p className="font-body text-[11px] font-medium text-warning text-center md:text-right mt-1">Requiere validación</p>}
                 </div>
               )}
-              {canCancelarDirecto(pedido, rol, userId) && (
-                <Button variant="outline" onClick={() => setConfirm('cancelar')} className="min-h-10 w-full">Cancelar</Button>
+              {canTomar(pedido, rol, userId) && (
+                <div data-testid="accion-tomar-desktop" className="hidden lg:block w-full md:w-auto">
+                  <Button variant="outline" onClick={() => setConfirm('tomar')} className="h-9 w-full md:w-auto px-4 text-[13px]">Tomar</Button>
+                </div>
               )}
               {canSolicitarCancelacion(pedido, rol, userId) && (
-                <Button variant="outline" onClick={abrirSolicitarCancelacion} className="min-h-10 w-full">Solicitar cancelación</Button>
+                <Button variant="outline" onClick={abrirSolicitarCancelacion} className="h-9 w-full md:w-auto px-4 text-[13px]">Solicitar cancelación</Button>
               )}
               {pedido.estado === 'PREPARADO' && !remitoVigente && (
-                <p className="rounded-lg border border-primary-container/30 bg-primary-container/10 p-2 font-body text-[11px] font-medium text-primary-container text-center">
-                  Esperando remito — Facturación debe emitirlo
+                <p className="rounded-lg border border-primary-container/30 bg-primary-container/10 p-2 font-body text-[11px] font-medium text-primary-container text-center w-full">
+                  Esperando remito
                 </p>
               )}
               {canDespachar(pedido, rol, userId) && (
-                <div data-testid="accion-despachar-desktop" className="hidden lg:block">
-                  <button type="button" onClick={() => setConfirm('despachar')} disabled={despacharMutation.isPending} className="min-h-10 w-full rounded-full border border-error/40 font-body text-[13px] font-semibold text-error transition hover:bg-error/10 disabled:opacity-50">Confirmar despacho</button>
+                <div data-testid="accion-despachar-desktop" className="hidden lg:block w-full md:w-auto">
+                  <button type="button" onClick={() => setConfirm('despachar')} disabled={despacharMutation.isPending} className="h-9 w-full md:w-auto px-4 rounded-full border border-error/40 font-body text-[13px] font-semibold text-error transition hover:bg-error/10 disabled:opacity-50">Confirmar despacho</button>
                 </div>
               )}
+
+              {canEditar && (
+                <div className="flex flex-wrap items-center gap-2 mt-2 w-full md:w-auto md:justify-end">
+                  <button type="button" onClick={() => setSheetCliente(true)} className="flex h-8 items-center justify-center rounded-full border border-outline/20 bg-surface px-4 font-body text-[12px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-variant/30 active:scale-95">
+                    Cambiar cliente
+                  </button>
+                  {canCancelarDirecto(pedido, rol, userId) && (
+                    <button type="button" onClick={() => setConfirm('cancelar')} className="flex h-8 items-center justify-center rounded-full border border-error/20 bg-surface px-4 font-body text-[12px] font-semibold text-error transition-colors hover:bg-error/10 active:scale-95">
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              )}
+
               {pedido.estado === 'DESPACHADO' && (
-                <div className="text-center lg:text-right">
-                  <p className="font-heading text-[13px] font-bold text-success">Pedido despachado</p>
-                  {pedido.despachadoAt && <p className="mt-0.5 font-body text-[11px] text-on-surface-variant">El {formatFechaHora(pedido.despachadoAt)}</p>}
+                <div className="text-left md:text-right w-full">
+                  <p className="font-semibold text-[14px] text-success">Pedido despachado</p>
+                  {pedido.despachadoAt && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">El {formatFechaHora(pedido.despachadoAt)}</p>}
                 </div>
               )}
               {pedido.estado === 'CANCELADO' && (
-                <div className="text-center lg:text-right">
-                  <p className="font-heading text-[13px] font-bold text-error">Pedido cancelado</p>
-                  {pedido.motivoCancelacion && <p className="mt-0.5 font-body text-[11px] text-on-surface-variant">Motivo: {pedido.motivoCancelacion}</p>}
+                <div className="text-left md:text-right w-full">
+                  <p className="font-semibold text-[14px] text-error">Pedido cancelado</p>
+                  {pedido.motivoCancelacion && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">Motivo: {pedido.motivoCancelacion}</p>}
                 </div>
               )}
             </div>
@@ -1006,9 +1091,9 @@ export default function PedidoDetailPage() {
         </div>
 
         {pedido.cancelacionSolicitadaAt && pedido.estado === 'EN_ARMADO' && (
-          <div role="status" data-testid="banner-cancelacion" className="flex flex-wrap items-center justify-between gap-3 border-b border-warning/40 bg-warning/10 p-4 lg:px-6">
+          <div role="status" data-testid="banner-cancelacion" className="flex flex-wrap items-center justify-between gap-3 border-b border-warning/40 bg-warning/10 p-4 lg:px-8">
             <div className="min-w-0">
-              <p className="font-heading text-[13px] font-bold text-warning">Cancelación solicitada</p>
+              <p className="font-semibold text-[14px] text-warning">Cancelación solicitada</p>
               {pedido.motivoCancelacion && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">Motivo: {pedido.motivoCancelacion}</p>}
             </div>
             {canConfirmarCancelacion(pedido, rol, userId) ? (
@@ -1021,38 +1106,40 @@ export default function PedidoDetailPage() {
           </div>
         )}
 
-        <div className="p-4 lg:p-6 space-y-6">
+        <div className="p-4 lg:p-8 space-y-6">
           {puedeProgreso && (
             <section aria-label="Progreso de armado" className="hidden lg:block rounded-xl border border-white/10 bg-surface-container p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
-                  <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">Armado</h2>
-                  <p className="mt-1 font-body text-[12px] font-semibold text-on-surface">{itemsCompletados} de {pedido.items.length} items preparados</p>
+                  <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Armado</h2>
+                  <p className="mt-1 font-body text-[13px] font-semibold text-on-surface">{itemsCompletados} de {pedido.items.length} items preparados</p>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-highest">
                     <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pedido.items.length === 0 ? 0 : (itemsCompletados / pedido.items.length) * 100}%` }} />
                   </div>
                 </div>
                 <div className="shrink-0 w-48 text-center">
-                  <Button onClick={() => setConfirm('preparar')} disabled={!prepararListo} loading={prepararMutation.isPending} className="min-h-10 w-full">Preparar</Button>
-                  {itemsPendientes > 0 && <p className="mt-2 text-center font-body text-[11px] font-medium text-warning">Faltan {itemsPendientes} items para poder preparar</p>}
+                  <Button onClick={() => setConfirm('preparar')} disabled={!prepararListo} loading={prepararMutation.isPending} className="h-10 w-full">Preparar</Button>
+                  {itemsPendientes > 0 && <p className="mt-2 text-center font-body text-[11px] font-medium text-warning">Faltan {itemsPendientes} items</p>}
                 </div>
               </div>
             </section>
           )}
 
           <div>
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">Productos</h2>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="font-body text-[13px] font-bold text-on-surface">Productos</h2>
               {canEditar && (
-                <button type="button" onClick={() => setSheetProductos(true)} className="rounded-full border border-primary/40 px-3.5 py-1.5 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/10">+ Agregar producto</button>
+                <button type="button" onClick={abrirModalProductos} className="rounded-full border border-primary/40 px-3 py-1 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/10">+ Agregar producto</button>
               )}
             </div>
+
             {pedido.estado === 'APROBADO' && canEditar && (
-              <p className="mt-2 rounded-lg border border-warning/30 bg-warning/10 p-2.5 font-body text-[11px] font-medium text-warning">
-                Editar puede cambiar la disponibilidad y liberar la reserva actual
+              <p className="mb-4 rounded-md bg-surface-variant/30 px-3 py-2 font-body text-[12px] font-medium text-on-surface-variant inline-block">
+                ℹ️ Editar puede cambiar la disponibilidad y liberar la reserva actual
               </p>
             )}
-            <div className="mt-3 space-y-3">
+
+            <div className="flex flex-col border-t border-white/10">
               {lineas.map(({ item, cajas, sueltos, unidades, producto }) => (
                 <LineaDetalle
                   key={item.productoId}
@@ -1074,81 +1161,83 @@ export default function PedidoDetailPage() {
                 />
               ))}
             </div>
+
             {canEditar && (
-              <div className="mt-5 flex flex-col lg:flex-row lg:items-center lg:justify-end gap-3 border-t border-white/10 pt-5">
-                {pedido.estado === 'APROBADO' && (
-                  <p className="text-center lg:text-right font-body text-[11px] text-on-surface-variant flex-1">
-                    Al guardar se liberará la reserva actual y se volverá a reservar según la disponibilidad
-                  </p>
-                )}
-                <Button onClick={handleGuardar} loading={guardando} disabled={!hayCambios} className="min-h-11 lg:min-h-10 w-full lg:w-auto px-6">Guardar cambios</Button>
+              <div className="mt-6 flex flex-col md:flex-row md:items-center justify-end gap-4 border-t border-white/10 pt-6">
+                <Button onClick={handleGuardar} loading={guardando} disabled={!hayCambios} className="h-10 w-full md:w-auto px-6 font-semibold">Guardar cambios</Button>
               </div>
             )}
           </div>
         </div>
 
         {puedeVerPanelRemito && (
-          <div className="border-t border-white/10 bg-surface-container/50 p-4 lg:p-6">
+          <div className="border-t border-white/10 bg-surface-container/30 p-4 lg:p-8">
             {remitoVigente ? (
-              <div className="lg:flex lg:items-center lg:justify-between lg:gap-6">
+              <div className="md:flex md:items-center md:justify-between md:gap-6">
                 <div className="flex-1">
-                  <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">Remito Vigente</h2>
-                  <div className="mt-2 rounded-xl border border-success/30 bg-success/10 p-3">
-                    <p className="font-heading text-[14px] font-semibold text-on-surface">Remito {remitoVigente.numero}</p>
-                    <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">Fecha: {formatFecha(remitoVigente.fecha)}</p>
-                    <p className="font-body text-[12px] text-on-surface-variant">Transporte: {remitoVigente.transporteNombre}{remitoVigente.transporteDireccion ? ` · ${remitoVigente.transporteDireccion}` : ''}</p>
+                  <h2 className="font-body text-[13px] font-bold text-on-surface">Remito Vigente</h2>
+                  <div className="mt-2 rounded-lg border border-white/10 bg-surface-container-low p-3 flex flex-wrap gap-4 items-center">
+                    <div>
+                      <p className="font-semibold text-[14px] text-on-surface">Remito {remitoVigente.numero}</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{formatFecha(remitoVigente.fecha)}</p>
+                    </div>
+                    <div className="hidden md:block w-[1px] h-8 bg-white/10"></div>
+                    <div>
+                      <p className="font-body text-[12px] font-medium text-on-surface">Transporte</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{remitoVigente.transporteNombre}{remitoVigente.transporteDireccion ? ` · ${remitoVigente.transporteDireccion}` : ''}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-3 lg:mt-0 shrink-0 flex flex-col gap-2 lg:w-48">
-                  <Button variant="outline" onClick={() => void descargarRemito()} className="min-h-10 w-full">Descargar PDF</Button>
-                  <Button variant="outline" onClick={abrirAnular} className="min-h-10 w-full">Anular</Button>
+                <div className="mt-4 md:mt-0 shrink-0 flex flex-row md:flex-col gap-2 md:w-40">
+                  <Button variant="outline" onClick={() => void descargarRemito()} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
+                  <Button variant="outline" onClick={abrirAnular} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
                 </div>
               </div>
             ) : canEmitirRemito(pedido, rol) ? (
               <div>
-                <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">Emitir remito</h2>
+                <h2 className="font-body text-[13px] font-bold text-on-surface">Emitir remito</h2>
                 <div className="mt-3 flex flex-col lg:flex-row lg:items-start gap-4">
                   <div className="flex-1 space-y-2.5">
                     <select
                       aria-label="Seleccionar transporte"
                       value={usarOcasional ? '__ocasional__' : transporteId}
                       onChange={(e) => {
-                        const value = e.target.value
-                        if (value === '__ocasional__') { setUsarOcasional(true); setTransporteId('') }
-                        else { setUsarOcasional(false); setTransporteId(value) }
+                         const value = e.target.value
+                         if (value === '__ocasional__') { setUsarOcasional(true); setTransporteId('') }
+                         else { setUsarOcasional(false); setTransporteId(value) }
                       }}
-                      className="input-field text-base"
+                      className="input-field text-[14px] h-10 px-3 w-full md:max-w-md"
                     >
                       <option value="">Seleccionar transporte</option>
                       {transportistas.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
                       <option value="__ocasional__">OTRO / TRANSPORTE OCASIONAL</option>
                     </select>
                     {usarOcasional && (
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                        <input ref={ocasionalNombreRef} value={ocasionalNombre} onChange={(e) => setOcasionalNombre(e.target.value)} aria-label="Nombre del transporte ocasional" placeholder="Nombre del transporte" className="input-field text-base" />
-                        <input ref={ocasionalDireccionRef} value={ocasionalDireccion} onChange={(e) => setOcasionalDireccion(e.target.value)} aria-label="Dirección del transporte ocasional" placeholder="Dirección" className="input-field text-base" />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full md:max-w-md">
+                        <input ref={ocasionalNombreRef} value={ocasionalNombre} onChange={(e) => setOcasionalNombre(e.target.value)} aria-label="Nombre del transporte ocasional" placeholder="Nombre del transporte" className="input-field text-[14px] h-10 px-3" />
+                        <input ref={ocasionalDireccionRef} value={ocasionalDireccion} onChange={(e) => setOcasionalDireccion(e.target.value)} aria-label="Dirección del transporte ocasional" placeholder="Dirección" className="input-field text-[14px] h-10 px-3" />
                       </div>
                     )}
                     {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error">{remitoError}</p>}
                   </div>
-                  <div className="shrink-0 lg:w-48 lg:pt-0">
-                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} className="min-h-11 lg:min-h-10 w-full">Emitir remito</Button>
+                  <div className="shrink-0 md:w-40 md:pt-0">
+                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} className="h-10 w-full">Emitir remito</Button>
                   </div>
                 </div>
               </div>
             ) : null}
             {remitosInvalidados.length > 0 && (
-              <div className="mt-5 space-y-2 border-t border-white/10 pt-4">
-                <h3 className="font-heading text-[11px] font-bold uppercase tracking-[0.8px] text-outline">Remitos anteriores</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="mt-6 space-y-3 border-t border-white/5 pt-4">
+                <h3 className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Remitos anteriores</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {remitosInvalidados.map((r) => (
-                    <div key={r.id} className="rounded-lg border border-white/10 bg-surface-container p-2.5">
+                    <div key={r.id} className="rounded-lg border border-white/5 bg-surface-container-low p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-body text-[12px] font-semibold text-on-surface">Remito {r.numero}</p>
-                        <Badge variant="error">Anulado</Badge>
+                        <p className="font-body text-[13px] font-semibold text-on-surface">Remito {r.numero}</p>
+                        <Badge variant="error" className="h-5 px-1.5 text-[10px]">Anulado</Badge>
                       </div>
-                      <p className="mt-0.5 font-body text-[11px] text-outline">{formatFecha(r.fecha)}</p>
-                      {r.motivoInvalidacion && <p className="mt-0.5 font-body text-[11px] text-on-surface-variant">Motivo: {r.motivoInvalidacion}</p>}
+                      <p className="mt-1 font-body text-[11px] text-outline">{formatFecha(r.fecha)}</p>
+                      {r.motivoInvalidacion && <p className="mt-1 font-body text-[11px] text-on-surface-variant">Motivo: {r.motivoInvalidacion}</p>}
                     </div>
                   ))}
                 </div>
@@ -1169,82 +1258,97 @@ export default function PedidoDetailPage() {
         }}
       />
 
-      <BottomSheet open={sheetProductos} onClose={() => setSheetProductos(false)} title="Agregar producto" desktop="sheet">
-        <div className="space-y-4">
-          <input
-            autoFocus
-            type="search"
-            value={busquedaProducto}
-            onChange={(e) => setBusquedaProducto(e.target.value)}
-            aria-label="Buscar producto"
-            placeholder="Buscar producto por nombre o SKU"
-            className="input-field text-base"
-          />
-          {busquedaProducto.trim() !== '' ? (
-            <section aria-label="Resultados de búsqueda" className="space-y-2">
-              <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
-                Resultados para “{busquedaProducto.trim()}”
-              </h2>
-              {resultadosBusqueda.length === 0 ? (
-                <p className="py-6 text-center font-body text-[13px] text-on-surface-variant">
-                  Sin resultados para “{busquedaProducto.trim()}”
-                </p>
-              ) : (
-                resultadosBusqueda.map((r) => (
-                  <ProductCard
-                    key={r.id}
-                    producto={r}
-                    agregadoCajas={carrito[r.id]?.cajas}
-                    agregadoSueltos={carrito[r.id]?.sueltos}
-                    onChangeSueltos={(sueltos) => cambiarCantidad(r.id, carrito[r.id]?.cajas ?? 0, sueltos)}
-                    onTap={() => agregarAlCarrito(r)}
-                  />
-                ))
-              )}
-            </section>
-          ) : (
-            <>
-              {frecuentes.length > 0 && (
-                <section aria-label="Frecuentes" className="space-y-2">
-                  <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
-                    Frecuentes del cliente
-                  </h2>
-                  {frecuentes.map((p) => (
+      <BottomSheet open={sheetProductos} onClose={cerrarModalProductos} title="Agregar producto" desktop="modal">
+        <div className="flex flex-col h-full max-h-[85vh] lg:w-[750px] lg:max-w-full">
+          <div className="px-4 py-4 lg:px-6 space-y-4 flex-1 overflow-y-auto">
+            <input
+              autoFocus
+              type="search"
+              value={busquedaProducto}
+              onChange={(e) => setBusquedaProducto(e.target.value)}
+              aria-label="Buscar producto"
+              placeholder="Buscar producto por nombre o SKU"
+              className="input-field text-base"
+            />
+            {busquedaProducto.trim() !== '' ? (
+              <section aria-label="Resultados de búsqueda" className="space-y-2 pb-6">
+                <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+                  Resultados para “{busquedaProducto.trim()}”
+                </h2>
+                {resultadosBusqueda.length === 0 ? (
+                  <p className="py-6 text-center font-body text-[13px] text-on-surface-variant">
+                    Sin resultados para “{busquedaProducto.trim()}”
+                  </p>
+                ) : (
+                  resultadosBusqueda.map((r) => (
                     <ProductCard
-                      key={p.id}
-                      producto={p}
-                      agregadoCajas={carrito[p.id]?.cajas}
-                      agregadoSueltos={carrito[p.id]?.sueltos}
-                      onChangeSueltos={(sueltos) => cambiarCantidad(p.id, carrito[p.id]?.cajas ?? 0, sueltos)}
-                      onTap={() => agregarAlCarrito(p)}
+                      key={r.id}
+                      producto={r}
+                      agregadoCajas={modalCarrito?.[r.id]?.cajas}
+                      agregadoSueltos={modalCarrito?.[r.id]?.sueltos}
+                      onChangeSueltos={(sueltos) => cambiarCantidadModal(r.id, modalCarrito?.[r.id]?.cajas ?? 0, sueltos)}
+                      onTap={() => agregarAlCarritoModal(r)}
                     />
-                  ))}
-                </section>
-              )}
-              {recientes.length > 0 && (
-                <section aria-label="Recientes" className="space-y-2">
-                  <h2 className="font-heading text-[12px] font-bold uppercase tracking-[0.8px] text-outline">
-                    Recientes
-                  </h2>
-                  {recientes.map((p) => (
-                    <ProductCard
-                      key={p.id}
-                      producto={p}
-                      agregadoCajas={carrito[p.id]?.cajas}
-                      agregadoSueltos={carrito[p.id]?.sueltos}
-                      onChangeSueltos={(sueltos) => cambiarCantidad(p.id, carrito[p.id]?.cajas ?? 0, sueltos)}
-                      onTap={() => agregarAlCarrito(p)}
-                    />
-                  ))}
-                </section>
-              )}
-              {frecuentes.length === 0 && recientes.length === 0 && (
-                <p className="py-6 text-center font-body text-[13px] text-on-surface-variant">
-                  Sin pedidos previos: buscá un producto para agregar
-                </p>
-              )}
-            </>
-          )}
+                  ))
+                )}
+              </section>
+            ) : (
+              <div className="pb-6">
+                {frecuentes.length > 0 && (
+                  <section aria-label="Frecuentes" className="space-y-2">
+                    <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+                      Frecuentes del cliente
+                    </h2>
+                    {frecuentes.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        producto={p}
+                        agregadoCajas={modalCarrito?.[p.id]?.cajas}
+                        agregadoSueltos={modalCarrito?.[p.id]?.sueltos}
+                        onChangeSueltos={(sueltos) => cambiarCantidadModal(p.id, modalCarrito?.[p.id]?.cajas ?? 0, sueltos)}
+                        onTap={() => agregarAlCarritoModal(p)}
+                      />
+                    ))}
+                  </section>
+                )}
+                {recientes.length > 0 && (
+                  <section aria-label="Recientes" className="mt-6 space-y-2">
+                    <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+                      Recientes
+                    </h2>
+                    {recientes.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        producto={p}
+                        agregadoCajas={modalCarrito?.[p.id]?.cajas}
+                        agregadoSueltos={modalCarrito?.[p.id]?.sueltos}
+                        onChangeSueltos={(sueltos) => cambiarCantidadModal(p.id, modalCarrito?.[p.id]?.cajas ?? 0, sueltos)}
+                        onTap={() => agregarAlCarritoModal(p)}
+                      />
+                    ))}
+                  </section>
+                )}
+                {frecuentes.length === 0 && recientes.length === 0 && (
+                  <p className="py-6 text-center font-body text-[13px] text-on-surface-variant">
+                    Sin pedidos previos: buscá un producto para agregar
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="border-t border-white/10 bg-surface-container-low p-4 lg:px-6 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
+            <p className="font-body text-[13px] font-medium text-on-surface-variant w-full text-center md:text-left md:w-auto">
+              {modalResumen}
+            </p>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <Button variant="outline" onClick={cerrarModalProductos} className="h-10 flex-1 md:flex-none md:w-32">
+                Cancelar
+              </Button>
+              <Button onClick={confirmarModalProductos} disabled={!modalHayCambios} className="h-10 flex-1 md:flex-none md:w-40">
+                Confirmar cambios
+              </Button>
+            </div>
+          </div>
         </div>
       </BottomSheet>
 
@@ -1254,7 +1358,7 @@ export default function PedidoDetailPage() {
             El armador deberá confirmar. La reserva no se libera hasta entonces.
           </p>
           <div className="space-y-1.5">
-            <label htmlFor="motivo-solicitud" className="font-body text-[11px] text-outline">
+            <label htmlFor="motivo-solicitud" className="font-body text-[12px] font-medium text-on-surface-variant">
               Motivo *
             </label>
             <textarea
@@ -1288,7 +1392,7 @@ export default function PedidoDetailPage() {
             Confirmá la cancelación solicitada. Se liberará la reserva de stock.
           </p>
           <div className="space-y-1.5">
-            <label htmlFor="motivo-confirmar" className="font-body text-[11px] text-outline">
+            <label htmlFor="motivo-confirmar" className="font-body text-[12px] font-medium text-on-surface-variant">
               Motivo
             </label>
             <textarea
@@ -1325,7 +1429,7 @@ export default function PedidoDetailPage() {
             El remito dejará de estar vigente y podrá emitirse uno nuevo.
           </p>
           <div className="space-y-1.5">
-            <label htmlFor="motivo-anular" className="font-body text-[11px] text-outline">
+            <label htmlFor="motivo-anular" className="font-body text-[12px] font-medium text-on-surface-variant">
               Motivo *
             </label>
             <textarea
@@ -1373,9 +1477,9 @@ export default function PedidoDetailPage() {
       />
       <ConfirmDialog
         open={confirm === 'cancelar'}
-        titulo="Cancelar pedido"
-        mensaje={pedido.estado === 'APROBADO' ? 'Se liberará la reserva de stock' : 'Se descartará el pedido'}
-        accion="Cancelar"
+        titulo={pedido.estado === 'BORRADOR' ? 'Descartar borrador' : 'Cancelar pedido'}
+        mensaje={pedido.estado === 'BORRADOR' ? 'Este borrador se eliminará.' : pedido.estado === 'APROBADO' ? 'Se liberará la reserva de stock' : 'Se descartará el pedido'}
+        accion={pedido.estado === 'BORRADOR' ? 'Descartar borrador' : 'Cancelar'}
         loading={cancelarMutation.isPending}
         onCancel={() => setConfirm(null)}
         onConfirm={() => void ejecutarConfirm()}

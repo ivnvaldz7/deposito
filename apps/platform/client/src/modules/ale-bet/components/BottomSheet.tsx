@@ -45,7 +45,7 @@ function PanelShell({ title, onClose, children, footer, variant }: PanelShellPro
         </div>
       )}
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-        <h3 className="font-heading text-[15px] font-bold text-on-surface">{title}</h3>
+        <h3 className="text-[15px] font-bold text-on-surface">{title}</h3>
         {isMobile && (
           <button
             type="button"

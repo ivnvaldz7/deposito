@@ -125,7 +125,7 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-surface-lowest px-4 py-8">
       <div className="w-full max-w-[28rem] rounded-xl border border-white/5 bg-surface-container p-6 shadow-lg sm:p-8">
-        <h1 className="mb-2 text-center font-heading text-2xl font-bold text-on-surface">
+        <h1 className="mb-2 text-center text-2xl font-bold text-on-surface">
           Plataforma
         </h1>
         <p className="mb-8 text-center font-body text-sm text-on-surface-variant">
@@ -181,7 +181,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-primary px-5 py-2.5 font-heading text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? 'Iniciando sesión…' : 'Iniciar sesión'}
           </button>

@@ -191,10 +191,10 @@ export default function DrogasPage() {
       {/* Header */}
       <header className="shrink-0 flex items-center justify-between mb-lg">
         <div className="flex items-center gap-md">
-          <h1 className="font-heading text-xl font-semibold text-on-surface tracking-tight">
+          <h1 className="text-xl font-semibold text-on-surface tracking-tight">
             Drogas
           </h1>
-          <span className="bg-surface-variant text-on-surface-variant font-mono text-xs px-2 py-1 rounded-md border border-white/5">
+          <span className="bg-surface-variant text-on-surface-variant text-xs px-2 py-1 rounded-md border border-white/5">
             {groups.length} activas
           </span>
         </div>
@@ -251,7 +251,7 @@ export default function DrogasPage() {
                           {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
                         </span>
                       </div>
-                      <div className="col-span-3 font-mono text-sm text-on-surface">
+                      <div className="col-span-3 text-sm text-on-surface">
                         {editingLote === lote.id ? (
                           <div className="flex items-center gap-1">
                             <input
@@ -262,7 +262,7 @@ export default function DrogasPage() {
                                 if (e.key === 'Enter') saveLote(lote.id)
                                 if (e.key === 'Escape') cancelEditLote()
                               }}
-                              className="w-full bg-surface-container-high border border-outline-variant rounded px-2 py-1 text-sm font-mono text-on-surface focus:outline-none focus:border-primary"
+                              className="w-full bg-surface-container-high border border-outline-variant rounded px-2 py-1 text-sm text-on-surface focus:outline-none focus:border-primary"
                               autoFocus
                             />
                             <button
@@ -286,7 +286,7 @@ export default function DrogasPage() {
                           lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>
                         )}
                       </div>
-                      <div className="col-span-2 text-right font-mono text-sm text-on-surface font-medium tabular-nums">
+                      <div className="col-span-2 text-right text-sm text-on-surface font-medium tabular-nums">
                         {lote.cantidad}
                       </div>
                       <div className="col-span-3 flex items-center justify-center gap-2">
@@ -337,16 +337,16 @@ export default function DrogasPage() {
                             if (e.key === 'Enter') saveLote(lote.id)
                             if (e.key === 'Escape') cancelEditLote()
                           }}
-                          className="w-20 bg-surface-container-high border border-outline-variant rounded px-1.5 py-0.5 text-xs font-mono text-on-surface focus:outline-none focus:border-primary"
+                          className="w-20 bg-surface-container-high border border-outline-variant rounded px-1.5 py-0.5 text-xs text-on-surface focus:outline-none focus:border-primary"
                           autoFocus
                         />
                       ) : (
-                        <span className="font-mono text-xs text-on-surface-variant shrink-0">
+                        <span className="text-xs text-on-surface-variant shrink-0">
                           {lote.lote ?? '—'}
                         </span>
                       )}
                     </div>
-                    <span className="font-mono text-sm font-bold text-on-surface tabular-nums shrink-0">
+                    <span className="text-sm font-bold text-on-surface tabular-nums shrink-0">
                       {lote.cantidad}
                     </span>
                     <StatusBadge

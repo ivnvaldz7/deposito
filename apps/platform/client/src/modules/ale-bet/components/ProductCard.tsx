@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
 import { maxSueltos } from '../lib/constants'
-import { StockIndicator } from './StockIndicator'
+
 
 export interface ProductoCardDatos {
   id: string
@@ -80,36 +80,44 @@ export function ProductCard({
     <div
       data-testid={`product-card-${producto.id}`}
       className={cn(
-        'relative overflow-hidden rounded-2xl border border-white/10 bg-surface-container-high shadow-sm transition-colors',
-        enPedido && 'border-primary/25 ring-1 ring-inset ring-primary/10',
+        'group relative overflow-hidden border-b border-white/5 bg-transparent transition-colors hover:bg-white/[0.02]',
+        enPedido && 'border-primary/25 bg-primary/[0.03]',
       )}
     >
-      {enPedido && <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1 bg-primary" />}
-      <button
-        type="button"
-        onClick={onTap}
-        className="flex w-full items-center justify-between gap-3 py-4 pl-5 pr-4 text-left transition enabled:active:scale-[0.99]"
-      >
-        <div className="min-w-0">
-          <p className="truncate font-heading text-[14px] font-semibold text-on-surface">{producto.nombre}</p>
-          <p className="mt-0.5 font-body text-[11px] text-outline">{producto.sku}</p>
-          <div className="mt-2">
-            <StockIndicator disponible={producto.disponible} reservado={producto.reservado} />
+      <div className="flex w-full items-center justify-between gap-3 py-3 pl-4 pr-4 text-left">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-semibold text-on-surface leading-tight">{producto.nombre}</p>
+          <div className="mt-1 flex items-center gap-x-3 text-[12px] font-body text-on-surface-variant">
+            <span>{producto.sku}</span>
+            <span className="text-outline/40">•</span>
+            <span className={cn(producto.disponible <= 0 && 'text-warning font-medium')}>Disp: {producto.disponible}</span>
+            {producto.reservado > 0 && (
+              <>
+                <span className="text-outline/40">•</span>
+                <span className="text-on-surface/60">Res: {producto.reservado}</span>
+              </>
+            )}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          {enPedido && <Badge variant="success">{resumenAgregado(agregadoCajas, agregadoSueltos)}</Badge>}
-          <span className="flex h-9 min-w-9 items-center justify-center rounded-full border border-primary/40 px-3 font-body text-[12px] font-semibold text-primary">
+        <div className="flex shrink-0 flex-col items-end justify-center gap-2">
+          {enPedido && <Badge variant="success" className="h-5 px-1.5 text-[10px]">{resumenAgregado(agregadoCajas, agregadoSueltos)}</Badge>}
+          <button
+            type="button"
+            onClick={onTap}
+            aria-label={enPedido ? `Sumar caja de ${producto.nombre}` : `Agregar ${producto.nombre}`}
+            className="flex h-8 items-center justify-center rounded-full border border-primary/40 px-3 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/10 active:scale-95"
+          >
             {enPedido ? '+1 caja' : 'Agregar'}
-          </span>
+          </button>
         </div>
-      </button>
+      </div>
       {enPedido && onChangeSueltos && (
-        <div className="mx-3 mb-3 flex items-center justify-between gap-3 rounded-xl border border-primary/10 bg-surface-container-low/70 px-3 py-2.5">
-          <div>
-            <p className="font-heading text-[10px] font-bold uppercase tracking-[0.8px] text-primary">Carga rápida</p>
-            <p className="mt-0.5 font-body text-[11px] text-on-surface-variant">
-              Sueltos <span className="text-outline">· máx. {maximoSueltos}</span>
+        <div className="mx-4 mb-3 mt-1 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/10 bg-surface-container-low/50 px-3 py-2">
+          <div className="flex items-center gap-2">
+            <p className="font-body text-[11px] font-medium text-primary">Carga rápida sueltos</p>
+            <span className="text-outline/40">•</span>
+            <p className="font-body text-[11px] text-on-surface-variant">
+              máx {maximoSueltos}
             </p>
           </div>
           <div className="flex items-center gap-1.5">
@@ -118,7 +126,7 @@ export function ProductCard({
               onClick={() => onChangeSueltos(Math.max(0, agregadoSueltos - 1))}
               disabled={agregadoSueltos <= 0}
               aria-label="Quitar sueltos"
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-surface-container-high font-body text-base text-on-surface transition enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-surface-container-high font-body text-base text-on-surface transition enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-35"
             >
               -
             </button>
@@ -129,7 +137,7 @@ export function ProductCard({
               disabled={agregadoSueltos >= maximoSueltos}
               aria-label="Sumar sueltos"
               className={cn(
-                'flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-surface-container-high font-body text-base text-on-surface transition enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-35',
+                'flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-surface-container-high font-body text-base text-on-surface transition enabled:active:scale-95 disabled:cursor-not-allowed disabled:opacity-35',
               )}
             >
               +

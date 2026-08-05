@@ -78,11 +78,11 @@ export function Sidebar() {
       >
         <div className="flex items-center gap-2 px-4 mb-xl">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-surface-variant border-2 border-primary flex items-center justify-center text-primary font-heading font-bold text-sm shrink-0">
+            <div className="w-10 h-10 rounded-full bg-surface-variant border-2 border-primary flex items-center justify-center text-primary font-bold text-sm shrink-0">
               {user?.name?.charAt(0)?.toUpperCase() ?? '?'}
             </div>
             <div className="min-w-0">
-              <div className="font-heading text-sm font-semibold text-primary truncate">
+              <div className="text-sm font-semibold text-primary truncate">
                 {user?.name ?? 'Sin usuario'}
               </div>
               <div className="font-body text-xs text-on-surface-variant truncate">

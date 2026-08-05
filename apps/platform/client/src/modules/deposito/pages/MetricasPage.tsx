@@ -13,7 +13,7 @@ import type { MetricasData } from '../queries/use-metricas'
 function DateIconButton({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="w-[48px]">
-      <label className="font-heading text-xs uppercase tracking-widest text-on-surface-variant block mb-1">
+      <label className="text-xs uppercase tracking-widest text-on-surface-variant block mb-1">
         {label}
       </label>
       <div className="relative">
@@ -70,14 +70,14 @@ function MetricCard({
     <div className="bg-surface-container-low rounded p-4 flex flex-col gap-2 border border-white/5">
       <div className="flex items-center gap-2">
         <Icon size={14} strokeWidth={1.5} style={{ color }} />
-        <span className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+        <span className="text-xs uppercase tracking-widest text-on-surface-variant">
           {label}
         </span>
       </div>
       {loading ? (
         <div className="h-7 w-24 bg-surface-container-high rounded animate-pulse" />
       ) : (
-        <p className="font-heading text-2xl font-bold text-on-surface tabular-nums">
+        <p className="text-2xl font-bold text-on-surface tabular-nums">
           {value?.toLocaleString() ?? '—'}
           <span className="font-body text-sm font-normal text-on-surface-variant ml-1">uds</span>
         </p>
@@ -97,7 +97,7 @@ function TopTable({
 }) {
   return (
     <div className="bg-surface-container-low rounded p-4 border border-white/5">
-      <h3 className="font-heading text-xs uppercase tracking-widest text-on-surface-variant mb-3">
+      <h3 className="text-xs uppercase tracking-widest text-on-surface-variant mb-3">
         {title}
       </h3>
       {loading ? (
@@ -114,9 +114,9 @@ function TopTable({
         <table className="w-full">
           <thead>
             <tr className="border-b border-outline-variant/15">
-              <th className="text-left font-heading text-xs text-on-surface-variant pb-2 pr-2">#</th>
-              <th className="text-left font-heading text-xs text-on-surface-variant pb-2">Producto</th>
-              <th className="text-right font-heading text-xs text-on-surface-variant pb-2">Total</th>
+              <th className="text-left text-xs text-on-surface-variant pb-2 pr-2">#</th>
+              <th className="text-left text-xs text-on-surface-variant pb-2">Producto</th>
+              <th className="text-right text-xs text-on-surface-variant pb-2">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -194,7 +194,7 @@ function ProductFilter({
 
   return (
     <div ref={containerRef} className="flex flex-col gap-1 w-[260px]">
-      <label htmlFor="metricas-producto" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+      <label htmlFor="metricas-producto" className="text-xs uppercase tracking-widest text-on-surface-variant">
         Producto
       </label>
       <div className="relative">
@@ -330,7 +330,7 @@ export default function MetricasPage() {
             <DateIconButton label="Hasta" value={hasta} onChange={setHasta} />
 
             <div className="flex flex-col gap-1 min-w-[180px]">
-              <label htmlFor="metricas-categoria" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+              <label htmlFor="metricas-categoria" className="text-xs uppercase tracking-widest text-on-surface-variant">
                 Categoría
               </label>
               <select
@@ -383,7 +383,7 @@ export default function MetricasPage() {
 
       {!loading && data && data.ingresosPorCategoria.length > 0 && (
         <div className="bg-surface-container-low rounded p-4 border border-white/5">
-          <h3 className="font-heading text-xs uppercase tracking-widest text-on-surface-variant mb-3">
+          <h3 className="text-xs uppercase tracking-widest text-on-surface-variant mb-3">
             Ingresos por categoría
           </h3>
           <div className="flex flex-wrap gap-3">
@@ -401,7 +401,7 @@ export default function MetricasPage() {
                 }}
                 className="flex items-center gap-2 bg-surface-container-high rounded px-3 py-2 transition-colors hover:bg-surface-bright"
               >
-                <span className="font-heading text-xs uppercase tracking-wider text-on-surface-variant">
+                <span className="text-xs uppercase tracking-wider text-on-surface-variant">
                   {CATEGORIA_LABELS[cat] ?? cat}
                 </span>
                 <span className="font-body text-sm tabular-nums text-on-surface font-semibold">

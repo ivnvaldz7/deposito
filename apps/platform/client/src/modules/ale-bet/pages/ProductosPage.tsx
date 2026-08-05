@@ -12,20 +12,20 @@ import { toast } from '@/lib/toast'
 function stockBadge(p: Producto) {
   if (p.disponible <= 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-error/30 bg-error/10 px-2.5 py-1 text-[11px] font-bold text-error uppercase tracking-[0.05em]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-error/30 bg-error/10 px-2.5 py-1 text-[12px] font-semibold text-error">
         <X className="h-3 w-3" /> Sin stock
       </span>
     )
   }
   if (p.stockBajo) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-1 text-[11px] font-bold text-warning uppercase tracking-[0.05em]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-[#D5B4B5] bg-[#F5ECEC] px-2.5 py-1 text-[12px] font-semibold text-[#A06869]">
         <AlertTriangle className="h-3 w-3" /> Stock bajo
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[11px] font-bold text-success uppercase tracking-[0.05em]">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-[12px] font-semibold text-success">
       <Check className="h-3 w-3" /> Disponible
     </span>
   )
@@ -49,21 +49,21 @@ function LotesInline({ producto }: { producto: Producto }) {
         {activos.map(l => (
           <div key={l.id} className="rounded-xl border border-white/10 bg-surface-container-high p-4">
             <div className="flex items-center justify-between">
-              <span className="font-mono text-[14px] font-bold text-primary">LOTE {l.numero}</span>
+              <span className="font-semibold text-[14px] text-primary">LOTE {l.numero}</span>
               <span className="font-body text-[11px] text-on-surface-variant">Vto: {new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}</span>
             </div>
             <div className="mt-3 flex justify-between rounded-lg bg-surface-container/50 p-2 text-center">
               <div>
-                <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
-                <p className="mt-0.5 font-heading text-[15px] font-bold text-on-surface">{l.cajas}</p>
+                <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Cajas</p>
+                <p className="mt-0.5 text-[15px] font-semibold text-on-surface">{l.cajas}</p>
               </div>
               <div>
-                <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
-                <p className="mt-0.5 font-heading text-[15px] font-bold text-on-surface">{l.sueltos}</p>
+                <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Sueltos</p>
+                <p className="mt-0.5 text-[15px] font-semibold text-on-surface">{l.sueltos}</p>
               </div>
               <div>
-                <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Total</p>
-                <p className="mt-0.5 font-heading text-[15px] font-bold text-on-surface">{l.unidades}</p>
+                <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Total</p>
+                <p className="mt-0.5 text-[15px] font-semibold text-on-surface">{l.unidades}</p>
               </div>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function ProductosPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Productos</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Productos</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Catálogo y stock de productos</p>
         </div>
         {esAdmin && (
@@ -212,18 +212,18 @@ export default function ProductosPage() {
 
       <div className="grid gap-4 md:grid-cols-3">
         <div className="bg-surface-container-high rounded-xl px-5 py-4">
-          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Total</p>
-          <p className="mt-1 font-heading text-[24px] font-bold text-on-surface">{productos.length}</p>
+          <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Total</p>
+          <p className="mt-1 text-[24px] font-semibold text-on-surface">{productos.length}</p>
         </div>
         <div className="bg-surface-container-high rounded-xl px-5 py-4">
-          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Stock bajo</p>
-          <p className="mt-1 font-heading text-[24px] font-bold text-error">
+          <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Stock bajo</p>
+          <p className="mt-1 text-[24px] font-semibold text-error">
             {productos.filter((p) => p.stockBajo).length}
           </p>
         </div>
         <div className="bg-surface-container-high rounded-xl px-5 py-4">
-          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Stock total</p>
-          <p className="mt-1 font-heading text-[24px] font-bold text-on-surface">
+          <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Stock total</p>
+          <p className="mt-1 text-[24px] font-semibold text-on-surface">
             {productos.reduce((s, p) => s + p.stock, 0).toLocaleString()}
           </p>
         </div>
@@ -250,9 +250,9 @@ export default function ProductosPage() {
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-heading text-[15px] font-bold uppercase tracking-wide text-on-surface">{p.nombre}</p>
-                        <p className="mt-1 font-mono text-[12px] text-outline">SKU: {p.sku}</p>
-                        <p className="mt-0.5 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-[0.05em]">
+                        <p className="text-[16px] font-semibold text-on-surface">{p.nombre}</p>
+                        <p className="mt-1 font-body text-[13px] font-medium text-on-surface-variant">SKU: {p.sku}</p>
+                        <p className="mt-0.5 font-body text-[12px] font-medium text-on-surface-variant">
                            {lotesCount} {lotesCount === 1 ? 'Lote activo' : 'Lotes activos'}
                         </p>
                       </div>
@@ -263,10 +263,10 @@ export default function ProductosPage() {
 
                     <div className="mt-4">
                       <div className="flex items-baseline gap-2">
-                        <span className="font-body text-[11px] font-bold uppercase tracking-[0.05em] text-outline">Disponible</span>
-                        <span className="font-heading text-[20px] font-bold text-on-surface">{p.disponible}</span>
+                        <span className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Disponible</span>
+                        <span className="text-[20px] font-semibold text-on-surface">{p.disponible}</span>
                       </div>
-                      <div className="mt-1 flex items-center gap-2 font-body text-[12px] text-on-surface-variant">
+                      <div className="mt-1 flex items-center gap-2 font-body text-[13px] text-on-surface-variant">
                         <span>Físico {p.fisico}</span>
                         <span className="text-white/20">·</span>
                         <span>Reservado {p.reservado}</span>
@@ -316,7 +316,7 @@ export default function ProductosPage() {
           <div className="hidden overflow-hidden rounded-xl bg-surface-container-high md:block" data-testid="productos-table">
             <table className="w-full text-left font-body text-[13px]">
               <thead>
-                <tr className="border-b border-white/10 text-[11px] uppercase tracking-[0.8px] text-outline">
+                <tr className="border-b border-white/10 text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
                   <th className="px-5 py-4 font-semibold w-1/2">Producto</th>
                   <th className="px-5 py-4 font-semibold w-1/4">Stock</th>
                   <th className="px-5 py-4 font-semibold w-1/4 text-right">Estado</th>
@@ -333,21 +333,21 @@ export default function ProductosPage() {
                         className={`border-b border-white/10 last:border-0 cursor-pointer transition hover:bg-surface-variant/30 ${isExpanded ? 'bg-surface-variant/20 border-b-0' : ''}`}
                       >
                         <td className="px-5 py-4">
-                          <p className="font-heading text-[15px] font-bold uppercase tracking-wide text-on-surface">{p.nombre}</p>
+                          <p className="text-[16px] font-semibold text-on-surface">{p.nombre}</p>
                           <div className="mt-1 flex items-center gap-3">
-                            <p className="font-mono text-[12px] text-outline">SKU: {p.sku}</p>
+                            <p className="font-body text-[13px] font-medium text-on-surface-variant">SKU: {p.sku}</p>
                             <span className="text-white/20">·</span>
-                            <p className="font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-[0.05em]">
+                            <p className="font-body text-[12px] font-medium text-on-surface-variant">
                               {lotesCount} {lotesCount === 1 ? 'Lote activo' : 'Lotes activos'}
                             </p>
                           </div>
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex items-baseline gap-2">
-                            <span className="font-body text-[11px] font-bold uppercase tracking-[0.05em] text-outline">Disponible</span>
-                            <span className="font-heading text-[20px] font-bold text-on-surface">{p.disponible}</span>
+                            <span className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Disponible</span>
+                            <span className="text-[20px] font-semibold text-on-surface">{p.disponible}</span>
                           </div>
-                          <div className="mt-1 flex items-center gap-2 font-body text-[12px] text-on-surface-variant">
+                          <div className="mt-1 flex items-center gap-2 font-body text-[13px] text-on-surface-variant">
                             <span>Físico {p.fisico}</span>
                             <span className="text-white/20">·</span>
                             <span>Reservado {p.reservado}</span>
@@ -368,7 +368,7 @@ export default function ProductosPage() {
                             <LotesInline producto={p} />
                             {esAdmin && (
                               <div className="flex items-center gap-2 bg-surface-container-highest/5 px-5 py-4 border-t border-white/5">
-                                <span className="font-body text-[11px] uppercase tracking-[0.8px] text-outline mr-2">Acciones admin:</span>
+                                <span className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant mr-2">Acciones admin:</span>
                                 <button onClick={(e) => openEdit(p, e)} className="rounded-full border border-primary px-3 py-1.5 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20">
                                   Editar
                                 </button>
@@ -396,7 +396,7 @@ export default function ProductosPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowModal(false)}>
           <div className="w-full max-w-md rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 font-heading text-[18px] font-bold text-on-surface">
+            <h2 className="mb-4 text-[18px] font-semibold text-on-surface">
               {editing ? 'Editar producto' : 'Nuevo producto'}
             </h2>
             <div className="space-y-4">
@@ -431,7 +431,7 @@ export default function ProductosPage() {
       {lotesProducto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesProducto(null)}>
           <div className="max-h-[80vh] w-full max-w-xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-heading text-[20px] font-bold tracking-[-0.02em] text-on-surface">{lotesProducto.nombre}</h2>
+            <h2 className="text-[20px] font-semibold tracking-tight text-on-surface">{lotesProducto.nombre}</h2>
             <p className="mt-1 font-body text-[13px] font-medium text-on-surface-variant">
               Stock total: <span className="font-semibold text-on-surface">{lotesProducto.stock} unidades</span>
             </p>
@@ -447,8 +447,8 @@ export default function ProductosPage() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="font-mono text-[16px] font-bold text-primary">{l.numero}</span>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 font-heading font-semibold text-[10px] ${l.activo ? 'bg-success/20 text-success' : 'bg-surface-highest text-on-surface-variant'}`}>
+                        <span className="text-[16px] font-semibold text-primary">{l.numero}</span>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 font-medium text-[11px] ${l.activo ? 'bg-success/20 text-success' : 'bg-surface-highest text-on-surface-variant'}`}>
                           {l.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </div>
@@ -468,20 +468,20 @@ export default function ProductosPage() {
                       {editingLoteId === l.id ? (
                         <>
                           <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
+                            <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Cajas</p>
                             <input type="number" min={0} value={editLoteForm.cajas}
                               onChange={(e) => setEditLoteForm({ ...editLoteForm, cajas: Number(e.target.value) })}
-                              className="input-field mt-1 text-right" onClick={(e) => e.stopPropagation()} />
+                              className="input-field mt-1 text-right text-[16px]" onClick={(e) => e.stopPropagation()} />
                           </div>
                           <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
+                            <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Sueltos</p>
                             <input type="number" min={0} max={maxSueltos(l.unidadesPorCaja)} value={editLoteForm.sueltos}
                               onChange={(e) => setEditLoteForm({ ...editLoteForm, sueltos: Number(e.target.value) })}
-                              className="input-field mt-1 text-right" onClick={(e) => e.stopPropagation()} />
+                              className="input-field mt-1 text-right text-[16px]" onClick={(e) => e.stopPropagation()} />
                           </div>
                           <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Unidades</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
+                            <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Unidades</p>
+                            <p className="mt-1 text-[18px] font-semibold text-on-surface">
                               {calcularUnidades(editLoteForm.cajas, editLoteForm.sueltos, l.unidadesPorCaja)}
                             </p>
                           </div>
@@ -489,19 +489,19 @@ export default function ProductosPage() {
                       ) : (
                         <>
                           <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
+                            <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Cajas</p>
+                            <p className="mt-1 text-[18px] font-semibold text-on-surface">
                               {l.cajas}
-                              <span className="ml-1 font-body text-[11px] font-normal text-outline">× {l.unidadesPorCaja}u</span>
+                              <span className="ml-1 font-body text-[12px] font-normal text-on-surface-variant">× {l.unidadesPorCaja}u</span>
                             </p>
                           </div>
                           <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">{l.sueltos}</p>
+                            <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Sueltos</p>
+                            <p className="mt-1 text-[18px] font-semibold text-on-surface">{l.sueltos}</p>
                           </div>
                           <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Total</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">{l.unidades} <span className="font-body text-[11px] font-normal text-outline">uds</span></p>
+                            <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Total</p>
+                            <p className="mt-1 text-[18px] font-semibold text-on-surface">{l.unidades} <span className="font-body text-[12px] font-normal text-on-surface-variant">uds</span></p>
                           </div>
                         </>
                       )}

@@ -2,7 +2,7 @@
 
 @theme {
   /* === TIPOGRAFÍAS === */
-  --font-heading: 'Space Grotesk', sans-serif;
+  --font-heading: 'Inter', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-mono: 'Inter', sans-serif;
 
@@ -261,7 +261,7 @@
 /* === LEGACY COMPATIBILITY CLASSES === */
 @layer components {
   .input-field {
-    @apply w-full bg-surface-container-high border border-white/10 rounded-lg py-2 px-3 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 transition-all duration-150;
+    @apply w-full bg-surface-container-high border border-white/10 rounded-lg py-2 px-3 font-body text-base text-on-surface placeholder:text-on-surface-variant/60 transition-all duration-150;
     &:focus {
       @apply border-primary-container outline-none ring-1 ring-primary-container/50;
     }

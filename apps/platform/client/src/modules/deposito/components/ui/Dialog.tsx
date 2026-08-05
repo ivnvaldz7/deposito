@@ -66,7 +66,7 @@ export function DialogHeader({ children }: { children: ReactNode }) {
 
 export function DialogTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="font-heading text-lg font-bold text-on-surface">
+    <h2 className="text-lg font-bold text-on-surface">
       {children}
     </h2>
   )

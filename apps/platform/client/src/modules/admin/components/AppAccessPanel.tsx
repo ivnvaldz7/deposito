@@ -116,7 +116,7 @@ export function AppAccessPanel({
     <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-md border-l border-white/10 bg-surface-container-lowest/98 p-6 shadow-float">
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-xl font-semibold font-heading text-on-surface">Editar usuario</h2>
+          <h2 className="text-xl font-semibold text-on-surface">Editar usuario</h2>
           <p className="mt-1 font-body text-sm text-on-surface-variant">
             Gestioná accesos por app y estado general.
           </p>

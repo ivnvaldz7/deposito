@@ -87,7 +87,7 @@ describe('PedidoDetailPage', () => {
     vi.mocked(aleBetApi.pedidos.tomar).mockResolvedValue(createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1' }))
     vi.mocked(aleBetApi.pedidos.completarItem).mockResolvedValue(createPedido({ items: [createPedidoItem({ completado: true })] }))
     vi.mocked(aleBetApi.pedidos.preparar).mockResolvedValue(createPedido({ estado: 'PREPARADO' }))
-    vi.mocked(aleBetApi.pedidos.cancelar).mockResolvedValue({ pedido: createPedido({ estado: 'CANCELADO' }), requested: false })
+    vi.mocked(aleBetApi.pedidos.cancelar).mockResolvedValue({ pedido: createPedido({ estado: 'CANCELADO' }), requested: false, discarded: false })
     vi.mocked(aleBetApi.pedidos.confirmarCancelacion).mockResolvedValue(createPedido({ estado: 'CANCELADO' }))
     vi.mocked(aleBetApi.pedidos.despachar).mockResolvedValue(createPedido({ estado: 'DESPACHADO', despachadoAt: '2026-07-18T10:00:00.000Z' }))
     vi.mocked(aleBetApi.remitos.emitir).mockResolvedValue(createRemito())
@@ -132,14 +132,14 @@ describe('PedidoDetailPage', () => {
     await screen.findByTestId('pedido-numero')
 
     fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'Sumar cajas' }))
-    expect(linea('prod-1')).toHaveTextContent('1 caja · 10 sueltos · 25 unidades')
+    expect(linea('prod-1')).toHaveTextContent('25 un')
 
     fireEvent.click(screen.getByRole('button', { name: '+ Agregar producto' }))
     await screen.findByTestId('bottom-sheet')
     fireEvent.change(screen.getByLabelText('Buscar producto'), { target: { value: 'prod' } })
     const resultados = await screen.findByRole('region', { name: 'Resultados de búsqueda' })
-    fireEvent.click(await within(resultados).findByRole('button', { name: /Producto B/ }))
-    fireEvent.click(within(sheet()).getByRole('button', { name: 'Cerrar' }))
+    fireEvent.click(await within(resultados).findByRole('button', { name: /Agregar Producto B/ }))
+    fireEvent.click(within(sheet()).getByRole('button', { name: 'Confirmar cambios' }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     await waitFor(() =>
@@ -204,14 +204,18 @@ describe('PedidoDetailPage', () => {
     await waitFor(() => expect(screen.getByText('Cambio de cliente sin guardar')).toBeInTheDocument())
   })
 
-  it('cancela un BORRADOR con confirmación', async () => {
+  it('descarta un BORRADOR con confirmación y vuelve a pedidos', async () => {
     mockRol('vendedor')
     vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ vendedorId: 'sub-1' }))
-    renderDetalle()
+    vi.mocked(aleBetApi.pedidos.cancelar).mockResolvedValue({ discarded: true, pedidoId: 'pedido-1', requested: false })
+    const { queryClient } = renderDetalle()
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
     await screen.findByTestId('pedido-numero')
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-    expect(confirmDialog().getByText('Se descartará el pedido')).toBeInTheDocument()
-    fireEvent.click(confirmDialog().getByRole('button', { name: 'Cancelar' }))
+    expect(confirmDialog().getByRole('heading', { name: 'Descartar borrador' })).toBeInTheDocument()
+    expect(confirmDialog().getByText('Este borrador se eliminará.')).toBeInTheDocument()
+    expect(confirmDialog().getByRole('button', { name: 'Descartar borrador' })).toBeInTheDocument()
+    fireEvent.click(confirmDialog().getByRole('button', { name: 'Descartar borrador' }))
     await waitFor(() =>
       expect(aleBetApi.pedidos.cancelar).toHaveBeenCalledWith(
         'pedido-1',
@@ -219,7 +223,11 @@ describe('PedidoDetailPage', () => {
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Pedido cancelado')
+    await waitFor(() => expect(screen.getByTestId('pedidos-route')).toBeInTheDocument())
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Borrador descartado')
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['ale-bet', 'pedidos'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['ale-bet', 'pedidos', 'detail', 'pedido-1'] })
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['ale-bet', 'dashboard'] })
   })
 
   it('APROBADO: advertencia de disponibilidad y guardar con confirmación', async () => {
@@ -228,10 +236,7 @@ describe('PedidoDetailPage', () => {
     renderDetalle()
     await screen.findByTestId('pedido-numero')
     expect(
-      screen.getByText('Editar puede cambiar la disponibilidad y liberar la reserva actual'),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText('Al guardar se liberará la reserva actual y se volverá a reservar según la disponibilidad'),
+      screen.getByText(/Editar puede cambiar la disponibilidad y liberar la reserva actual/),
     ).toBeInTheDocument()
 
     fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'Sumar cajas' }))
@@ -274,9 +279,9 @@ describe('PedidoDetailPage', () => {
     )
     renderDetalle()
     await screen.findByTestId('pedido-numero')
-    expect(screen.getByText('Cliente pendiente de validación')).toBeInTheDocument()
+    expect(screen.getByText('Pendiente de validación')).toBeInTheDocument()
     expect(screen.getByText('Facturación debe completar los datos')).toBeInTheDocument()
-    expect(screen.getByText('El cliente debe ser validado por Facturación antes de aprobar')).toBeInTheDocument()
+    expect(screen.getByText('Requiere validación')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Aprobar' })).toBeDisabled()
   })
 
@@ -362,12 +367,12 @@ describe('PedidoDetailPage', () => {
     await screen.findByTestId('pedido-numero')
 
     expect(screen.getByText('0 de 1 items preparados')).toBeInTheDocument()
-    expect(screen.getByText('Faltan 1 items para poder preparar')).toBeInTheDocument()
+    expect(screen.getAllByText(/Faltan 1 items/)[0]).toBeInTheDocument()
     expect(barra().getByText('0/1')).toBeInTheDocument()
     expect(barra().getByRole('button', { name: 'Preparar' })).toBeDisabled()
     expect(barra().getByText('Faltan 1 items')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Marcar preparado' }))
+    fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'Preparar' }))
     await waitFor(() =>
       expect(aleBetApi.pedidos.completarItem).toHaveBeenCalledWith(
         'pedido-1',
@@ -409,7 +414,7 @@ describe('PedidoDetailPage', () => {
     vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ estado: 'PREPARADO', armadorId: 'sub-1' }))
     renderDetalle()
     await screen.findByTestId('pedido-numero')
-    expect(screen.getByText('Esperando remito — Facturación debe emitirlo')).toBeInTheDocument()
+    expect(screen.getByText(/Esperando remito/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
   })
 
@@ -478,7 +483,7 @@ describe('PedidoDetailPage', () => {
     )
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Remito emitido')
     await waitFor(() => expect(screen.getByText('Remito R-001')).toBeInTheDocument())
-    expect(screen.getByText(/Transporte: Transporte A/)).toBeInTheDocument()
+    expect(screen.getByText(/Transporte A/)).toBeInTheDocument()
   })
 
   it('facturación valida y emite transporte ocasional', async () => {
@@ -518,7 +523,7 @@ describe('PedidoDetailPage', () => {
     await screen.findByTestId('pedido-numero')
     expect(screen.getByText('Remito R-001')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Descargar PDF' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar' }))
     await waitFor(() => expect(aleBetApi.remitos.pdf).toHaveBeenCalledWith('pedido-1'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Anular' }))

@@ -3,7 +3,7 @@ import type { Pedido, PedidoEstado } from './api'
 
 export type RolAleBet = 'admin' | 'vendedor' | 'armador' | 'facturacion' | 'observador'
 
-export type BadgeVariant = 'default' | 'success' | 'warning' | 'error' | 'info'
+export type BadgeVariant = 'default' | 'success' | 'warning' | 'warning-soft' | 'error' | 'info'
 
 export interface EstadoMeta {
   label: string
@@ -15,7 +15,7 @@ export interface EstadoMeta {
 
 export const ESTADO_META: Record<PedidoEstado, EstadoMeta> = {
   BORRADOR: { label: 'Borrador', variant: 'default', priority: 3 },
-  APROBADO: { label: 'Aprobado', variant: 'warning', priority: 0 },
+  APROBADO: { label: 'Aprobado', variant: 'warning-soft', priority: 0 },
   EN_ARMADO: { label: 'En armado', variant: 'info', priority: 2 },
   PREPARADO: { label: 'Preparado', variant: 'info', priority: 1 },
   DESPACHADO: { label: 'Despachado', variant: 'success', priority: 4 },

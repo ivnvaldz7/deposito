@@ -40,7 +40,7 @@ function MetricCard({
         <span className="font-body text-sm text-on-surface-variant">{label}</span>
         <Icon size={24} className="opacity-50" />
       </div>
-      <div className="font-heading text-3xl font-bold text-on-surface tabular-nums">
+      <div className="text-3xl font-bold text-on-surface tabular-nums">
         {value}
       </div>
     </GlassCard>
@@ -80,11 +80,11 @@ function StockAlertCard({
     <div className="bg-surface-container-high rounded-lg px-4 py-3 border border-white/10 hover:border-primary transition-colors duration-300 group">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h3 className="font-heading text-base font-bold text-on-surface truncate">{productName}</h3>
+          <h3 className="text-base font-bold text-on-surface truncate">{productName}</h3>
           <p className="font-body text-sm text-on-surface-variant mt-0.5">{category}</p>
         </div>
         <div className="text-right shrink-0">
-          <span className={`font-heading text-2xl font-bold tabular-nums leading-none ${stockTone === 'error' ? 'text-error' : 'text-tertiary'}`}>
+          <span className={`text-2xl font-bold tabular-nums leading-none ${stockTone === 'error' ? 'text-error' : 'text-tertiary'}`}>
             {currentStock}
           </span>
           <span className="font-body text-xs text-on-surface-variant ml-1">{unit}</span>
@@ -138,7 +138,7 @@ export default function DashboardPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-bold text-primary tracking-tighter">Depósito</h1>
+          <h1 className="text-3xl font-bold text-primary tracking-tighter">Depósito</h1>
           <p className="font-body text-base text-on-surface-variant mt-1">
             Resumen del inventario y alertas críticas.
           </p>
@@ -179,7 +179,7 @@ export default function DashboardPage() {
         {/* Left Column (2/3) - Low Stock Alerts */}
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-md">
-            <h2 className="font-heading text-lg font-semibold text-on-surface">Alertas de stock bajo</h2>
+            <h2 className="text-lg font-semibold text-on-surface">Alertas de stock bajo</h2>
             <button
               onClick={() => navigate('/deposito/drogas')}
               className="font-body text-xs text-primary hover:underline"
@@ -243,7 +243,7 @@ export default function DashboardPage() {
 
         {/* Right Column (1/3) - Recent Movements */}
         <div className="lg:col-span-1">
-          <h2 className="font-heading text-lg font-semibold text-on-surface mb-md">Últimos movimientos</h2>
+          <h2 className="text-lg font-semibold text-on-surface mb-md">Últimos movimientos</h2>
           <div className="bg-surface-container-high rounded-xl border border-white/10 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                   <th className="p-3 font-normal text-right">Qty</th>
                 </tr>
               </thead>
-              <tbody className="font-mono text-xs">
+              <tbody className="text-xs">
                 {stats.ultimosMovimientos.length === 0 ? (
                   <tr>
                     <td colSpan={3} className="p-6 text-center text-on-surface-variant font-body text-xs">

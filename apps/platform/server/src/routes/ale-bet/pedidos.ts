@@ -301,6 +301,11 @@ router.put('/:id/cancelar', requireApp('ale-bet', ['admin', 'vendedor']), async 
       if (pedido.estado === 'PREPARADO' && actorRole(user) !== 'admin') throw new ForbiddenError('El vendedor no puede cancelar un pedido PREPARADO')
       if (actorRole(user) === 'vendedor' && !canVendorCancelDirectly(state(pedido.estado)) && pedido.estado !== 'EN_ARMADO') throw new ForbiddenError('El vendedor solo puede cancelar directamente pedidos BORRADOR o APROBADO')
       if (!['BORRADOR', 'APROBADO', 'EN_ARMADO', 'PREPARADO'].includes(pedido.estado)) throw new ConflictError('Estado de pedido no cancelable')
+      if (pedido.estado === 'BORRADOR') {
+        await tx.itemPedido.deleteMany({ where: { pedidoId: pedido.id } })
+        await tx.pedido.delete({ where: { id: pedido.id } })
+        return { discarded: true, requested: false, pedidoId: pedido.id }
+      }
       if (pedido.estado === 'EN_ARMADO') {
         if (!parsed.data.motivo) throw new ConflictError('La solicitud de cancelación EN_ARMADO exige motivo')
         const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { cancelacionSolicitadaAt: new Date(), cancelacionSolicitadaPor: user.sub, motivoCancelacion: parsed.data.motivo, version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })

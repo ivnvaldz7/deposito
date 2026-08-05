@@ -58,7 +58,7 @@ function TransportistaFormModal({
         className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-surface-container-low shadow-float animate-slide-up lg:static lg:mx-auto lg:max-h-[calc(100dvh-3rem)] lg:w-full lg:max-w-md lg:animate-none lg:rounded-xl"
       >
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-          <h3 className="font-heading text-[15px] font-bold text-on-surface">{titulo}</h3>
+          <h3 className="text-[15px] font-bold text-on-surface">{titulo}</h3>
           <button
             type="button"
             onClick={onClose}
@@ -147,7 +147,7 @@ export default function TransportistasPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Transportistas</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Transportistas</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Gestión de transportistas</p>
         </div>
         <p className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">
@@ -232,7 +232,7 @@ export default function TransportistasPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Transportistas</h1>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Transportistas</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Gestión de transportistas</p>
         </div>
         <button
@@ -263,7 +263,7 @@ export default function TransportistasPage() {
               <article key={t.id} className="rounded-xl border border-white/10 bg-surface-container-high p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate font-heading text-[14px] font-semibold text-on-surface">{t.nombre}</p>
+                    <p className="truncate text-[14px] font-semibold text-on-surface">{t.nombre}</p>
                     <p className="mt-0.5 truncate font-body text-[11px] text-outline">{t.direccion}</p>
                   </div>
                   <Badge variant={t.activo ? 'success' : 'default'}>{t.activo ? 'Activo' : 'Inactivo'}</Badge>
@@ -347,7 +347,7 @@ export default function TransportistasPage() {
             className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-heading text-[16px] font-bold text-on-surface">
+            <h2 className="text-[16px] font-bold text-on-surface">
               {confirmar.activo ? 'Desactivar transportista' : 'Activar transportista'}
             </h2>
             <p className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">

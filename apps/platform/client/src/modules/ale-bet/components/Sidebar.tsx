@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  LayoutDashboard, ClipboardList, Package, Users, Box, Clock, Truck, Plus, LogOut, AppWindow,
+  LayoutDashboard, ClipboardList, Package, Users, Box, Clock, Truck, Plus, LogOut, ArrowLeftRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -80,15 +80,19 @@ function NavItemLink({ item, onNavigate }: { item: NavItem; onNavigate?: () => v
       onClick={onNavigate}
       className={({ isActive }) =>
         cn(
-          'flex items-center gap-3 px-4 py-2.5 rounded-lg font-body text-sm transition-all duration-200 scale-hover',
+          'flex items-center gap-3 px-3 py-2.5 rounded-lg font-body text-[14px] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
           isActive
-            ? 'bg-primary-container/20 text-primary border-l-4 border-primary font-semibold'
-            : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
+            ? 'bg-surface-variant/30 text-on-surface font-semibold'
+            : 'text-on-surface-variant hover:bg-surface-variant/20 hover:text-on-surface',
         )
       }
     >
-      <Icon size={16} strokeWidth={1.5} />
-      {label}
+      {({ isActive }) => (
+        <>
+          <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+          {label}
+        </>
+      )}
     </NavLink>
   )
 }
@@ -110,18 +114,26 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="hidden md:flex flex-col h-full w-72 rounded-r-xl border-r border-white/10 bg-surface-container-low shadow-float py-lg z-40 fixed top-0 left-0">
-        {/* Profile Header */}
-        <div className="flex items-center gap-2 px-4 mb-xl">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-surface-variant border-2 border-primary flex items-center justify-center text-primary font-heading font-bold text-sm shrink-0">
+      <aside className="hidden md:flex flex-col h-full w-[280px] rounded-r-2xl border-r border-white/5 bg-surface-container-low shadow-sm py-6 z-40 fixed top-0 left-0">
+
+        {/* App Name */}
+        <div className="px-5 mb-6">
+          <h1 className="text-xs font-bold tracking-widest text-on-surface-variant uppercase">
+            Logística
+          </h1>
+        </div>
+
+        {/* Profile Block */}
+        <div className="flex items-center px-5 mb-8">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-[40px] h-[40px] rounded-full bg-surface-variant flex items-center justify-center text-primary font-bold text-[14px] shrink-0">
               {user?.name?.charAt(0)?.toUpperCase() ?? '?'}
             </div>
-            <div className="min-w-0">
-              <div className="font-heading text-sm font-semibold text-primary truncate">
+            <div className="min-w-0 flex flex-col justify-center">
+              <div className="text-[14px] font-semibold text-on-surface truncate leading-tight">
                 {user?.name ?? 'Sin usuario'}
               </div>
-              <div className="font-body text-xs text-on-surface-variant truncate">
+              <div className="font-body text-[12px] text-on-surface-variant truncate mt-0.5">
                 {formatRol(rol)}
               </div>
             </div>
@@ -129,46 +141,30 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 flex flex-col gap-1 px-3">
+        <nav className="flex-1 flex flex-col gap-1 px-3 overflow-y-auto">
           {items.map((item) => <NavItemLink key={item.path} item={item} />)}
         </nav>
 
-
-
-        {/* Bottom */}
-        <div className="border-t border-white/5 px-3 py-2">
-          <NavLink
-            to="/app-selector"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg font-body text-sm transition-all duration-200 scale-hover',
-                isActive
-                  ? 'bg-primary-container/20 text-primary border-l-4 border-primary'
-                  : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
-              )
-            }
-          >
-            <AppWindow size={16} strokeWidth={1.5} />
-            Cambiar módulo
-          </NavLink>
-        </div>
-
-        <div className="border-t border-white/5 px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate font-body text-sm font-medium text-on-surface">{user?.name ?? 'Sin usuario'}</p>
-              <p className="truncate font-body text-xs text-on-surface-variant">
-                {formatRol(rol)}
-              </p>
-            </div>
+        {/* Bottom Actions */}
+        <div className="px-5 pt-4 border-t border-white/5 mt-4">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/app-selector')}
+              title="Cambiar módulo"
+              aria-label="Cambiar módulo"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-variant/50 hover:text-on-surface focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <ArrowLeftRight size={18} strokeWidth={1.75} />
+            </button>
             <button
               type="button"
               onClick={handleLogout}
               title="Cerrar sesión"
               aria-label="Cerrar sesión"
-              className="text-on-surface-variant hover:text-on-surface transition-colors"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-error/15 hover:text-error focus:outline-none focus-visible:ring-2 focus-visible:ring-error/50"
             >
-              <LogOut size={16} strokeWidth={1.5} />
+              <LogOut size={18} strokeWidth={1.75} />
             </button>
           </div>
         </div>

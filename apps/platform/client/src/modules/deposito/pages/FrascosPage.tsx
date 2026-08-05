@@ -106,7 +106,7 @@ function AgregarFrascoModal({ open, onOpenChange }: { open: boolean; onOpenChang
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{createMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-            <DialogClose asChild><button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button></DialogClose>
+            <DialogClose asChild><button type="button" className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button></DialogClose>
           </div>
         </form>
       </DialogContent>
@@ -157,7 +157,7 @@ function EditarFrascoModal({ frasco, onClose }: { frasco: Frasco; onClose: () =>
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{updateMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
           </div>
         </form>
       </DialogContent>

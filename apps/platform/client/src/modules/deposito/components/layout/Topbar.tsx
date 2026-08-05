@@ -20,7 +20,7 @@ export function Topbar() {
   return (
     <header className="h-12 bg-surface-low flex items-center justify-between px-5 shrink-0">
       <span className="font-body text-on-surface-variant text-xs uppercase tracking-widest">
-        <span className="md:hidden font-heading text-primary-container font-bold text-sm tracking-tight normal-case">
+        <span className="md:hidden text-primary-container font-bold text-sm tracking-tight normal-case">
           Depósito
         </span>
       </span>

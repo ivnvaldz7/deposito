@@ -219,7 +219,7 @@ function CrearUsuarioModal({
               {createUsuario.isPending ? 'Creando...' : 'Crear usuario'}
             </button>
             <DialogClose asChild>
-              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+              <button type="button" className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                 Cancelar
               </button>
             </DialogClose>
@@ -285,14 +285,14 @@ function DeleteButton({
             type="button"
             onClick={handleDelete}
             disabled={deleteUsuario.isPending}
-            className="flex-1 py-2.5 text-sm font-heading font-semibold rounded bg-error text-white hover:bg-error/90 transition-colors disabled:opacity-50"
+            className="flex-1 py-2.5 text-sm font-semibold rounded bg-error text-white hover:bg-error/90 transition-colors disabled:opacity-50"
           >
             {deleteUsuario.isPending ? 'Eliminando...' : 'Eliminar'}
           </button>
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
+            className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
           >
             Cancelar
           </button>

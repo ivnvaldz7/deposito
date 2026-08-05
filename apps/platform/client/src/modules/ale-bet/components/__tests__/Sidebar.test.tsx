@@ -56,12 +56,11 @@ describe('Sidebar', () => {
     mockRol('vendedor', logoutMock)
     renderSidebar()
 
-    const changeModuleLink = screen.getByText('Cambiar módulo').closest('a')
-    expect(changeModuleLink).toHaveAttribute('href', '/app-selector')
-
-    fireEvent.click(changeModuleLink!)
+    const changeModuleBtn = screen.getByRole('button', { name: 'Cambiar módulo' })
+    fireEvent.click(changeModuleBtn)
 
     expect(logoutMock).not.toHaveBeenCalled()
+    expect(screen.getByTestId('location-display')).toHaveTextContent('/app-selector')
   })
 
   it('handles "Cerrar sesión" cleanly via the store', () => {
