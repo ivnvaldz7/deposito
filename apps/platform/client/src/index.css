@@ -62,7 +62,7 @@
 
   /* === SEMÁNTICOS === */
   --color-success: #00ae42;
-  --color-warning: #ff9800;
+  --color-warning: #A06869;
 
   /* === RADIOS === */
   --radius: 0.5rem;
@@ -95,7 +95,7 @@
   --color-emerald-400: #96c3a9;
   --color-emerald-200: #bfeed2;
   --color-rose-500: #fa746f;
-  --color-amber-500: #ff9800;
+  --color-amber-500: #A06869;
 }
 
 /* === OVERRIDES max-w-{named} — Tailwind v4 usa --spacing-{size} para max-w-{size},
@@ -261,10 +261,22 @@
 /* === LEGACY COMPATIBILITY CLASSES === */
 @layer components {
   .input-field {
-    @apply w-full bg-surface-container-high border border-white/10 rounded-lg py-2 px-3 font-body text-base text-on-surface placeholder:text-on-surface-variant/60 transition-all duration-150;
+    @apply block w-full bg-surface-container-high border border-white/10 rounded-lg py-2 px-3 font-body text-base text-on-surface placeholder:text-on-surface-variant/60 transition-all duration-150;
     &:focus {
       @apply border-primary-container outline-none ring-1 ring-primary-container/50;
     }
+  }
+
+  select.input-field {
+    @apply appearance-none bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23C7EFDB' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.75rem center;
+    background-size: 1.25rem 1.25rem;
+    padding-right: 2.5rem;
+  }
+
+  select.input-field:focus {
+    @apply border-primary outline-none ring-1 ring-primary/30;
   }
 
   .btn-primary {

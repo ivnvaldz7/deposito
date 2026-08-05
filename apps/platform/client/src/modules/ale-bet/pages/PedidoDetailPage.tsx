@@ -328,6 +328,7 @@ interface LineaDetalleProps {
   completado: boolean
   editable: boolean
   completable: boolean
+  isFacturacion?: boolean
   onChange?: (cajas: number, sueltos: number) => void
   onEliminar?: () => void
   onToggleCompletar?: () => void
@@ -346,11 +347,13 @@ function LineaDetalle({
   completado,
   editable,
   completable,
+  isFacturacion,
   onChange,
   onEliminar,
   onToggleCompletar,
 }: LineaDetalleProps) {
   const ceroUnidades = unidades === 0
+  const mostrarStock = !isFacturacion && (disponible !== undefined || reservado !== undefined)
 
   return (
     <div
@@ -368,7 +371,7 @@ function LineaDetalle({
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[12px] text-on-surface-variant">
           <span className="font-medium text-on-surface/80">{sku}</span>
 
-          {(disponible !== undefined || reservado !== undefined) && (
+          {mostrarStock && (
             <div className="flex items-center gap-2 border-l border-white/10 pl-3">
               {disponible !== undefined && (
                 <span className={cn(disponible <= 0 && 'text-warning font-medium')}>
@@ -394,8 +397,9 @@ function LineaDetalle({
             <QuantityStepper cajas={cajas} sueltos={sueltos} unidadesPorCaja={unidadesPorCaja} onChange={onChange} />
           ) : (
             <div className="font-body text-[13px] text-on-surface-variant flex items-center gap-3">
-              <span className="bg-surface-container-high px-2 py-1 rounded text-on-surface">{cajas} cj</span>
-              <span className="bg-surface-container-high px-2 py-1 rounded text-on-surface">{sueltos} un</span>
+              <span className="text-on-surface">{cajas} caja{cajas !== 1 ? 's' : ''}</span>
+              <span>·</span>
+              <span className="text-on-surface">{sueltos} unidad{sueltos !== 1 ? 'es' : ''}</span>
             </div>
           )}
         </div>
@@ -431,6 +435,117 @@ function LineaDetalle({
           )}
         </div>
       </div>
+    </div>
+  )
+}
+interface TransportSelectorProps {
+  transportistas: { id: string; nombre: string; direccion?: string | null }[]
+  transporteId: string
+  setTransporteId: (id: string) => void
+  usarOcasional: boolean
+  setUsarOcasional: (v: boolean) => void
+}
+
+function TransportSelector({ transportistas, transporteId, setTransporteId, usarOcasional, setUsarOcasional }: TransportSelectorProps) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const [search, setSearch] = useState("")
+
+  useEffect(() => {
+    if (!open) {
+      setSearch("")
+    }
+  }, [open])
+
+  const filtered = useMemo(() => {
+    if (!search) return transportistas
+    const s = search.toLowerCase()
+    return transportistas.filter(t => t.nombre.toLowerCase().includes(s) || (t.direccion && t.direccion.toLowerCase().includes(s)))
+  }, [transportistas, search])
+
+  const selectedT = transportistas.find(t => t.id === transporteId)
+
+  return (
+    <div className="relative w-full md:max-w-md" ref={ref}>
+      <div
+        role="combobox"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+        onClick={() => setOpen(true)}
+        className={cn(
+          "flex w-full items-center justify-between gap-3 h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border transition-all shadow-sm focus-within:outline-none rounded-lg cursor-text",
+          open
+            ? "border-primary ring-1 ring-primary/50"
+            : (transporteId || usarOcasional ? "border-white/10 hover:border-primary/50" : "border-white/10 hover:border-primary/50")
+        )}
+      >
+        {open ? (
+          <input
+            autoFocus
+            className="w-full bg-transparent outline-none text-on-surface placeholder:text-on-surface-variant/70 font-body text-[14px]"
+            placeholder="Buscar transportista..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        ) : usarOcasional ? (
+          <div className="flex flex-col truncate w-full">
+            <span className="text-[14px] font-semibold text-primary truncate">OTRO / TRANSPORTE OCASIONAL</span>
+          </div>
+        ) : selectedT ? (
+          <div className="flex flex-col truncate w-full">
+            <span className="text-[14px] text-on-surface truncate">{selectedT.nombre}</span>
+            {selectedT.direccion && <span className="text-[11px] text-on-surface-variant truncate">{selectedT.direccion}</span>}
+          </div>
+        ) : (
+          <span className="text-on-surface-variant truncate w-full">Buscar transportista...</span>
+        )}
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-primary transition-transform cursor-pointer", open && "rotate-180")} onClick={(e) => { e.stopPropagation(); setOpen(!open); }} />
+      </div>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-surface-container-high shadow-float shadow-xl p-1 animate-in fade-in zoom-in-95">
+          {filtered.length > 0 ? (
+            filtered.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => { setUsarOcasional(false); setTransporteId(t.id); setOpen(false) }}
+                className={cn(
+                  "flex flex-col w-full px-3 py-2 text-left rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
+                  !usarOcasional && transporteId === t.id ? "bg-primary/10" : ""
+                )}
+              >
+                <span className={cn("text-[14px] font-body", !usarOcasional && transporteId === t.id ? "text-primary font-semibold" : "text-on-surface")}>{t.nombre}</span>
+                {t.direccion && <span className="text-[11px] font-body text-on-surface-variant truncate">{t.direccion}</span>}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-4 text-center text-[12px] font-body text-on-surface-variant">No se encontraron resultados</div>
+          )}
+          <div className="my-1 h-[1px] w-full bg-white/10" />
+          <button
+            type="button"
+            onClick={() => { setUsarOcasional(true); setTransporteId(''); setOpen(false) }}
+            className={cn(
+              "flex w-full items-center px-3 py-2.5 text-left text-[14px] font-body rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
+              usarOcasional ? "bg-primary/10 text-primary font-semibold" : "font-semibold text-primary/80"
+            )}
+          >
+            OTRO / TRANSPORTE OCASIONAL
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -976,7 +1091,7 @@ export default function PedidoDetailPage() {
         <button
           type="button"
           onClick={() => {
-            if (location.key !== 'default') navigate(-1)
+            if (window.history.state && window.history.state.idx > 0) navigate(-1)
             else navigate('/ale-bet/pedidos')
           }}
           className="inline-flex items-center gap-1.5 font-body text-[13px] font-medium text-outline transition hover:text-on-surface focus:outline-none focus:text-on-surface"
@@ -1127,7 +1242,7 @@ export default function PedidoDetailPage() {
 
           <div>
             <div className="flex items-center justify-between gap-3 mb-4">
-              <h2 className="font-body text-[13px] font-bold text-on-surface">Productos</h2>
+              <h2 className="text-[20px] font-bold tracking-tight text-on-surface">Productos</h2>
               {canEditar && (
                 <button type="button" onClick={abrirModalProductos} className="rounded-full border border-primary/40 px-3 py-1 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/10">+ Agregar producto</button>
               )}
@@ -1155,6 +1270,7 @@ export default function PedidoDetailPage() {
                   completado={item.completado}
                   editable={canEditar}
                   completable={puedeProgreso}
+                  isFacturacion={rol === 'facturacion'}
                   onChange={(nCajas, nSueltos) => cambiarCantidad(item.productoId, nCajas, nSueltos)}
                   onEliminar={canEditar ? () => eliminarLinea(item.productoId) : undefined}
                   onToggleCompletar={puedeProgreso ? () => void toggleCompletar(item.id) : undefined}
@@ -1195,34 +1311,27 @@ export default function PedidoDetailPage() {
               </div>
             ) : canEmitirRemito(pedido, rol) ? (
               <div>
-                <h2 className="font-body text-[13px] font-bold text-on-surface">Emitir remito</h2>
-                <div className="mt-3 flex flex-col lg:flex-row lg:items-start gap-4">
-                  <div className="flex-1 space-y-2.5">
-                    <select
-                      aria-label="Seleccionar transporte"
-                      value={usarOcasional ? '__ocasional__' : transporteId}
-                      onChange={(e) => {
-                         const value = e.target.value
-                         if (value === '__ocasional__') { setUsarOcasional(true); setTransporteId('') }
-                         else { setUsarOcasional(false); setTransporteId(value) }
-                      }}
-                      className="input-field text-[14px] h-10 px-3 w-full md:max-w-md"
-                    >
-                      <option value="">Seleccionar transporte</option>
-                      {transportistas.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                      <option value="__ocasional__">OTRO / TRANSPORTE OCASIONAL</option>
-                    </select>
-                    {usarOcasional && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full md:max-w-md">
-                        <input ref={ocasionalNombreRef} value={ocasionalNombre} onChange={(e) => setOcasionalNombre(e.target.value)} aria-label="Nombre del transporte ocasional" placeholder="Nombre del transporte" className="input-field text-[14px] h-10 px-3" />
-                        <input ref={ocasionalDireccionRef} value={ocasionalDireccion} onChange={(e) => setOcasionalDireccion(e.target.value)} aria-label="Dirección del transporte ocasional" placeholder="Dirección" className="input-field text-[14px] h-10 px-3" />
-                      </div>
-                    )}
-                    {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error">{remitoError}</p>}
+                <h2 className="font-body text-[13px] font-bold tracking-wide text-on-surface-variant uppercase mb-3">Transporte</h2>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col md:flex-row md:items-start gap-3">
+                    <TransportSelector
+                      transportistas={transportistas}
+                      transporteId={transporteId}
+                      setTransporteId={setTransporteId}
+                      usarOcasional={usarOcasional}
+                      setUsarOcasional={setUsarOcasional}
+                    />
+                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} disabled={!transporteId && !usarOcasional} className="h-11 w-full md:w-auto px-6 font-semibold">
+                      Emitir remito
+                    </Button>
                   </div>
-                  <div className="shrink-0 md:w-40 md:pt-0">
-                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} className="h-10 w-full">Emitir remito</Button>
-                  </div>
+                  {usarOcasional && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full md:max-w-md pt-1 mt-1 border-t border-white/5">
+                      <input ref={ocasionalNombreRef} value={ocasionalNombre} onChange={(e) => setOcasionalNombre(e.target.value)} aria-label="Nombre del transporte ocasional" placeholder="Nombre del transporte" className="input-field text-[14px] h-11 px-3" />
+                      <input ref={ocasionalDireccionRef} value={ocasionalDireccion} onChange={(e) => setOcasionalDireccion(e.target.value)} aria-label="Dirección del transporte ocasional" placeholder="Dirección" className="input-field text-[14px] h-11 px-3" />
+                    </div>
+                  )}
+                  {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error mt-2">{remitoError}</p>}
                 </div>
               </div>
             ) : null}
@@ -1423,37 +1532,48 @@ export default function PedidoDetailPage() {
         </div>
       </BottomSheet>
 
-      <BottomSheet open={anularOpen} onClose={() => setAnularOpen(false)} title="Anular remito" desktop="sheet">
-        <div className="space-y-4">
-          <p className="font-body text-[12px] leading-relaxed text-on-surface-variant">
+      <BottomSheet
+        open={anularOpen}
+        onClose={() => setAnularOpen(false)}
+        title="Anular remito"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setAnularOpen(false)} disabled={anularRemitoMutation.isPending} className="flex-1 md:flex-none h-10 px-6">
+              Volver
+            </Button>
+            <button
+              onClick={() => void anularRemito()}
+              disabled={anularRemitoMutation.isPending}
+              className="flex-1 md:flex-none inline-flex h-10 items-center justify-center gap-2 rounded border px-6 py-2 text-[13px] font-semibold transition-colors text-[#A06869] border-[#D5B4B5] bg-[#F5ECEC] hover:bg-[#F5ECEC]/80 disabled:opacity-50"
+            >
+              Anular remito
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="font-body text-[13px] leading-relaxed text-on-surface-variant">
             El remito dejará de estar vigente y podrá emitirse uno nuevo.
           </p>
           <div className="space-y-1.5">
-            <label htmlFor="motivo-anular" className="font-body text-[12px] font-medium text-on-surface-variant">
-              Motivo *
+            <label htmlFor="motivo-anular" className="font-body text-[13px] font-medium text-on-surface">
+              Motivo <span className="text-error">*</span>
             </label>
             <textarea
               id="motivo-anular"
               value={motivoAnular}
               onChange={(e) => setMotivoAnular(e.target.value)}
               rows={3}
-              placeholder="¿Por qué se anula el remito?"
-              className="input-field text-base"
+              placeholder="Indicá el motivo de la anulación"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
             />
           </div>
           {motivoAnularError && (
-            <p role="alert" className="font-body text-[12px] font-medium text-error">
+            <p role="alert" className="font-body text-[12px] font-medium text-[#A06869] bg-[#F5ECEC] border border-[#D5B4B5] p-2 rounded">
               {motivoAnularError}
             </p>
           )}
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setAnularOpen(false)} disabled={anularRemitoMutation.isPending} className="min-h-11 flex-1">
-              Volver
-            </Button>
-            <Button onClick={() => void anularRemito()} loading={anularRemitoMutation.isPending} className="min-h-11 flex-1">
-              Anular remito
-            </Button>
-          </div>
         </div>
       </BottomSheet>
 

@@ -137,7 +137,10 @@ export default function ActaNuevaPage() {
       <header className="bg-surface/80 backdrop-blur-md border-b border-white/10 px-margin-desktop py-md flex items-center justify-between shrink-0">
         <div className="flex items-center gap-md">
           <button
-            onClick={() => navigate('/deposito/actas')}
+            onClick={() => {
+              if (window.history.state && window.history.state.idx > 0) navigate(-1)
+              else navigate('/deposito/actas')
+            }}
             className="text-on-surface-variant hover:text-primary transition-colors flex items-center"
           >
             <ArrowLeft size={24} />

@@ -9,12 +9,14 @@ const {
   acquireIdempotencyRecord,
   completeIdempotencyRecord,
   mockDb,
+  pdfDocuments,
   releaseActiveReservations,
   reserveFefo,
   consumeActiveReservations,
 } = vi.hoisted(() => ({
   acquireIdempotencyRecord: vi.fn(),
   completeIdempotencyRecord: vi.fn(),
+  pdfDocuments: [] as Array<{ texts: string[] }>,
   releaseActiveReservations: vi.fn(),
   reserveFefo: vi.fn(),
   consumeActiveReservations: vi.fn(),
@@ -33,6 +35,35 @@ const {
     $transaction: vi.fn(),
   },
 }))
+
+vi.mock('pdfkit', () => {
+  class TestPdfDocument {
+    readonly texts: string[] = []
+    private destination: { end: () => void } | undefined
+
+    pipe(destination: { end: () => void }): this { this.destination = destination; return this }
+    fontSize(_size: number): this { return this }
+    font(_name: string): this { return this }
+    fillColor(_color: string): this { return this }
+    lineWidth(_width: number): this { return this }
+    text(value: string): this { this.texts.push(value); return this }
+    rect(_x: number, _y: number, _width: number, _height: number): this { return this }
+    moveTo(_x: number, _y: number): this { return this }
+    lineTo(_x: number, _y: number): this { return this }
+    stroke(): this { return this }
+    addPage(): this { return this }
+    end(): void { this.destination?.end() }
+  }
+
+  return {
+    default: class extends TestPdfDocument {
+      constructor() {
+        super()
+        pdfDocuments.push(this)
+      }
+    },
+  }
+})
 
 vi.mock('@platform/core', () => {
   const jsonwebtoken = require('jsonwebtoken')
@@ -96,6 +127,7 @@ describe('ALEBET-01 HTTP contracts', () => {
   beforeEach(() => {
     process.env.PLATFORM_JWT_SECRET = JWT_SECRET
     vi.clearAllMocks()
+    pdfDocuments.length = 0
     mockDb.$transaction.mockImplementation(async (work: (tx: typeof mockDb) => Promise<unknown>) => work(mockDb))
     mockDb.$queryRaw.mockResolvedValue([])
     acquireIdempotencyRecord.mockResolvedValue({ type: 'PROPRIETARY', id: 'idem-1' })
@@ -330,5 +362,114 @@ describe('ALEBET-01 HTTP contracts', () => {
     await request(server).patch('/api/ale-bet/pedidos/pedido-1').set('Authorization', `Bearer ${token('vendedor')}`)
       .send({ clienteId: 'cliente-1', items: [{ productoId: 'producto-1', cantidad: 4 }], expectedVersion: 1 }).expect(200)
     expect(mockDb.remito.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ estado: 'INVALIDADO' }) }))
+  })
+
+  it('downloads a complete habitual-transport remito from historical snapshots without technical JSON', async () => {
+    mockDb.remito.findFirst.mockResolvedValue({
+      id: 'remito-1',
+      numero: 'R-20260805-AB12CD34',
+      fecha: new Date('2026-08-05T12:00:00.000Z'),
+      pedido: { vendedorId: 'vendedor-1' },
+      clienteSnapshot: {
+        id: 'old-client-id',
+        nombre: 'Cliente histórico',
+        direccion: 'Av. Histórica 123',
+        localidad: 'Rosario',
+        provincia: 'Santa Fe',
+        cuit: '30-71234567-9',
+        condicionIva: 'Responsable Inscripto',
+        condicionVenta: 'Cuenta corriente',
+        estado: 'VALIDADO',
+        createdAt: '2025-01-01T00:00:00.000Z',
+        updatedAt: '2025-02-01T00:00:00.000Z',
+      },
+      transporteSnapshot: {
+        id: 'old-transport-id',
+        nombre: 'Transporte histórico',
+        direccion: 'Ruta 2',
+        activo: false,
+        createdAt: '2025-01-01T00:00:00.000Z',
+      },
+      transporteNombre: 'Transporte histórico',
+      transporteDireccion: 'Ruta 2',
+      itemsSnapshot: [{ productoId: 'old-product-id', nombre: 'Producto histórico', cantidad: 9, stock: 45, reservado: 9 }],
+    })
+    mockDb.cliente.findUnique.mockResolvedValue({ nombre: 'Cliente maestro cambiado' })
+    mockDb.transportista.findUnique.mockResolvedValue({ nombre: 'Transporte maestro cambiado' })
+    const server = await app()
+
+    await request(server).get('/api/ale-bet/pedidos/pedido-1/remito.pdf').set('Authorization', `Bearer ${token('vendedor')}`).expect('Content-Type', /application\/pdf/).expect(200)
+
+    const content = pdfDocuments[0]?.texts.join('\n') ?? ''
+    expect(content).toContain('Cliente histórico')
+    expect(content).toContain('Av. Histórica 123')
+    expect(content).toContain('Rosario / Santa Fe')
+    expect(content).toContain('30-71234567-9')
+    expect(content).toContain('Responsable Inscripto')
+    expect(content).toContain('Cuenta corriente')
+    expect(content).toContain('Transporte histórico')
+    expect(content).toContain('Ruta 2')
+    expect(content).toContain('Producto histórico')
+    expect(content).toContain('9')
+    expect(content).toContain('R-20260805-AB12CD34')
+    expect(content).toContain('Fecha: 2026-08-05')
+    expect(content).toContain('BULTOS: __________________')
+    expect(content).toContain('PESO: ____________________')
+    expect(content).not.toContain('old-client-id')
+    expect(content).not.toContain('old-transport-id')
+    expect(content).not.toContain('old-product-id')
+    expect(content).not.toContain('VALIDADO')
+    expect(content).not.toContain('productoId')
+    expect(content).not.toContain('createdAt')
+    expect(content).not.toContain('updatedAt')
+    expect(content).not.toContain('Cliente maestro cambiado')
+    expect(content).not.toContain('Transporte maestro cambiado')
+    expect(content).not.toContain('{')
+    expect(content).not.toContain('}')
+    expect(mockDb.cliente.findUnique).not.toHaveBeenCalled()
+    expect(mockDb.transportista.findUnique).not.toHaveBeenCalled()
+  })
+
+  it('downloads an occasional-transport remito with absent optional snapshot values left blank', async () => {
+    mockDb.remito.findFirst.mockResolvedValue({
+      id: 'remito-2',
+      numero: 'R-20260805-EF56GH78',
+      fecha: new Date('2026-08-05T12:00:00.000Z'),
+      pedido: { vendedorId: 'vendedor-1' },
+      clienteSnapshot: {
+        id: 'occasional-client-id',
+        nombre: 'Cliente ocasional',
+        direccion: null,
+        localidad: null,
+        provincia: null,
+        cuit: null,
+        condicionIva: null,
+        condicionVenta: null,
+        updatedAt: null,
+      },
+      transporteSnapshot: { nombre: 'Flete ocasional', direccion: 'Calle Ocasional 456', activo: null },
+      transporteNombre: 'Fallback no utilizado',
+      transporteDireccion: 'Fallback no utilizado',
+      itemsSnapshot: [{ productoId: 'occasional-product-id', nombre: 'Mercadería ocasional', cantidad: 2, createdAt: null }],
+    })
+    const server = await app()
+
+    await request(server).get('/api/ale-bet/pedidos/pedido-1/remito.pdf').set('Authorization', `Bearer ${token('vendedor')}`).expect('Content-Type', /application\/pdf/).expect(200)
+
+    const content = pdfDocuments[0]?.texts.join('\n') ?? ''
+    expect(content).toContain('Cliente ocasional')
+    expect(content).toContain('Flete ocasional')
+    expect(content).toContain('Calle Ocasional 456')
+    expect(content).toContain('Mercadería ocasional')
+    expect(content).toContain('R-20260805-EF56GH78')
+    expect(content).toContain('Fecha: 2026-08-05')
+    expect(content).not.toContain('Fallback no utilizado')
+    expect(content).not.toContain('occasional-client-id')
+    expect(content).not.toContain('occasional-product-id')
+    expect(content).not.toContain('activo')
+    expect(content).not.toContain('null')
+    expect(content).not.toContain('undefined')
+    expect(content).not.toContain('{')
+    expect(content).not.toContain('}')
   })
 })

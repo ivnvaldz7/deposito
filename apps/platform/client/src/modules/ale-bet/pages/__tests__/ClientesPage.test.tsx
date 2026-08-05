@@ -112,7 +112,7 @@ describe('ClientesPage', () => {
     await waitFor(() => expect(screen.getByTestId('clientes-pendientes')).toBeInTheDocument())
     fireEvent.click(pendientesSection().getByRole('button', { name: 'Editar' }))
 
-    const modal = within(screen.getByTestId('cliente-form-modal'))
+    const modal = within(screen.getByRole('dialog'))
     fireEvent.change(modal.getByLabelText('CUIT'), { target: { value: '20123456789' } })
     fireEvent.change(modal.getByLabelText('Condición IVA'), { target: { value: 'Responsable Inscripto' } })
     fireEvent.change(modal.getByLabelText('Localidad'), { target: { value: 'Rosario' } })
@@ -137,7 +137,7 @@ describe('ClientesPage', () => {
     await waitFor(() => expect(screen.getByTestId('clientes-pendientes')).toBeInTheDocument())
     fireEvent.click(pendientesSection().getByRole('button', { name: 'Editar' }))
 
-    const modal = within(screen.getByTestId('cliente-form-modal'))
+    const modal = within(screen.getByRole('dialog'))
     fireEvent.change(modal.getByLabelText('CUIT'), { target: { value: '12345' } })
     fireEvent.click(modal.getByRole('button', { name: 'VALIDAR CLIENTE' }))
 
@@ -153,7 +153,7 @@ describe('ClientesPage', () => {
     await waitFor(() => expect(tabla().getByText('Cliente A')).toBeInTheDocument())
     fireEvent.click(tabla().getByRole('button', { name: 'Editar' }))
 
-    const modal = within(screen.getByTestId('cliente-form-modal'))
+    const modal = within(screen.getByRole('dialog'))
     fireEvent.click(modal.getByRole('button', { name: 'Desactivar' }))
 
     const dialog = within(screen.getByTestId('confirm-dialog'))
@@ -187,7 +187,7 @@ describe('ClientesPage', () => {
     await waitFor(() => expect(screen.getByText('No hay clientes.')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: /Nuevo cliente/ }))
-    const modal = within(screen.getByTestId('cliente-form-modal'))
+    const modal = within(screen.getByRole('dialog'))
     fireEvent.change(modal.getByLabelText('Nombre'), { target: { value: 'Cliente Nuevo' } })
     fireEvent.click(modal.getByRole('button', { name: 'Crear' }))
 
@@ -195,7 +195,7 @@ describe('ClientesPage', () => {
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Debe informar un contacto o referencia para crear un cliente'),
     )
     expect(aleBetApi.clientes.create).toHaveBeenCalledTimes(1)
-    expect(screen.getByTestId('cliente-form-modal')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('creates a client with contacto: POST called and success toast', async () => {
@@ -205,7 +205,7 @@ describe('ClientesPage', () => {
     await waitFor(() => expect(screen.getByText('No hay clientes.')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: /Nuevo cliente/ }))
-    const modal = within(screen.getByTestId('cliente-form-modal'))
+    const modal = within(screen.getByRole('dialog'))
     fireEvent.change(modal.getByLabelText('Nombre'), { target: { value: 'Cliente Nuevo' } })
     fireEvent.change(modal.getByLabelText('Contacto'), { target: { value: 'nuevo@test.com' } })
     fireEvent.click(modal.getByRole('button', { name: 'Crear' }))

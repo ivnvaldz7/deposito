@@ -468,11 +468,11 @@ describe('PedidoDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Tomar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Emitir remito' }))
-    expect(screen.getByRole('alert')).toHaveTextContent('Seleccioná un transporte habitual o indicá un transporte ocasional')
+    expect(screen.getByRole('button', { name: 'Emitir remito' })).toBeDisabled()
     expect(aleBetApi.remitos.emitir).not.toHaveBeenCalled()
 
-    fireEvent.change(screen.getByLabelText('Seleccionar transporte'), { target: { value: 'trans-1' } })
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByRole('button', { name: /Transporte A/i }))
     fireEvent.click(screen.getByRole('button', { name: 'Emitir remito' }))
     await waitFor(() =>
       expect(aleBetApi.remitos.emitir).toHaveBeenCalledWith(
@@ -491,7 +491,8 @@ describe('PedidoDetailPage', () => {
     vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ estado: 'APROBADO' }))
     renderDetalle()
     await screen.findByTestId('pedido-numero')
-    fireEvent.change(screen.getByLabelText('Seleccionar transporte'), { target: { value: '__ocasional__' } })
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByRole('button', { name: /OTRO \/ TRANSPORTE OCASIONAL/i }))
 
     fireEvent.click(screen.getByRole('button', { name: 'Emitir remito' }))
     expect(screen.getByRole('alert')).toHaveTextContent('El transporte ocasional requiere nombre y dirección de al menos 2 caracteres')
@@ -716,7 +717,8 @@ describe('PedidoDetailPage', () => {
     vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ estado: 'APROBADO' }))
     renderDetalle()
     await screen.findByTestId('pedido-numero')
-    fireEvent.change(screen.getByLabelText('Seleccionar transporte'), { target: { value: '__ocasional__' } })
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByRole('button', { name: /OTRO \/ TRANSPORTE OCASIONAL/i }))
 
     fireEvent.change(screen.getByLabelText('Nombre del transporte ocasional'), { target: { value: 'F' } })
     fireEvent.click(screen.getByRole('button', { name: 'Emitir remito' }))

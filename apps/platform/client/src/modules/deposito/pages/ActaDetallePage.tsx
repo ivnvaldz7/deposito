@@ -412,7 +412,10 @@ export default function ActaDetallePage() {
   return (
     <div className="space-y-6">
       <button
-        onClick={() => navigate('/actas')}
+        onClick={() => {
+          if (window.history.state && window.history.state.idx > 0) navigate(-1)
+          else navigate('/deposito/actas')
+        }}
         className="flex items-center gap-2 font-body text-on-surface-variant text-sm hover:text-on-surface transition-colors"
       >
         <ArrowLeft size={14} strokeWidth={1.5} />

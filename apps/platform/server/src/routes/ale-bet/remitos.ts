@@ -7,6 +7,7 @@ import { getAppAccess, type JwtPayload } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { canEmitRemito, canReadRemitoPdf } from './order-workflow'
+import { renderRemitoPdf } from './remito-pdf'
 
 const router = Router()
 const emitSchema = z.object({ expectedVersion: z.number().int().positive(), transportistaId: z.string().min(1).optional(), transporteOcasional: z.object({ nombre: z.string().trim().min(2), direccion: z.string().trim().min(2) }).optional() }).refine((data) => Boolean(data.transportistaId) !== Boolean(data.transporteOcasional), { message: 'Seleccione un transportista habitual u ocasional' })
@@ -79,21 +80,19 @@ router.get('/:id/remito.pdf', requireApp('ale-bet'), async (req, res) => {
   if (!remito) { res.status(404).json({ error: 'Remito vigente no encontrado' }); return }
   const user = req.user as JwtPayload
   if (!canReadRemitoPdf(role(user), remito.pedido.vendedorId, user.sub)) { res.status(403).json({ error: 'No puede descargar el remito de otro vendedor' }); return }
-  const doc = new PDFDocument({ margin: 42 })
+  const doc = new PDFDocument({ size: 'A4', margin: 0 })
   res.setHeader('Content-Type', 'application/pdf')
   res.setHeader('Content-Disposition', `inline; filename="${remito.numero}.pdf"`)
   doc.pipe(res)
-  doc.fontSize(18).text('ALE-BET')
-  doc.fontSize(15).text(`REMITO ${remito.numero}`)
-  doc.moveDown().fontSize(11).text(`Fecha: ${remito.fecha.toISOString().slice(0, 10)}`)
-  doc.moveDown().fontSize(12).text('Cliente')
-  doc.fontSize(10).text(JSON.stringify(remito.clienteSnapshot, null, 2))
-  doc.moveDown().fontSize(12).text('Transporte')
-  doc.fontSize(10).text(JSON.stringify(remito.transporteSnapshot, null, 2))
-  doc.moveDown().fontSize(12).text('Mercadería')
-  doc.fontSize(10).text(JSON.stringify(remito.itemsSnapshot, null, 2))
-  doc.moveDown().fontSize(11).text('Bultos: ____________________')
-  doc.text('Peso: ______________________')
+  renderRemitoPdf(doc, {
+    numero: remito.numero,
+    fecha: remito.fecha,
+    clienteSnapshot: remito.clienteSnapshot,
+    transporteSnapshot: remito.transporteSnapshot,
+    transporteNombre: remito.transporteNombre,
+    transporteDireccion: remito.transporteDireccion,
+    itemsSnapshot: remito.itemsSnapshot,
+  })
   doc.end()
 })
 export default router
