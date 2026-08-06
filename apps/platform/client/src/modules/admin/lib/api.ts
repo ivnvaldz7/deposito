@@ -38,6 +38,9 @@ export const adminApi = {
     payload: { app: AppId; rol: string; activo: boolean },
   ) => apiClient.put<AppAccess>(`/admin/${userId}/access`, payload),
 
+  deleteAccess: (userId: string, app: AppId) =>
+    apiClient.del<AppAccess>(`/admin/${userId}/access/${app}`),
+
   updateStatus: (userId: string, payload: { activo: boolean }) =>
     apiClient.put<PlatformUser>(`/admin/${userId}/status`, payload),
 }

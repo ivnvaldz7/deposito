@@ -1,6 +1,6 @@
 import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import UsersPage from '../pages/UsersPage'
@@ -14,6 +14,7 @@ vi.mock('../lib/api', () => ({
     create: vi.fn(),
     updateAccess: vi.fn(),
     updateStatus: vi.fn(),
+    deleteAccess: vi.fn(),
   },
 }))
 
@@ -234,5 +235,54 @@ describe('UsersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Sin accesos')).toBeInTheDocument()
     })
+  })
+
+  it('offers encargado for Ale-Bet in the access panel and hides stale roles (ADMIN-UI-1)', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+
+    renderPage()
+
+    const editButtons = await screen.findAllByRole('button', { name: 'Editar' })
+    await user.click(editButtons[0])
+
+    const aleBetSection = screen
+      .getByRole('heading', { name: 'Ale-Bet' })
+      .closest('section')
+    expect(aleBetSection).not.toBeNull()
+
+    const section = aleBetSection as HTMLElement
+    expect(
+      within(section).getByRole('option', { name: 'encargado' }),
+    ).toBeInTheDocument()
+    expect(
+      within(section).queryByRole('option', { name: 'operador' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(section).queryByRole('option', { name: 'supervisor' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('removes an app access through the panel and refetches the list', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+
+    renderPage()
+
+    const editButtons = await screen.findAllByRole('button', { name: 'Editar' })
+    await user.click(editButtons[0])
+
+    const depositoSection = screen
+      .getByRole('heading', { name: 'Depósito' })
+      .closest('section') as HTMLElement
+    await user.click(
+      within(depositoSection).getByRole('button', { name: /quitar acceso/i }),
+    )
+
+    await waitFor(() => {
+      expect(adminApi.deleteAccess).toHaveBeenCalledWith('user_001', 'deposito')
+    })
+    // initial load + refetch after removal
+    expect(adminApi.list).toHaveBeenCalledTimes(2)
   })
 })

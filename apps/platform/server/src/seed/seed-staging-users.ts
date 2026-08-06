@@ -29,7 +29,10 @@ const users: StagingUser[] = [
   {
     email: 'encargado@deposito.com',
     nombre: 'Encargado Deposito',
-    appAccess: [{ app: AppId.deposito, rol: 'encargado' }],
+    appAccess: [
+      { app: AppId.deposito, rol: 'encargado' },
+      { app: AppId.ale_bet, rol: 'encargado' },
+    ],
   },
   {
     email: 'solicitante@deposito.com',

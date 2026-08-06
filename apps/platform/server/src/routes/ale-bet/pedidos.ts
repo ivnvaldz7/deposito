@@ -214,7 +214,7 @@ router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload
@@ -231,7 +231,7 @@ router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador']), async (req
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload
@@ -241,18 +241,14 @@ router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'arma
       if (locked.estado !== 'EN_ARMADO') throw new ConflictError('Solo se pueden completar items de un pedido EN_ARMADO')
       if (actorRole(user) !== 'admin' && locked.armadorId !== user.sub) throw new ForbiddenError('Solo el armador asignado puede completar items')
       const item = locked.items.find((entry) => entry.id === String(req.params.itemId)); if (!item) throw new NotFoundError('Item no encontrado')
-      if (item.completado) {
-        const acquisition = await acquireAuthorizedIdempotency(tx, user, 'ale-bet.pedido.item.completar', `${locked.id}:${item.id}`, req.method, parsed.data, req.rawHeaders)
-        if (acquisition.replayed) return { body: acquisition.body, replayed: true }
-        assertVersion(locked, parsed.data.expectedVersion)
-        return { body: locked, replayed: false }
-      }
-      assertVersion(locked, parsed.data.expectedVersion)
       const acquisition = await acquireAuthorizedIdempotency(tx, user, 'ale-bet.pedido.item.completar', `${locked.id}:${item.id}`, req.method, parsed.data, req.rawHeaders)
       if (acquisition.replayed) return { body: acquisition.body, replayed: true }
-      await tx.itemPedido.update({ where: { id: item.id }, data: { completado: true } })
+      assertVersion(locked, parsed.data.expectedVersion)
+      
+      const nuevoEstado = !item.completado
+      await tx.itemPedido.update({ where: { id: item.id }, data: { completado: nuevoEstado } })
       const updated = await tx.pedido.update({ where: { id: locked.id }, data: { version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
-      await audit(tx, updated.id, user.sub, 'ITEM_PREPARADO', undefined, { itemId: item.id })
+      await audit(tx, updated.id, user.sub, nuevoEstado ? 'ITEM_PREPARADO' : 'ITEM_DESMARCADO', undefined, { itemId: item.id })
       await completeAuthorizedIdempotency(tx, acquisition, updated)
       return { body: updated, replayed: false }
     })
@@ -261,7 +257,7 @@ router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'arma
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/preparar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/preparar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload
@@ -323,7 +319,7 @@ router.put('/:id/cancelar', requireApp('ale-bet', ['admin', 'vendedor']), async 
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/confirmar-cancelacion', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
+router.put('/:id/confirmar-cancelacion', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
   const parsed = cancelSchema.safeParse(req.body)
   if (!parsed.success || !parsed.data.motivo) { res.status(400).json({ error: 'expectedVersion y motivo son requeridos' }); return }
   const user = req.user as JwtPayload
@@ -342,7 +338,7 @@ router.put('/:id/confirmar-cancelacion', requireApp('ale-bet', ['admin', 'armado
   } catch (error) { errorResponse(error, res) }
 })
 
-router.post('/:id/despachar', requireApp('ale-bet', ['admin', 'armador']), async (req, res) => {
+router.post('/:id/despachar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload

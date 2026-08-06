@@ -51,6 +51,11 @@ export default function UsersPage() {
     await loadUsers()
   }
 
+  async function handleRemoveAccess(userId: string, app: AppId) {
+    await adminApi.deleteAccess(userId, app)
+    await loadUsers()
+  }
+
   async function handleToggleStatus(userId: string, activo: boolean) {
     await adminApi.updateStatus(userId, { activo })
     await loadUsers()
@@ -108,6 +113,7 @@ export default function UsersPage() {
         user={selectedUser}
         onClose={() => setSelectedUser(null)}
         onSaveAccess={handleSaveAccess}
+        onRemoveAccess={handleRemoveAccess}
         onToggleStatus={handleToggleStatus}
       />
     </div>

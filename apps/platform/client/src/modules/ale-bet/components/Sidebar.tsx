@@ -13,6 +13,7 @@ function formatRol(rol: string | undefined): string {
     armador: 'Armador',
     facturacion: 'Facturación',
     observador: 'Observador',
+    encargado: 'Encargado',
   }
   return map[rol] ?? rol.charAt(0).toUpperCase() + rol.slice(1)
 }
@@ -36,21 +37,25 @@ const NAV_ITEMS: NavItem[] = [
 type Rol = string | undefined
 
 const canSeeClientes = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
-const canSeeStock = (rol: Rol) => rol === 'admin'
+const canSeeStock = (rol: Rol) => rol === 'admin' || rol === 'encargado'
+const canSeeInsumos = (rol: Rol) => rol === 'admin' || rol === 'encargado'
 const canSeeHistorial = (rol: Rol) => rol === 'admin' || rol === 'vendedor'
 const canSeeTransportistas = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
 const canCreatePedido = (rol: Rol) => rol === 'admin' || rol === 'vendedor'
 
 function visibleItems(rol: Rol): NavItem[] {
-  return NAV_ITEMS.filter((item) => {
-    switch (item.path) {
-      case '/ale-bet/clientes': return canSeeClientes(rol)
-      case '/ale-bet/stock': return canSeeStock(rol)
-      case '/ale-bet/historial': return canSeeHistorial(rol)
-      case '/ale-bet/transportistas': return canSeeTransportistas(rol)
-      default: return true
-    }
-  })
+  return [
+    ...NAV_ITEMS.filter((item) => {
+      switch (item.path) {
+        case '/ale-bet/clientes': return canSeeClientes(rol)
+        case '/ale-bet/stock': return canSeeStock(rol)
+        case '/ale-bet/historial': return canSeeHistorial(rol)
+        case '/ale-bet/transportistas': return canSeeTransportistas(rol)
+        default: return true
+      }
+    }),
+    ...(canSeeInsumos(rol) ? [{ path: '/deposito', label: 'Insumos', icon: Box }] : [])
+  ]
 }
 
 function bottomNavItems(rol: Rol): NavItem[] {

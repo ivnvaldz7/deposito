@@ -156,8 +156,11 @@ describe('Ale-Bet Dashboard', () => {
           lotes: [{ cajas: 1, sueltos: 0 }], // stock = 15, critical!
         },
       ])
-      // pedido.count: first call = pedidosHoy, second call = enArmado
-      mockDb.pedido.count.mockResolvedValueOnce(3).mockResolvedValueOnce(2)
+      mockDb.pedido.count
+        .mockResolvedValueOnce(3) // pedidosHoy
+        .mockResolvedValueOnce(1) // pendientesTomar (APROBADO)
+        .mockResolvedValueOnce(4) // preparados (PREPARADO)
+        .mockResolvedValueOnce(2) // enArmado (EN_ARMADO)
       mockDb.pedido.findMany.mockResolvedValue([
         {
           id: 'ped-1',
@@ -192,7 +195,7 @@ describe('Ale-Bet Dashboard', () => {
 
     it('returns zeros and empty arrays when no data exists', async () => {
       mockDb.producto.findMany.mockResolvedValue([])
-      mockDb.pedido.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0)
+      mockDb.pedido.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0).mockResolvedValueOnce(0).mockResolvedValueOnce(0)
       mockDb.pedido.findMany.mockResolvedValue([])
       mockDb.platformUser.findMany.mockResolvedValue([])
 

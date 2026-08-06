@@ -12,6 +12,7 @@ const { mockGetUserByEmail, mockGetUserById, mockGoogleStrategy, mockDb, mockCor
     const mockListUsers = vi.fn()
     const mockUpdateAppAccess = vi.fn()
     const mockDeactivateUser = vi.fn()
+    const mockRemoveAppAccess = vi.fn()
 
     return {
       mockGetUserByEmail: vi.fn(),
@@ -30,7 +31,7 @@ const { mockGetUserByEmail, mockGetUserById, mockGoogleStrategy, mockDb, mockCor
             findMany: vi.fn().mockResolvedValue([]),
             create: vi.fn(),
           },
-          appAccess: { upsert: vi.fn() },
+          appAccess: { upsert: vi.fn(), findFirst: vi.fn(), delete: vi.fn() },
         },
       },
       mockCore: {
@@ -38,6 +39,7 @@ const { mockGetUserByEmail, mockGetUserById, mockGoogleStrategy, mockDb, mockCor
         listUsers: mockListUsers,
         updateAppAccess: mockUpdateAppAccess,
         deactivateUser: mockDeactivateUser,
+        removeAppAccess: mockRemoveAppAccess,
       },
     }
   })
@@ -64,6 +66,23 @@ vi.mock('@platform/core', () => {
     
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
     getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+    // Real catalog copy — mirrors packages/platform-core/src/users/roles.ts so
+    // the route-level validation is exercised, not stubbed.
+    APP_ROLES: {
+      deposito: ['encargado', 'observador', 'solicitante'],
+      ale_bet: ['admin', 'vendedor', 'armador', 'facturacion', 'observador', 'encargado'],
+      admin: ['admin'],
+      portal: ['viewer'],
+    },
+    isValidAppRole: (app: string, rol: string) => {
+      const roles = {
+        deposito: ['encargado', 'observador', 'solicitante'],
+        ale_bet: ['admin', 'vendedor', 'armador', 'facturacion', 'observador', 'encargado'],
+        admin: ['admin'],
+        portal: ['viewer'],
+      }[app]
+      return roles !== undefined && roles.includes(rol)
+    },
     verifyAccessToken: (token: string) => {
       try {
         const decoded = _jwt.verify(token, _getSecret())
@@ -123,6 +142,7 @@ vi.mock('@platform/core', () => {
     listUsers: mockCore.listUsers,
     updateAppAccess: mockCore.updateAppAccess,
     deactivateUser: mockCore.deactivateUser,
+    removeAppAccess: mockCore.removeAppAccess,
   }
 })
 
@@ -459,6 +479,69 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
 
       expect(res.status).toBe(400)
     })
+
+    it('with unknown app in appAccess → returns 400 and does not create the user', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockGetUserByEmail.mockResolvedValue(null)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          email: 'nuevo@deposito.com',
+          nombre: 'Nuevo Usuario',
+          password: 'password123',
+          appAccess: [{ app: 'invalid_app', rol: 'encargado' }],
+        })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toContain('App inválida')
+      expect(mockCore.createUser).not.toHaveBeenCalled()
+    })
+
+    it('with role not in the catalog → returns 400 and does not create the user', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockGetUserByEmail.mockResolvedValue(null)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          email: 'nuevo@deposito.com',
+          nombre: 'Nuevo Usuario',
+          password: 'password123',
+          appAccess: [{ app: 'ale_bet', rol: 'operador' }],
+        })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toContain('Rol inválido')
+      expect(mockCore.createUser).not.toHaveBeenCalled()
+    })
+
+    it('with duplicate app in appAccess payload → returns 400 and does not create the user (no P2002)', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockGetUserByEmail.mockResolvedValue(null)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .post('/api/admin/')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          email: 'nuevo@deposito.com',
+          nombre: 'Nuevo Usuario',
+          password: 'password123',
+          appAccess: [
+            { app: 'deposito', rol: 'encargado' },
+            { app: 'deposito', rol: 'observador' },
+          ],
+        })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toContain('duplicado')
+      expect(mockCore.createUser).not.toHaveBeenCalled()
+    })
   })
 
   // ────────────────────────────────────────────────
@@ -509,10 +592,40 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
       const res = await request(app)
         .put(`/api/admin/user_abc123/access`)
         .set('Authorization', `Bearer ${token}`)
-        .send({ app: 'deposito', rol: 'admin', activo: true })
+        .send({ app: 'deposito', rol: 'encargado', activo: true })
 
       expect(res.status).toBe(500)
       expect(res.body.error).toBe('DB error')
+    })
+
+    it('with role not in the catalog → returns 400 and does not call updateAppAccess', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .put('/api/admin/user_new_001/access')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ app: 'ale_bet', rol: 'operador', activo: true })
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toContain('Rol inválido')
+      expect(mockCore.updateAppAccess).not.toHaveBeenCalled()
+    })
+
+    it('with unknown user → returns 404 before touching updateAppAccess (no FK P2003)', async () => {
+      mockGetUserById.mockImplementation((_db: unknown, id: string) =>
+        Promise.resolve(id === 'admin_xyz789' ? adminUser : null),
+      )
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .put('/api/admin/user_gone_001/access')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ app: 'deposito', rol: 'encargado', activo: true })
+
+      expect(res.status).toBe(404)
+      expect(res.body.error).toContain('Usuario no encontrado')
+      expect(mockCore.updateAppAccess).not.toHaveBeenCalled()
     })
   })
 
@@ -602,6 +715,76 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
           data: expect.objectContaining({ estado: 'active' }),
         })
       )
+    })
+  })
+
+  // ────────────────────────────────────────────────
+  // DELETE /api/admin/:id/access/:app — Remove app access
+  // ────────────────────────────────────────────────
+  describe('DELETE /api/admin/:id/access/:app — Remove app access', () => {
+    const deletedRow = {
+      id: 'acc_002',
+      userId: 'user_abc123',
+      app: 'ale_bet',
+      rol: 'encargado',
+      activo: true,
+    }
+
+    it('with admin token and existing access → returns 200 with the deleted row (UAT-2)', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockCore.removeAppAccess.mockResolvedValue(deletedRow)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .delete('/api/admin/user_abc123/access/ale_bet')
+        .set('Authorization', `Bearer ${token}`)
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual(deletedRow)
+      expect(mockCore.removeAppAccess).toHaveBeenCalledWith(
+        expect.anything(),
+        'user_abc123',
+        'ale_bet',
+      )
+    })
+
+    it('with missing access → returns 404 and no side effects (repeat-safe)', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      mockCore.removeAppAccess.mockResolvedValue(null)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .delete('/api/admin/user_abc123/access/ale_bet')
+        .set('Authorization', `Bearer ${token}`)
+
+      expect(res.status).toBe(404)
+      expect(res.body.error).toContain('Acceso no encontrado')
+    })
+
+    it('with invalid app in URL → returns 400 and does not call removeAppAccess', async () => {
+      mockGetUserById.mockResolvedValue(adminUser)
+      const token = buildAdminToken()
+
+      const res = await request(app)
+        .delete('/api/admin/user_abc123/access/invalid_app')
+        .set('Authorization', `Bearer ${token}`)
+
+      expect(res.status).toBe(400)
+      expect(res.body.error).toContain('App inválida')
+      expect(mockCore.removeAppAccess).not.toHaveBeenCalled()
+    })
+
+    it('with non-admin token → returns 403 (UAT-4)', async () => {
+      mockGetUserById.mockResolvedValue(regularUser)
+      const token = buildNonAdminToken()
+
+      const res = await request(app)
+        .delete('/api/admin/user_abc123/access/ale_bet')
+        .set('Authorization', `Bearer ${token}`)
+
+      expect(res.status).toBe(403)
+      expect(res.body.error).toContain('administrador')
+      expect(mockCore.removeAppAccess).not.toHaveBeenCalled()
     })
   })
 })

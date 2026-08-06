@@ -72,7 +72,7 @@ export function createBootstrapRoutes(): Router {
       password: adminPassword,
       appAccess: [
         { app: AppId.deposito, rol: 'encargado' },
-        { app: AppId.ale_bet, rol: 'supervisor' },
+        { app: AppId.ale_bet, rol: 'admin' },
         { app: AppId.admin, rol: 'admin' },
         { app: AppId.portal, rol: 'viewer' },
       ],

@@ -20,6 +20,8 @@ export {
   getUserByEmail,
   listUsers,
   updateAppAccess,
+  removeAppAccess,
   deactivateUser,
 } from './users/service'
+export { APP_ROLES, isValidAppRole, type AppRoleKey } from './users/roles'
 export * from './notifications'

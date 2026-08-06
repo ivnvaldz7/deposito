@@ -153,7 +153,7 @@ router.delete('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
   res.status(204).send()
 })
 
-router.get('/:id/lotes', requireApp('ale-bet', ['admin']), async (req, res) => {
+router.get('/:id/lotes', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
   const productoId = String(req.params.id)
 
   const [producto, lotes] = await Promise.all([
@@ -181,7 +181,7 @@ const updateLoteSchema = z.object({
   activo: z.boolean().optional(),
 })
 
-router.put('/:id/lotes/:loteId', requireApp('ale-bet', ['admin']), async (req, res) => {
+router.put('/:id/lotes/:loteId', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
   const productoId = String(req.params.id)
   const loteId = String(req.params.loteId)
   const user = req.user as JwtPayload
@@ -263,7 +263,7 @@ router.put('/:id/lotes/:loteId', requireApp('ale-bet', ['admin']), async (req, r
   }
 })
 
-router.post('/:id/lotes', requireApp('ale-bet', ['admin']), async (req, res) => {
+router.post('/:id/lotes', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
   const productoId = String(req.params.id)
   const user = req.user as JwtPayload
   const parsed = loteSchema.safeParse(req.body)

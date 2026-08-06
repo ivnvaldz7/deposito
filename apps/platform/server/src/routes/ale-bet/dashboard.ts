@@ -23,7 +23,7 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
   const mañana = new Date(hoy)
   mañana.setDate(mañana.getDate() + 1)
 
-  const [productos, pedidosHoy, enArmado, pedidosRecientes, users] = await Promise.all([
+  const [productos, pedidosHoy, pendientesTomar, preparados, enArmado, pedidosRecientes, users] = await Promise.all([
     prisma.producto.findMany({
       include: {
         lotes: {
@@ -36,6 +36,12 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
       where: {
         createdAt: { gte: hoy, lt: mañana },
       },
+    }),
+    prisma.pedido.count({
+      where: { estado: 'APROBADO' },
+    }),
+    prisma.pedido.count({
+      where: { estado: 'PREPARADO' },
     }),
     prisma.pedido.count({
       where: { estado: 'EN_ARMADO' },
@@ -66,6 +72,9 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
     stockCritico,
     pedidosHoy,
     enArmado,
+    pendientesTomar,
+    preparados,
+    esperandoProduccion: 0, // BACKEND PENDIENTE: schema actual no soporta ItemPedido.estado = ESPERA_PRODUCCION
     totalProductos: productos.length,
     pedidosRecientes: pedidosRecientes.map((pedido) => ({
       id: pedido.id,

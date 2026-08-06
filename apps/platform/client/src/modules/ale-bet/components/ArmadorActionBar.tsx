@@ -7,6 +7,8 @@ interface ArmadorActionBarProps {
   rol: string
   userId: string
   despachando?: boolean
+  hayEsperas?: boolean
+  finalizandoArmado?: boolean
   onTomar: () => void
   onPreparar: () => void
   onDespachar: () => void
@@ -24,6 +26,8 @@ export function ArmadorActionBar({
   rol,
   userId,
   despachando = false,
+  hayEsperas = false,
+  finalizandoArmado = false,
   onTomar,
   onPreparar,
   onDespachar,
@@ -51,18 +55,24 @@ export function ArmadorActionBar({
         {enArmado && (
           <>
             <div className="flex shrink-0 flex-col items-center leading-none">
-              <span className="text-[16px] font-bold text-on-surface">
-                {itemsCompletados}/{pedido.items.length}
-              </span>
-              <span className="font-body text-[9px] font-semibold uppercase tracking-wide text-outline">items</span>
+              {finalizandoArmado ? (
+                <span className="text-[16px] font-bold text-success">✓</span>
+              ) : (
+                <>
+                  <span className="text-[16px] font-bold text-on-surface">
+                    {itemsCompletados}/{pedido.items.length}
+                  </span>
+                  <span className="font-body text-[9px] font-semibold uppercase tracking-wide text-outline">items</span>
+                </>
+              )}
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <Button onClick={onPreparar} disabled={!prepararListo} className="min-h-11 w-full">
-                Preparar
+              <Button onClick={onPreparar} disabled={finalizandoArmado || !prepararListo || hayEsperas} className="min-h-11 w-full transition-all">
+                {finalizandoArmado ? 'FINALIZADO' : 'FINALIZAR ARMADO'}
               </Button>
-              {itemsPendientes > 0 && (
+              {!finalizandoArmado && itemsPendientes > 0 && (
                 <p className="text-center font-body text-[10px] font-medium text-warning">
-                  Faltan {itemsPendientes} items
+                  Faltan {itemsPendientes} producto{itemsPendientes !== 1 ? 's' : ''}
                 </p>
               )}
             </div>

@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react'
 import type { AppId } from '../lib/api'
+import { APP_ROLES } from '../lib/roles'
 
 interface UserModalProps {
   open: boolean
@@ -16,7 +17,7 @@ type AccessState = Record<AppId, { enabled: boolean; rol: string }>
 
 const initialAccess: AccessState = {
   deposito: { enabled: false, rol: 'encargado' },
-  ale_bet: { enabled: false, rol: 'operador' },
+  ale_bet: { enabled: false, rol: 'vendedor' },
 }
 
 export function UserModal({ open, onClose, onCreate }: UserModalProps) {
@@ -159,9 +160,11 @@ export function UserModal({ open, onClose, onCreate }: UserModalProps) {
                   disabled={!access.deposito.enabled}
                   className="rounded-xl border border-white/10 bg-surface-container px-4 py-3 font-body text-sm text-on-surface disabled:opacity-50"
                 >
-                  <option value="encargado">encargado</option>
-                  <option value="observador">observador</option>
-                  <option value="solicitante">solicitante</option>
+                  {APP_ROLES.deposito.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -184,8 +187,11 @@ export function UserModal({ open, onClose, onCreate }: UserModalProps) {
                   disabled={!access.ale_bet.enabled}
                   className="rounded-xl border border-white/10 bg-surface-container px-4 py-3 font-body text-sm text-on-surface disabled:opacity-50"
                 >
-                  <option value="operador">operador</option>
-                  <option value="supervisor">supervisor</option>
+                  {APP_ROLES.ale_bet.map((role) => (
+                    <option key={role} value={role}>
+                      {role}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

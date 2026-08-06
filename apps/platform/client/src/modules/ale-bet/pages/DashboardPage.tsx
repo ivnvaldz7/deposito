@@ -169,10 +169,21 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={isAdmin ? () => navigate('/ale-bet/productos', { state: { stockCritico: true } }) : undefined} />
-        <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { pedidosHoy: true } }) : undefined} />
-        <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } }) : undefined} />
-        <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/stock') : undefined} />
+        {user?.apps?.['ale-bet']?.rol === 'armador' ? (
+          <>
+            <MetricCard label="PENDIENTES DE TOMAR" value={data.pendientesTomar} subtitle="Pedidos Aprobados" valueClassName="text-warning" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'APROBADO' } })} />
+            <MetricCard label="EN ARMADO" value={data.enArmado} subtitle="Tus pedidos asignados" valueClassName="text-info" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } })} />
+            <MetricCard label="ESPERANDO PRODUCCIÓN" value={data.esperandoProduccion} subtitle="Pedidos pausados por faltantes" valueClassName="text-[rgb(160,104,105)]" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } })} />
+            <MetricCard label="PREPARADOS" value={data.preparados} subtitle="Listos para despacho/remito" valueClassName="text-success" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'PREPARADO' } })} />
+          </>
+        ) : (
+          <>
+            <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={isAdmin ? () => navigate('/ale-bet/productos', { state: { stockCritico: true } }) : undefined} />
+            <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { pedidosHoy: true } }) : undefined} />
+            <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } }) : undefined} />
+            <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/stock') : undefined} />
+          </>
+        )}
       </div>
 
       <section className="space-y-5">
@@ -192,7 +203,9 @@ export default function DashboardPage() {
             <div className="text-center">Acción</div>
           </div>
 
-          {data.pedidosRecientes.map((pedido) => (
+          {(user?.apps?.['ale-bet']?.rol === 'armador'
+            ? data.pedidosRecientes.filter(p => p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO')
+            : data.pedidosRecientes).map((pedido) => (
             <div key={pedido.id} className={animatedPedidoId === pedido.id ? (animatedTone === 'danger' ? 'alebet-flash-danger' : 'alebet-flash-success') : ''}>
               <PedidoRow pedido={pedido} onOpen={(id) => navigate('/ale-bet/pedidos', { state: { openPedidoId: id } })} />
             </div>

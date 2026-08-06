@@ -98,7 +98,7 @@ const porActualizadoDesc = (a: { updatedAt: string }, b: { updatedAt: string }) 
 interface ConfirmDialogProps {
   open: boolean
   titulo: string
-  mensaje: string
+  mensaje: React.ReactNode
   accion: string
   loading: boolean
   onCancel: () => void
@@ -121,7 +121,7 @@ function ConfirmDialog({ open, titulo, mensaje, accion, loading, onCancel, onCon
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-[16px] font-bold text-on-surface">{titulo}</h2>
-        <p className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">{mensaje}</p>
+        <div className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">{mensaje}</div>
         <div className="mt-5 flex justify-end gap-3">
           <Button variant="outline" onClick={onCancel} disabled={loading}>
             Volver
@@ -329,9 +329,12 @@ interface LineaDetalleProps {
   editable: boolean
   completable: boolean
   isFacturacion?: boolean
+  isArmador?: boolean
+  esperaProduccion?: boolean // BACKEND PENDIENTE
   onChange?: (cajas: number, sueltos: number) => void
   onEliminar?: () => void
   onToggleCompletar?: () => void
+  onToggleEspera?: () => void // BACKEND PENDIENTE
 }
 
 function LineaDetalle({
@@ -348,12 +351,100 @@ function LineaDetalle({
   editable,
   completable,
   isFacturacion,
+  isArmador,
+  esperaProduccion,
   onChange,
   onEliminar,
   onToggleCompletar,
+  onToggleEspera,
 }: LineaDetalleProps) {
   const ceroUnidades = unidades === 0
-  const mostrarStock = !isFacturacion && (disponible !== undefined || reservado !== undefined)
+  const mostrarStock = !isFacturacion && !isArmador && (disponible !== undefined || reservado !== undefined)
+
+  if (isArmador) {
+    const isEspera = esperaProduccion
+    const isListo = completado
+
+    return (
+      <div
+        data-testid={`linea-${productoId}`}
+        className={cn(
+          'flex flex-col gap-4 py-5 px-4 lg:px-8 border-b border-white/5 last:border-0 transition-all duration-250',
+          isListo ? 'bg-success/5 border-success/20' : isEspera ? 'bg-[#F5ECEC] border-[#D5B4B5]' : 'hover:bg-white/[0.02]',
+        )}
+      >
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <p className={cn('text-[16px] font-bold transition-colors', isEspera ? 'text-[#8E5A5B]' : isListo ? 'text-success/90' : 'text-on-surface')}>
+              {nombre}
+            </p>
+            {isListo && <Badge variant="success" className="h-5 px-1.5 text-[10px] animate-in zoom-in-50 duration-200">✓ PREPARADO</Badge>}
+            {isEspera && <Badge className="bg-[#A06869] text-white h-5 px-1.5 text-[10px] uppercase animate-in zoom-in-50 duration-200">ESPERA PRODUCCIÓN</Badge>}
+            {!isListo && !isEspera && completable && <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-primary border-primary/50">PREPARAR</Badge>}
+          </div>
+          <p className={cn('font-body text-[13px]', isEspera ? 'text-[#8E5A5B]/70' : 'text-on-surface-variant')}>{sku}</p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-baseline gap-2">
+            <span className={cn('text-[28px] md:text-[32px] font-bold leading-none', isEspera ? 'text-[#8E5A5B]' : 'text-on-surface')}>{cajas}</span>
+            <span className={cn('text-[14px] font-semibold tracking-wider uppercase', isEspera ? 'text-[#8E5A5B]/80' : 'text-on-surface-variant')}>CAJAS</span>
+          </div>
+          <div className={cn('w-px h-8', isEspera ? 'bg-[#D5B4B5]' : 'bg-white/10')} />
+          <div className="flex items-baseline gap-2">
+            <span className={cn('text-[28px] md:text-[32px] font-bold leading-none', isEspera ? 'text-[#8E5A5B]' : 'text-on-surface')}>{sueltos}</span>
+            <span className={cn('text-[14px] font-semibold tracking-wider uppercase', isEspera ? 'text-[#8E5A5B]/80' : 'text-on-surface-variant')}>SUELTOS</span>
+          </div>
+        </div>
+
+        {completable && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {onToggleCompletar && (
+              <button
+                type="button"
+                onClick={onToggleCompletar}
+                className={cn(
+                  'flex-1 min-w-[140px] flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-body text-[14px] font-bold transition-all h-12',
+                  isListo
+                    ? 'border-white/20 text-on-surface-variant hover:border-error/50 hover:text-error hover:bg-error/10'
+                    : isEspera 
+                      ? 'border-[#A06869]/20 text-[#A06869] hover:bg-[#A06869]/10'
+                      : 'border-primary text-primary hover:bg-primary/10'
+                )}
+              >
+                {isListo ? (
+                  <>
+                    <X className="w-4 h-4" />
+                    Desmarcar
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    MARCAR PREPARADO
+                  </>
+                )}
+              </button>
+            )}
+            
+            {onToggleEspera && !isListo && (
+              <button
+                type="button"
+                onClick={onToggleEspera}
+                className={cn(
+                  'flex-1 min-w-[140px] flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-body text-[14px] font-bold transition-all h-12',
+                  isEspera
+                    ? 'border-[#A06869] bg-[#A06869] text-white hover:bg-[#8E5A5B]'
+                    : 'border-white/10 text-on-surface-variant hover:border-[#D5B4B5] hover:text-[#A06869] hover:bg-[#F5ECEC]'
+                )}
+              >
+                {isEspera ? 'Disponible para preparar' : '⏳ ESPERA PRODUCCIÓN'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -448,6 +539,7 @@ interface TransportSelectorProps {
 
 function TransportSelector({ transportistas, transporteId, setTransporteId, usarOcasional, setUsarOcasional }: TransportSelectorProps) {
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -460,57 +552,62 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
     return () => document.removeEventListener("mousedown", handleClickOutside)
   }, [])
 
-  const [search, setSearch] = useState("")
+  const selectedT = transportistas.find(t => t.id === transporteId)
 
   useEffect(() => {
     if (!open) {
-      setSearch("")
+      if (usarOcasional) {
+        setSearch("OTRO / TRANSPORTE OCASIONAL")
+      } else if (selectedT) {
+        setSearch(selectedT.nombre)
+      } else {
+        setSearch("")
+      }
     }
-  }, [open])
+  }, [open, usarOcasional, selectedT])
 
   const filtered = useMemo(() => {
-    if (!search) return transportistas
+    if (!search || (selectedT && search === selectedT.nombre) || (usarOcasional && search === "OTRO / TRANSPORTE OCASIONAL")) return transportistas
     const s = search.toLowerCase()
     return transportistas.filter(t => t.nombre.toLowerCase().includes(s) || (t.direccion && t.direccion.toLowerCase().includes(s)))
-  }, [transportistas, search])
-
-  const selectedT = transportistas.find(t => t.id === transporteId)
+  }, [transportistas, search, selectedT, usarOcasional])
 
   return (
-    <div className="relative w-full md:max-w-md" ref={ref}>
-      <div
-        role="combobox"
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        onClick={() => setOpen(true)}
-        className={cn(
-          "flex w-full items-center justify-between gap-3 h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border transition-all shadow-sm focus-within:outline-none rounded-lg cursor-text",
-          open
-            ? "border-primary ring-1 ring-primary/50"
-            : (transporteId || usarOcasional ? "border-white/10 hover:border-primary/50" : "border-white/10 hover:border-primary/50")
-        )}
-      >
-        {open ? (
-          <input
-            autoFocus
-            className="w-full bg-transparent outline-none text-on-surface placeholder:text-on-surface-variant/70 font-body text-[14px]"
-            placeholder="Buscar transportista..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        ) : usarOcasional ? (
-          <div className="flex flex-col truncate w-full">
-            <span className="text-[14px] font-semibold text-primary truncate">OTRO / TRANSPORTE OCASIONAL</span>
-          </div>
-        ) : selectedT ? (
-          <div className="flex flex-col truncate w-full">
-            <span className="text-[14px] text-on-surface truncate">{selectedT.nombre}</span>
-            {selectedT.direccion && <span className="text-[11px] text-on-surface-variant truncate">{selectedT.direccion}</span>}
-          </div>
+    <div className="relative w-full md:w-[320px]" ref={ref}>
+      <div className="relative">
+        <input
+          role="combobox"
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          type="text"
+          className="w-full h-11 px-4 pr-10 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+          placeholder="Buscar transportista..."
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value)
+            setOpen(true)
+            if (transporteId) setTransporteId("")
+            if (usarOcasional) setUsarOcasional(false)
+          }}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+        />
+        {(search || transporteId || usarOcasional) ? (
+          <button
+            type="button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+            onClick={() => {
+              setSearch("")
+              setTransporteId("")
+              setUsarOcasional(false)
+              setOpen(true)
+            }}
+          >
+            <X className="w-4 h-4" />
+          </button>
         ) : (
-          <span className="text-on-surface-variant truncate w-full">Buscar transportista...</span>
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
         )}
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-primary transition-transform cursor-pointer", open && "rotate-180")} onClick={(e) => { e.stopPropagation(); setOpen(!open); }} />
       </div>
 
       {open && (
@@ -576,6 +673,8 @@ export default function PedidoDetailPage() {
   const [anularOpen, setAnularOpen] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmAccion | null>(null)
   const [guardando, setGuardando] = useState(false)
+  const [esperas, setEsperas] = useState<Record<string, boolean>>({})
+  const [finalizandoArmado, setFinalizandoArmado] = useState(false)
 
   const isExecutingRef = useRef(false)
 
@@ -879,12 +978,18 @@ export default function PedidoDetailPage() {
         }
         invalidarTodo()
       } else if (confirm === 'preparar') {
+        setFinalizandoArmado(true)
         await prepararMutation.mutateAsync({
           id: pedido.id,
           expectedVersion: pedido.version,
           idempotencyKey: newIdempotencyKey(),
         })
+        
+        // Mantener el feedback visual por un breve tiempo para que el usuario entienda que terminó
+        await new Promise(resolve => setTimeout(resolve, 700))
+        
         toast.success('Pedido preparado')
+        setFinalizandoArmado(false)
         invalidarTodo()
       } else if (confirm === 'despachar') {
         await despacharMutation.mutateAsync({
@@ -916,6 +1021,7 @@ export default function PedidoDetailPage() {
       })
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al actualizar el item')
+      void refetchPedido()
     }
   }
 
@@ -1091,8 +1197,11 @@ export default function PedidoDetailPage() {
         <button
           type="button"
           onClick={() => {
-            if (window.history.state && window.history.state.idx > 0) navigate(-1)
-            else navigate('/ale-bet/pedidos')
+            if (location.key !== 'default' && window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate('/ale-bet/pedidos')
+            }
           }}
           className="inline-flex items-center gap-1.5 font-body text-[13px] font-medium text-outline transition hover:text-on-surface focus:outline-none focus:text-on-surface"
         >
@@ -1223,18 +1332,30 @@ export default function PedidoDetailPage() {
 
         <div className="p-4 lg:p-8 space-y-6">
           {puedeProgreso && (
-            <section aria-label="Progreso de armado" className="hidden lg:block rounded-xl border border-white/10 bg-surface-container p-4">
+            <section aria-label="Progreso de armado" className="hidden lg:block rounded-xl border border-white/10 bg-surface-container p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex-1">
                   <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Armado</h2>
-                  <p className="mt-1 font-body text-[13px] font-semibold text-on-surface">{itemsCompletados} de {pedido.items.length} items preparados</p>
+                  {finalizandoArmado ? (
+                    <p className="mt-1 font-body text-[13px] font-semibold text-success animate-in slide-in-from-bottom-1 fade-in zoom-in-95 duration-200">
+                      ✓ ARMADO FINALIZADO
+                    </p>
+                  ) : Object.keys(esperas).filter(k => esperas[k]).length > 0 ? (
+                    <p className="mt-1 font-body text-[13px] font-semibold text-on-surface">
+                      {itemsCompletados} preparados · {Object.keys(esperas).filter(k => esperas[k]).length} esperando producción · {pedido.items.length - itemsCompletados - Object.keys(esperas).filter(k => esperas[k]).length} pendiente
+                    </p>
+                  ) : (
+                    <p className="mt-1 font-body text-[13px] font-semibold text-on-surface">
+                      {itemsCompletados} de {pedido.items.length} productos preparados
+                    </p>
+                  )}
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-highest">
-                    <div className="h-full rounded-full bg-success transition-all" style={{ width: `${pedido.items.length === 0 ? 0 : (itemsCompletados / pedido.items.length) * 100}%` }} />
+                    <div className="h-full rounded-full bg-success transition-all duration-500 ease-out" style={{ width: `${finalizandoArmado ? 100 : (pedido.items.length === 0 ? 0 : (itemsCompletados / pedido.items.length) * 100)}%` }} />
                   </div>
                 </div>
                 <div className="shrink-0 w-48 text-center">
-                  <Button onClick={() => setConfirm('preparar')} disabled={!prepararListo} loading={prepararMutation.isPending} className="h-10 w-full">Preparar</Button>
-                  {itemsPendientes > 0 && <p className="mt-2 text-center font-body text-[11px] font-medium text-warning">Faltan {itemsPendientes} items</p>}
+                  <Button onClick={() => setConfirm('preparar')} disabled={finalizandoArmado || !prepararListo || Object.keys(esperas).some(k => esperas[k])} loading={prepararMutation.isPending} className="h-10 w-full transition-all">FINALIZAR ARMADO</Button>
+                  {!finalizandoArmado && itemsPendientes > 0 && <p className="mt-2 text-center font-body text-[11px] font-medium text-warning">Faltan items o hay esperas</p>}
                 </div>
               </div>
             </section>
@@ -1271,9 +1392,15 @@ export default function PedidoDetailPage() {
                   editable={canEditar}
                   completable={puedeProgreso}
                   isFacturacion={rol === 'facturacion'}
+                  isArmador={rol === 'armador'}
+                  esperaProduccion={esperas[item.productoId]}
                   onChange={(nCajas, nSueltos) => cambiarCantidad(item.productoId, nCajas, nSueltos)}
                   onEliminar={canEditar ? () => eliminarLinea(item.productoId) : undefined}
                   onToggleCompletar={puedeProgreso ? () => void toggleCompletar(item.id) : undefined}
+                  onToggleEspera={puedeProgreso ? () => {
+                    setEsperas(prev => ({ ...prev, [item.productoId]: !prev[item.productoId] }))
+                    if (!esperas[item.productoId]) toast.info('Backend pendiente: soporte para ESPERA_PRODUCCION')
+                  } : undefined}
                 />
               ))}
             </div>
@@ -1588,12 +1715,18 @@ export default function PedidoDetailPage() {
       />
       <ConfirmDialog
         open={confirm === 'tomar'}
-        titulo="Tomar pedido"
-        mensaje={`¿Tomar ${pedido.numero}? Quedará asignado a vos para el armado.`}
-        accion="Tomar"
+        titulo="TOMAR PEDIDO"
+        mensaje={
+          <div className="flex flex-col gap-2">
+            <span className="text-[16px] font-bold text-on-surface">{pedido?.cliente.nombre}</span>
+            <span className="text-on-surface-variant">Quedará asignado a vos para el armado.</span>
+            <span className="text-[12px] opacity-70">Pedido {pedido?.numero}</span>
+          </div>
+        }
+        accion="Tomar pedido"
         loading={tomarMutation.isPending}
         onCancel={() => setConfirm(null)}
-        onConfirm={() => void ejecutarConfirm()}
+        onConfirm={ejecutarConfirm}
       />
       <ConfirmDialog
         open={confirm === 'cancelar'}
@@ -1615,9 +1748,9 @@ export default function PedidoDetailPage() {
       />
       <ConfirmDialog
         open={confirm === 'preparar'}
-        titulo="Marcar preparado"
-        mensaje={`¿Marcar ${pedido.numero} como preparado?`}
-        accion="Preparar"
+        titulo="FINALIZAR ARMADO"
+        mensaje={`¿Marcar ${pedido.numero} como completamente armado y listo para despacho/remito?`}
+        accion="FINALIZAR ARMADO"
         loading={prepararMutation.isPending}
         onCancel={() => setConfirm(null)}
         onConfirm={() => void ejecutarConfirm()}
@@ -1637,6 +1770,8 @@ export default function PedidoDetailPage() {
         rol={rol}
         userId={userId}
         despachando={despacharMutation.isPending}
+        hayEsperas={Object.keys(esperas).some(k => esperas[k])}
+        finalizandoArmado={finalizandoArmado}
         onTomar={() => setConfirm('tomar')}
         onPreparar={() => setConfirm('preparar')}
         onDespachar={() => setConfirm('despachar')}

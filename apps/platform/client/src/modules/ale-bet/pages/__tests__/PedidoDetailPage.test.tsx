@@ -308,10 +308,10 @@ describe('PedidoDetailPage', () => {
     renderDetalle()
     await screen.findByTestId('pedido-numero')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Tomar' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tomar pedido' }))
     expect(confirmDialog().getByText('Tomar pedido')).toBeInTheDocument()
     expect(confirmDialog().getByText(/Quedará asignado a vos para el armado/)).toBeInTheDocument()
-    fireEvent.click(confirmDialog().getByRole('button', { name: 'Tomar' }))
+    fireEvent.click(confirmDialog().getByRole('button', { name: 'Tomar pedido' }))
 
     await waitFor(() =>
       expect(aleBetApi.pedidos.tomar).toHaveBeenCalledWith(
@@ -366,13 +366,13 @@ describe('PedidoDetailPage', () => {
     renderDetalle()
     await screen.findByTestId('pedido-numero')
 
-    expect(screen.getByText('0 de 1 items preparados')).toBeInTheDocument()
-    expect(screen.getAllByText(/Faltan 1 items/)[0]).toBeInTheDocument()
+    expect(screen.getByText('0 de 1 productos preparados')).toBeInTheDocument()
+    expect(screen.getAllByText(/Faltan 1 producto/)[0]).toBeInTheDocument()
     expect(barra().getByText('0/1')).toBeInTheDocument()
-    expect(barra().getByRole('button', { name: 'Preparar' })).toBeDisabled()
-    expect(barra().getByText('Faltan 1 items')).toBeInTheDocument()
+    expect(barra().getByRole('button', { name: 'FINALIZAR ARMADO' })).toBeDisabled()
+    expect(barra().getByText('Faltan 1 producto')).toBeInTheDocument()
 
-    fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'Preparar' }))
+    fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'MARCAR PREPARADO' }))
     await waitFor(() =>
       expect(aleBetApi.pedidos.completarItem).toHaveBeenCalledWith(
         'pedido-1',
@@ -381,14 +381,14 @@ describe('PedidoDetailPage', () => {
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )
-    await waitFor(() => expect(screen.getByText('1 de 1 items preparados')).toBeInTheDocument())
-    expect(screen.queryByText('Faltan 1 items para poder preparar')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('1 de 1 productos preparados')).toBeInTheDocument())
+    expect(screen.queryByText('Faltan items o hay esperas')).not.toBeInTheDocument()
     expect(barra().getByText('1/1')).toBeInTheDocument()
-    expect(barra().getByRole('button', { name: 'Preparar' })).toBeEnabled()
+    expect(barra().getByRole('button', { name: 'FINALIZAR ARMADO' })).toBeEnabled()
 
-    fireEvent.click(barra().getByRole('button', { name: 'Preparar' }))
-    expect(confirmDialog().getByText(/¿Marcar P-001 como preparado\?/)).toBeInTheDocument()
-    fireEvent.click(confirmDialog().getByRole('button', { name: 'Preparar' }))
+    fireEvent.click(barra().getByRole('button', { name: 'FINALIZAR ARMADO' }))
+    expect(confirmDialog().getByText(/¿Marcar P-001 como completamente armado y listo para despacho\/remito\?/)).toBeInTheDocument()
+    fireEvent.click(confirmDialog().getByRole('button', { name: 'FINALIZAR ARMADO' }))
     await waitFor(() =>
       expect(aleBetApi.pedidos.preparar).toHaveBeenCalledWith(
         'pedido-1',
@@ -405,7 +405,7 @@ describe('PedidoDetailPage', () => {
     renderDetalle()
     await screen.findByTestId('pedido-numero')
     expect(screen.queryByText('Armado')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Preparar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'FINALIZAR ARMADO' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Marcar preparado' })).not.toBeInTheDocument()
   })
 
@@ -453,7 +453,7 @@ describe('PedidoDetailPage', () => {
     expect(screen.getByText('Pedido despachado')).toBeInTheDocument()
     expect(screen.getByText(/El 18\/07\/2026/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Tomar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tomar pedido' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
   })
@@ -465,7 +465,7 @@ describe('PedidoDetailPage', () => {
       .mockResolvedValueOnce(createPedido({ estado: 'APROBADO', remitos: [createRemito()] }))
     renderDetalle()
     await screen.findByTestId('pedido-numero')
-    expect(screen.queryByRole('button', { name: 'Tomar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tomar pedido' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
 
     expect(screen.getByRole('button', { name: 'Emitir remito' })).toBeDisabled()
@@ -655,8 +655,8 @@ describe('PedidoDetailPage', () => {
     await screen.findByTestId('pedido-numero')
 
     expect(barra().getByText('0/1')).toBeInTheDocument()
-    expect(barra().getByRole('button', { name: 'Preparar' })).toBeDisabled()
-    expect(barra().getByText('Faltan 1 items')).toBeInTheDocument()
+    expect(barra().getByRole('button', { name: 'FINALIZAR ARMADO' })).toBeDisabled()
+    expect(barra().getByText('Faltan 1 producto')).toBeInTheDocument()
 
     const armadoDesktop = screen.getByText('Armado').closest('section')
     expect(armadoDesktop?.className).toContain('hidden')
@@ -707,7 +707,7 @@ describe('PedidoDetailPage', () => {
 
     fireEvent.click(barra().getByRole('button', { name: 'Tomar pedido' }))
     expect(confirmDialog().getByText(/Quedará asignado a vos para el armado/)).toBeInTheDocument()
-    fireEvent.click(confirmDialog().getByRole('button', { name: 'Tomar' }))
+    fireEvent.click(confirmDialog().getByRole('button', { name: 'Tomar pedido' }))
     await waitFor(() => expect(aleBetApi.pedidos.tomar).toHaveBeenCalled())
     await waitFor(() => expect(screen.getByText('En armado')).toBeInTheDocument())
   })

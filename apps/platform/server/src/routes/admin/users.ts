@@ -4,7 +4,10 @@ import {
   createUser,
   deactivateUser,
   getUserByEmail,
+  getUserById,
+  isValidAppRole,
   listUsers,
+  removeAppAccess,
   updateAppAccess,
 } from '@platform/core'
 import { requirePlatformAdmin } from '../../middlewares/require-admin'
@@ -76,13 +79,26 @@ router.post('/', asyncHandler(async (req, res) => {
     return
   }
 
-  const appAccess = (body.appAccess ?? [])
-    .map((access) => {
-      const app = parseAppId(access.app)
-      if (!app || !access.rol) return null
-      return { app, rol: access.rol }
-    })
-    .filter((access): access is { app: AppId; rol: string } => access !== null)
+  const appAccess: Array<{ app: AppId; rol: string }> = []
+  const seenApps = new Set<string>()
+
+  for (const entry of body.appAccess ?? []) {
+    const app = parseAppId(entry.app)
+    if (!app) {
+      res.status(400).json({ error: 'App inválida' })
+      return
+    }
+    if (seenApps.has(app)) {
+      res.status(400).json({ error: 'Acceso duplicado para la app' })
+      return
+    }
+    if (!isValidAppRole(app, entry.rol)) {
+      res.status(400).json({ error: `Rol inválido para la app ${app}` })
+      return
+    }
+    seenApps.add(app)
+    appAccess.push({ app, rol: entry.rol })
+  }
 
   const existingUser = await getUserByEmail(platformDb as any, body.email)
   if (existingUser) {
@@ -109,12 +125,41 @@ router.put('/:id/access', asyncHandler(async (req, res) => {
     return
   }
 
+  if (body.rol !== undefined && !isValidAppRole(app, body.rol)) {
+    res.status(400).json({ error: `Rol inválido para la app ${app}` })
+    return
+  }
+
+  const existingUser = await getUserById(platformDb as any, req.params.id as string)
+  if (!existingUser) {
+    res.status(404).json({ error: 'Usuario no encontrado' })
+    return
+  }
+
   const access = await updateAppAccess(platformDb as any, req.params.id as string, app, {
     rol: body.rol,
     activo: body.activo,
   })
 
   res.json(access)
+}))
+
+// DELETE /:id/access/:app — hard-remove an app access (idempotent)
+router.delete('/:id/access/:app', asyncHandler(async (req, res) => {
+  const app = parseAppId(req.params.app as string)
+  if (!app) {
+    res.status(400).json({ error: 'App inválida' })
+    return
+  }
+
+  const deleted = await removeAppAccess(platformDb as any, req.params.id as string, app)
+
+  if (!deleted) {
+    res.status(404).json({ error: 'Acceso no encontrado' })
+    return
+  }
+
+  res.json(deleted)
 }))
 
 // PUT /:id/status — enable/disable user

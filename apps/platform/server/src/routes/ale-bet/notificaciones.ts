@@ -8,7 +8,7 @@ const router = Router()
 
 router.get(
   '/stream',
-  requireApp('ale-bet', ['admin', 'vendedor', 'armador']),
+  requireApp('ale-bet', ['admin', 'vendedor', 'armador', 'encargado']),
   (req, res) => {
     const user = req.user as JwtPayload | undefined
 

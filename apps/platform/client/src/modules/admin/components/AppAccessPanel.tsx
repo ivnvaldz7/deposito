@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { AppId, PlatformUser } from '../lib/api'
+import { APP_ROLES } from '../lib/roles'
 
 interface AppAccessPanelProps {
   user: PlatformUser | null
@@ -8,18 +9,15 @@ interface AppAccessPanelProps {
     userId: string,
     payload: { app: AppId; rol: string; activo: boolean },
   ) => Promise<void>
+  onRemoveAccess: (userId: string, app: AppId) => Promise<void>
   onToggleStatus: (userId: string, activo: boolean) => Promise<void>
-}
-
-const appRoleOptions: Record<AppId, string[]> = {
-  deposito: ['encargado', 'observador', 'solicitante'],
-  ale_bet: ['admin', 'vendedor', 'armador', 'facturacion', 'observador'],
 }
 
 export function AppAccessPanel({
   user,
   onClose,
   onSaveAccess,
+  onRemoveAccess,
   onToggleStatus,
 }: AppAccessPanelProps) {
   const initialState = useMemo(() => {
@@ -99,6 +97,30 @@ export function AppAccessPanel({
     }
   }
 
+  async function handleRemoveAccess(app: AppId) {
+    setSavingApp(app)
+    setError(null)
+
+    try {
+      await onRemoveAccess(currentUser.id, app)
+      setAccess((current) => ({
+        ...current,
+        [app]: {
+          ...current[app],
+          activo: false,
+        },
+      }))
+    } catch (removeError) {
+      setError(
+        removeError instanceof Error
+          ? removeError.message
+          : 'No se pudo quitar el acceso',
+      )
+    } finally {
+      setSavingApp(null)
+    }
+  }
+
   function setAppAccess(
     app: AppId,
     value: Partial<{ activo: boolean; rol: string }>,
@@ -159,7 +181,7 @@ export function AppAccessPanel({
             disabled={savingStatus}
             className={`rounded-full px-4 py-2 font-body text-sm font-medium ${
               currentUser.activo
-                ? 'bg-success/20 text-success'
+                ? 'border border-[#AFC8BA] bg-[#E7EFEA] text-[#3F6F5A]'
                 : 'bg-surface-container-high text-on-surface-variant'
             }`}
           >
@@ -207,7 +229,7 @@ export function AppAccessPanel({
               }
               className="mt-4 w-full rounded-xl border border-white/10 bg-surface-container-high px-4 py-3 font-body text-sm text-on-surface disabled:opacity-50"
             >
-              {appRoleOptions[app].map((role) => (
+              {APP_ROLES[app].map((role) => (
                 <option key={role} value={role}>
                   {role}
                 </option>
@@ -221,6 +243,15 @@ export function AppAccessPanel({
               className="mt-4 w-full rounded-xl border border-primary/50 bg-primary/15 px-4 py-3 font-body text-sm font-medium text-primary transition hover:bg-primary/25 disabled:opacity-50 scale-hover"
             >
               {savingApp === app ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void handleRemoveAccess(app)}
+              disabled={savingApp === app}
+              className="mt-3 w-full rounded-xl border border-error/30 bg-error/10 px-4 py-3 font-body text-sm font-medium text-error transition hover:bg-error/20 disabled:opacity-50"
+            >
+              Quitar acceso
             </button>
           </section>
         ))}

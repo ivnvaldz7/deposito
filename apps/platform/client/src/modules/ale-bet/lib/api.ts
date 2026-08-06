@@ -190,6 +190,9 @@ export interface DashboardOverview {
   stockCritico: number
   pedidosHoy: number
   enArmado: number
+  pendientesTomar: number
+  preparados: number
+  esperandoProduccion: number
   totalProductos: number
   pedidosRecientes: DashboardPedidoReciente[]
 }
@@ -302,7 +305,7 @@ export const aleBetApi = {
   // Clientes
   clientes: {
     list: () => apiClient.get<Cliente[]>(`${BASE}/clientes`),
-    create: (data: { nombre: string; contacto?: string; referencia?: string; direccion?: string }, options?: MutationOptions) =>
+    create: (data: { nombre: string; contacto?: string; referencia?: string; direccion?: string; localidad?: string; provincia?: string; cuit?: string; condicionIva?: string; condicionVenta?: string; activo?: boolean }, options?: MutationOptions) =>
       apiClient.post<Cliente>(`${BASE}/clientes`, data, undefined, mutationOptions(options)),
     update: (id: string, data: ClienteUpdateInput, options?: MutationOptions) =>
       apiClient.put<Cliente>(`${BASE}/clientes/${id}`, data, undefined, mutationOptions(options)),

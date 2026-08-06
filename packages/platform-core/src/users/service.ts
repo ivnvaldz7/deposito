@@ -122,3 +122,21 @@ export async function deactivateUser(
     data: { activo: false, estado: 'disabled' },
   })
 }
+
+export async function removeAppAccess(
+  db: PlatformDb,
+  userId: string,
+  app: AppId
+): Promise<AppAccess | null> {
+  const existing = await db.appAccess.findFirst({
+    where: { userId, app },
+  })
+
+  if (!existing) {
+    return null
+  }
+
+  return db.appAccess.delete({
+    where: { id: existing.id },
+  })
+}

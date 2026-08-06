@@ -1,11 +1,59 @@
 import { Router } from 'express'
 import { platformDb } from '@platform/db'
-import { getUserByEmail, signAccessToken, signRefreshToken } from '@platform/core'
+import {
+  getUserByEmail,
+  getUserById,
+  signAccessToken,
+  signRefreshToken,
+  updateAppAccess,
+} from '@platform/core'
 
 const router = Router()
 
 const REFRESH_COOKIE_NAME = 'platform_refresh_token'
 const REFRESH_COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
+
+/**
+ * RBAC-LOG-01 PART A — DEV-only idempotent AppAccess sync.
+ *
+ * Email is ONLY a sync key. Navigation is never email-driven: the token is
+ * always built from the user's AppAccess rows re-read after sync.
+ */
+const DEV_SYNC_ACCESS: Record<
+  string,
+  ReadonlyArray<{ app: 'deposito' | 'ale_bet'; rol: string }>
+> = {
+  'encargado@deposito.com': [
+    { app: 'deposito', rol: 'encargado' },
+    { app: 'ale_bet', rol: 'encargado' },
+  ],
+}
+
+async function syncDevAccess(userId: string, email: string): Promise<void> {
+  if (process.env.NODE_ENV === 'production') return
+
+  const entries = DEV_SYNC_ACCESS[email]
+  if (!entries) return
+
+  for (const entry of entries) {
+    try {
+      await updateAppAccess(
+        platformDb as Parameters<typeof updateAppAccess>[0],
+        userId,
+        entry.app,
+        { rol: entry.rol, activo: true },
+      )
+    } catch (syncError) {
+      // Fail open: a DB hiccup must never block dev login.
+      console.error(
+        '[dev-login] No se pudo sincronizar acceso para',
+        email,
+        entry.app,
+        syncError,
+      )
+    }
+  }
+}
 
 function setRefreshTokenCookie(res: any, refreshToken: string): void {
   res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
@@ -55,7 +103,24 @@ router.post('/dev-login', async (req, res) => {
     return
   }
 
-  const apps = platformUser.appAccess.reduce<
+  // RBAC-LOG-01 PART A: idempotent sync (dev-only, fail-open) then RE-READ the
+  // user so the JWT apps map is built from fresh AppAccess rows.
+  let userForToken = platformUser
+  try {
+    await syncDevAccess(platformUser.id, platformUser.email)
+    const freshUser = await getUserById(
+      platformDb as Parameters<typeof getUserById>[0],
+      platformUser.id,
+    )
+    if (freshUser) userForToken = freshUser
+  } catch (reReadError) {
+    console.error(
+      '[dev-login] No se pudo re-leer el usuario tras el sync; usando snapshot previo',
+      reReadError,
+    )
+  }
+
+  const apps = userForToken.appAccess.reduce<
     Record<string, { rol: string; activo: boolean }>
   >((acc, access) => {
     acc[access.app.replace('_', '-')] = {
@@ -66,14 +131,14 @@ router.post('/dev-login', async (req, res) => {
   }, {})
 
   const accessToken = signAccessToken({
-    sub: platformUser.id,
-    email: platformUser.email,
-    name: platformUser.nombre,
-    isPlatformAdmin: platformUser.isPlatformAdmin ?? false,
+    sub: userForToken.id,
+    email: userForToken.email,
+    name: userForToken.nombre,
+    isPlatformAdmin: userForToken.isPlatformAdmin ?? false,
     apps,
   })
 
-  const refreshToken = signRefreshToken(platformUser.id)
+  const refreshToken = signRefreshToken(userForToken.id)
   setRefreshTokenCookie(res, refreshToken)
 
   // Respond with the redirect URL so the frontend can navigate

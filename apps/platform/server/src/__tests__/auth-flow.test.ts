@@ -6,10 +6,11 @@ import jwt from 'jsonwebtoken'
 // ──────────────────────────────────────────────────
 // Step 2 (RED): Hoisted mocks
 // ──────────────────────────────────────────────────
-const { mockGetUserByEmail, mockGetUserById, mockGoogleStrategy, mockDb } =
+const { mockGetUserByEmail, mockGetUserById, mockUpdateAppAccess, mockGoogleStrategy, mockDb } =
   vi.hoisted(() => ({
     mockGetUserByEmail: vi.fn(),
     mockGetUserById: vi.fn(),
+    mockUpdateAppAccess: vi.fn(),
     mockGoogleStrategy: {
       name: 'google',
       getAuthUrl: vi.fn(),
@@ -108,7 +109,7 @@ vi.mock('@platform/core', () => {
     comparePassword: vi.fn(),
     createUser: vi.fn(),
     listUsers: vi.fn().mockResolvedValue([]),
-    updateAppAccess: vi.fn(),
+    updateAppAccess: mockUpdateAppAccess,
     deactivateUser: vi.fn(),
   }
 })
@@ -428,6 +429,28 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
       expect(refreshCookie).toContain('HttpOnly')
     })
 
+    it('propagates AppAccess rows added after sign-in (SESSION-1)', async () => {
+      const userWithAleBet = {
+        ...mockPlatformUser,
+        appAccess: [
+          { app: 'deposito', rol: 'encargado', activo: true, userId: 'user_abc123' },
+          { app: 'ale_bet', rol: 'encargado', activo: true, userId: 'user_abc123' },
+        ],
+      }
+      mockGetUserById.mockResolvedValue(userWithAleBet)
+
+      const { signRefreshToken } = await import('@platform/core')
+      const refreshToken = signRefreshToken(mockPlatformUser.id)
+
+      const res = await request(app)
+        .post('/api/auth/refresh')
+        .set('Cookie', `platform_refresh_token=${refreshToken}`)
+
+      expect(res.status).toBe(200)
+      expect(res.body.user.apps['deposito']).toBeDefined()
+      expect(res.body.user.apps['ale-bet']).toEqual({ rol: 'encargado', activo: true })
+    })
+
     it('with invalid refresh cookie → returns 401', async () => {
       const res = await request(app)
         .post('/api/auth/refresh')
@@ -611,6 +634,182 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
 
       expect(res.status).toBe(401)
       expect(res.body.error).toMatch(/deshabilitad/i)
+    })
+
+    // ── RBAC-LOG-01 PART A: idempotent DEV sync (DEV-LOGIN-SYNC-1) ──
+    it('syncs DEV_SYNC_ACCESS apps for encargado@deposito.com and signs token with both apps (UAT-1)', async () => {
+      const preSyncUser = {
+        id: 'user_encargado_001',
+        email: 'encargado@deposito.com',
+        nombre: 'Juan Encargado',
+        activo: true,
+        estado: 'active' as const,
+        isPlatformAdmin: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        appAccess: [
+          { app: 'deposito', rol: 'encargado', activo: true, userId: 'user_encargado_001' },
+        ],
+      }
+      const postSyncUser = {
+        ...preSyncUser,
+        appAccess: [
+          { app: 'deposito', rol: 'encargado', activo: true, userId: 'user_encargado_001' },
+          { app: 'ale_bet', rol: 'encargado', activo: true, userId: 'user_encargado_001' },
+        ],
+      }
+      mockGetUserByEmail.mockResolvedValue(preSyncUser)
+      mockGetUserById.mockResolvedValue(postSyncUser)
+      mockUpdateAppAccess.mockResolvedValue({
+        id: 'acc_x',
+        userId: 'user_encargado_001',
+        app: 'ale_bet',
+        rol: 'encargado',
+        activo: true,
+      })
+
+      const res = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'encargado@deposito.com' })
+
+      expect(res.status).toBe(200)
+      // One upsert per mapped app entry, in order
+      expect(mockUpdateAppAccess).toHaveBeenCalledTimes(2)
+      expect(mockUpdateAppAccess).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        'user_encargado_001',
+        'deposito',
+        { rol: 'encargado', activo: true },
+      )
+      expect(mockUpdateAppAccess).toHaveBeenNthCalledWith(
+        2,
+        expect.anything(),
+        'user_encargado_001',
+        'ale_bet',
+        { rol: 'encargado', activo: true },
+      )
+      // Re-read after sync before signing
+      expect(mockGetUserById).toHaveBeenCalledWith(expect.anything(), 'user_encargado_001')
+
+      const token = res.body.redirectUrl.split('token=')[1]
+      const decoded = jwt.decode(token) as { apps: Record<string, { rol: string; activo: boolean }> }
+      expect(decoded.apps['deposito']).toEqual({ rol: 'encargado', activo: true })
+      expect(decoded.apps['ale-bet']).toEqual({ rol: 'encargado', activo: true })
+    })
+
+    it('repeat dev-login is idempotent: upsert runs per login, login still succeeds, no duplicates in payload', async () => {
+      const syncedUser = {
+        id: 'user_encargado_001',
+        email: 'encargado@deposito.com',
+        nombre: 'Juan Encargado',
+        activo: true,
+        estado: 'active' as const,
+        isPlatformAdmin: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        appAccess: [
+          { app: 'deposito', rol: 'encargado', activo: true, userId: 'user_encargado_001' },
+          { app: 'ale_bet', rol: 'encargado', activo: true, userId: 'user_encargado_001' },
+        ],
+      }
+      mockGetUserByEmail.mockResolvedValue(syncedUser)
+      mockGetUserById.mockResolvedValue(syncedUser)
+      mockUpdateAppAccess.mockResolvedValue({
+        id: 'acc_x',
+        userId: 'user_encargado_001',
+        app: 'ale_bet',
+        rol: 'encargado',
+        activo: true,
+      })
+
+      const first = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'encargado@deposito.com' })
+      expect(first.status).toBe(200)
+      expect(mockUpdateAppAccess).toHaveBeenCalledTimes(2)
+
+      const second = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'encargado@deposito.com' })
+      expect(second.status).toBe(200)
+      // 2 upserts per login — core upsert + unique(userId, app) guarantee no dup rows
+      expect(mockUpdateAppAccess).toHaveBeenCalledTimes(4)
+      expect(mockUpdateAppAccess).toHaveBeenNthCalledWith(3, expect.anything(), 'user_encargado_001', 'deposito', { rol: 'encargado', activo: true })
+    })
+
+    it('does not sync for emails outside the DEV_SYNC_ACCESS map', async () => {
+      const otherUser = {
+        id: 'user_other_001',
+        email: 'otro@deposito.com',
+        nombre: 'Otro Usuario',
+        activo: true,
+        estado: 'active' as const,
+        isPlatformAdmin: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        appAccess: [
+          { app: 'deposito', rol: 'observador', activo: true, userId: 'user_other_001' },
+        ],
+      }
+      mockGetUserByEmail.mockResolvedValue(otherUser)
+      mockGetUserById.mockResolvedValue(otherUser)
+
+      const res = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'otro@deposito.com' })
+
+      expect(res.status).toBe(200)
+      expect(mockUpdateAppAccess).not.toHaveBeenCalled()
+    })
+
+    it('sync failures fail open: login still returns 200 with pre-sync apps', async () => {
+      const preSyncUser = {
+        id: 'user_encargado_001',
+        email: 'encargado@deposito.com',
+        nombre: 'Juan Encargado',
+        activo: true,
+        estado: 'active' as const,
+        isPlatformAdmin: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        appAccess: [
+          { app: 'deposito', rol: 'encargado', activo: true, userId: 'user_encargado_001' },
+        ],
+      }
+      mockGetUserByEmail.mockResolvedValue(preSyncUser)
+      mockGetUserById.mockRejectedValue(new Error('DB hiccup'))
+      mockUpdateAppAccess.mockRejectedValue(new Error('DB hiccup'))
+
+      const res = await request(app)
+        .post('/api/auth/dev-login')
+        .send({ email: 'encargado@deposito.com' })
+
+      expect(res.status).toBe(200)
+      const token = res.body.redirectUrl.split('token=')[1]
+      const decoded = jwt.decode(token) as { apps: Record<string, unknown> }
+      expect(decoded.apps['deposito']).toBeDefined()
+    })
+  })
+
+  // ────────────────────────────────────────────────
+  // RBAC-LOG-01 PART A: production guard
+  // ────────────────────────────────────────────────
+  describe('POST /api/auth/dev-login — production guard', () => {
+    it('returns 404 in production and never syncs', async () => {
+      const previous = process.env.NODE_ENV
+      process.env.NODE_ENV = 'production'
+      try {
+        const res = await request(app)
+          .post('/api/auth/dev-login')
+          .send({ email: 'encargado@deposito.com' })
+
+        expect(res.status).toBe(404)
+        expect(mockUpdateAppAccess).not.toHaveBeenCalled()
+        expect(mockGetUserByEmail).not.toHaveBeenCalled()
+      } finally {
+        process.env.NODE_ENV = previous
+      }
     })
   })
 

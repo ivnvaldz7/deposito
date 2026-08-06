@@ -107,6 +107,13 @@ export default function PedidosPage() {
   const esOperativo = rol === 'armador' || rol === 'admin'
   const puedeCrear = rol === 'admin' || rol === 'vendedor'
 
+  const armadorFiltros = [
+    { valor: '', etiqueta: 'Todos' },
+    { valor: 'APROBADO', etiqueta: 'Aprobados' },
+    { valor: 'EN_ARMADO', etiqueta: 'En armado' },
+    { valor: 'PREPARADO', etiqueta: 'Preparados' },
+  ] as const
+
   const [estadoFilter, setEstadoFilter] = useState<PedidoEstado | ''>((location.state as any)?.estadoFilter ?? '')
   const [soloHoy, setSoloHoy] = useState((location.state as any)?.pedidosHoy ?? false)
 
@@ -119,13 +126,18 @@ export default function PedidosPage() {
 
   const filtrados = useMemo(() => {
     let result = pedidos
+    
+    if (rol === 'armador') {
+      result = result.filter(p => p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO')
+    }
+
     if (estadoFilter) result = result.filter((p) => p.estado === estadoFilter)
     if (soloHoy) {
       const hoy = new Date().toDateString()
       result = result.filter(p => new Date(p.createdAt).toDateString() === hoy)
     }
     return result
-  }, [pedidos, estadoFilter, soloHoy])
+  }, [pedidos, estadoFilter, soloHoy, rol])
 
   const ordenados = useMemo(() => {
     const lista = [...filtrados]
@@ -184,14 +196,14 @@ export default function PedidosPage() {
       {header}
 
       <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" aria-label="Filtrar por estado">
-        {FILTROS.map((f) => {
+        {(rol === 'armador' ? armadorFiltros : FILTROS).map((f) => {
           const activo = estadoFilter === f.valor
           return (
             <button
               key={f.valor || 'todos'}
               type="button"
               aria-pressed={activo}
-              onClick={() => setEstadoFilter(f.valor)}
+              onClick={() => setEstadoFilter(f.valor as PedidoEstado | '')}
               className={cn(
                 'shrink-0 rounded-full border px-3.5 py-1.5 font-body text-[12px] font-semibold transition',
                 activo
