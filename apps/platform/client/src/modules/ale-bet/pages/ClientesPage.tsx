@@ -79,6 +79,7 @@ interface ClienteFormModalProps {
   error: string | null
   guardando: boolean
   esNuevo: boolean
+  esFacturacion: boolean
   onChange: (campo: keyof ClienteFormState, valor: string) => void
   onClose: () => void
   onGuardar: (validar: boolean) => void
@@ -92,6 +93,7 @@ function ClienteFormModal({
   error,
   guardando,
   esNuevo,
+  esFacturacion,
   onChange,
   onClose,
   onGuardar,
@@ -126,8 +128,8 @@ function ClienteFormModal({
               VALIDAR CLIENTE
             </Button>
           )}
-          <Button variant="outline" onClick={() => onGuardar(false)} loading={guardando}>
-            {esNuevo ? 'Crear' : 'Guardar'}
+          <Button variant={pendiente ? "outline" : "default"} onClick={() => onGuardar(false)} loading={guardando}>
+            {esNuevo ? 'Crear cliente' : 'Guardar'}
           </Button>
         </div>
       }
@@ -138,18 +140,31 @@ function ClienteFormModal({
             {error}
           </p>
         )}
-        <Campo label="Nombre" value={form.nombre} maxLength={120} onChange={(v) => onChange('nombre', v)} />
-        <Campo label="Contacto" value={form.contacto} maxLength={120} onChange={(v) => onChange('contacto', v)} />
-        <Campo label="Referencia" value={form.referencia} maxLength={120} onChange={(v) => onChange('referencia', v)} />
-        <Campo label="Dirección" value={form.direccion} maxLength={200} onChange={(v) => onChange('direccion', v)} />
-        {!esNuevo && (
-          <>
-            <Campo label="Localidad" value={form.localidad} maxLength={120} onChange={(v) => onChange('localidad', v)} />
-            <Campo label="Provincia" value={form.provincia} maxLength={120} onChange={(v) => onChange('provincia', v)} />
+        <div className="space-y-3">
+          <h4 className="font-body text-[12px] font-semibold text-primary uppercase tracking-wider">Datos Generales</h4>
+          <Campo label="Nombre" value={form.nombre} maxLength={120} onChange={(v) => onChange('nombre', v)} />
+          <Campo label="Contacto" value={form.contacto} maxLength={120} onChange={(v) => onChange('contacto', v)} />
+          <Campo label="Referencia" value={form.referencia} maxLength={120} onChange={(v) => onChange('referencia', v)} />
+        </div>
+
+        <div className="space-y-3 mt-5">
+          <h4 className="font-body text-[12px] font-semibold text-primary uppercase tracking-wider">Domicilio</h4>
+          <Campo label="Dirección" value={form.direccion} maxLength={200} onChange={(v) => onChange('direccion', v)} />
+          {(esFacturacion || !esNuevo) && (
+            <>
+              <Campo label="Localidad" value={form.localidad} maxLength={120} onChange={(v) => onChange('localidad', v)} />
+              <Campo label="Provincia" value={form.provincia} maxLength={120} onChange={(v) => onChange('provincia', v)} />
+            </>
+          )}
+        </div>
+
+        {(esFacturacion || !esNuevo) && (
+          <div className="space-y-3 mt-5">
+            <h4 className="font-body text-[12px] font-semibold text-primary uppercase tracking-wider">Datos Fiscales</h4>
             <Campo label="CUIT" value={form.cuit} maxLength={11} tipo="tel" onChange={(v) => onChange('cuit', v)} />
             <Campo label="Condición IVA" value={form.condicionIva} maxLength={80} onChange={(v) => onChange('condicionIva', v)} />
             <Campo label="Condición de venta" value={form.condicionVenta} maxLength={80} onChange={(v) => onChange('condicionVenta', v)} />
-          </>
+          </div>
         )}
       </div>
     </BottomSheet>
@@ -269,6 +284,13 @@ export default function ClientesPage() {
           contacto: form.contacto.trim() || undefined,
           referencia: form.referencia.trim() || undefined,
           direccion: form.direccion.trim() || undefined,
+          ...(esFacturacion ? {
+            localidad: form.localidad.trim() || undefined,
+            provincia: form.provincia.trim() || undefined,
+            cuit: form.cuit.trim() || undefined,
+            condicionIva: form.condicionIva.trim() || undefined,
+            condicionVenta: form.condicionVenta.trim() || undefined,
+          } : {})
         })
         toast.success(rol === 'vendedor' ? 'Cliente creado · quedará pendiente de validación' : 'Cliente creado')
       } else if (modal) {
@@ -438,6 +460,7 @@ export default function ClientesPage() {
         error={formError}
         guardando={guardando}
         esNuevo={modal === 'nuevo'}
+        esFacturacion={esFacturacion}
         onChange={cambiarForm}
         onClose={cerrarModal}
         onGuardar={(validar) => void guardar(validar)}

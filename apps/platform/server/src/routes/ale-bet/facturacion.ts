@@ -1,7 +1,10 @@
 import { Router } from 'express'
+import PDFDocument from 'pdfkit'
 import { platformDb as prisma } from '@platform/db'
 import { requireApp } from '../../middlewares/require-app'
 import { descomponerUnidades } from './unidades-por-caja'
+import { slugify } from './slugify'
+import { renderVentasPdf, type VentasPdfInput } from './ventas-pdf'
 
 const router = Router()
 
@@ -53,8 +56,11 @@ interface ReporteAnual {
  *
  * Returns one entry per distinct product with summed units decomposed into
  * cajas and sueltos using the product's current unidadesPorCaja value.
+ *
+ * Exported so the PDF export route reuses the exact same aggregation
+ * (ALEBET-FACT-02 AD-2). The body is byte-identical to the original.
  */
-function agregarPorProducto(
+export function agregarPorProducto(
   items: Array<{
     productoId: string
     cantidad: number
@@ -272,6 +278,210 @@ router.get(
     }
 
     res.json(reporte)
+  },
+)
+
+/**
+ * GET /api/ale-bet/facturacion/ventas/pdf
+ *
+ * Archive-ready A4 PDF of the same report as GET /ventas, built server-side
+ * with pdfkit through the pure `renderVentasPdf` renderer. Validation
+ * messages and the DESPACHADO query are duplicated from the JSON handler
+ * (ALEBET-FACT-02 AD-3); the JSON handler itself is never edited.
+ *
+ * Param validation: identical to the JSON route.
+ * Zero sales → coherent 400 (never an empty PDF).
+ * Unknown cliente → 400.
+ * Filename: ventas-{slugify(cliente)}-{AAAA}[-{MM}].pdf (ASCII-safe, R5).
+ * Async errors are caught here (Express 4 does not forward rejections).
+ */
+router.get(
+  '/ventas/pdf',
+  requireApp('ale-bet', ALLOWED_ROLES),
+  async (req, res) => {
+    // ── Parameter validation (verbatim messages from the JSON route) ───────
+
+    const clienteId = typeof req.query.clienteId === 'string' ? req.query.clienteId.trim() : ''
+    if (!clienteId) {
+      res.status(400).json({ error: 'El parámetro clienteId es requerido' })
+      return
+    }
+
+    const yearRaw = typeof req.query.year === 'string' ? req.query.year.trim() : ''
+    if (!yearRaw) {
+      res.status(400).json({ error: 'El parámetro year es requerido' })
+      return
+    }
+
+    const year = Number(yearRaw)
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      res.status(400).json({ error: 'El parámetro year debe ser un año válido (2000-2100)' })
+      return
+    }
+
+    const monthRaw = typeof req.query.month === 'string' ? req.query.month.trim() : ''
+    let month: number | null = null
+
+    if (monthRaw !== '') {
+      month = Number(monthRaw)
+      if (!Number.isInteger(month) || month < 1 || month > 12) {
+        res.status(400).json({ error: 'El parámetro month debe ser un número entre 1 y 12' })
+        return
+      }
+    }
+
+    try {
+      // ── Date range (despachadoAt; same rules as the JSON route) ──────────
+
+      let desde: Date
+      let hasta: Date
+
+      if (month !== null) {
+        desde = new Date(Date.UTC(year, month - 1, 1))
+        hasta = new Date(Date.UTC(year, month, 1))
+      } else {
+        desde = new Date(Date.UTC(year, 0, 1))
+        hasta = new Date(Date.UTC(year + 1, 0, 1))
+      }
+
+      // ── Query dispatched orders (duplicated args, AD-3) ───────────────────
+
+      const pedidos = await prisma.pedido.findMany({
+        where: {
+          clienteId,
+          estado: 'DESPACHADO',
+          despachadoAt: {
+            gte: desde,
+            lt: hasta,
+          },
+        },
+        select: {
+          id: true,
+          despachadoAt: true,
+          items: {
+            select: {
+              productoId: true,
+              cantidad: true,
+              producto: {
+                select: {
+                  nombre: true,
+                  sku: true,
+                  unidadesPorCaja: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { despachadoAt: 'asc' },
+      })
+
+      if (pedidos.length === 0) {
+        res.status(400).json({ error: 'No hay ventas para el período seleccionado' })
+        return
+      }
+
+      const cliente = await prisma.cliente.findUnique({
+        where: { id: clienteId },
+        select: { nombre: true, cuit: true },
+      })
+
+      if (!cliente) {
+        res.status(400).json({ error: 'Cliente no encontrado' })
+        return
+      }
+
+      // ── Build the renderer input (reuses the exported aggregation) ────────
+
+      const generado = new Intl.DateTimeFormat('es-AR', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date())
+
+      let input: VentasPdfInput
+
+      if (month !== null) {
+        const allItems = pedidos.flatMap((p) => p.items)
+        const productos = agregarPorProducto(allItems)
+
+        input = {
+          modo: 'mensual',
+          year,
+          month,
+          clienteNombre: cliente.nombre,
+          cuit: cliente.cuit ?? undefined,
+          generado,
+          resumen: {
+            pedidosDespachados: pedidos.length,
+            productosDistintos: productos.length,
+            unidadesTotales: productos.reduce((sum, p) => sum + p.unidades, 0),
+          },
+          productos,
+        }
+      } else {
+        // Per-month breakdown, same algorithm as the JSON annual report.
+        const mesesMap = new Map<
+          number,
+          Array<{ productoId: string; cantidad: number; producto: { nombre: string; sku: string; unidadesPorCaja: number } }>
+        >()
+
+        for (const pedido of pedidos) {
+          // despachadoAt is guaranteed non-null for DESPACHADO orders.
+          const mes = pedido.despachadoAt!.getUTCMonth() + 1
+          const existing = mesesMap.get(mes)
+          if (existing) {
+            existing.push(...pedido.items)
+          } else {
+            mesesMap.set(mes, [...pedido.items])
+          }
+        }
+
+        const meses = Array.from(mesesMap.entries())
+          .sort(([a], [b]) => a - b)
+          .map(([mes, items]) => {
+            const productos = agregarPorProducto(items)
+            return {
+              month: mes,
+              pedidosDespachados: pedidos.filter((p) => (p.despachadoAt!.getUTCMonth() + 1) === mes).length,
+              productosDistintos: productos.length,
+              unidadesTotales: productos.reduce((sum, p) => sum + p.unidades, 0),
+            }
+          })
+
+        const allItems = pedidos.flatMap((p) => p.items)
+        const productos = agregarPorProducto(allItems)
+
+        input = {
+          modo: 'anual',
+          year,
+          month: null,
+          clienteNombre: cliente.nombre,
+          cuit: cliente.cuit ?? undefined,
+          generado,
+          resumen: {
+            pedidosDespachados: pedidos.length,
+            productosDistintos: productos.length,
+            unidadesTotales: productos.reduce((sum, p) => sum + p.unidades, 0),
+          },
+          productos,
+          meses,
+        }
+      }
+
+      // ── Stream the PDF ─────────────────────────────────────────────────────
+
+      const suffix = month !== null ? `-${String(month).padStart(2, '0')}` : ''
+      const filename = `ventas-${slugify(cliente.nombre)}-${year}${suffix}.pdf`
+
+      const doc = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true })
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+      doc.pipe(res)
+      renderVentasPdf(doc as unknown as import('./ventas-pdf').VentasPdfDocument, input)
+      doc.end()
+    } catch {
+      if (!res.headersSent) res.status(500).json({ error: 'Error interno del servidor' })
+    }
   },
 )
 

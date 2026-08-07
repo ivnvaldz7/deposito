@@ -241,3 +241,77 @@ export function createHistorialPedidoList() {
     createHistorialPedido({ id: 'hist-2', numero: 'P-002', estado: 'CANCELADO' as const }),
   ]
 }
+
+/**
+ * Ventas report factories. Defaults are chosen so the spec examples assert
+ * directly: R7 "2 / 5 / 25", R9 "7 cajas · 4 sueltos / 144 unidades",
+ * R6 "1.426". cajas/sueltos are backend values rendered verbatim — the client
+ * must never recompute them from unidades/unidadesPorCaja.
+ */
+export function createProductoAgregado(overrides: Record<string, unknown> = {}) {
+  return {
+    productoId: 'prod-1',
+    nombre: 'Producto A',
+    sku: 'SKU-001',
+    unidadesPorCaja: 12,
+    cajas: 2,
+    sueltos: 5,
+    unidades: 25,
+    ...overrides,
+  }
+}
+
+export function createReporteVentasMensual(overrides: Record<string, unknown> = {}) {
+  return {
+    modo: 'mensual' as const,
+    clienteId: 'cliente-1',
+    year: 2026,
+    month: 7,
+    pedidosDespachados: 8,
+    productosDistintos: 3,
+    unidadesTotales: 1426,
+    productos: [
+      createProductoAgregado(),
+      createProductoAgregado({ productoId: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', cajas: 7, sueltos: 4, unidades: 144 }),
+      createProductoAgregado({ productoId: 'prod-3', nombre: 'Producto C', sku: 'SKU-003', cajas: 100, sueltos: 57, unidades: 1257 }),
+    ],
+    ...overrides,
+  }
+}
+
+export function createReporteVentasAnual(overrides: Record<string, unknown> = {}) {
+  return {
+    modo: 'anual' as const,
+    clienteId: 'cliente-1',
+    year: 2026,
+    pedidosDespachados: 12,
+    productosDistintos: 3,
+    unidadesTotales: 960,
+    productos: [
+      createProductoAgregado(),
+      createProductoAgregado({ productoId: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', cajas: 7, sueltos: 4, unidades: 144 }),
+    ],
+    meses: [
+      {
+        month: 1,
+        pedidosDespachados: 8,
+        productosDistintos: 2,
+        unidadesTotales: 920,
+        productos: [
+          createProductoAgregado(),
+          createProductoAgregado({ productoId: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', cajas: 7, sueltos: 4, unidades: 144 }),
+        ],
+      },
+      {
+        month: 7,
+        pedidosDespachados: 4,
+        productosDistintos: 1,
+        unidadesTotales: 40,
+        productos: [
+          createProductoAgregado({ productoId: 'prod-3', nombre: 'Producto C', sku: 'SKU-003', cajas: 3, sueltos: 4, unidades: 40 }),
+        ],
+      },
+    ],
+    ...overrides,
+  }
+}

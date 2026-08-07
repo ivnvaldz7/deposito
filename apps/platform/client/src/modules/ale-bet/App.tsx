@@ -11,6 +11,7 @@ const ClientesPage = lazy(() => import('./pages/ClientesPage'))
 const StockPage = lazy(() => import('./pages/StockPage'))
 const HistorialPage = lazy(() => import('./pages/HistorialPage'))
 const TransportistasPage = lazy(() => import('./pages/TransportistasPage'))
+const VentasPage = lazy(() => import('./pages/VentasPage'))
 
 function LoadingFallback() {
   return (
@@ -38,6 +39,7 @@ export default function AleBetModule() {
               <Route path="stock" element={<StockPage />} />
               <Route path="historial" element={<HistorialPage />} />
               <Route path="transportistas" element={<TransportistasPage />} />
+              <Route path="ventas" element={<VentasPage />} />
               <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Routes>
           </Suspense>

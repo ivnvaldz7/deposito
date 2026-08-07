@@ -8,11 +8,11 @@ interface BadgeProps {
 
 const variantStyles: Record<NonNullable<BadgeProps['variant']>, string> = {
   default: 'bg-surface-highest text-on-surface-variant',
-  success: 'bg-success/20 text-success',
+  success: 'border border-[#AFC8BA] bg-[#E7EFEA] text-[#3F6F5A]',
   warning: 'bg-warning/20 text-warning',
   'warning-soft': 'border border-[#D5B4B5] bg-[#F5ECEC] text-[#8E5A5B]',
   error: 'bg-error/20 text-error',
-  info: 'bg-primary-container/20 text-primary-container',
+  info: 'border border-[#AFC8BA] bg-[#E7EFEA] text-[#3F6F5A]',
 }
 
 export function Badge({

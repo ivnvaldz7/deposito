@@ -448,7 +448,7 @@ export default function ProductosPage() {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <span className="text-[16px] font-semibold text-primary">{l.numero}</span>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 font-medium text-[11px] ${l.activo ? 'bg-success/20 text-success' : 'bg-surface-highest text-on-surface-variant'}`}>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 font-medium text-[11px] ${l.activo ? 'border border-[#AFC8BA] bg-[#E7EFEA] text-[#3F6F5A]' : 'bg-surface-highest text-on-surface-variant'}`}>
                           {l.activo ? 'Activo' : 'Inactivo'}
                         </span>
                       </div>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/stores/auth-store'
 import { useTransportistas, useCreateTransportista, useUpdateTransportista } from '../queries'
 import { toast } from '@/lib/toast'
+import { BottomSheet } from '../components/BottomSheet'
 
 interface TransportistaFormState {
   nombre: string
@@ -44,85 +45,64 @@ function TransportistaFormModal({
   const titulo = esNuevo ? 'Nuevo transportista' : 'Editar transportista'
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-black/60 lg:flex lg:items-center lg:justify-center lg:p-6"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={titulo}
-        data-testid="transportista-form-modal"
-        className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-surface-container-low shadow-float animate-slide-up lg:static lg:mx-auto lg:max-h-[calc(100dvh-3rem)] lg:w-full lg:max-w-md lg:animate-none lg:rounded-xl"
-      >
-        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
-          <h3 className="text-[15px] font-bold text-on-surface">{titulo}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="flex h-11 w-11 items-center justify-center rounded-full text-on-surface-variant transition hover:bg-surface-high hover:text-on-surface"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 pb-[max(env(safe-area-inset-bottom),1rem)] lg:pb-6">
-          {error && (
-            <p role="alert" className="rounded-lg bg-error/10 px-3 py-2 font-body text-[12px] font-medium text-error">
-              {error}
-            </p>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={titulo}
+      desktop="modal"
+      footer={
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {!esNuevo && (
+            <button
+              type="button"
+              onClick={onToggleActivo}
+              disabled={guardando}
+              className="mr-auto rounded-full border border-error/40 px-4 py-2 font-body text-[12px] font-semibold text-error transition hover:bg-error/10"
+            >
+              {transportista !== null && transportista.activo ? 'Desactivar' : 'Activar'}
+            </button>
           )}
-          <div>
-            <label htmlFor="Nombre" className="font-body text-[11px] text-outline">
-              Nombre
-            </label>
-            <input
-              id="Nombre"
-              value={form.nombre}
-              maxLength={160}
-              onChange={(e) => onChange('nombre', e.target.value)}
-              className="input-field mt-1"
-            />
-          </div>
-          <div>
-            <label htmlFor="Dirección" className="font-body text-[11px] text-outline">
-              Dirección
-            </label>
-            <input
-              id="Dirección"
-              value={form.direccion}
-              maxLength={240}
-              onChange={(e) => onChange('direccion', e.target.value)}
-              className="input-field mt-1"
-            />
-          </div>
+          <Button variant="outline" onClick={onClose} disabled={guardando}>
+            Cancelar
+          </Button>
+          <Button onClick={onGuardar} loading={guardando}>
+            {esNuevo ? 'Crear' : 'Guardar'}
+          </Button>
         </div>
-
-        <div className="shrink-0 border-t border-white/10 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),1rem)] lg:pb-4">
-          <div className="flex flex-wrap items-center justify-end gap-2">
-            {!esNuevo && (
-              <button
-                type="button"
-                onClick={onToggleActivo}
-                disabled={guardando}
-                className="mr-auto rounded-full border border-error/40 px-4 py-2 font-body text-[12px] font-semibold text-error transition hover:bg-error/10"
-              >
-                {transportista !== null && transportista.activo ? 'Desactivar' : 'Activar'}
-              </button>
-            )}
-            <Button variant="outline" onClick={onClose} disabled={guardando}>
-              Cancelar
-            </Button>
-            <Button onClick={onGuardar} loading={guardando}>
-              {esNuevo ? 'Crear' : 'Guardar'}
-            </Button>
-          </div>
+      }
+    >
+      <div className="space-y-4 py-2">
+        {error && (
+          <p role="alert" className="rounded-lg bg-error/10 px-3 py-2 font-body text-[12px] font-medium text-error">
+            {error}
+          </p>
+        )}
+        <div>
+          <label htmlFor="Nombre" className="font-body text-[11px] text-outline">
+            Nombre
+          </label>
+          <input
+            id="Nombre"
+            value={form.nombre}
+            maxLength={160}
+            onChange={(e) => onChange('nombre', e.target.value)}
+            className="input-field mt-1"
+          />
+        </div>
+        <div>
+          <label htmlFor="Dirección" className="font-body text-[11px] text-outline">
+            Dirección
+          </label>
+          <input
+            id="Dirección"
+            value={form.direccion}
+            maxLength={240}
+            onChange={(e) => onChange('direccion', e.target.value)}
+            className="input-field mt-1"
+          />
         </div>
       </div>
-    </div>
+    </BottomSheet>
   )
 }
 

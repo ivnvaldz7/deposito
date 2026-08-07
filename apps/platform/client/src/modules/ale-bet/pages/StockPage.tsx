@@ -53,7 +53,7 @@ export default function StockPage() {
                   <td className="px-5 py-4 text-right font-semibold text-[15px]">{p.disponible}</td>
                   <td className="px-5 py-4 text-right text-on-surface-variant font-medium">{p.stockMinimo}</td>
                   <td className="px-5 py-4 text-center">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 font-medium text-[11px] ${p.stockBajo ? 'bg-error/20 text-error' : 'bg-success/20 text-success'}`}>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 font-medium text-[11px] ${p.stockBajo ? 'bg-error/20 text-error' : 'border border-[#AFC8BA] bg-[#E7EFEA] text-[#3F6F5A]'}`}>
                       {p.stockBajo ? 'BAJO' : 'OK'}
                     </span>
                   </td>

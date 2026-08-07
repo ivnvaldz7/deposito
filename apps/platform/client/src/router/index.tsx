@@ -35,11 +35,6 @@ function NavigateBasedOnAccess() {
     return <Navigate to={`/${activeApps[0]}`} replace />
   }
 
-  // Multiple apps — check lastApp
-  if (lastApp && activeApps.includes(lastApp)) {
-    return <Navigate to={`/${lastApp}`} replace />
-  }
-
   return <Navigate to="/app-selector" replace />
 }
 

@@ -88,7 +88,7 @@ describe('TransportistasPage', () => {
     await waitFor(() => expect(screen.getByText('No hay transportistas.')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: /Nuevo transportista/ }))
-    const modal = within(screen.getByTestId('transportista-form-modal'))
+    const modal = within(screen.getByTestId('bottom-sheet'))
 
     fireEvent.click(modal.getByRole('button', { name: 'Crear' }))
     await waitFor(() => expect(screen.getByText('El nombre debe tener al menos 2 caracteres')).toBeInTheDocument())
@@ -117,7 +117,7 @@ describe('TransportistasPage', () => {
     const filaA = within(tabla().getByRole('row', { name: /Transporte A/ }))
     fireEvent.click(filaA.getByRole('button', { name: 'Editar' }))
 
-    const modal = within(screen.getByTestId('transportista-form-modal'))
+    const modal = within(screen.getByTestId('bottom-sheet'))
     fireEvent.change(modal.getByLabelText('Nombre'), { target: { value: 'Transporte A2' } })
     fireEvent.click(modal.getByRole('button', { name: 'Guardar' }))
 
@@ -136,7 +136,7 @@ describe('TransportistasPage', () => {
     const filaA = within(tabla().getByRole('row', { name: /Transporte A/ }))
     fireEvent.click(filaA.getByRole('button', { name: 'Editar' }))
 
-    const modal = within(screen.getByTestId('transportista-form-modal'))
+    const modal = within(screen.getByTestId('bottom-sheet'))
     fireEvent.click(modal.getByRole('button', { name: 'Desactivar' }))
 
     const dialog = within(screen.getByTestId('confirm-dialog'))

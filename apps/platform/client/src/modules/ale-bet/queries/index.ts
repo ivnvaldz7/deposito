@@ -5,4 +5,5 @@ export { useTransportistas, useCreateTransportista, useUpdateTransportista, tran
 export { useEmitirRemito, useAnularRemito, descargarRemitoPdf, remitosKeys } from './use-remitos'
 export { useStockOverview, useStockMovimientos, stockKeys } from './use-stock'
 export { useHistorial, historialKeys } from './use-historial'
+export { useVentas, ventasKeys } from './use-ventas'
 export { useDashboardOverview, dashboardKeys } from './use-dashboard'

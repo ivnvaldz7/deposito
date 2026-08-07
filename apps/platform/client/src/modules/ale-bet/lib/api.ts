@@ -214,6 +214,52 @@ export interface HistorialPedido {
   items: HistorialPedidoItem[]
 }
 
+// ─── Facturación / ventas report types ───────────────────────────────────────
+// Mirror the server contract in apps/platform/server/src/routes/ale-bet/facturacion.ts
+// verbatim. The `modo` field discriminates monthly vs annual reports.
+
+export interface ProductoAgregado {
+  productoId: string
+  nombre: string
+  sku: string
+  unidadesPorCaja: number
+  cajas: number
+  sueltos: number
+  unidades: number
+}
+
+export interface ResumenMes {
+  month: number
+  pedidosDespachados: number
+  productosDistintos: number
+  unidadesTotales: number
+  productos: ProductoAgregado[]
+}
+
+export interface ReporteVentasMensual {
+  modo: 'mensual'
+  clienteId: string
+  year: number
+  month: number
+  pedidosDespachados: number
+  productosDistintos: number
+  unidadesTotales: number
+  productos: ProductoAgregado[]
+}
+
+export interface ReporteVentasAnual {
+  modo: 'anual'
+  clienteId: string
+  year: number
+  pedidosDespachados: number
+  productosDistintos: number
+  unidadesTotales: number
+  productos: ProductoAgregado[]
+  meses: ResumenMes[]
+}
+
+export type ReporteVentas = ReporteVentasMensual | ReporteVentasAnual
+
 // ─── Input types ─────────────────────────────────────────────────────────────
 
 export interface PedidoItemInput {
@@ -379,4 +425,21 @@ export const aleBetApi = {
     },
     exportDownload: () => apiClient.getBlob(`${BASE}/historial/export`),
   },
+
+  // Facturación
+  facturacion: {
+    ventas: (params: { clienteId: string; year: number; month?: number }) => {
+      const searchParams = new URLSearchParams({ clienteId: params.clienteId, year: String(params.year) })
+      // Month presence switches mode server-side: with month → mensual, without → anual.
+      if (params.month) searchParams.set('month', String(params.month))
+      return apiClient.get<ReporteVentas>(`${BASE}/facturacion/ventas?${searchParams}`)
+    },
+    /** Download the ventas report as an A4 PDF. Returns a Blob (application/pdf). */
+    ventasPdf: (params: { clienteId: string; year: number; month?: number }) => {
+      const searchParams = new URLSearchParams({ clienteId: params.clienteId, year: String(params.year) })
+      if (params.month) searchParams.set('month', String(params.month))
+      return apiClient.getBlob(`${BASE}/facturacion/ventas/pdf?${searchParams}`)
+    },
+  },
 }
+

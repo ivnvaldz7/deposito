@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  LayoutDashboard, ClipboardList, Package, Users, Box, Clock, Truck, Plus, LogOut, ArrowLeftRight,
+  LayoutDashboard, ClipboardList, Package, Users, Box, Clock, Truck, Plus, LogOut, ArrowLeftRight, BarChart2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/ale-bet/pedidos', label: 'Pedidos', icon: ClipboardList },
   { path: '/ale-bet/productos', label: 'Productos', icon: Package },
   { path: '/ale-bet/clientes', label: 'Clientes', icon: Users },
+  { path: '/ale-bet/ventas', label: 'Ventas por cliente', icon: BarChart2 },
   { path: '/ale-bet/stock', label: 'Stock', icon: Box },
   { path: '/ale-bet/historial', label: 'Historial', icon: Clock },
   { path: '/ale-bet/transportistas', label: 'Transportistas', icon: Truck },
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
 type Rol = string | undefined
 
 const canSeeClientes = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
+const canSeeVentas = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
 const canSeeStock = (rol: Rol) => rol === 'admin' || rol === 'encargado'
 const canSeeInsumos = (rol: Rol) => rol === 'admin' || rol === 'encargado'
 const canSeeHistorial = (rol: Rol) => rol === 'admin' || rol === 'vendedor'
@@ -48,6 +50,7 @@ function visibleItems(rol: Rol): NavItem[] {
     ...NAV_ITEMS.filter((item) => {
       switch (item.path) {
         case '/ale-bet/clientes': return canSeeClientes(rol)
+        case '/ale-bet/ventas': return canSeeVentas(rol)
         case '/ale-bet/stock': return canSeeStock(rol)
         case '/ale-bet/historial': return canSeeHistorial(rol)
         case '/ale-bet/transportistas': return canSeeTransportistas(rol)
@@ -62,7 +65,8 @@ function bottomNavItems(rol: Rol): NavItem[] {
   const item = (path: string) => NAV_ITEMS.find((entry) => entry.path === path)
 
   const extra: NavItem | null =
-    canSeeStock(rol) ? item('/ale-bet/stock') ?? null
+    canSeeVentas(rol) ? item('/ale-bet/ventas') ?? null
+    : canSeeStock(rol) ? item('/ale-bet/stock') ?? null
     : canSeeClientes(rol) ? item('/ale-bet/clientes') ?? null
     : canSeeHistorial(rol) ? item('/ale-bet/historial') ?? null
     : null

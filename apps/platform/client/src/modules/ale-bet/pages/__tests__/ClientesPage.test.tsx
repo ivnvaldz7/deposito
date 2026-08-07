@@ -189,7 +189,7 @@ describe('ClientesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Nuevo cliente/ }))
     const modal = within(screen.getByRole('dialog'))
     fireEvent.change(modal.getByLabelText('Nombre'), { target: { value: 'Cliente Nuevo' } })
-    fireEvent.click(modal.getByRole('button', { name: 'Crear' }))
+    fireEvent.click(modal.getByRole('button', { name: 'Crear cliente' }))
 
     await waitFor(() =>
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Debe informar un contacto o referencia para crear un cliente'),
@@ -208,7 +208,7 @@ describe('ClientesPage', () => {
     const modal = within(screen.getByRole('dialog'))
     fireEvent.change(modal.getByLabelText('Nombre'), { target: { value: 'Cliente Nuevo' } })
     fireEvent.change(modal.getByLabelText('Contacto'), { target: { value: 'nuevo@test.com' } })
-    fireEvent.click(modal.getByRole('button', { name: 'Crear' }))
+    fireEvent.click(modal.getByRole('button', { name: 'Crear cliente' }))
 
     await waitFor(() =>
       expect(aleBetApi.clientes.create).toHaveBeenCalledWith({ nombre: 'Cliente Nuevo', contacto: 'nuevo@test.com' }),
