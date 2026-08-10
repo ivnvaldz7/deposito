@@ -60,14 +60,33 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
   else if (pedido.estado === 'PREPARADO' && !remitoVigente) senalOperativa = 'Esperando remito'
   else if (pedido.estado === 'PREPARADO' && remitoVigente) senalOperativa = 'Listo para despacho'
 
+  const { card } = meta
+
   return (
     <article
       data-testid={`pedido-card-${pedido.id}`}
+      data-estado={pedido.estado}
       onClick={onAbrir}
       className={cn(
-        'group relative flex cursor-pointer flex-col justify-between gap-4 rounded-xl border border-white/10 bg-surface-container-high p-5 transition-all duration-200 hover:border-primary/40 hover:bg-surface-container-highest shadow-sm hover:shadow-md',
+        'group relative flex cursor-pointer flex-col justify-between gap-4 rounded-xl p-5 transition-all duration-200 shadow-sm hover:shadow-md',
         esCancelado && 'opacity-60 grayscale-[50%]'
       )}
+      style={{
+        backgroundColor: card.bg,
+        borderWidth: '1px',
+        borderStyle: 'solid',
+        borderColor: card.border,
+      }}
+      onMouseEnter={(e) => {
+        const el = e.currentTarget
+        el.style.backgroundColor = card.bgHover
+        el.style.borderColor = card.borderHover
+      }}
+      onMouseLeave={(e) => {
+        const el = e.currentTarget
+        el.style.backgroundColor = card.bg
+        el.style.borderColor = card.border
+      }}
     >
       <header className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -88,12 +107,19 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
       <div className="mt-1 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           {senalOperativa && (
-            <p className="truncate font-body text-[13px] font-medium text-on-surface-variant">
+            <p
+              className="truncate font-body text-[13px] font-semibold"
+              style={{ color: card.accent }}
+            >
               {senalOperativa}
             </p>
           )}
         </div>
-        <ChevronRight size={18} className="shrink-0 text-outline-variant transition-colors group-hover:text-primary" />
+        <ChevronRight
+          size={18}
+          className="shrink-0 transition-colors"
+          style={{ color: card.accent }}
+        />
       </div>
     </article>
   )

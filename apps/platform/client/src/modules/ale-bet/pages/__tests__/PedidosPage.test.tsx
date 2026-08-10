@@ -14,6 +14,7 @@ import {
 } from './fixtures/ale-bet-mock-factories'
 import { createMockUser } from '@/test-utils'
 import { useAuthStore } from '@/stores/auth-store'
+import { ESTADO_META } from '../../lib/estados'
 
 vi.mock('../../lib/api', () => ({
   aleBetApi: {
@@ -113,6 +114,118 @@ describe('PedidosPage', () => {
     expect(screen.getByTestId('pedido-card-pedido-1')).toBeInTheDocument()
     expect(screen.queryByTestId('pedido-card-pedido-2')).not.toBeInTheDocument()
   })
-
-
 })
+
+// =============================================================================
+// SEMANTIC CARD STYLES — UI-01
+// We test observable behavior: data-estado attribute, badge presence, operative
+// label text. We do NOT assert specific hex colors (pixel-perfect rule).
+// =============================================================================
+
+describe('PedidoCard — semantic state styles (UI-01)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockRol('admin')
+  })
+
+  it('APROBADO: card has data-estado APROBADO, badge visible, operative label visible', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'APROBADO' }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(card).toHaveAttribute('data-estado', 'APROBADO')
+    // Badge (secondary indicator — accessibility must remain)
+    expect(within(card).getByText('Aprobado')).toBeInTheDocument()
+    // Operative label
+    expect(within(card).getByText('Pendiente de armado')).toBeInTheDocument()
+    // Client name still readable (high contrast — not hidden or zeroed)
+    expect(within(card).getByText('Cliente A')).toBeInTheDocument()
+  })
+
+  it('EN_ARMADO: card has data-estado EN_ARMADO, badge visible, operative label visible', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'EN_ARMADO' }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(card).toHaveAttribute('data-estado', 'EN_ARMADO')
+    expect(within(card).getByText('En armado')).toBeInTheDocument()
+    expect(within(card).getByText('En preparación')).toBeInTheDocument()
+    expect(within(card).getByText('Cliente A')).toBeInTheDocument()
+  })
+
+  it('PREPARADO sin remito: card has data-estado PREPARADO, badge visible, "Esperando remito" label', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'PREPARADO' }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(card).toHaveAttribute('data-estado', 'PREPARADO')
+    expect(within(card).getByText('Preparado')).toBeInTheDocument()
+    expect(within(card).getByText('Esperando remito')).toBeInTheDocument()
+    expect(within(card).getByText('Cliente A')).toBeInTheDocument()
+  })
+
+  it('PREPARADO con remito vigente: label is "Listo para despacho"', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'PREPARADO', remitos: [createRemito()] }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(within(card).getByText('Listo para despacho')).toBeInTheDocument()
+  })
+
+  it('DESPACHADO: card has data-estado DESPACHADO, badge visible, no cancelled styling', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'DESPACHADO' }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(card).toHaveAttribute('data-estado', 'DESPACHADO')
+    expect(within(card).getByText('Despachado')).toBeInTheDocument()
+    // DESPACHADO is NOT cancelled — should not have grayscale class
+    expect(card.className).not.toContain('grayscale')
+  })
+
+  it('CANCELADO: card has data-estado CANCELADO, badge visible, grayscale+opacity applied', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'CANCELADO' }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(card).toHaveAttribute('data-estado', 'CANCELADO')
+    expect(within(card).getByText('Cancelado')).toBeInTheDocument()
+    // Cancelled orders get muted visual treatment
+    expect(card.className).toContain('grayscale')
+    expect(card.className).toContain('opacity-60')
+  })
+
+  it('BORRADOR: card has data-estado BORRADOR, badge visible, no operative label', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'BORRADOR' }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(card).toHaveAttribute('data-estado', 'BORRADOR')
+    expect(within(card).getByText('Borrador')).toBeInTheDocument()
+    expect(within(card).getByText('Cliente A')).toBeInTheDocument()
+    // Borrador has no operative label
+    expect(within(card).queryByText('Pendiente de armado')).not.toBeInTheDocument()
+    expect(within(card).queryByText('En preparación')).not.toBeInTheDocument()
+  })
+
+  it('ESTADO_META has card style defined for all states', () => {
+    const states = ['BORRADOR', 'APROBADO', 'EN_ARMADO', 'PREPARADO', 'DESPACHADO', 'CANCELADO'] as const
+    for (const estado of states) {
+      const meta = ESTADO_META[estado]
+      expect(meta.card, `${estado} must have card style`).toBeDefined()
+      expect(meta.card.bg, `${estado}.card.bg must be set`).toBeTruthy()
+      expect(meta.card.border, `${estado}.card.border must be set`).toBeTruthy()
+      expect(meta.card.accent, `${estado}.card.accent must be set`).toBeTruthy()
+      expect(meta.card.bgHover, `${estado}.card.bgHover must be set`).toBeTruthy()
+      expect(meta.card.borderHover, `${estado}.card.borderHover must be set`).toBeTruthy()
+    }
+  })
+})
+

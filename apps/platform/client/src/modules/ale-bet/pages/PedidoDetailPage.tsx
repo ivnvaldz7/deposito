@@ -1214,7 +1214,7 @@ export default function PedidoDetailPage() {
         </button>
       </div>
 
-      <section className="bg-surface-container-high overflow-hidden shadow-sm lg:rounded-2xl">
+      <section className="bg-surface-container-high shadow-sm lg:rounded-2xl">
         {/* Header Compacto */}
         <div className="px-4 py-5 lg:px-8 lg:py-7 border-b border-white/10 bg-surface-container-low">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
