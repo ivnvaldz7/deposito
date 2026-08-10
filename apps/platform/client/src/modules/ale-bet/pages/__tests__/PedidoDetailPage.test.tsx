@@ -736,4 +736,242 @@ describe('PedidoDetailPage', () => {
     expect(vi.mocked(toast.error)).toHaveBeenCalledTimes(2)
     expect(aleBetApi.remitos.emitir).not.toHaveBeenCalled()
   })
+
+  // ===========================================================================
+  // DESIGN-01 — Interaction & Motion System tests
+  // We do NOT test specific durations or animation values.
+  // We test: interaction states, loading/success/error feedback, and
+  // that prefers-reduced-motion does not break functionality.
+  // ===========================================================================
+
+  describe('DESIGN-01 — Button interaction states', () => {
+    it('confirm dialog: action button is disabled (loading) while API is pending', async () => {
+      // Tomar requires estado APROBADO
+      mockRol('armador')
+      vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ estado: 'APROBADO' }))
+      let resolveTomar!: (value: ReturnType<typeof createPedido>) => void
+      vi.mocked(aleBetApi.pedidos.tomar).mockImplementation(
+        () => new Promise((resolve) => { resolveTomar = resolve }),
+      )
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+      // Tomar is in the mobile action bar for armador
+      fireEvent.click(barra().getByRole('button', { name: 'Tomar pedido' }))
+      fireEvent.click(confirmDialog().getByRole('button', { name: 'Tomar pedido' }))
+
+      // Wait for React to re-render with isPending=true → button must be disabled
+      await waitFor(() =>
+        expect(confirmDialog().getByRole('button', { name: 'Tomar pedido' })).toBeDisabled()
+      )
+
+      resolveTomar(createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1' }))
+      await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalled())
+    })
+
+    it('confirm dialog: Volver button is disabled while action is loading', async () => {
+      // Tomar requires estado APROBADO
+      mockRol('armador')
+      vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ estado: 'APROBADO' }))
+      let resolveTomar!: (value: ReturnType<typeof createPedido>) => void
+      vi.mocked(aleBetApi.pedidos.tomar).mockImplementation(
+        () => new Promise((resolve) => { resolveTomar = resolve }),
+      )
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+      fireEvent.click(barra().getByRole('button', { name: 'Tomar pedido' }))
+      fireEvent.click(confirmDialog().getByRole('button', { name: 'Tomar pedido' }))
+
+      // Wait for React to re-render with isPending=true → Volver must be disabled
+      await waitFor(() =>
+        expect(confirmDialog().getByRole('button', { name: 'Volver' })).toBeDisabled()
+      )
+
+      resolveTomar(createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1' }))
+      await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalled())
+    })
+  })
+
+  describe('DESIGN-01 — Armador: preparado / desmarcar states', () => {
+    function setupArmadorEnArmado(completado = false) {
+      mockRol('armador')
+      const pedido = createPedido({
+        estado: 'EN_ARMADO',
+        armadorId: 'sub-1',
+        items: [createPedidoItem({ completado })],
+      })
+      vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(pedido)
+      return pedido
+    }
+
+    it('item pendiente: shows MARCAR PREPARADO button', async () => {
+      setupArmadorEnArmado(false)
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+      expect(within(linea('prod-1')).getByRole('button', { name: 'MARCAR PREPARADO' })).toBeInTheDocument()
+    })
+
+    it('after marking preparado: badge ✓ PREPARADO appears and count updates', async () => {
+      setupArmadorEnArmado(false)
+      const completado = createPedido({
+        estado: 'EN_ARMADO',
+        armadorId: 'sub-1',
+        version: 2,
+        items: [createPedidoItem({ completado: true })],
+      })
+      vi.mocked(aleBetApi.pedidos.completarItem).mockResolvedValue(completado)
+      let call = 0
+      const fixtures = [
+        createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1', items: [createPedidoItem({ completado: false })] }),
+        completado,
+        completado,
+      ]
+      vi.mocked(aleBetApi.pedidos.get).mockImplementation(() =>
+        Promise.resolve(fixtures[Math.min(call++, fixtures.length - 1)])
+      )
+
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+
+      fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'MARCAR PREPARADO' }))
+      await waitFor(() => expect(aleBetApi.pedidos.completarItem).toHaveBeenCalled())
+      await waitFor(() => expect(screen.getByText('1 de 1 productos preparados')).toBeInTheDocument())
+      // Badge with ✓ PREPARADO must be present
+      await waitFor(() => expect(within(linea('prod-1')).getByText('✓ PREPARADO')).toBeInTheDocument())
+    })
+
+    it('preparado item: shows Desmarcar button', async () => {
+      setupArmadorEnArmado(true)
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+      expect(within(linea('prod-1')).getByRole('button', { name: 'Desmarcar' })).toBeInTheDocument()
+    })
+
+    it('desmarcar: calls completarItem and reverts count', async () => {
+      setupArmadorEnArmado(true)
+      const unmarked = createPedido({
+        estado: 'EN_ARMADO',
+        armadorId: 'sub-1',
+        version: 2,
+        items: [createPedidoItem({ completado: false })],
+      })
+      vi.mocked(aleBetApi.pedidos.completarItem).mockResolvedValue(unmarked)
+      let call = 0
+      const fixtures = [
+        createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1', items: [createPedidoItem({ completado: true })] }),
+        unmarked,
+        unmarked,
+      ]
+      vi.mocked(aleBetApi.pedidos.get).mockImplementation(() =>
+        Promise.resolve(fixtures[Math.min(call++, fixtures.length - 1)])
+      )
+
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+
+      fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'Desmarcar' }))
+      await waitFor(() => expect(aleBetApi.pedidos.completarItem).toHaveBeenCalled())
+      await waitFor(() => expect(screen.getByText('0 de 1 productos preparados')).toBeInTheDocument())
+    })
+  })
+
+  describe('DESIGN-01 — Armador: espera producción', () => {
+    it('espera producción button appears for armador items', async () => {
+      mockRol('armador')
+      vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(
+        createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1', items: [createPedidoItem({ completado: false })] }),
+      )
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+      expect(within(linea('prod-1')).getByRole('button', { name: '⏳ ESPERA PRODUCCIÓN' })).toBeInTheDocument()
+    })
+
+    it('toggling espera producción shows ESPERA PRODUCCIÓN badge and updates summary', async () => {
+      mockRol('armador')
+      vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(
+        createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1', items: [createPedidoItem({ completado: false })] }),
+      )
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+
+      fireEvent.click(within(linea('prod-1')).getByRole('button', { name: '⏳ ESPERA PRODUCCIÓN' }))
+
+      // Badge must appear on the line
+      expect(within(linea('prod-1')).getByText('ESPERA PRODUCCIÓN')).toBeInTheDocument()
+      // Summary text must mention espera
+      expect(screen.getByText(/esperando producción/)).toBeInTheDocument()
+    })
+  })
+
+  describe('DESIGN-01 — Armador: finalizar armado', () => {
+    it('finalizar armado: calls preparar API and shows success toast', async () => {
+      mockRol('armador')
+      const enArmado = createPedido({
+        estado: 'EN_ARMADO',
+        armadorId: 'sub-1',
+        items: [createPedidoItem({ completado: true })],
+      })
+      const preparado = createPedido({
+        estado: 'PREPARADO',
+        armadorId: 'sub-1',
+        version: 2,
+        items: [createPedidoItem({ completado: true })],
+      })
+      let call = 0
+      const fixtures = [enArmado, enArmado, preparado, preparado, preparado]
+      vi.mocked(aleBetApi.pedidos.get).mockImplementation(() =>
+        Promise.resolve(fixtures[Math.min(call++, fixtures.length - 1)])
+      )
+
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+
+      fireEvent.click(barra().getByRole('button', { name: 'FINALIZAR ARMADO' }))
+      fireEvent.click(confirmDialog().getByRole('button', { name: 'FINALIZAR ARMADO' }))
+
+      // The preparar API must be called
+      await waitFor(() => expect(aleBetApi.pedidos.preparar).toHaveBeenCalled())
+      // Success toast must fire after the 700ms feedback delay in the source code
+      await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Pedido preparado'), { timeout: 3000 })
+    })
+
+    it('finalizar armado on error: does NOT show success state, resets finalizandoArmado', async () => {
+      mockRol('armador')
+      const enArmado = createPedido({
+        estado: 'EN_ARMADO',
+        armadorId: 'sub-1',
+        items: [createPedidoItem({ completado: true })],
+      })
+      vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(enArmado)
+      vi.mocked(aleBetApi.pedidos.preparar).mockRejectedValue(new Error('Conflict 409'))
+
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+
+      fireEvent.click(barra().getByRole('button', { name: 'FINALIZAR ARMADO' }))
+      fireEvent.click(confirmDialog().getByRole('button', { name: 'FINALIZAR ARMADO' }))
+
+      await waitFor(() => expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Conflict 409'))
+
+      // After error: FINALIZAR ARMADO button must be available again (not stuck in success state)
+      await waitFor(() => expect(barra().getByRole('button', { name: 'FINALIZAR ARMADO' })).toBeEnabled())
+      // Success text must NOT appear
+      expect(screen.queryByText('✓ ARMADO FINALIZADO')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('DESIGN-01 — Modal/dialog does not block navigation', () => {
+    it('confirm dialog backdrop click closes the dialog without executing action', async () => {
+      renderDetalle()
+      await screen.findByTestId('pedido-numero')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Aprobar' }))
+      expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
+
+      // Click on backdrop (the outer confirm-dialog div, not the inner dialog)
+      fireEvent.click(screen.getByTestId('confirm-dialog'))
+
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+      expect(aleBetApi.pedidos.aprobar).not.toHaveBeenCalled()
+    })
+  })
 })

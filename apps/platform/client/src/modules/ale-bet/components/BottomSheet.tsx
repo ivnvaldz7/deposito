@@ -33,8 +33,9 @@ function PanelShell({ title, onClose, children, footer, variant }: PanelShellPro
       data-testid={isMobile ? 'bottom-sheet' : 'cart-panel'}
       className={cn(
         'flex flex-col overflow-hidden border border-white/10 bg-surface-container-low shadow-float relative',
+        // DESIGN-01: surface entrance — fade + tiny translateY
         isMobile
-          ? 'mt-auto max-h-[85dvh] rounded-t-2xl md:mt-0 md:max-h-[85dvh] md:rounded-xl'
+          ? 'mt-auto max-h-[85dvh] rounded-t-2xl md:mt-0 md:max-h-[85dvh] md:rounded-xl animate-dialog-in'
           : 'max-h-[calc(100dvh-3rem)] rounded-xl',
         variant === 'desktop' && 'w-full'
       )}
@@ -84,7 +85,12 @@ export function BottomSheet({ open, onClose, title, children, footer, desktop = 
     <>
       {open && (
         <div className={cn('fixed inset-0 z-50 flex', isPanel ? 'lg:hidden flex-col' : (isModal ? 'flex-col md:items-center md:justify-center md:p-6' : 'flex-col'))}>
-          <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden="true" />
+          {/* DESIGN-01: backdrop fades in, exits immediately */}
+          <div
+            className="absolute inset-0 bg-black/60 animate-backdrop-in"
+            onClick={onClose}
+            aria-hidden="true"
+          />
           <div className={cn('relative w-full z-10 flex flex-col', isModal ? 'md:max-w-[560px]' : '', !isModal && !isPanel ? 'mt-auto' : (!isModal ? 'mt-auto' : 'mt-auto md:mt-0'))}>
             <PanelShell variant="mobile" title={title} onClose={onClose} footer={footer}>
               {children}

@@ -23,9 +23,9 @@ const variantStyles: Record<NonNullable<ButtonProps['variant']>, string> = {
 }
 
 const sizeStyles: Record<NonNullable<ButtonProps['size']>, string> = {
-  sm: 'px-3 py-1.5 text-sm',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-base',
+  sm: 'px-3 py-1.5 text-sm min-h-[36px]',
+  md: 'px-4 py-2 text-sm min-h-[40px]',
+  lg: 'px-6 py-3 text-base min-h-[44px]',
 }
 
 function Spinner() {
@@ -71,12 +71,20 @@ export function Button({
       disabled={isDisabled}
       onClick={onClick}
       className={cn(
+        // Layout
         'inline-flex items-center justify-center gap-2',
         'font-semibold',
-        'transition-colors rounded',
+        'rounded',
+        // Color transition
+        'transition-colors',
+        // DESIGN-01: press feedback — scale responds to pointer-down immediately.
+        // Disabled state keeps opacity+cursor, not scale.
+        'active:scale-[0.97]',
+        'transition-[transform,opacity]',
+        'duration-[var(--motion-instant,120ms)]',
         variantStyles[variant],
         sizeStyles[size],
-        isDisabled && 'cursor-not-allowed opacity-50',
+        isDisabled && 'cursor-not-allowed opacity-50 active:scale-100',
         className,
       )}
     >

@@ -110,14 +110,15 @@ function ConfirmDialog({ open, titulo, mensaje, accion, loading, onCancel, onCon
   return (
     <div
       data-testid="confirm-dialog"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      // DESIGN-01: backdrop fades in; surface slides in slightly from below
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop-in bg-black/50"
       onClick={onCancel}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5"
+        className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5 animate-dialog-in"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 className="text-[16px] font-bold text-on-surface">{titulo}</h2>
@@ -378,8 +379,8 @@ function LineaDetalle({
             <p className={cn('text-[16px] font-bold transition-colors', isEspera ? 'text-[#8E5A5B]' : isListo ? 'text-success/90' : 'text-on-surface')}>
               {nombre}
             </p>
-            {isListo && <Badge variant="success" className="h-5 px-1.5 text-[10px] animate-in zoom-in-50 duration-200">✓ PREPARADO</Badge>}
-            {isEspera && <Badge className="bg-[#A06869] text-white h-5 px-1.5 text-[10px] uppercase animate-in zoom-in-50 duration-200">ESPERA PRODUCCIÓN</Badge>}
+            {isListo && <Badge variant="success" className="h-5 px-1.5 text-[10px] animate-check-pop">✓ PREPARADO</Badge>}
+            {isEspera && <Badge className="bg-[#A06869] text-white h-5 px-2 text-[10px] uppercase whitespace-nowrap shrink-0 animate-check-pop">ESPERA PRODUCCIÓN</Badge>}
             {!isListo && !isEspera && completable && <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-primary border-primary/50">PREPARAR</Badge>}
           </div>
           <p className={cn('font-body text-[13px]', isEspera ? 'text-[#8E5A5B]/70' : 'text-on-surface-variant')}>{sku}</p>
@@ -1003,6 +1004,9 @@ export default function PedidoDetailPage() {
         await ejecutarGuardar()
       }
     } catch (e) {
+      // DESIGN-01 bug fix: reset finalizandoArmado on error so the UI
+      // never stays stuck in the "armado finalizado" visual state after a failure.
+      if (confirm === 'preparar') setFinalizandoArmado(false)
       toast.error(e instanceof Error ? e.message : 'Error al ejecutar la acción')
     } finally {
       isExecutingRef.current = false

@@ -72,6 +72,18 @@
   /* === SOMBRAS === */
   --shadow-float: 0 8px 30px rgba(0, 0, 0, 0.5);
 
+  /* === MOTION TOKENS (DESIGN-01) ===
+   * Use these to keep all durations consistent.
+   * prefers-reduced-motion collapses them to 0ms at :root level below.
+   */
+  --motion-instant: 120ms;
+  --motion-state: 200ms;
+  --motion-surface: 260ms;
+  --motion-confirm: 500ms;
+  --motion-easing-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --motion-easing-in: cubic-bezier(0.4, 0.0, 1, 1);
+  --motion-easing-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+
   /* === SPACING (legacy named tokens — keep until full migration to numeric) === */
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
@@ -170,12 +182,76 @@
 
 /* === CUSTOM UTILITIES === */
 @utility scale-hover {
-  transition: transform 0.15s ease;
+  transition: transform var(--motion-instant, 0.15s) var(--motion-easing-standard, ease);
   &:hover {
     transform: scale(1.02);
   }
   &:active {
     transform: scale(0.98);
+  }
+}
+
+/* === DIALOG / SHEET ENTRANCE (DESIGN-01) === */
+@keyframes motion-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes motion-dialog-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+}
+
+@keyframes motion-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes motion-check-pop {
+  0%   { opacity: 0; transform: scale(0.6); }
+  60%  { opacity: 1; transform: scale(1.15); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@utility animate-dialog-in {
+  animation: motion-dialog-in var(--motion-surface, 260ms) var(--motion-easing-out, ease-out) both;
+}
+
+@utility animate-dialog-out {
+  animation: motion-dialog-out var(--motion-instant, 120ms) var(--motion-easing-in, ease-in) both;
+}
+
+@utility animate-backdrop-in {
+  animation: motion-backdrop-in var(--motion-state, 200ms) ease both;
+}
+
+@utility animate-check-pop {
+  animation: motion-check-pop var(--motion-state, 200ms) var(--motion-easing-out, ease-out) both;
+}
+
+/* DESIGN-01 — press feedback utility for interactive buttons */
+@utility btn-press {
+  transition:
+    transform var(--motion-instant, 120ms) var(--motion-easing-standard, ease),
+    opacity var(--motion-instant, 120ms) ease;
+  &:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
   }
 }
 
@@ -298,6 +374,24 @@ button {
   transition-property: color, background-color, border-color, box-shadow, opacity;
   transition-duration: 0.15s;
   transition-timing-function: ease;
+}
+
+/* === DESIGN-01 — prefers-reduced-motion: collapse all motion tokens === */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-instant: 0ms;
+    --motion-state: 0ms;
+    --motion-surface: 0ms;
+    --motion-confirm: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* === BASE STYLES === */
