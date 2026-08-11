@@ -395,6 +395,9 @@ exports.Prisma.MovimientoScalarFieldEnum = {
   cantidad: 'cantidad',
   referenciaId: 'referenciaId',
   referenciaTipo: 'referenciaTipo',
+  productoId: 'productoId',
+  fechaEfectiva: 'fechaEfectiva',
+  importacionInicialEstucheItemId: 'importacionInicialEstucheItemId',
   justificacion: 'justificacion',
   createdBy: 'createdBy',
   createdAt: 'createdAt'
@@ -448,6 +451,41 @@ exports.Prisma.DepositoProductoScalarFieldEnum = {
   mercadosHabilitados: 'mercadosHabilitados',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SecuenciaCodigoEstucheScalarFieldEnum = {
+  mercado: 'mercado',
+  ultimo: 'ultimo'
+};
+
+exports.Prisma.ImportacionInicialEstucheBatchScalarFieldEnum = {
+  id: 'id',
+  idempotencyKey: 'idempotencyKey',
+  checksum: 'checksum',
+  actorId: 'actorId',
+  effectiveDate: 'effectiveDate',
+  result: 'result',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum = {
+  id: 'id',
+  idempotencyKey: 'idempotencyKey',
+  batchId: 'batchId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ImportacionInicialEstucheItemScalarFieldEnum = {
+  id: 'id',
+  batchId: 'batchId',
+  productoId: 'productoId',
+  inventarioEstucheId: 'inventarioEstucheId',
+  mercado: 'mercado',
+  codigo: 'codigo',
+  sourceRow: 'sourceRow',
+  cantidad: 'cantidad',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -574,7 +612,8 @@ exports.TipoAuditoriaCatalogo = exports.$Enums.TipoAuditoriaCatalogo = {
 exports.DepositoTipoMovimiento = exports.$Enums.DepositoTipoMovimiento = {
   ingreso_acta: 'ingreso_acta',
   egreso_orden: 'egreso_orden',
-  ajuste_manual: 'ajuste_manual'
+  ajuste_manual: 'ajuste_manual',
+  stock_inicial: 'stock_inicial'
 };
 
 exports.RefTipo = exports.$Enums.RefTipo = {
@@ -609,6 +648,7 @@ exports.EstadoProductoCatalogo = exports.$Enums.EstadoProductoCatalogo = {
 exports.OrigenProductoCatalogo = exports.$Enums.OrigenProductoCatalogo = {
   MANUAL: 'MANUAL',
   IMPORTACION: 'IMPORTACION',
+  IMPORTACION_INICIAL_ESTUCHES: 'IMPORTACION_INICIAL_ESTUCHES',
   MIGRACION: 'MIGRACION'
 };
 
@@ -638,7 +678,11 @@ exports.Prisma.ModelName = {
   Movimiento: 'Movimiento',
   InsumoPendiente: 'InsumoPendiente',
   OrdenProduccion: 'OrdenProduccion',
-  DepositoProducto: 'DepositoProducto'
+  DepositoProducto: 'DepositoProducto',
+  SecuenciaCodigoEstuche: 'SecuenciaCodigoEstuche',
+  ImportacionInicialEstucheBatch: 'ImportacionInicialEstucheBatch',
+  ImportacionInicialEstucheIdempotencyKey: 'ImportacionInicialEstucheIdempotencyKey',
+  ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem'
 };
 
 /**

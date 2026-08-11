@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useProductFocus } from '../hooks/use-product-focus'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -28,7 +29,8 @@ import {
   DialogDescription,
   DialogClose,
 } from '../components/ui/Dialog'
-import { PageHeader } from '../components/layout/PageHeader'
+import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
+import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
 
 interface Frasco {
   id: string
@@ -193,12 +195,21 @@ export default function FrascosPage() {
   const getDisplayName = useCallback((frasco: Frasco): string => frasco.productoId ? (catalogMap[frasco.productoId] ?? frasco.articulo) : frasco.articulo, [catalogMap])
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const productoIdFiltro = searchParams.get('productoId')
+  const hasFocusSignal = Boolean(searchParams.get('focus'))
+  const focus = useProductFocus(frascos.map((item) => ({ id: item.id, productoId: item.productoId, name: getDisplayName(item) })))
   const sortedFrascos = useMemo(() => sortFrascos(frascos), [frascos])
   const filteredFrascos = useMemo(() => {
-    if (!productoFiltro) return sortedFrascos
+    const selected = hasFocusSignal
+      ? sortedFrascos.find((item) =>
+          (productoIdFiltro && item.productoId === productoIdFiltro)
+          || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
+      : undefined
+    if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
+    if (!productoFiltro || selected) return sortedFrascos
     const target = normalizeProducto(productoFiltro)
     return sortedFrascos.filter((f) => normalizeProducto(getDisplayName(f)) === target)
-  }, [sortedFrascos, productoFiltro, getDisplayName])
+  }, [sortedFrascos, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
 
   async function handleDelete(id: string) {
     try {
@@ -216,7 +227,7 @@ export default function FrascosPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="FRASCOS" stats={[
+      <InventoryPageHeader title="Frascos" description="Inventario de cajas, unidades y alertas de stock." stats={[
         { label: 'artículos', value: frascos.length },
         { label: 'cajas', value: totalCajas.toLocaleString() },
         { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
@@ -228,12 +239,12 @@ export default function FrascosPage() {
       {filteredFrascos.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />
       : (
         <>
-          <div className="hidden md:block bg-surface-container-low rounded overflow-hidden">
+          <InventoryDataSurface label="Inventario de frascos"><div className="hidden md:block">
             <Table>
               <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-32 text-right">Unid/Caja</TableHead><TableHead className="w-32 text-right">Cajas</TableHead><TableHead className="w-36 text-right">Total uds</TableHead>{isEncargado && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
               <TableBody>
                 {filteredFrascos.map((frasco) => (
-                  <TableRow key={frasco.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
+                  <TableRow key={frasco.id} {...focus.targetProps(frasco.id)} className={focus.isFocused(frasco.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(frasco)}</TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface-variant tabular-nums text-sm">{frasco.unidadesPorCaja}</span></TableCell>
                     <TableCell className="text-right">{isEncargado ? <div className="flex justify-end"><CajasCell frasco={frasco} /></div> : <span className="font-body text-on-surface tabular-nums">{frasco.cantidadCajas}</span>}</TableCell>
@@ -241,8 +252,8 @@ export default function FrascosPage() {
                     {isEncargado && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button type="button" onClick={() => setEditingFrasco(frasco)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar"><Pencil size={14} strokeWidth={1.5} /></button>
-                          <button type="button" onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40" title="Eliminar"><Trash2 size={14} strokeWidth={1.5} /></button>
+                          <RowActionButton label={`Editar ${frasco.articulo}`} onClick={() => setEditingFrasco(frasco)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                          <RowActionButton destructive label={`Eliminar ${frasco.articulo}`} onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                         </div>
                       </TableCell>
                     )}
@@ -250,10 +261,10 @@ export default function FrascosPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </div></InventoryDataSurface>
           <div className="md:hidden space-y-2">
             {filteredFrascos.map((frasco) => (
-              <div key={frasco.id} className={`bg-surface-container-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}>
+              <div key={frasco.id} {...focus.targetProps(frasco.id)} className={`bg-surface-container-low focus:outline-none rounded px-4 py-3 flex items-center justify-between gap-3 ${focus.isFocused(frasco.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}>
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(frasco)}</p>
                   <p className="font-body text-on-surface-variant text-xs mt-0.5 tabular-nums">{frasco.unidadesPorCaja} uds/caja · {frasco.cantidadCajas} cajas · <span className="text-on-surface font-medium">{frasco.total.toLocaleString()} total</span></p>
@@ -261,8 +272,8 @@ export default function FrascosPage() {
                 {isEncargado && (
                   <div className="flex items-center gap-3 shrink-0">
 <CajasCell frasco={frasco} />
-                    <button type="button" onClick={() => setEditingFrasco(frasco)} className="text-on-surface-variant hover:text-on-surface transition-colors"><Pencil size={14} strokeWidth={1.5} /></button>
-                    <button type="button" onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"><Trash2 size={14} strokeWidth={1.5} /></button>
+                    <RowActionButton label={`Editar ${frasco.articulo}`} onClick={() => setEditingFrasco(frasco)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                    <RowActionButton destructive label={`Eliminar ${frasco.articulo}`} onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                   </div>
                 )}
               </div>

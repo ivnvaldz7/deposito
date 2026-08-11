@@ -33,6 +33,7 @@ vi.mock('../middleware/auth', () => ({
 
 interface EstucheMock {
   id: string
+  productoId?: string
   articulo: string
   mercado: string
   cantidad: number
@@ -40,11 +41,12 @@ interface EstucheMock {
 
 const prismaMock = vi.hoisted(() => {
   let idCounter = 1
-  const state: { estuches: EstucheMock[] } = { estuches: [] }
+  const state: { estuches: EstucheMock[]; productosConMovimiento: Set<string> } = { estuches: [], productosConMovimiento: new Set() }
 
   function reset() {
     idCounter = 1
     state.estuches = []
+    state.productosConMovimiento.clear()
   }
 
   return {
@@ -115,6 +117,9 @@ const prismaMock = vi.hoisted(() => {
         }
         state.estuches.splice(idx, 1)
       }),
+    },
+    movimiento: {
+      count: vi.fn(async ({ where }: any) => state.productosConMovimiento.has(where?.productoId) ? 1 : 0),
     },
   }
 })
@@ -287,6 +292,21 @@ describe('Estuches', () => {
 
       expect(res.status).toBe(409)
       expect(res.body.message).toBe('Ya existe ese artículo para ese mercado')
+    })
+
+    it('bloquea la edición directa de cantidad para inventario producto-linked con movimientos', async () => {
+      const created = await crearEstuche('IMPORTADO', 'argentina', 10)
+      created.productoId = 'producto-importado'
+      prismaMock.state.productosConMovimiento.add('producto-importado')
+
+      const res = await request(app)
+        .put(`/api/estuches/${created.id}`)
+        .set('x-test-role', 'encargado')
+        .send({ cantidad: 20 })
+
+      expect(res.status).toBe(409)
+      expect(res.body.message).toBe('La cantidad de un estuche con movimientos solo puede cambiar mediante un ingreso o ajuste auditado')
+      expect(created.cantidad).toBe(10)
     })
   })
 

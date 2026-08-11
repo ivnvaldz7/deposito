@@ -336,6 +336,7 @@ model User {
   ordenesComoSolicitante OrdenProduccion[] @relation("OrdenesComoSolicitante")
   ordenesComoAprobador   OrdenProduccion[] @relation("OrdenesComoAprobador")
   auditoriasCatalogo     AuditoriaCatalogoProducto[]
+  importacionesInicialesEstuche ImportacionInicialEstucheBatch[]
 
   @@map("users")
 
@@ -448,6 +449,7 @@ enum EstadoProductoCatalogo {
 enum OrigenProductoCatalogo {
   MANUAL
   IMPORTACION
+  IMPORTACION_INICIAL_ESTUCHES
   MIGRACION
 
   @@schema("deposito")
@@ -520,6 +522,7 @@ model InventarioEstuche {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
+  importacionInicialItem ImportacionInicialEstucheItem?
 
   @@unique([articulo, mercado])
   @@index([productoId])
@@ -585,13 +588,19 @@ model Movimiento {
   cantidad       Int // positivo = ingreso, negativo = egreso
   referenciaId   String?        @map("referencia_id")
   referenciaTipo RefTipo?       @map("referencia_tipo")
+  productoId     String?        @map("producto_id")
+  fechaEfectiva  DateTime?     @db.Date @map("fecha_efectiva")
+  importacionInicialEstucheItemId String? @unique @map("importacion_inicial_estuche_item_id")
   justificacion  String?
   createdBy      String         @map("created_by")
   createdAt      DateTime       @default(now()) @map("created_at")
 
   user User @relation(fields: [createdBy], references: [id])
+  producto DepositoProducto? @relation(fields: [productoId], references: [id])
+  importacionInicialEstucheItem ImportacionInicialEstucheItem? @relation(fields: [importacionInicialEstucheItemId], references: [id])
 
   @@map("movimientos")
+  @@index([productoId])
 
   @@schema("deposito")
 }
@@ -607,6 +616,7 @@ enum DepositoTipoMovimiento {
   ingreso_acta
   egreso_orden
   ajuste_manual
+  stock_inicial
 
   @@schema("deposito")
 }
@@ -715,9 +725,71 @@ model DepositoProducto {
   actaItems           ActaItem[]
   ordenes             OrdenProduccion[]
   auditoriasCatalogo   AuditoriaCatalogoProducto[]
+  movimientos          Movimiento[]
+  importacionesInicialesEstuche ImportacionInicialEstucheItem[]
 
   @@unique([nombreCompleto, categoria])
   @@map("productos")
 
+  @@schema("deposito")
+}
+
+model SecuenciaCodigoEstuche {
+  mercado Mercado @id
+  ultimo  Int     @default(0)
+
+  @@map("secuencias_codigo_estuche")
+  @@schema("deposito")
+}
+
+model ImportacionInicialEstucheBatch {
+  id             String   @id @default(uuid())
+  idempotencyKey String   @unique @map("idempotency_key")
+  checksum       String   @unique
+  actorId        String   @map("actor_id")
+  effectiveDate  DateTime @db.Date @map("effective_date")
+  result         Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  actor User @relation(fields: [actorId], references: [id])
+  items ImportacionInicialEstucheItem[]
+  idempotencyKeys ImportacionInicialEstucheIdempotencyKey[]
+
+  @@map("importaciones_iniciales_estuche")
+  @@schema("deposito")
+}
+
+model ImportacionInicialEstucheIdempotencyKey {
+  id             String   @id @default(uuid())
+  idempotencyKey String   @unique @map("idempotency_key")
+  batchId        String   @map("batch_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  batch ImportacionInicialEstucheBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([batchId])
+  @@map("importaciones_iniciales_estuche_idempotency_keys")
+  @@schema("deposito")
+}
+
+model ImportacionInicialEstucheItem {
+  id           String   @id @default(uuid())
+  batchId      String   @map("batch_id")
+  productoId   String   @unique @map("producto_id")
+  inventarioEstucheId String @unique @map("inventario_estuche_id")
+  mercado      Mercado
+  codigo       String
+  sourceRow    Int      @map("source_row")
+  cantidad     Int
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  batch ImportacionInicialEstucheBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  producto DepositoProducto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  inventario InventarioEstuche @relation(fields: [inventarioEstucheId], references: [id], onDelete: Restrict)
+  movimiento Movimiento?
+
+  @@unique([batchId, sourceRow])
+  @@map("importaciones_iniciales_estuche_items")
   @@schema("deposito")
 }

@@ -56,4 +56,14 @@ describe('DrogasPage', () => {
     expect(screen.getAllByText(/paracetamol/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Ibuprofeno/i)[0]).toBeInTheDocument()
   })
+  it('shows an explicit empty state for a selected catalog product absent from inventory', async () => {
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url.startsWith('/drogas')) return createDrogaRecords()
+      throw new Error(`Endpoint inesperado en test: ${url}`)
+    })
+    render(<MemoryRouter initialEntries={['/deposito/drogas?productoId=missing&producto=CATALOGO%20SIN%20STOCK&focus=1']}><DrogasPage /></MemoryRouter>)
+    await waitFor(() => expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument())
+    expect(screen.queryByText(/paracetamol/i)).not.toBeInTheDocument()
+  })
+
 })

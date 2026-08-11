@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useProductFocus } from '../hooks/use-product-focus'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,9 +31,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '../components/ui/Dialog'
-import { PageHeader } from '../components/layout/PageHeader'
+import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
+import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
 
 import type { Estuche } from '../queries/use-estuches'
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -191,14 +192,13 @@ function AgregarEstucheModal({
             <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">
               {createMutation.isPending ? 'Guardando...' : 'Guardar'}
             </button>
-            <DialogClose asChild>
-              <button
-                type="button"
-                className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
-              >
-                Cancelar
-              </button>
-            </DialogClose>
+            <button
+              type="button"
+              onClick={() => handleOpenChange(false)}
+              className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"
+            >
+              Cancelar
+            </button>
           </div>
         </form>
       </DialogContent>
@@ -347,7 +347,7 @@ function CantidadCell({ estuche }: { estuche: Estuche }) {
 export default function EstuchesPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const { data: allEstuches = [], isLoading, error } = useEstuches()
   const deleteMutation = useDeleteEstuche()
@@ -378,18 +378,37 @@ export default function EstuchesPage() {
   }, [searchParams])
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const productoIdFiltro = searchParams.get('productoId')
+  const hasFocusSignal = Boolean(searchParams.get('focus'))
+  const focus = useProductFocus(allEstuches.map((item) => ({ id: item.id, productoId: item.productoId, name: getDisplayName(item) })))
+
+  const handleMercadoChange = useCallback((mercado: Mercado | 'todos') => {
+    setMercadoFiltro(mercado)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (mercado === 'todos') next.delete('mercado')
+      else next.set('mercado', mercado)
+      return next
+    })
+  }, [setSearchParams])
   const sortedEstuches = useMemo(() => sortEstuches(allEstuches), [allEstuches])
 
   const estuches = useMemo(() => {
+    const selected = hasFocusSignal
+      ? sortedEstuches.find((item) =>
+          (productoIdFiltro && item.productoId === productoIdFiltro)
+          || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
+      : undefined
+    if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
     const byMercado =
-      mercadoFiltro === 'todos'
+      selected || mercadoFiltro === 'todos'
         ? sortedEstuches
         : sortedEstuches.filter((e) => e.mercado === mercadoFiltro)
 
-    if (!productoFiltro) return byMercado
+    if (!productoFiltro || selected) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((estuche) => normalizeProducto(getDisplayName(estuche)) === target)
-  }, [sortedEstuches, mercadoFiltro, productoFiltro, getDisplayName])
+  }, [sortedEstuches, mercadoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
 
   async function handleDelete(id: string) {
     try {
@@ -417,8 +436,8 @@ export default function EstuchesPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="ESTUCHES"
+      <InventoryPageHeader
+        title="Estuches" description="Inventario por mercado y alertas de stock."
         stats={[
           { label: 'artículos', value: estuches.length },
           { label: 'mercados', value: MERCADOS.filter((mercado) => countsByMercado[mercado.value] > 0).length },
@@ -436,11 +455,11 @@ export default function EstuchesPage() {
       >
         <MercadoFilter
           mercadoActivo={mercadoFiltro}
-          onChangeMercado={setMercadoFiltro}
+          onChangeMercado={handleMercadoChange}
           totalCount={allEstuches.length}
           countsByMercado={countsByMercado}
         />
-      </PageHeader>
+      </InventoryPageHeader>
 
       {isEncargado ? (
         <AgregarEstucheModal
@@ -460,7 +479,7 @@ export default function EstuchesPage() {
         <EmptyState message={productoFiltro ? 'No se encontró ese estuche con los filtros aplicados.' : 'No hay estuches para este mercado.'} />
       ) : (
         <>
-          <div className="hidden md:block bg-surface-container-low rounded overflow-hidden">
+          <InventoryDataSurface label="Inventario de estuches"><div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -473,7 +492,7 @@ export default function EstuchesPage() {
               </TableHeader>
               <TableBody>
                 {estuches.map((estuche) => (
-                  <TableRow key={estuche.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
+                  <TableRow key={estuche.id} {...focus.targetProps(estuche.id)} className={focus.isFocused(estuche.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(estuche)}</TableCell>
                     <TableCell>
                       <MercadoChip mercado={estuche.mercado} />
@@ -491,19 +510,8 @@ export default function EstuchesPage() {
                     {isEncargado && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button type="button" onClick={() => setEditingEstuche(estuche)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar" aria-label={`Editar ${estuche.articulo}`}>
-                            <Pencil size={14} strokeWidth={1.5} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(estuche.id)}
-                            disabled={deleteMutation.isPending}
-                            className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
-                            title="Eliminar"
-                            aria-label={`Eliminar ${estuche.articulo}`}
-                          >
-                            <Trash2 size={14} strokeWidth={1.5} />
-                          </button>
+                          <RowActionButton label={`Editar ${estuche.articulo}`} onClick={() => setEditingEstuche(estuche)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                          <RowActionButton destructive label={`Eliminar ${estuche.articulo}`} onClick={() => handleDelete(estuche.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                         </div>
                       </TableCell>
                     )}
@@ -511,13 +519,14 @@ export default function EstuchesPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </div></InventoryDataSurface>
 
           <div className="md:hidden space-y-2">
             {estuches.map((estuche) => (
               <div
                 key={estuche.id}
-                className={`bg-surface-container-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}
+                {...focus.targetProps(estuche.id)}
+                className={`bg-surface-container-low focus:outline-none rounded px-4 py-3 flex items-center justify-between gap-3 ${focus.isFocused(estuche.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(estuche)}</p>
@@ -532,19 +541,8 @@ export default function EstuchesPage() {
                 {isEncargado && (
                   <div className="flex items-center gap-3 shrink-0">
                     <CantidadCell estuche={estuche} />
-                    <button type="button" onClick={() => setEditingEstuche(estuche)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar" aria-label={`Editar ${estuche.articulo}`}>
-                      <Pencil size={14} strokeWidth={1.5} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(estuche.id)}
-                      disabled={deleteMutation.isPending}
-                      className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"
-                      title="Eliminar"
-                      aria-label={`Eliminar ${estuche.articulo}`}
-                    >
-                      <Trash2 size={14} strokeWidth={1.5} />
-                    </button>
+                    <RowActionButton label={`Editar ${estuche.articulo}`} onClick={() => setEditingEstuche(estuche)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                    <RowActionButton destructive label={`Eliminar ${estuche.articulo}`} onClick={() => handleDelete(estuche.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                   </div>
                 )}
               </div>

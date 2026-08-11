@@ -14,6 +14,7 @@ import metricasRoutes from './metricas'
 import productosRoutes from './productos'
 import ingresosRoutes from './ingresos'
 import lotesRoutes from './lotes'
+import importacionInicialEstuchesRoutes from './importacion-inicial-estuches'
 
 export function createDepositoRoutes(): Router {
   const router = Router()
@@ -33,6 +34,7 @@ export function createDepositoRoutes(): Router {
   router.use('/productos', productosRoutes)
   router.use('/ingresos', ingresosRoutes)
   router.use('/lotes', lotesRoutes)
+  router.use('/importaciones', importacionInicialEstuchesRoutes)
 
   return router
 }

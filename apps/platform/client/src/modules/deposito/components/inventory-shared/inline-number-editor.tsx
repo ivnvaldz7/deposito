@@ -19,11 +19,11 @@ export function InlineNumberEditor({ value, label, onSave }: InlineNumberEditorP
         <button
           type="button"
           onClick={() => { setDraft(String(value)); setEditing(true) }}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-on-surface-variant hover:text-on-surface"
+          className="inline-flex size-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:opacity-60 md:group-hover:opacity-100 md:focus-visible:opacity-100"
           title={`Editar ${label}`}
           aria-label={`Editar ${label}`}
         >
-          <Pencil size={12} strokeWidth={1.5} />
+          <Pencil size={14} strokeWidth={1.5} />
         </button>
       </div>
     )
@@ -55,7 +55,7 @@ export function InlineNumberEditor({ value, label, onSave }: InlineNumberEditorP
           onSave(Number(draft)).finally(() => setSaving(false))
         }}
         disabled={saving}
-        className="text-accent hover:text-accent/80 transition-colors disabled:opacity-40"
+        className="inline-flex size-9 items-center justify-center rounded-lg text-accent transition-colors hover:bg-surface-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
         title="Guardar"
         aria-label="Guardar"
       >
@@ -65,7 +65,7 @@ export function InlineNumberEditor({ value, label, onSave }: InlineNumberEditorP
         type="button"
         onClick={() => setEditing(false)}
         disabled={saving}
-        className="text-on-surface-variant hover:text-on-surface transition-colors disabled:opacity-40"
+        className="inline-flex size-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
         title="Cancelar"
         aria-label="Cancelar"
       >

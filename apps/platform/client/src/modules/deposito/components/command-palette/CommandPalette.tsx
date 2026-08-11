@@ -199,10 +199,10 @@ export function CommandPalette() {
       else if (p.categoria === 'frasco') icon = <Box size={14} strokeWidth={1.5} />
 
       const routes: Record<string, string> = {
-        droga: '/drogas',
-        estuche: '/estuches',
-        etiqueta: '/etiquetas',
-        frasco: '/frascos',
+        droga: '/deposito/drogas',
+        estuche: '/deposito/estuches',
+        etiqueta: '/deposito/etiquetas',
+        frasco: '/deposito/frascos',
       }
 
       return {
@@ -213,7 +213,8 @@ export function CommandPalette() {
         onSelect: () => {
           const base = routes[p.categoria] ?? ''
           closePalette()
-          navigate(`${base}?producto=${encodeURIComponent(p.nombreCompleto)}`)
+          const qs = new URLSearchParams({ productoId: p.id, producto: p.nombreCompleto, focus: String(Date.now()) })
+          navigate(`${base}?${qs.toString()}`)
         },
       }
     })
@@ -233,20 +234,27 @@ export function CommandPalette() {
         })
         if (metricResult.params.categoria) qs.set('categoria', metricResult.params.categoria)
         closePalette()
-        navigate(`/metricas?${qs.toString()}`)
+        navigate(`/deposito/metricas?${qs.toString()}`)
       },
     }
   }, [metricResult, closePalette, navigate])
 
   const baseActions: Action[] = [
-    { id: 'ver-ingresos', label: 'Ver ingresos', description: 'Ir a ingresos', icon: <FilePlus size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/ingresos') } },
-    { id: 'ver-actas', label: 'Ver actas', description: 'Ir a actas', icon: <Eye size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/actas') } },
-    { id: 'ver-movimientos', label: 'Ver movimientos', description: 'Ir a movimientos', icon: <History size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/movimientos') } },
-    { id: 'ver-ordenes', label: 'Ver órdenes', description: 'Ir a órdenes', icon: <FileDown size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/ordenes') } },
-    { id: 'ver-dashboard', label: 'Dashboard', description: 'Ir al dashboard', icon: <Clock size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/dashboard') } },
+    { id: 'ver-ingresos', label: 'Ver ingresos', description: 'Ir a ingresos', icon: <FilePlus size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/deposito/ingresos') } },
+    { id: 'ver-actas', label: 'Ver actas', description: 'Ir a actas', icon: <Eye size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/deposito/actas') } },
+    { id: 'ver-movimientos', label: 'Ver movimientos', description: 'Ir a movimientos', icon: <History size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/deposito/movimientos') } },
+    { id: 'ver-ordenes', label: 'Ver órdenes', description: 'Ir a órdenes', icon: <FileDown size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/deposito/ordenes') } },
+    { id: 'ver-dashboard', label: 'Dashboard', description: 'Ir al dashboard', icon: <Clock size={14} strokeWidth={1.5} />, onSelect: () => { closePalette(); navigate('/deposito/dashboard') } },
   ]
 
-  const allActions = [...(metricAction ? [metricAction] : []), ...productActions, ...baseActions]
+  const normalizedQuery = query.trim().toLocaleLowerCase('es')
+  const visibleBaseActions = normalizedQuery
+    ? baseActions.filter((action) =>
+        `${action.label} ${action.description}`.toLocaleLowerCase('es').includes(normalizedQuery)
+      )
+    : baseActions
+
+  const allActions = [...(metricAction ? [metricAction] : []), ...productActions, ...visibleBaseActions]
 
   return createPortal(
     <Command.Dialog
@@ -257,7 +265,7 @@ export function CommandPalette() {
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div className="relative w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-        <Command className="flex flex-col rounded-xl shadow-2xl bg-surface">
+        <Command shouldFilter={false} className="flex flex-col rounded-xl shadow-2xl bg-surface">
           <div className="flex items-center gap-3 px-4 border-b border-outline-variant/15">
             <Search size={16} strokeWidth={1.5} style={{ color: 'var(--color-on-surface-variant)' }} />
             <Command.Input
@@ -320,8 +328,8 @@ export function CommandPalette() {
               </Command.Group>
             )}
 
-            <Command.Group heading="Navegación">
-              {baseActions.map((action) => (
+            {visibleBaseActions.length > 0 && <Command.Group heading="Navegación">
+              {visibleBaseActions.map((action) => (
                 <Command.Item
                   key={action.id}
                   value={action.id}
@@ -335,15 +343,8 @@ export function CommandPalette() {
                   </div>
                 </Command.Item>
               ))}
-            </Command.Group>
+            </Command.Group>}
 
-            <Command.Empty>
-              <div className="px-3 py-6 text-center">
-                <p className="font-body text-sm text-on-surface-variant">
-                  Sin resultados para <strong className="text-on-surface">{query}</strong>
-                </p>
-              </div>
-            </Command.Empty>
           </Command.List>
         </Command>
       </div>

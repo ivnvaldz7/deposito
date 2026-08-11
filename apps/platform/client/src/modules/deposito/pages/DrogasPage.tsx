@@ -11,6 +11,7 @@ import { toast } from '../lib/toast'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { useProductFocus } from '../hooks/use-product-focus'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,7 +139,19 @@ export default function DrogasPage() {
   )
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const productoIdFiltro = searchParams.get('productoId')
+  const hasFocusSignal = Boolean(searchParams.get('focus'))
+  const focus = useProductFocus(records.map((record) => ({ id: record.id, productoId: record.productoId, name: record.productoId ? (catalogMap[record.productoId] ?? record.nombre) : record.nombre })))
   const filteredGroups = useMemo(() => {
+    const selectedRecord = hasFocusSignal
+      ? records.find((record) =>
+          (productoIdFiltro && record.productoId === productoIdFiltro)
+          || (productoFiltro && normalizeProducto(record.productoId ? (catalogMap[record.productoId] ?? record.nombre) : record.nombre) === normalizeProducto(productoFiltro)))
+      : undefined
+    if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selectedRecord) return []
+    if (selectedRecord) {
+      return groups.filter((group) => normalizeProducto(group.nombre) === normalizeProducto(selectedRecord.productoId ? (catalogMap[selectedRecord.productoId] ?? selectedRecord.nombre) : selectedRecord.nombre))
+    }
     if (productoFiltro) {
       const target = normalizeProducto(productoFiltro)
       return groups.filter((group) => normalizeProducto(group.nombre) === target)
@@ -152,7 +165,7 @@ export default function DrogasPage() {
       )
     }
     return groups
-  }, [groups, productoFiltro, searchQuery])
+  }, [groups, records, productoFiltro, productoIdFiltro, hasFocusSignal, searchQuery, catalogMap])
 
   async function handleDelete(id: string, nombre: string) {
     try {
@@ -240,8 +253,9 @@ export default function DrogasPage() {
                   return (
                     <div
                       key={lote.id}
+                      {...focus.targetProps(lote.id)}
                       style={{ animationDelay: `${idx * 0.03}s` }}
-                      className={`grid grid-cols-12 gap-4 px-4 py-3 items-center transition-all duration-200 hover:bg-surface-variant/30 animate-fade-up ${
+                      className={`grid grid-cols-12 gap-4 px-4 py-3 items-center transition-all duration-200 hover:bg-surface-variant/30 animate-fade-up focus:outline-none ${focus.isFocused(lote.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50' : ''} ${
                         idx > 0 ? 'border-t border-outline-variant/20' : ''
                       }`}
                     >
@@ -320,8 +334,9 @@ export default function DrogasPage() {
                 return (
                   <div
                     key={lote.id}
+                    {...focus.targetProps(lote.id)}
                     style={{ animationDelay: `${idx * 0.03}s` }}
-                    className="bg-surface-container-high rounded-lg px-4 py-3 border border-white/10 flex items-center gap-3 animate-fade-up"
+                    className={`bg-surface-container-high rounded-lg px-4 py-3 border border-white/10 flex items-center gap-3 animate-fade-up focus:outline-none ${focus.isFocused(lote.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}
                   >
                     <DrugIcon nombre={group.nombre} />
                     <div className="flex-1 min-w-0 flex items-center gap-2">

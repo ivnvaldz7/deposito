@@ -143,6 +143,26 @@ export type OrdenProduccion = $Result.DefaultSelection<Prisma.$OrdenProduccionPa
  * 
  */
 export type DepositoProducto = $Result.DefaultSelection<Prisma.$DepositoProductoPayload>
+/**
+ * Model SecuenciaCodigoEstuche
+ * 
+ */
+export type SecuenciaCodigoEstuche = $Result.DefaultSelection<Prisma.$SecuenciaCodigoEstuchePayload>
+/**
+ * Model ImportacionInicialEstucheBatch
+ * 
+ */
+export type ImportacionInicialEstucheBatch = $Result.DefaultSelection<Prisma.$ImportacionInicialEstucheBatchPayload>
+/**
+ * Model ImportacionInicialEstucheIdempotencyKey
+ * 
+ */
+export type ImportacionInicialEstucheIdempotencyKey = $Result.DefaultSelection<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>
+/**
+ * Model ImportacionInicialEstucheItem
+ * 
+ */
+export type ImportacionInicialEstucheItem = $Result.DefaultSelection<Prisma.$ImportacionInicialEstucheItemPayload>
 
 /**
  * Enums
@@ -275,6 +295,7 @@ export type EstadoProductoCatalogo = (typeof EstadoProductoCatalogo)[keyof typeo
 export const OrigenProductoCatalogo: {
   MANUAL: 'MANUAL',
   IMPORTACION: 'IMPORTACION',
+  IMPORTACION_INICIAL_ESTUCHES: 'IMPORTACION_INICIAL_ESTUCHES',
   MIGRACION: 'MIGRACION'
 };
 
@@ -308,7 +329,8 @@ export type RefTipo = (typeof RefTipo)[keyof typeof RefTipo]
 export const DepositoTipoMovimiento: {
   ingreso_acta: 'ingreso_acta',
   egreso_orden: 'egreso_orden',
-  ajuste_manual: 'ajuste_manual'
+  ajuste_manual: 'ajuste_manual',
+  stock_inicial: 'stock_inicial'
 };
 
 export type DepositoTipoMovimiento = (typeof DepositoTipoMovimiento)[keyof typeof DepositoTipoMovimiento]
@@ -802,6 +824,46 @@ export class PrismaClient<
     * ```
     */
   get depositoProducto(): Prisma.DepositoProductoDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.secuenciaCodigoEstuche`: Exposes CRUD operations for the **SecuenciaCodigoEstuche** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SecuenciaCodigoEstuches
+    * const secuenciaCodigoEstuches = await prisma.secuenciaCodigoEstuche.findMany()
+    * ```
+    */
+  get secuenciaCodigoEstuche(): Prisma.SecuenciaCodigoEstucheDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.importacionInicialEstucheBatch`: Exposes CRUD operations for the **ImportacionInicialEstucheBatch** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ImportacionInicialEstucheBatches
+    * const importacionInicialEstucheBatches = await prisma.importacionInicialEstucheBatch.findMany()
+    * ```
+    */
+  get importacionInicialEstucheBatch(): Prisma.ImportacionInicialEstucheBatchDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.importacionInicialEstucheIdempotencyKey`: Exposes CRUD operations for the **ImportacionInicialEstucheIdempotencyKey** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ImportacionInicialEstucheIdempotencyKeys
+    * const importacionInicialEstucheIdempotencyKeys = await prisma.importacionInicialEstucheIdempotencyKey.findMany()
+    * ```
+    */
+  get importacionInicialEstucheIdempotencyKey(): Prisma.ImportacionInicialEstucheIdempotencyKeyDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.importacionInicialEstucheItem`: Exposes CRUD operations for the **ImportacionInicialEstucheItem** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ImportacionInicialEstucheItems
+    * const importacionInicialEstucheItems = await prisma.importacionInicialEstucheItem.findMany()
+    * ```
+    */
+  get importacionInicialEstucheItem(): Prisma.ImportacionInicialEstucheItemDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1261,7 +1323,11 @@ export namespace Prisma {
     Movimiento: 'Movimiento',
     InsumoPendiente: 'InsumoPendiente',
     OrdenProduccion: 'OrdenProduccion',
-    DepositoProducto: 'DepositoProducto'
+    DepositoProducto: 'DepositoProducto',
+    SecuenciaCodigoEstuche: 'SecuenciaCodigoEstuche',
+    ImportacionInicialEstucheBatch: 'ImportacionInicialEstucheBatch',
+    ImportacionInicialEstucheIdempotencyKey: 'ImportacionInicialEstucheIdempotencyKey',
+    ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1277,7 +1343,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "platformUser" | "appAccess" | "notification" | "idempotencyRecord" | "producto" | "lote" | "cliente" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "pedidoAuditoria" | "transportista" | "remito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto"
+      modelProps: "platformUser" | "appAccess" | "notification" | "idempotencyRecord" | "producto" | "lote" | "cliente" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "pedidoAuditoria" | "transportista" | "remito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3205,6 +3271,302 @@ export namespace Prisma {
           }
         }
       }
+      SecuenciaCodigoEstuche: {
+        payload: Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>
+        fields: Prisma.SecuenciaCodigoEstucheFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SecuenciaCodigoEstucheFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SecuenciaCodigoEstucheFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>
+          }
+          findFirst: {
+            args: Prisma.SecuenciaCodigoEstucheFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SecuenciaCodigoEstucheFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>
+          }
+          findMany: {
+            args: Prisma.SecuenciaCodigoEstucheFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>[]
+          }
+          create: {
+            args: Prisma.SecuenciaCodigoEstucheCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>
+          }
+          createMany: {
+            args: Prisma.SecuenciaCodigoEstucheCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SecuenciaCodigoEstucheCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>[]
+          }
+          delete: {
+            args: Prisma.SecuenciaCodigoEstucheDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>
+          }
+          update: {
+            args: Prisma.SecuenciaCodigoEstucheUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>
+          }
+          deleteMany: {
+            args: Prisma.SecuenciaCodigoEstucheDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SecuenciaCodigoEstucheUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.SecuenciaCodigoEstucheUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>[]
+          }
+          upsert: {
+            args: Prisma.SecuenciaCodigoEstucheUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SecuenciaCodigoEstuchePayload>
+          }
+          aggregate: {
+            args: Prisma.SecuenciaCodigoEstucheAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSecuenciaCodigoEstuche>
+          }
+          groupBy: {
+            args: Prisma.SecuenciaCodigoEstucheGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SecuenciaCodigoEstucheGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SecuenciaCodigoEstucheCountArgs<ExtArgs>
+            result: $Utils.Optional<SecuenciaCodigoEstucheCountAggregateOutputType> | number
+          }
+        }
+      }
+      ImportacionInicialEstucheBatch: {
+        payload: Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>
+        fields: Prisma.ImportacionInicialEstucheBatchFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ImportacionInicialEstucheBatchFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ImportacionInicialEstucheBatchFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>
+          }
+          findFirst: {
+            args: Prisma.ImportacionInicialEstucheBatchFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ImportacionInicialEstucheBatchFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>
+          }
+          findMany: {
+            args: Prisma.ImportacionInicialEstucheBatchFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>[]
+          }
+          create: {
+            args: Prisma.ImportacionInicialEstucheBatchCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>
+          }
+          createMany: {
+            args: Prisma.ImportacionInicialEstucheBatchCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ImportacionInicialEstucheBatchCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>[]
+          }
+          delete: {
+            args: Prisma.ImportacionInicialEstucheBatchDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>
+          }
+          update: {
+            args: Prisma.ImportacionInicialEstucheBatchUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>
+          }
+          deleteMany: {
+            args: Prisma.ImportacionInicialEstucheBatchDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ImportacionInicialEstucheBatchUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ImportacionInicialEstucheBatchUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>[]
+          }
+          upsert: {
+            args: Prisma.ImportacionInicialEstucheBatchUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheBatchPayload>
+          }
+          aggregate: {
+            args: Prisma.ImportacionInicialEstucheBatchAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateImportacionInicialEstucheBatch>
+          }
+          groupBy: {
+            args: Prisma.ImportacionInicialEstucheBatchGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ImportacionInicialEstucheBatchGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ImportacionInicialEstucheBatchCountArgs<ExtArgs>
+            result: $Utils.Optional<ImportacionInicialEstucheBatchCountAggregateOutputType> | number
+          }
+        }
+      }
+      ImportacionInicialEstucheIdempotencyKey: {
+        payload: Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>
+        fields: Prisma.ImportacionInicialEstucheIdempotencyKeyFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>
+          }
+          findFirst: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>
+          }
+          findMany: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>[]
+          }
+          create: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>
+          }
+          createMany: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>[]
+          }
+          delete: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>
+          }
+          update: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>
+          }
+          deleteMany: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>[]
+          }
+          upsert: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload>
+          }
+          aggregate: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateImportacionInicialEstucheIdempotencyKey>
+          }
+          groupBy: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ImportacionInicialEstucheIdempotencyKeyGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ImportacionInicialEstucheIdempotencyKeyCountArgs<ExtArgs>
+            result: $Utils.Optional<ImportacionInicialEstucheIdempotencyKeyCountAggregateOutputType> | number
+          }
+        }
+      }
+      ImportacionInicialEstucheItem: {
+        payload: Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>
+        fields: Prisma.ImportacionInicialEstucheItemFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ImportacionInicialEstucheItemFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ImportacionInicialEstucheItemFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>
+          }
+          findFirst: {
+            args: Prisma.ImportacionInicialEstucheItemFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ImportacionInicialEstucheItemFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>
+          }
+          findMany: {
+            args: Prisma.ImportacionInicialEstucheItemFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>[]
+          }
+          create: {
+            args: Prisma.ImportacionInicialEstucheItemCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>
+          }
+          createMany: {
+            args: Prisma.ImportacionInicialEstucheItemCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ImportacionInicialEstucheItemCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>[]
+          }
+          delete: {
+            args: Prisma.ImportacionInicialEstucheItemDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>
+          }
+          update: {
+            args: Prisma.ImportacionInicialEstucheItemUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>
+          }
+          deleteMany: {
+            args: Prisma.ImportacionInicialEstucheItemDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ImportacionInicialEstucheItemUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ImportacionInicialEstucheItemUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>[]
+          }
+          upsert: {
+            args: Prisma.ImportacionInicialEstucheItemUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportacionInicialEstucheItemPayload>
+          }
+          aggregate: {
+            args: Prisma.ImportacionInicialEstucheItemAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateImportacionInicialEstucheItem>
+          }
+          groupBy: {
+            args: Prisma.ImportacionInicialEstucheItemGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ImportacionInicialEstucheItemGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ImportacionInicialEstucheItemCountArgs<ExtArgs>
+            result: $Utils.Optional<ImportacionInicialEstucheItemCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -3339,6 +3701,10 @@ export namespace Prisma {
     insumoPendiente?: InsumoPendienteOmit
     ordenProduccion?: OrdenProduccionOmit
     depositoProducto?: DepositoProductoOmit
+    secuenciaCodigoEstuche?: SecuenciaCodigoEstucheOmit
+    importacionInicialEstucheBatch?: ImportacionInicialEstucheBatchOmit
+    importacionInicialEstucheIdempotencyKey?: ImportacionInicialEstucheIdempotencyKeyOmit
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemOmit
   }
 
   /* Types for Logging */
@@ -3678,6 +4044,7 @@ export namespace Prisma {
     ordenesComoSolicitante: number
     ordenesComoAprobador: number
     auditoriasCatalogo: number
+    importacionesInicialesEstuche: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3687,6 +4054,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: boolean | UserCountOutputTypeCountOrdenesComoSolicitanteArgs
     ordenesComoAprobador?: boolean | UserCountOutputTypeCountOrdenesComoAprobadorArgs
     auditoriasCatalogo?: boolean | UserCountOutputTypeCountAuditoriasCatalogoArgs
+    importacionesInicialesEstuche?: boolean | UserCountOutputTypeCountImportacionesInicialesEstucheArgs
   }
 
   // Custom InputTypes
@@ -3742,6 +4110,13 @@ export namespace Prisma {
     where?: AuditoriaCatalogoProductoWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountImportacionesInicialesEstucheArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportacionInicialEstucheBatchWhereInput
+  }
+
 
   /**
    * Count Type ActaCountOutputType
@@ -3786,6 +4161,8 @@ export namespace Prisma {
     actaItems: number
     ordenes: number
     auditoriasCatalogo: number
+    movimientos: number
+    importacionesInicialesEstuche: number
   }
 
   export type DepositoProductoCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3796,6 +4173,8 @@ export namespace Prisma {
     actaItems?: boolean | DepositoProductoCountOutputTypeCountActaItemsArgs
     ordenes?: boolean | DepositoProductoCountOutputTypeCountOrdenesArgs
     auditoriasCatalogo?: boolean | DepositoProductoCountOutputTypeCountAuditoriasCatalogoArgs
+    movimientos?: boolean | DepositoProductoCountOutputTypeCountMovimientosArgs
+    importacionesInicialesEstuche?: boolean | DepositoProductoCountOutputTypeCountImportacionesInicialesEstucheArgs
   }
 
   // Custom InputTypes
@@ -3856,6 +4235,60 @@ export namespace Prisma {
    */
   export type DepositoProductoCountOutputTypeCountAuditoriasCatalogoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AuditoriaCatalogoProductoWhereInput
+  }
+
+  /**
+   * DepositoProductoCountOutputType without action
+   */
+  export type DepositoProductoCountOutputTypeCountMovimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: MovimientoWhereInput
+  }
+
+  /**
+   * DepositoProductoCountOutputType without action
+   */
+  export type DepositoProductoCountOutputTypeCountImportacionesInicialesEstucheArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportacionInicialEstucheItemWhereInput
+  }
+
+
+  /**
+   * Count Type ImportacionInicialEstucheBatchCountOutputType
+   */
+
+  export type ImportacionInicialEstucheBatchCountOutputType = {
+    items: number
+    idempotencyKeys: number
+  }
+
+  export type ImportacionInicialEstucheBatchCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    items?: boolean | ImportacionInicialEstucheBatchCountOutputTypeCountItemsArgs
+    idempotencyKeys?: boolean | ImportacionInicialEstucheBatchCountOutputTypeCountIdempotencyKeysArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ImportacionInicialEstucheBatchCountOutputType without action
+   */
+  export type ImportacionInicialEstucheBatchCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatchCountOutputType
+     */
+    select?: ImportacionInicialEstucheBatchCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ImportacionInicialEstucheBatchCountOutputType without action
+   */
+  export type ImportacionInicialEstucheBatchCountOutputTypeCountItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportacionInicialEstucheItemWhereInput
+  }
+
+  /**
+   * ImportacionInicialEstucheBatchCountOutputType without action
+   */
+  export type ImportacionInicialEstucheBatchCountOutputTypeCountIdempotencyKeysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
   }
 
 
@@ -20164,6 +20597,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: boolean | User$ordenesComoSolicitanteArgs<ExtArgs>
     ordenesComoAprobador?: boolean | User$ordenesComoAprobadorArgs<ExtArgs>
     auditoriasCatalogo?: boolean | User$auditoriasCatalogoArgs<ExtArgs>
+    importacionesInicialesEstuche?: boolean | User$importacionesInicialesEstucheArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -20205,6 +20639,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: boolean | User$ordenesComoSolicitanteArgs<ExtArgs>
     ordenesComoAprobador?: boolean | User$ordenesComoAprobadorArgs<ExtArgs>
     auditoriasCatalogo?: boolean | User$auditoriasCatalogoArgs<ExtArgs>
+    importacionesInicialesEstuche?: boolean | User$importacionesInicialesEstucheArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -20219,6 +20654,7 @@ export namespace Prisma {
       ordenesComoSolicitante: Prisma.$OrdenProduccionPayload<ExtArgs>[]
       ordenesComoAprobador: Prisma.$OrdenProduccionPayload<ExtArgs>[]
       auditoriasCatalogo: Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>[]
+      importacionesInicialesEstuche: Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -20628,6 +21064,7 @@ export namespace Prisma {
     ordenesComoSolicitante<T extends User$ordenesComoSolicitanteArgs<ExtArgs> = {}>(args?: Subset<T, User$ordenesComoSolicitanteArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrdenProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ordenesComoAprobador<T extends User$ordenesComoAprobadorArgs<ExtArgs> = {}>(args?: Subset<T, User$ordenesComoAprobadorArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrdenProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditoriasCatalogo<T extends User$auditoriasCatalogoArgs<ExtArgs> = {}>(args?: Subset<T, User$auditoriasCatalogoArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    importacionesInicialesEstuche<T extends User$importacionesInicialesEstucheArgs<ExtArgs> = {}>(args?: Subset<T, User$importacionesInicialesEstucheArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -21198,6 +21635,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AuditoriaCatalogoProductoScalarFieldEnum | AuditoriaCatalogoProductoScalarFieldEnum[]
+  }
+
+  /**
+   * User.importacionesInicialesEstuche
+   */
+  export type User$importacionesInicialesEstucheArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    where?: ImportacionInicialEstucheBatchWhereInput
+    orderBy?: ImportacionInicialEstucheBatchOrderByWithRelationInput | ImportacionInicialEstucheBatchOrderByWithRelationInput[]
+    cursor?: ImportacionInicialEstucheBatchWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportacionInicialEstucheBatchScalarFieldEnum | ImportacionInicialEstucheBatchScalarFieldEnum[]
   }
 
   /**
@@ -26034,6 +26495,7 @@ export namespace Prisma {
     cantidad?: boolean
     updatedAt?: boolean
     producto?: boolean | InventarioEstuche$productoArgs<ExtArgs>
+    importacionInicialItem?: boolean | InventarioEstuche$importacionInicialItemArgs<ExtArgs>
   }, ExtArgs["result"]["inventarioEstuche"]>
 
   export type InventarioEstucheSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -26068,6 +26530,7 @@ export namespace Prisma {
   export type InventarioEstucheOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "productoId" | "articulo" | "mercado" | "cantidad" | "updatedAt", ExtArgs["result"]["inventarioEstuche"]>
   export type InventarioEstucheInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     producto?: boolean | InventarioEstuche$productoArgs<ExtArgs>
+    importacionInicialItem?: boolean | InventarioEstuche$importacionInicialItemArgs<ExtArgs>
   }
   export type InventarioEstucheIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     producto?: boolean | InventarioEstuche$productoArgs<ExtArgs>
@@ -26080,6 +26543,7 @@ export namespace Prisma {
     name: "InventarioEstuche"
     objects: {
       producto: Prisma.$DepositoProductoPayload<ExtArgs> | null
+      importacionInicialItem: Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -26483,6 +26947,7 @@ export namespace Prisma {
   export interface Prisma__InventarioEstucheClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     producto<T extends InventarioEstuche$productoArgs<ExtArgs> = {}>(args?: Subset<T, InventarioEstuche$productoArgs<ExtArgs>>): Prisma__DepositoProductoClient<$Result.GetResult<Prisma.$DepositoProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    importacionInicialItem<T extends InventarioEstuche$importacionInicialItemArgs<ExtArgs> = {}>(args?: Subset<T, InventarioEstuche$importacionInicialItemArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -26935,6 +27400,25 @@ export namespace Prisma {
      */
     include?: DepositoProductoInclude<ExtArgs> | null
     where?: DepositoProductoWhereInput
+  }
+
+  /**
+   * InventarioEstuche.importacionInicialItem
+   */
+  export type InventarioEstuche$importacionInicialItemArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    where?: ImportacionInicialEstucheItemWhereInput
   }
 
   /**
@@ -29264,6 +29748,9 @@ export namespace Prisma {
     cantidad: number | null
     referenciaId: string | null
     referenciaTipo: $Enums.RefTipo | null
+    productoId: string | null
+    fechaEfectiva: Date | null
+    importacionInicialEstucheItemId: string | null
     justificacion: string | null
     createdBy: string | null
     createdAt: Date | null
@@ -29278,6 +29765,9 @@ export namespace Prisma {
     cantidad: number | null
     referenciaId: string | null
     referenciaTipo: $Enums.RefTipo | null
+    productoId: string | null
+    fechaEfectiva: Date | null
+    importacionInicialEstucheItemId: string | null
     justificacion: string | null
     createdBy: string | null
     createdAt: Date | null
@@ -29292,6 +29782,9 @@ export namespace Prisma {
     cantidad: number
     referenciaId: number
     referenciaTipo: number
+    productoId: number
+    fechaEfectiva: number
+    importacionInicialEstucheItemId: number
     justificacion: number
     createdBy: number
     createdAt: number
@@ -29316,6 +29809,9 @@ export namespace Prisma {
     cantidad?: true
     referenciaId?: true
     referenciaTipo?: true
+    productoId?: true
+    fechaEfectiva?: true
+    importacionInicialEstucheItemId?: true
     justificacion?: true
     createdBy?: true
     createdAt?: true
@@ -29330,6 +29826,9 @@ export namespace Prisma {
     cantidad?: true
     referenciaId?: true
     referenciaTipo?: true
+    productoId?: true
+    fechaEfectiva?: true
+    importacionInicialEstucheItemId?: true
     justificacion?: true
     createdBy?: true
     createdAt?: true
@@ -29344,6 +29843,9 @@ export namespace Prisma {
     cantidad?: true
     referenciaId?: true
     referenciaTipo?: true
+    productoId?: true
+    fechaEfectiva?: true
+    importacionInicialEstucheItemId?: true
     justificacion?: true
     createdBy?: true
     createdAt?: true
@@ -29445,6 +29947,9 @@ export namespace Prisma {
     cantidad: number
     referenciaId: string | null
     referenciaTipo: $Enums.RefTipo | null
+    productoId: string | null
+    fechaEfectiva: Date | null
+    importacionInicialEstucheItemId: string | null
     justificacion: string | null
     createdBy: string
     createdAt: Date
@@ -29478,10 +29983,15 @@ export namespace Prisma {
     cantidad?: boolean
     referenciaId?: boolean
     referenciaTipo?: boolean
+    productoId?: boolean
+    fechaEfectiva?: boolean
+    importacionInicialEstucheItemId?: boolean
     justificacion?: boolean
     createdBy?: boolean
     createdAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
+    producto?: boolean | Movimiento$productoArgs<ExtArgs>
+    importacionInicialEstucheItem?: boolean | Movimiento$importacionInicialEstucheItemArgs<ExtArgs>
   }, ExtArgs["result"]["movimiento"]>
 
   export type MovimientoSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -29493,10 +30003,15 @@ export namespace Prisma {
     cantidad?: boolean
     referenciaId?: boolean
     referenciaTipo?: boolean
+    productoId?: boolean
+    fechaEfectiva?: boolean
+    importacionInicialEstucheItemId?: boolean
     justificacion?: boolean
     createdBy?: boolean
     createdAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
+    producto?: boolean | Movimiento$productoArgs<ExtArgs>
+    importacionInicialEstucheItem?: boolean | Movimiento$importacionInicialEstucheItemArgs<ExtArgs>
   }, ExtArgs["result"]["movimiento"]>
 
   export type MovimientoSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -29508,10 +30023,15 @@ export namespace Prisma {
     cantidad?: boolean
     referenciaId?: boolean
     referenciaTipo?: boolean
+    productoId?: boolean
+    fechaEfectiva?: boolean
+    importacionInicialEstucheItemId?: boolean
     justificacion?: boolean
     createdBy?: boolean
     createdAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
+    producto?: boolean | Movimiento$productoArgs<ExtArgs>
+    importacionInicialEstucheItem?: boolean | Movimiento$importacionInicialEstucheItemArgs<ExtArgs>
   }, ExtArgs["result"]["movimiento"]>
 
   export type MovimientoSelectScalar = {
@@ -29523,26 +30043,37 @@ export namespace Prisma {
     cantidad?: boolean
     referenciaId?: boolean
     referenciaTipo?: boolean
+    productoId?: boolean
+    fechaEfectiva?: boolean
+    importacionInicialEstucheItemId?: boolean
     justificacion?: boolean
     createdBy?: boolean
     createdAt?: boolean
   }
 
-  export type MovimientoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tipo" | "categoria" | "productoNombre" | "lote" | "cantidad" | "referenciaId" | "referenciaTipo" | "justificacion" | "createdBy" | "createdAt", ExtArgs["result"]["movimiento"]>
+  export type MovimientoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tipo" | "categoria" | "productoNombre" | "lote" | "cantidad" | "referenciaId" | "referenciaTipo" | "productoId" | "fechaEfectiva" | "importacionInicialEstucheItemId" | "justificacion" | "createdBy" | "createdAt", ExtArgs["result"]["movimiento"]>
   export type MovimientoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
+    producto?: boolean | Movimiento$productoArgs<ExtArgs>
+    importacionInicialEstucheItem?: boolean | Movimiento$importacionInicialEstucheItemArgs<ExtArgs>
   }
   export type MovimientoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
+    producto?: boolean | Movimiento$productoArgs<ExtArgs>
+    importacionInicialEstucheItem?: boolean | Movimiento$importacionInicialEstucheItemArgs<ExtArgs>
   }
   export type MovimientoIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
+    producto?: boolean | Movimiento$productoArgs<ExtArgs>
+    importacionInicialEstucheItem?: boolean | Movimiento$importacionInicialEstucheItemArgs<ExtArgs>
   }
 
   export type $MovimientoPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Movimiento"
     objects: {
       user: Prisma.$UserPayload<ExtArgs>
+      producto: Prisma.$DepositoProductoPayload<ExtArgs> | null
+      importacionInicialEstucheItem: Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -29553,6 +30084,9 @@ export namespace Prisma {
       cantidad: number
       referenciaId: string | null
       referenciaTipo: $Enums.RefTipo | null
+      productoId: string | null
+      fechaEfectiva: Date | null
+      importacionInicialEstucheItemId: string | null
       justificacion: string | null
       createdBy: string
       createdAt: Date
@@ -29951,6 +30485,8 @@ export namespace Prisma {
   export interface Prisma__MovimientoClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    producto<T extends Movimiento$productoArgs<ExtArgs> = {}>(args?: Subset<T, Movimiento$productoArgs<ExtArgs>>): Prisma__DepositoProductoClient<$Result.GetResult<Prisma.$DepositoProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    importacionInicialEstucheItem<T extends Movimiento$importacionInicialEstucheItemArgs<ExtArgs> = {}>(args?: Subset<T, Movimiento$importacionInicialEstucheItemArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -29988,6 +30524,9 @@ export namespace Prisma {
     readonly cantidad: FieldRef<"Movimiento", 'Int'>
     readonly referenciaId: FieldRef<"Movimiento", 'String'>
     readonly referenciaTipo: FieldRef<"Movimiento", 'RefTipo'>
+    readonly productoId: FieldRef<"Movimiento", 'String'>
+    readonly fechaEfectiva: FieldRef<"Movimiento", 'DateTime'>
+    readonly importacionInicialEstucheItemId: FieldRef<"Movimiento", 'String'>
     readonly justificacion: FieldRef<"Movimiento", 'String'>
     readonly createdBy: FieldRef<"Movimiento", 'String'>
     readonly createdAt: FieldRef<"Movimiento", 'DateTime'>
@@ -30389,6 +30928,44 @@ export namespace Prisma {
      * Limit how many Movimientos to delete.
      */
     limit?: number
+  }
+
+  /**
+   * Movimiento.producto
+   */
+  export type Movimiento$productoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DepositoProducto
+     */
+    select?: DepositoProductoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DepositoProducto
+     */
+    omit?: DepositoProductoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DepositoProductoInclude<ExtArgs> | null
+    where?: DepositoProductoWhereInput
+  }
+
+  /**
+   * Movimiento.importacionInicialEstucheItem
+   */
+  export type Movimiento$importacionInicialEstucheItemArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    where?: ImportacionInicialEstucheItemWhereInput
   }
 
   /**
@@ -33151,6 +33728,8 @@ export namespace Prisma {
     actaItems?: boolean | DepositoProducto$actaItemsArgs<ExtArgs>
     ordenes?: boolean | DepositoProducto$ordenesArgs<ExtArgs>
     auditoriasCatalogo?: boolean | DepositoProducto$auditoriasCatalogoArgs<ExtArgs>
+    movimientos?: boolean | DepositoProducto$movimientosArgs<ExtArgs>
+    importacionesInicialesEstuche?: boolean | DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>
     _count?: boolean | DepositoProductoCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["depositoProducto"]>
 
@@ -33217,6 +33796,8 @@ export namespace Prisma {
     actaItems?: boolean | DepositoProducto$actaItemsArgs<ExtArgs>
     ordenes?: boolean | DepositoProducto$ordenesArgs<ExtArgs>
     auditoriasCatalogo?: boolean | DepositoProducto$auditoriasCatalogoArgs<ExtArgs>
+    movimientos?: boolean | DepositoProducto$movimientosArgs<ExtArgs>
+    importacionesInicialesEstuche?: boolean | DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>
     _count?: boolean | DepositoProductoCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DepositoProductoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -33232,6 +33813,8 @@ export namespace Prisma {
       actaItems: Prisma.$ActaItemPayload<ExtArgs>[]
       ordenes: Prisma.$OrdenProduccionPayload<ExtArgs>[]
       auditoriasCatalogo: Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>[]
+      movimientos: Prisma.$MovimientoPayload<ExtArgs>[]
+      importacionesInicialesEstuche: Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -33650,6 +34233,8 @@ export namespace Prisma {
     actaItems<T extends DepositoProducto$actaItemsArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$actaItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ActaItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ordenes<T extends DepositoProducto$ordenesArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$ordenesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrdenProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditoriasCatalogo<T extends DepositoProducto$auditoriasCatalogoArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$auditoriasCatalogoArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    movimientos<T extends DepositoProducto$movimientosArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$movimientosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    importacionesInicialesEstuche<T extends DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -34255,6 +34840,54 @@ export namespace Prisma {
   }
 
   /**
+   * DepositoProducto.movimientos
+   */
+  export type DepositoProducto$movimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Movimiento
+     */
+    select?: MovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Movimiento
+     */
+    omit?: MovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MovimientoInclude<ExtArgs> | null
+    where?: MovimientoWhereInput
+    orderBy?: MovimientoOrderByWithRelationInput | MovimientoOrderByWithRelationInput[]
+    cursor?: MovimientoWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: MovimientoScalarFieldEnum | MovimientoScalarFieldEnum[]
+  }
+
+  /**
+   * DepositoProducto.importacionesInicialesEstuche
+   */
+  export type DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    where?: ImportacionInicialEstucheItemWhereInput
+    orderBy?: ImportacionInicialEstucheItemOrderByWithRelationInput | ImportacionInicialEstucheItemOrderByWithRelationInput[]
+    cursor?: ImportacionInicialEstucheItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportacionInicialEstucheItemScalarFieldEnum | ImportacionInicialEstucheItemScalarFieldEnum[]
+  }
+
+  /**
    * DepositoProducto without action
    */
   export type DepositoProductoDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -34270,6 +34903,4399 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: DepositoProductoInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model SecuenciaCodigoEstuche
+   */
+
+  export type AggregateSecuenciaCodigoEstuche = {
+    _count: SecuenciaCodigoEstucheCountAggregateOutputType | null
+    _avg: SecuenciaCodigoEstucheAvgAggregateOutputType | null
+    _sum: SecuenciaCodigoEstucheSumAggregateOutputType | null
+    _min: SecuenciaCodigoEstucheMinAggregateOutputType | null
+    _max: SecuenciaCodigoEstucheMaxAggregateOutputType | null
+  }
+
+  export type SecuenciaCodigoEstucheAvgAggregateOutputType = {
+    ultimo: number | null
+  }
+
+  export type SecuenciaCodigoEstucheSumAggregateOutputType = {
+    ultimo: number | null
+  }
+
+  export type SecuenciaCodigoEstucheMinAggregateOutputType = {
+    mercado: $Enums.Mercado | null
+    ultimo: number | null
+  }
+
+  export type SecuenciaCodigoEstucheMaxAggregateOutputType = {
+    mercado: $Enums.Mercado | null
+    ultimo: number | null
+  }
+
+  export type SecuenciaCodigoEstucheCountAggregateOutputType = {
+    mercado: number
+    ultimo: number
+    _all: number
+  }
+
+
+  export type SecuenciaCodigoEstucheAvgAggregateInputType = {
+    ultimo?: true
+  }
+
+  export type SecuenciaCodigoEstucheSumAggregateInputType = {
+    ultimo?: true
+  }
+
+  export type SecuenciaCodigoEstucheMinAggregateInputType = {
+    mercado?: true
+    ultimo?: true
+  }
+
+  export type SecuenciaCodigoEstucheMaxAggregateInputType = {
+    mercado?: true
+    ultimo?: true
+  }
+
+  export type SecuenciaCodigoEstucheCountAggregateInputType = {
+    mercado?: true
+    ultimo?: true
+    _all?: true
+  }
+
+  export type SecuenciaCodigoEstucheAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SecuenciaCodigoEstuche to aggregate.
+     */
+    where?: SecuenciaCodigoEstucheWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecuenciaCodigoEstuches to fetch.
+     */
+    orderBy?: SecuenciaCodigoEstucheOrderByWithRelationInput | SecuenciaCodigoEstucheOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SecuenciaCodigoEstucheWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecuenciaCodigoEstuches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecuenciaCodigoEstuches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SecuenciaCodigoEstuches
+    **/
+    _count?: true | SecuenciaCodigoEstucheCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: SecuenciaCodigoEstucheAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: SecuenciaCodigoEstucheSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SecuenciaCodigoEstucheMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SecuenciaCodigoEstucheMaxAggregateInputType
+  }
+
+  export type GetSecuenciaCodigoEstucheAggregateType<T extends SecuenciaCodigoEstucheAggregateArgs> = {
+        [P in keyof T & keyof AggregateSecuenciaCodigoEstuche]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSecuenciaCodigoEstuche[P]>
+      : GetScalarType<T[P], AggregateSecuenciaCodigoEstuche[P]>
+  }
+
+
+
+
+  export type SecuenciaCodigoEstucheGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SecuenciaCodigoEstucheWhereInput
+    orderBy?: SecuenciaCodigoEstucheOrderByWithAggregationInput | SecuenciaCodigoEstucheOrderByWithAggregationInput[]
+    by: SecuenciaCodigoEstucheScalarFieldEnum[] | SecuenciaCodigoEstucheScalarFieldEnum
+    having?: SecuenciaCodigoEstucheScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SecuenciaCodigoEstucheCountAggregateInputType | true
+    _avg?: SecuenciaCodigoEstucheAvgAggregateInputType
+    _sum?: SecuenciaCodigoEstucheSumAggregateInputType
+    _min?: SecuenciaCodigoEstucheMinAggregateInputType
+    _max?: SecuenciaCodigoEstucheMaxAggregateInputType
+  }
+
+  export type SecuenciaCodigoEstucheGroupByOutputType = {
+    mercado: $Enums.Mercado
+    ultimo: number
+    _count: SecuenciaCodigoEstucheCountAggregateOutputType | null
+    _avg: SecuenciaCodigoEstucheAvgAggregateOutputType | null
+    _sum: SecuenciaCodigoEstucheSumAggregateOutputType | null
+    _min: SecuenciaCodigoEstucheMinAggregateOutputType | null
+    _max: SecuenciaCodigoEstucheMaxAggregateOutputType | null
+  }
+
+  type GetSecuenciaCodigoEstucheGroupByPayload<T extends SecuenciaCodigoEstucheGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SecuenciaCodigoEstucheGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SecuenciaCodigoEstucheGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SecuenciaCodigoEstucheGroupByOutputType[P]>
+            : GetScalarType<T[P], SecuenciaCodigoEstucheGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SecuenciaCodigoEstucheSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    mercado?: boolean
+    ultimo?: boolean
+  }, ExtArgs["result"]["secuenciaCodigoEstuche"]>
+
+  export type SecuenciaCodigoEstucheSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    mercado?: boolean
+    ultimo?: boolean
+  }, ExtArgs["result"]["secuenciaCodigoEstuche"]>
+
+  export type SecuenciaCodigoEstucheSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    mercado?: boolean
+    ultimo?: boolean
+  }, ExtArgs["result"]["secuenciaCodigoEstuche"]>
+
+  export type SecuenciaCodigoEstucheSelectScalar = {
+    mercado?: boolean
+    ultimo?: boolean
+  }
+
+  export type SecuenciaCodigoEstucheOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"mercado" | "ultimo", ExtArgs["result"]["secuenciaCodigoEstuche"]>
+
+  export type $SecuenciaCodigoEstuchePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SecuenciaCodigoEstuche"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      mercado: $Enums.Mercado
+      ultimo: number
+    }, ExtArgs["result"]["secuenciaCodigoEstuche"]>
+    composites: {}
+  }
+
+  type SecuenciaCodigoEstucheGetPayload<S extends boolean | null | undefined | SecuenciaCodigoEstucheDefaultArgs> = $Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload, S>
+
+  type SecuenciaCodigoEstucheCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<SecuenciaCodigoEstucheFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: SecuenciaCodigoEstucheCountAggregateInputType | true
+    }
+
+  export interface SecuenciaCodigoEstucheDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SecuenciaCodigoEstuche'], meta: { name: 'SecuenciaCodigoEstuche' } }
+    /**
+     * Find zero or one SecuenciaCodigoEstuche that matches the filter.
+     * @param {SecuenciaCodigoEstucheFindUniqueArgs} args - Arguments to find a SecuenciaCodigoEstuche
+     * @example
+     * // Get one SecuenciaCodigoEstuche
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SecuenciaCodigoEstucheFindUniqueArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheFindUniqueArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one SecuenciaCodigoEstuche that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {SecuenciaCodigoEstucheFindUniqueOrThrowArgs} args - Arguments to find a SecuenciaCodigoEstuche
+     * @example
+     * // Get one SecuenciaCodigoEstuche
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SecuenciaCodigoEstucheFindUniqueOrThrowArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SecuenciaCodigoEstuche that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecuenciaCodigoEstucheFindFirstArgs} args - Arguments to find a SecuenciaCodigoEstuche
+     * @example
+     * // Get one SecuenciaCodigoEstuche
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SecuenciaCodigoEstucheFindFirstArgs>(args?: SelectSubset<T, SecuenciaCodigoEstucheFindFirstArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first SecuenciaCodigoEstuche that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecuenciaCodigoEstucheFindFirstOrThrowArgs} args - Arguments to find a SecuenciaCodigoEstuche
+     * @example
+     * // Get one SecuenciaCodigoEstuche
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SecuenciaCodigoEstucheFindFirstOrThrowArgs>(args?: SelectSubset<T, SecuenciaCodigoEstucheFindFirstOrThrowArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more SecuenciaCodigoEstuches that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecuenciaCodigoEstucheFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SecuenciaCodigoEstuches
+     * const secuenciaCodigoEstuches = await prisma.secuenciaCodigoEstuche.findMany()
+     * 
+     * // Get first 10 SecuenciaCodigoEstuches
+     * const secuenciaCodigoEstuches = await prisma.secuenciaCodigoEstuche.findMany({ take: 10 })
+     * 
+     * // Only select the `ultimo`
+     * const secuenciaCodigoEstucheWithUltimoOnly = await prisma.secuenciaCodigoEstuche.findMany({ select: { ultimo: true } })
+     * 
+     */
+    findMany<T extends SecuenciaCodigoEstucheFindManyArgs>(args?: SelectSubset<T, SecuenciaCodigoEstucheFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a SecuenciaCodigoEstuche.
+     * @param {SecuenciaCodigoEstucheCreateArgs} args - Arguments to create a SecuenciaCodigoEstuche.
+     * @example
+     * // Create one SecuenciaCodigoEstuche
+     * const SecuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.create({
+     *   data: {
+     *     // ... data to create a SecuenciaCodigoEstuche
+     *   }
+     * })
+     * 
+     */
+    create<T extends SecuenciaCodigoEstucheCreateArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheCreateArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many SecuenciaCodigoEstuches.
+     * @param {SecuenciaCodigoEstucheCreateManyArgs} args - Arguments to create many SecuenciaCodigoEstuches.
+     * @example
+     * // Create many SecuenciaCodigoEstuches
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SecuenciaCodigoEstucheCreateManyArgs>(args?: SelectSubset<T, SecuenciaCodigoEstucheCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SecuenciaCodigoEstuches and returns the data saved in the database.
+     * @param {SecuenciaCodigoEstucheCreateManyAndReturnArgs} args - Arguments to create many SecuenciaCodigoEstuches.
+     * @example
+     * // Create many SecuenciaCodigoEstuches
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SecuenciaCodigoEstuches and only return the `ultimo`
+     * const secuenciaCodigoEstucheWithUltimoOnly = await prisma.secuenciaCodigoEstuche.createManyAndReturn({
+     *   select: { ultimo: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SecuenciaCodigoEstucheCreateManyAndReturnArgs>(args?: SelectSubset<T, SecuenciaCodigoEstucheCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a SecuenciaCodigoEstuche.
+     * @param {SecuenciaCodigoEstucheDeleteArgs} args - Arguments to delete one SecuenciaCodigoEstuche.
+     * @example
+     * // Delete one SecuenciaCodigoEstuche
+     * const SecuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.delete({
+     *   where: {
+     *     // ... filter to delete one SecuenciaCodigoEstuche
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SecuenciaCodigoEstucheDeleteArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheDeleteArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one SecuenciaCodigoEstuche.
+     * @param {SecuenciaCodigoEstucheUpdateArgs} args - Arguments to update one SecuenciaCodigoEstuche.
+     * @example
+     * // Update one SecuenciaCodigoEstuche
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SecuenciaCodigoEstucheUpdateArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheUpdateArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more SecuenciaCodigoEstuches.
+     * @param {SecuenciaCodigoEstucheDeleteManyArgs} args - Arguments to filter SecuenciaCodigoEstuches to delete.
+     * @example
+     * // Delete a few SecuenciaCodigoEstuches
+     * const { count } = await prisma.secuenciaCodigoEstuche.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SecuenciaCodigoEstucheDeleteManyArgs>(args?: SelectSubset<T, SecuenciaCodigoEstucheDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SecuenciaCodigoEstuches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecuenciaCodigoEstucheUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SecuenciaCodigoEstuches
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SecuenciaCodigoEstucheUpdateManyArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SecuenciaCodigoEstuches and returns the data updated in the database.
+     * @param {SecuenciaCodigoEstucheUpdateManyAndReturnArgs} args - Arguments to update many SecuenciaCodigoEstuches.
+     * @example
+     * // Update many SecuenciaCodigoEstuches
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more SecuenciaCodigoEstuches and only return the `ultimo`
+     * const secuenciaCodigoEstucheWithUltimoOnly = await prisma.secuenciaCodigoEstuche.updateManyAndReturn({
+     *   select: { ultimo: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends SecuenciaCodigoEstucheUpdateManyAndReturnArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one SecuenciaCodigoEstuche.
+     * @param {SecuenciaCodigoEstucheUpsertArgs} args - Arguments to update or create a SecuenciaCodigoEstuche.
+     * @example
+     * // Update or create a SecuenciaCodigoEstuche
+     * const secuenciaCodigoEstuche = await prisma.secuenciaCodigoEstuche.upsert({
+     *   create: {
+     *     // ... data to create a SecuenciaCodigoEstuche
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SecuenciaCodigoEstuche we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SecuenciaCodigoEstucheUpsertArgs>(args: SelectSubset<T, SecuenciaCodigoEstucheUpsertArgs<ExtArgs>>): Prisma__SecuenciaCodigoEstucheClient<$Result.GetResult<Prisma.$SecuenciaCodigoEstuchePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of SecuenciaCodigoEstuches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecuenciaCodigoEstucheCountArgs} args - Arguments to filter SecuenciaCodigoEstuches to count.
+     * @example
+     * // Count the number of SecuenciaCodigoEstuches
+     * const count = await prisma.secuenciaCodigoEstuche.count({
+     *   where: {
+     *     // ... the filter for the SecuenciaCodigoEstuches we want to count
+     *   }
+     * })
+    **/
+    count<T extends SecuenciaCodigoEstucheCountArgs>(
+      args?: Subset<T, SecuenciaCodigoEstucheCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SecuenciaCodigoEstucheCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SecuenciaCodigoEstuche.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecuenciaCodigoEstucheAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SecuenciaCodigoEstucheAggregateArgs>(args: Subset<T, SecuenciaCodigoEstucheAggregateArgs>): Prisma.PrismaPromise<GetSecuenciaCodigoEstucheAggregateType<T>>
+
+    /**
+     * Group by SecuenciaCodigoEstuche.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SecuenciaCodigoEstucheGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SecuenciaCodigoEstucheGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SecuenciaCodigoEstucheGroupByArgs['orderBy'] }
+        : { orderBy?: SecuenciaCodigoEstucheGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SecuenciaCodigoEstucheGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSecuenciaCodigoEstucheGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SecuenciaCodigoEstuche model
+   */
+  readonly fields: SecuenciaCodigoEstucheFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SecuenciaCodigoEstuche.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SecuenciaCodigoEstucheClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SecuenciaCodigoEstuche model
+   */
+  interface SecuenciaCodigoEstucheFieldRefs {
+    readonly mercado: FieldRef<"SecuenciaCodigoEstuche", 'Mercado'>
+    readonly ultimo: FieldRef<"SecuenciaCodigoEstuche", 'Int'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SecuenciaCodigoEstuche findUnique
+   */
+  export type SecuenciaCodigoEstucheFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * Filter, which SecuenciaCodigoEstuche to fetch.
+     */
+    where: SecuenciaCodigoEstucheWhereUniqueInput
+  }
+
+  /**
+   * SecuenciaCodigoEstuche findUniqueOrThrow
+   */
+  export type SecuenciaCodigoEstucheFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * Filter, which SecuenciaCodigoEstuche to fetch.
+     */
+    where: SecuenciaCodigoEstucheWhereUniqueInput
+  }
+
+  /**
+   * SecuenciaCodigoEstuche findFirst
+   */
+  export type SecuenciaCodigoEstucheFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * Filter, which SecuenciaCodigoEstuche to fetch.
+     */
+    where?: SecuenciaCodigoEstucheWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecuenciaCodigoEstuches to fetch.
+     */
+    orderBy?: SecuenciaCodigoEstucheOrderByWithRelationInput | SecuenciaCodigoEstucheOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SecuenciaCodigoEstuches.
+     */
+    cursor?: SecuenciaCodigoEstucheWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecuenciaCodigoEstuches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecuenciaCodigoEstuches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SecuenciaCodigoEstuches.
+     */
+    distinct?: SecuenciaCodigoEstucheScalarFieldEnum | SecuenciaCodigoEstucheScalarFieldEnum[]
+  }
+
+  /**
+   * SecuenciaCodigoEstuche findFirstOrThrow
+   */
+  export type SecuenciaCodigoEstucheFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * Filter, which SecuenciaCodigoEstuche to fetch.
+     */
+    where?: SecuenciaCodigoEstucheWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecuenciaCodigoEstuches to fetch.
+     */
+    orderBy?: SecuenciaCodigoEstucheOrderByWithRelationInput | SecuenciaCodigoEstucheOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SecuenciaCodigoEstuches.
+     */
+    cursor?: SecuenciaCodigoEstucheWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecuenciaCodigoEstuches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecuenciaCodigoEstuches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SecuenciaCodigoEstuches.
+     */
+    distinct?: SecuenciaCodigoEstucheScalarFieldEnum | SecuenciaCodigoEstucheScalarFieldEnum[]
+  }
+
+  /**
+   * SecuenciaCodigoEstuche findMany
+   */
+  export type SecuenciaCodigoEstucheFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * Filter, which SecuenciaCodigoEstuches to fetch.
+     */
+    where?: SecuenciaCodigoEstucheWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SecuenciaCodigoEstuches to fetch.
+     */
+    orderBy?: SecuenciaCodigoEstucheOrderByWithRelationInput | SecuenciaCodigoEstucheOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SecuenciaCodigoEstuches.
+     */
+    cursor?: SecuenciaCodigoEstucheWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SecuenciaCodigoEstuches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SecuenciaCodigoEstuches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SecuenciaCodigoEstuches.
+     */
+    distinct?: SecuenciaCodigoEstucheScalarFieldEnum | SecuenciaCodigoEstucheScalarFieldEnum[]
+  }
+
+  /**
+   * SecuenciaCodigoEstuche create
+   */
+  export type SecuenciaCodigoEstucheCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * The data needed to create a SecuenciaCodigoEstuche.
+     */
+    data: XOR<SecuenciaCodigoEstucheCreateInput, SecuenciaCodigoEstucheUncheckedCreateInput>
+  }
+
+  /**
+   * SecuenciaCodigoEstuche createMany
+   */
+  export type SecuenciaCodigoEstucheCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SecuenciaCodigoEstuches.
+     */
+    data: SecuenciaCodigoEstucheCreateManyInput | SecuenciaCodigoEstucheCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SecuenciaCodigoEstuche createManyAndReturn
+   */
+  export type SecuenciaCodigoEstucheCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * The data used to create many SecuenciaCodigoEstuches.
+     */
+    data: SecuenciaCodigoEstucheCreateManyInput | SecuenciaCodigoEstucheCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SecuenciaCodigoEstuche update
+   */
+  export type SecuenciaCodigoEstucheUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * The data needed to update a SecuenciaCodigoEstuche.
+     */
+    data: XOR<SecuenciaCodigoEstucheUpdateInput, SecuenciaCodigoEstucheUncheckedUpdateInput>
+    /**
+     * Choose, which SecuenciaCodigoEstuche to update.
+     */
+    where: SecuenciaCodigoEstucheWhereUniqueInput
+  }
+
+  /**
+   * SecuenciaCodigoEstuche updateMany
+   */
+  export type SecuenciaCodigoEstucheUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SecuenciaCodigoEstuches.
+     */
+    data: XOR<SecuenciaCodigoEstucheUpdateManyMutationInput, SecuenciaCodigoEstucheUncheckedUpdateManyInput>
+    /**
+     * Filter which SecuenciaCodigoEstuches to update
+     */
+    where?: SecuenciaCodigoEstucheWhereInput
+    /**
+     * Limit how many SecuenciaCodigoEstuches to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SecuenciaCodigoEstuche updateManyAndReturn
+   */
+  export type SecuenciaCodigoEstucheUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * The data used to update SecuenciaCodigoEstuches.
+     */
+    data: XOR<SecuenciaCodigoEstucheUpdateManyMutationInput, SecuenciaCodigoEstucheUncheckedUpdateManyInput>
+    /**
+     * Filter which SecuenciaCodigoEstuches to update
+     */
+    where?: SecuenciaCodigoEstucheWhereInput
+    /**
+     * Limit how many SecuenciaCodigoEstuches to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * SecuenciaCodigoEstuche upsert
+   */
+  export type SecuenciaCodigoEstucheUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * The filter to search for the SecuenciaCodigoEstuche to update in case it exists.
+     */
+    where: SecuenciaCodigoEstucheWhereUniqueInput
+    /**
+     * In case the SecuenciaCodigoEstuche found by the `where` argument doesn't exist, create a new SecuenciaCodigoEstuche with this data.
+     */
+    create: XOR<SecuenciaCodigoEstucheCreateInput, SecuenciaCodigoEstucheUncheckedCreateInput>
+    /**
+     * In case the SecuenciaCodigoEstuche was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SecuenciaCodigoEstucheUpdateInput, SecuenciaCodigoEstucheUncheckedUpdateInput>
+  }
+
+  /**
+   * SecuenciaCodigoEstuche delete
+   */
+  export type SecuenciaCodigoEstucheDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+    /**
+     * Filter which SecuenciaCodigoEstuche to delete.
+     */
+    where: SecuenciaCodigoEstucheWhereUniqueInput
+  }
+
+  /**
+   * SecuenciaCodigoEstuche deleteMany
+   */
+  export type SecuenciaCodigoEstucheDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SecuenciaCodigoEstuches to delete
+     */
+    where?: SecuenciaCodigoEstucheWhereInput
+    /**
+     * Limit how many SecuenciaCodigoEstuches to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * SecuenciaCodigoEstuche without action
+   */
+  export type SecuenciaCodigoEstucheDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SecuenciaCodigoEstuche
+     */
+    select?: SecuenciaCodigoEstucheSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the SecuenciaCodigoEstuche
+     */
+    omit?: SecuenciaCodigoEstucheOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ImportacionInicialEstucheBatch
+   */
+
+  export type AggregateImportacionInicialEstucheBatch = {
+    _count: ImportacionInicialEstucheBatchCountAggregateOutputType | null
+    _min: ImportacionInicialEstucheBatchMinAggregateOutputType | null
+    _max: ImportacionInicialEstucheBatchMaxAggregateOutputType | null
+  }
+
+  export type ImportacionInicialEstucheBatchMinAggregateOutputType = {
+    id: string | null
+    idempotencyKey: string | null
+    checksum: string | null
+    actorId: string | null
+    effectiveDate: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportacionInicialEstucheBatchMaxAggregateOutputType = {
+    id: string | null
+    idempotencyKey: string | null
+    checksum: string | null
+    actorId: string | null
+    effectiveDate: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportacionInicialEstucheBatchCountAggregateOutputType = {
+    id: number
+    idempotencyKey: number
+    checksum: number
+    actorId: number
+    effectiveDate: number
+    result: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ImportacionInicialEstucheBatchMinAggregateInputType = {
+    id?: true
+    idempotencyKey?: true
+    checksum?: true
+    actorId?: true
+    effectiveDate?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportacionInicialEstucheBatchMaxAggregateInputType = {
+    id?: true
+    idempotencyKey?: true
+    checksum?: true
+    actorId?: true
+    effectiveDate?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportacionInicialEstucheBatchCountAggregateInputType = {
+    id?: true
+    idempotencyKey?: true
+    checksum?: true
+    actorId?: true
+    effectiveDate?: true
+    result?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ImportacionInicialEstucheBatchAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportacionInicialEstucheBatch to aggregate.
+     */
+    where?: ImportacionInicialEstucheBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheBatches to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheBatchOrderByWithRelationInput | ImportacionInicialEstucheBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ImportacionInicialEstucheBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheBatches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ImportacionInicialEstucheBatches
+    **/
+    _count?: true | ImportacionInicialEstucheBatchCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ImportacionInicialEstucheBatchMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ImportacionInicialEstucheBatchMaxAggregateInputType
+  }
+
+  export type GetImportacionInicialEstucheBatchAggregateType<T extends ImportacionInicialEstucheBatchAggregateArgs> = {
+        [P in keyof T & keyof AggregateImportacionInicialEstucheBatch]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateImportacionInicialEstucheBatch[P]>
+      : GetScalarType<T[P], AggregateImportacionInicialEstucheBatch[P]>
+  }
+
+
+
+
+  export type ImportacionInicialEstucheBatchGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportacionInicialEstucheBatchWhereInput
+    orderBy?: ImportacionInicialEstucheBatchOrderByWithAggregationInput | ImportacionInicialEstucheBatchOrderByWithAggregationInput[]
+    by: ImportacionInicialEstucheBatchScalarFieldEnum[] | ImportacionInicialEstucheBatchScalarFieldEnum
+    having?: ImportacionInicialEstucheBatchScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ImportacionInicialEstucheBatchCountAggregateInputType | true
+    _min?: ImportacionInicialEstucheBatchMinAggregateInputType
+    _max?: ImportacionInicialEstucheBatchMaxAggregateInputType
+  }
+
+  export type ImportacionInicialEstucheBatchGroupByOutputType = {
+    id: string
+    idempotencyKey: string
+    checksum: string
+    actorId: string
+    effectiveDate: Date
+    result: JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ImportacionInicialEstucheBatchCountAggregateOutputType | null
+    _min: ImportacionInicialEstucheBatchMinAggregateOutputType | null
+    _max: ImportacionInicialEstucheBatchMaxAggregateOutputType | null
+  }
+
+  type GetImportacionInicialEstucheBatchGroupByPayload<T extends ImportacionInicialEstucheBatchGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ImportacionInicialEstucheBatchGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ImportacionInicialEstucheBatchGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ImportacionInicialEstucheBatchGroupByOutputType[P]>
+            : GetScalarType<T[P], ImportacionInicialEstucheBatchGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ImportacionInicialEstucheBatchSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    idempotencyKey?: boolean
+    checksum?: boolean
+    actorId?: boolean
+    effectiveDate?: boolean
+    result?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    actor?: boolean | UserDefaultArgs<ExtArgs>
+    items?: boolean | ImportacionInicialEstucheBatch$itemsArgs<ExtArgs>
+    idempotencyKeys?: boolean | ImportacionInicialEstucheBatch$idempotencyKeysArgs<ExtArgs>
+    _count?: boolean | ImportacionInicialEstucheBatchCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheBatch"]>
+
+  export type ImportacionInicialEstucheBatchSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    idempotencyKey?: boolean
+    checksum?: boolean
+    actorId?: boolean
+    effectiveDate?: boolean
+    result?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    actor?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheBatch"]>
+
+  export type ImportacionInicialEstucheBatchSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    idempotencyKey?: boolean
+    checksum?: boolean
+    actorId?: boolean
+    effectiveDate?: boolean
+    result?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    actor?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheBatch"]>
+
+  export type ImportacionInicialEstucheBatchSelectScalar = {
+    id?: boolean
+    idempotencyKey?: boolean
+    checksum?: boolean
+    actorId?: boolean
+    effectiveDate?: boolean
+    result?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ImportacionInicialEstucheBatchOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "idempotencyKey" | "checksum" | "actorId" | "effectiveDate" | "result" | "createdAt" | "updatedAt", ExtArgs["result"]["importacionInicialEstucheBatch"]>
+  export type ImportacionInicialEstucheBatchInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    actor?: boolean | UserDefaultArgs<ExtArgs>
+    items?: boolean | ImportacionInicialEstucheBatch$itemsArgs<ExtArgs>
+    idempotencyKeys?: boolean | ImportacionInicialEstucheBatch$idempotencyKeysArgs<ExtArgs>
+    _count?: boolean | ImportacionInicialEstucheBatchCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ImportacionInicialEstucheBatchIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    actor?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ImportacionInicialEstucheBatchIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    actor?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $ImportacionInicialEstucheBatchPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ImportacionInicialEstucheBatch"
+    objects: {
+      actor: Prisma.$UserPayload<ExtArgs>
+      items: Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>[]
+      idempotencyKeys: Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      idempotencyKey: string
+      checksum: string
+      actorId: string
+      effectiveDate: Date
+      result: Prisma.JsonValue | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["importacionInicialEstucheBatch"]>
+    composites: {}
+  }
+
+  type ImportacionInicialEstucheBatchGetPayload<S extends boolean | null | undefined | ImportacionInicialEstucheBatchDefaultArgs> = $Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload, S>
+
+  type ImportacionInicialEstucheBatchCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ImportacionInicialEstucheBatchFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ImportacionInicialEstucheBatchCountAggregateInputType | true
+    }
+
+  export interface ImportacionInicialEstucheBatchDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ImportacionInicialEstucheBatch'], meta: { name: 'ImportacionInicialEstucheBatch' } }
+    /**
+     * Find zero or one ImportacionInicialEstucheBatch that matches the filter.
+     * @param {ImportacionInicialEstucheBatchFindUniqueArgs} args - Arguments to find a ImportacionInicialEstucheBatch
+     * @example
+     * // Get one ImportacionInicialEstucheBatch
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ImportacionInicialEstucheBatchFindUniqueArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchFindUniqueArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ImportacionInicialEstucheBatch that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ImportacionInicialEstucheBatchFindUniqueOrThrowArgs} args - Arguments to find a ImportacionInicialEstucheBatch
+     * @example
+     * // Get one ImportacionInicialEstucheBatch
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ImportacionInicialEstucheBatchFindUniqueOrThrowArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportacionInicialEstucheBatch that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheBatchFindFirstArgs} args - Arguments to find a ImportacionInicialEstucheBatch
+     * @example
+     * // Get one ImportacionInicialEstucheBatch
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ImportacionInicialEstucheBatchFindFirstArgs>(args?: SelectSubset<T, ImportacionInicialEstucheBatchFindFirstArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportacionInicialEstucheBatch that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheBatchFindFirstOrThrowArgs} args - Arguments to find a ImportacionInicialEstucheBatch
+     * @example
+     * // Get one ImportacionInicialEstucheBatch
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ImportacionInicialEstucheBatchFindFirstOrThrowArgs>(args?: SelectSubset<T, ImportacionInicialEstucheBatchFindFirstOrThrowArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ImportacionInicialEstucheBatches that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheBatchFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ImportacionInicialEstucheBatches
+     * const importacionInicialEstucheBatches = await prisma.importacionInicialEstucheBatch.findMany()
+     * 
+     * // Get first 10 ImportacionInicialEstucheBatches
+     * const importacionInicialEstucheBatches = await prisma.importacionInicialEstucheBatch.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const importacionInicialEstucheBatchWithIdOnly = await prisma.importacionInicialEstucheBatch.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ImportacionInicialEstucheBatchFindManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheBatchFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ImportacionInicialEstucheBatch.
+     * @param {ImportacionInicialEstucheBatchCreateArgs} args - Arguments to create a ImportacionInicialEstucheBatch.
+     * @example
+     * // Create one ImportacionInicialEstucheBatch
+     * const ImportacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.create({
+     *   data: {
+     *     // ... data to create a ImportacionInicialEstucheBatch
+     *   }
+     * })
+     * 
+     */
+    create<T extends ImportacionInicialEstucheBatchCreateArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchCreateArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ImportacionInicialEstucheBatches.
+     * @param {ImportacionInicialEstucheBatchCreateManyArgs} args - Arguments to create many ImportacionInicialEstucheBatches.
+     * @example
+     * // Create many ImportacionInicialEstucheBatches
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ImportacionInicialEstucheBatchCreateManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheBatchCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ImportacionInicialEstucheBatches and returns the data saved in the database.
+     * @param {ImportacionInicialEstucheBatchCreateManyAndReturnArgs} args - Arguments to create many ImportacionInicialEstucheBatches.
+     * @example
+     * // Create many ImportacionInicialEstucheBatches
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ImportacionInicialEstucheBatches and only return the `id`
+     * const importacionInicialEstucheBatchWithIdOnly = await prisma.importacionInicialEstucheBatch.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ImportacionInicialEstucheBatchCreateManyAndReturnArgs>(args?: SelectSubset<T, ImportacionInicialEstucheBatchCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ImportacionInicialEstucheBatch.
+     * @param {ImportacionInicialEstucheBatchDeleteArgs} args - Arguments to delete one ImportacionInicialEstucheBatch.
+     * @example
+     * // Delete one ImportacionInicialEstucheBatch
+     * const ImportacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.delete({
+     *   where: {
+     *     // ... filter to delete one ImportacionInicialEstucheBatch
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ImportacionInicialEstucheBatchDeleteArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchDeleteArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ImportacionInicialEstucheBatch.
+     * @param {ImportacionInicialEstucheBatchUpdateArgs} args - Arguments to update one ImportacionInicialEstucheBatch.
+     * @example
+     * // Update one ImportacionInicialEstucheBatch
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ImportacionInicialEstucheBatchUpdateArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchUpdateArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ImportacionInicialEstucheBatches.
+     * @param {ImportacionInicialEstucheBatchDeleteManyArgs} args - Arguments to filter ImportacionInicialEstucheBatches to delete.
+     * @example
+     * // Delete a few ImportacionInicialEstucheBatches
+     * const { count } = await prisma.importacionInicialEstucheBatch.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ImportacionInicialEstucheBatchDeleteManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheBatchDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportacionInicialEstucheBatches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheBatchUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ImportacionInicialEstucheBatches
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ImportacionInicialEstucheBatchUpdateManyArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportacionInicialEstucheBatches and returns the data updated in the database.
+     * @param {ImportacionInicialEstucheBatchUpdateManyAndReturnArgs} args - Arguments to update many ImportacionInicialEstucheBatches.
+     * @example
+     * // Update many ImportacionInicialEstucheBatches
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ImportacionInicialEstucheBatches and only return the `id`
+     * const importacionInicialEstucheBatchWithIdOnly = await prisma.importacionInicialEstucheBatch.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ImportacionInicialEstucheBatchUpdateManyAndReturnArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ImportacionInicialEstucheBatch.
+     * @param {ImportacionInicialEstucheBatchUpsertArgs} args - Arguments to update or create a ImportacionInicialEstucheBatch.
+     * @example
+     * // Update or create a ImportacionInicialEstucheBatch
+     * const importacionInicialEstucheBatch = await prisma.importacionInicialEstucheBatch.upsert({
+     *   create: {
+     *     // ... data to create a ImportacionInicialEstucheBatch
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ImportacionInicialEstucheBatch we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ImportacionInicialEstucheBatchUpsertArgs>(args: SelectSubset<T, ImportacionInicialEstucheBatchUpsertArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ImportacionInicialEstucheBatches.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheBatchCountArgs} args - Arguments to filter ImportacionInicialEstucheBatches to count.
+     * @example
+     * // Count the number of ImportacionInicialEstucheBatches
+     * const count = await prisma.importacionInicialEstucheBatch.count({
+     *   where: {
+     *     // ... the filter for the ImportacionInicialEstucheBatches we want to count
+     *   }
+     * })
+    **/
+    count<T extends ImportacionInicialEstucheBatchCountArgs>(
+      args?: Subset<T, ImportacionInicialEstucheBatchCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ImportacionInicialEstucheBatchCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ImportacionInicialEstucheBatch.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheBatchAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ImportacionInicialEstucheBatchAggregateArgs>(args: Subset<T, ImportacionInicialEstucheBatchAggregateArgs>): Prisma.PrismaPromise<GetImportacionInicialEstucheBatchAggregateType<T>>
+
+    /**
+     * Group by ImportacionInicialEstucheBatch.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheBatchGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ImportacionInicialEstucheBatchGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ImportacionInicialEstucheBatchGroupByArgs['orderBy'] }
+        : { orderBy?: ImportacionInicialEstucheBatchGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ImportacionInicialEstucheBatchGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetImportacionInicialEstucheBatchGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ImportacionInicialEstucheBatch model
+   */
+  readonly fields: ImportacionInicialEstucheBatchFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ImportacionInicialEstucheBatch.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ImportacionInicialEstucheBatchClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    actor<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    items<T extends ImportacionInicialEstucheBatch$itemsArgs<ExtArgs> = {}>(args?: Subset<T, ImportacionInicialEstucheBatch$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    idempotencyKeys<T extends ImportacionInicialEstucheBatch$idempotencyKeysArgs<ExtArgs> = {}>(args?: Subset<T, ImportacionInicialEstucheBatch$idempotencyKeysArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ImportacionInicialEstucheBatch model
+   */
+  interface ImportacionInicialEstucheBatchFieldRefs {
+    readonly id: FieldRef<"ImportacionInicialEstucheBatch", 'String'>
+    readonly idempotencyKey: FieldRef<"ImportacionInicialEstucheBatch", 'String'>
+    readonly checksum: FieldRef<"ImportacionInicialEstucheBatch", 'String'>
+    readonly actorId: FieldRef<"ImportacionInicialEstucheBatch", 'String'>
+    readonly effectiveDate: FieldRef<"ImportacionInicialEstucheBatch", 'DateTime'>
+    readonly result: FieldRef<"ImportacionInicialEstucheBatch", 'Json'>
+    readonly createdAt: FieldRef<"ImportacionInicialEstucheBatch", 'DateTime'>
+    readonly updatedAt: FieldRef<"ImportacionInicialEstucheBatch", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ImportacionInicialEstucheBatch findUnique
+   */
+  export type ImportacionInicialEstucheBatchFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheBatch to fetch.
+     */
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch findUniqueOrThrow
+   */
+  export type ImportacionInicialEstucheBatchFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheBatch to fetch.
+     */
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch findFirst
+   */
+  export type ImportacionInicialEstucheBatchFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheBatch to fetch.
+     */
+    where?: ImportacionInicialEstucheBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheBatches to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheBatchOrderByWithRelationInput | ImportacionInicialEstucheBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportacionInicialEstucheBatches.
+     */
+    cursor?: ImportacionInicialEstucheBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheBatches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheBatches.
+     */
+    distinct?: ImportacionInicialEstucheBatchScalarFieldEnum | ImportacionInicialEstucheBatchScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch findFirstOrThrow
+   */
+  export type ImportacionInicialEstucheBatchFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheBatch to fetch.
+     */
+    where?: ImportacionInicialEstucheBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheBatches to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheBatchOrderByWithRelationInput | ImportacionInicialEstucheBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportacionInicialEstucheBatches.
+     */
+    cursor?: ImportacionInicialEstucheBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheBatches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheBatches.
+     */
+    distinct?: ImportacionInicialEstucheBatchScalarFieldEnum | ImportacionInicialEstucheBatchScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch findMany
+   */
+  export type ImportacionInicialEstucheBatchFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheBatches to fetch.
+     */
+    where?: ImportacionInicialEstucheBatchWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheBatches to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheBatchOrderByWithRelationInput | ImportacionInicialEstucheBatchOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ImportacionInicialEstucheBatches.
+     */
+    cursor?: ImportacionInicialEstucheBatchWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheBatches from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheBatches.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheBatches.
+     */
+    distinct?: ImportacionInicialEstucheBatchScalarFieldEnum | ImportacionInicialEstucheBatchScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch create
+   */
+  export type ImportacionInicialEstucheBatchCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ImportacionInicialEstucheBatch.
+     */
+    data: XOR<ImportacionInicialEstucheBatchCreateInput, ImportacionInicialEstucheBatchUncheckedCreateInput>
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch createMany
+   */
+  export type ImportacionInicialEstucheBatchCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ImportacionInicialEstucheBatches.
+     */
+    data: ImportacionInicialEstucheBatchCreateManyInput | ImportacionInicialEstucheBatchCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch createManyAndReturn
+   */
+  export type ImportacionInicialEstucheBatchCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * The data used to create many ImportacionInicialEstucheBatches.
+     */
+    data: ImportacionInicialEstucheBatchCreateManyInput | ImportacionInicialEstucheBatchCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch update
+   */
+  export type ImportacionInicialEstucheBatchUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ImportacionInicialEstucheBatch.
+     */
+    data: XOR<ImportacionInicialEstucheBatchUpdateInput, ImportacionInicialEstucheBatchUncheckedUpdateInput>
+    /**
+     * Choose, which ImportacionInicialEstucheBatch to update.
+     */
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch updateMany
+   */
+  export type ImportacionInicialEstucheBatchUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ImportacionInicialEstucheBatches.
+     */
+    data: XOR<ImportacionInicialEstucheBatchUpdateManyMutationInput, ImportacionInicialEstucheBatchUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportacionInicialEstucheBatches to update
+     */
+    where?: ImportacionInicialEstucheBatchWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheBatches to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch updateManyAndReturn
+   */
+  export type ImportacionInicialEstucheBatchUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * The data used to update ImportacionInicialEstucheBatches.
+     */
+    data: XOR<ImportacionInicialEstucheBatchUpdateManyMutationInput, ImportacionInicialEstucheBatchUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportacionInicialEstucheBatches to update
+     */
+    where?: ImportacionInicialEstucheBatchWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheBatches to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch upsert
+   */
+  export type ImportacionInicialEstucheBatchUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ImportacionInicialEstucheBatch to update in case it exists.
+     */
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+    /**
+     * In case the ImportacionInicialEstucheBatch found by the `where` argument doesn't exist, create a new ImportacionInicialEstucheBatch with this data.
+     */
+    create: XOR<ImportacionInicialEstucheBatchCreateInput, ImportacionInicialEstucheBatchUncheckedCreateInput>
+    /**
+     * In case the ImportacionInicialEstucheBatch was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ImportacionInicialEstucheBatchUpdateInput, ImportacionInicialEstucheBatchUncheckedUpdateInput>
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch delete
+   */
+  export type ImportacionInicialEstucheBatchDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+    /**
+     * Filter which ImportacionInicialEstucheBatch to delete.
+     */
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch deleteMany
+   */
+  export type ImportacionInicialEstucheBatchDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportacionInicialEstucheBatches to delete
+     */
+    where?: ImportacionInicialEstucheBatchWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheBatches to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch.items
+   */
+  export type ImportacionInicialEstucheBatch$itemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    where?: ImportacionInicialEstucheItemWhereInput
+    orderBy?: ImportacionInicialEstucheItemOrderByWithRelationInput | ImportacionInicialEstucheItemOrderByWithRelationInput[]
+    cursor?: ImportacionInicialEstucheItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportacionInicialEstucheItemScalarFieldEnum | ImportacionInicialEstucheItemScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch.idempotencyKeys
+   */
+  export type ImportacionInicialEstucheBatch$idempotencyKeysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    orderBy?: ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput | ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput[]
+    cursor?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum | ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheBatch without action
+   */
+  export type ImportacionInicialEstucheBatchDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheBatch
+     */
+    select?: ImportacionInicialEstucheBatchSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheBatch
+     */
+    omit?: ImportacionInicialEstucheBatchOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheBatchInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ImportacionInicialEstucheIdempotencyKey
+   */
+
+  export type AggregateImportacionInicialEstucheIdempotencyKey = {
+    _count: ImportacionInicialEstucheIdempotencyKeyCountAggregateOutputType | null
+    _min: ImportacionInicialEstucheIdempotencyKeyMinAggregateOutputType | null
+    _max: ImportacionInicialEstucheIdempotencyKeyMaxAggregateOutputType | null
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyMinAggregateOutputType = {
+    id: string | null
+    idempotencyKey: string | null
+    batchId: string | null
+    createdAt: Date | null
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyMaxAggregateOutputType = {
+    id: string | null
+    idempotencyKey: string | null
+    batchId: string | null
+    createdAt: Date | null
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCountAggregateOutputType = {
+    id: number
+    idempotencyKey: number
+    batchId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ImportacionInicialEstucheIdempotencyKeyMinAggregateInputType = {
+    id?: true
+    idempotencyKey?: true
+    batchId?: true
+    createdAt?: true
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyMaxAggregateInputType = {
+    id?: true
+    idempotencyKey?: true
+    batchId?: true
+    createdAt?: true
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCountAggregateInputType = {
+    id?: true
+    idempotencyKey?: true
+    batchId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportacionInicialEstucheIdempotencyKey to aggregate.
+     */
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheIdempotencyKeys to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput | ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheIdempotencyKeys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheIdempotencyKeys.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ImportacionInicialEstucheIdempotencyKeys
+    **/
+    _count?: true | ImportacionInicialEstucheIdempotencyKeyCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ImportacionInicialEstucheIdempotencyKeyMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ImportacionInicialEstucheIdempotencyKeyMaxAggregateInputType
+  }
+
+  export type GetImportacionInicialEstucheIdempotencyKeyAggregateType<T extends ImportacionInicialEstucheIdempotencyKeyAggregateArgs> = {
+        [P in keyof T & keyof AggregateImportacionInicialEstucheIdempotencyKey]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateImportacionInicialEstucheIdempotencyKey[P]>
+      : GetScalarType<T[P], AggregateImportacionInicialEstucheIdempotencyKey[P]>
+  }
+
+
+
+
+  export type ImportacionInicialEstucheIdempotencyKeyGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    orderBy?: ImportacionInicialEstucheIdempotencyKeyOrderByWithAggregationInput | ImportacionInicialEstucheIdempotencyKeyOrderByWithAggregationInput[]
+    by: ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum[] | ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum
+    having?: ImportacionInicialEstucheIdempotencyKeyScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ImportacionInicialEstucheIdempotencyKeyCountAggregateInputType | true
+    _min?: ImportacionInicialEstucheIdempotencyKeyMinAggregateInputType
+    _max?: ImportacionInicialEstucheIdempotencyKeyMaxAggregateInputType
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyGroupByOutputType = {
+    id: string
+    idempotencyKey: string
+    batchId: string
+    createdAt: Date
+    _count: ImportacionInicialEstucheIdempotencyKeyCountAggregateOutputType | null
+    _min: ImportacionInicialEstucheIdempotencyKeyMinAggregateOutputType | null
+    _max: ImportacionInicialEstucheIdempotencyKeyMaxAggregateOutputType | null
+  }
+
+  type GetImportacionInicialEstucheIdempotencyKeyGroupByPayload<T extends ImportacionInicialEstucheIdempotencyKeyGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ImportacionInicialEstucheIdempotencyKeyGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ImportacionInicialEstucheIdempotencyKeyGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ImportacionInicialEstucheIdempotencyKeyGroupByOutputType[P]>
+            : GetScalarType<T[P], ImportacionInicialEstucheIdempotencyKeyGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    idempotencyKey?: boolean
+    batchId?: boolean
+    createdAt?: boolean
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheIdempotencyKey"]>
+
+  export type ImportacionInicialEstucheIdempotencyKeySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    idempotencyKey?: boolean
+    batchId?: boolean
+    createdAt?: boolean
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheIdempotencyKey"]>
+
+  export type ImportacionInicialEstucheIdempotencyKeySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    idempotencyKey?: boolean
+    batchId?: boolean
+    createdAt?: boolean
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheIdempotencyKey"]>
+
+  export type ImportacionInicialEstucheIdempotencyKeySelectScalar = {
+    id?: boolean
+    idempotencyKey?: boolean
+    batchId?: boolean
+    createdAt?: boolean
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "idempotencyKey" | "batchId" | "createdAt", ExtArgs["result"]["importacionInicialEstucheIdempotencyKey"]>
+  export type ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+  }
+  export type ImportacionInicialEstucheIdempotencyKeyIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+  }
+  export type ImportacionInicialEstucheIdempotencyKeyIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+  }
+
+  export type $ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ImportacionInicialEstucheIdempotencyKey"
+    objects: {
+      batch: Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      idempotencyKey: string
+      batchId: string
+      createdAt: Date
+    }, ExtArgs["result"]["importacionInicialEstucheIdempotencyKey"]>
+    composites: {}
+  }
+
+  type ImportacionInicialEstucheIdempotencyKeyGetPayload<S extends boolean | null | undefined | ImportacionInicialEstucheIdempotencyKeyDefaultArgs> = $Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload, S>
+
+  type ImportacionInicialEstucheIdempotencyKeyCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ImportacionInicialEstucheIdempotencyKeyFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ImportacionInicialEstucheIdempotencyKeyCountAggregateInputType | true
+    }
+
+  export interface ImportacionInicialEstucheIdempotencyKeyDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ImportacionInicialEstucheIdempotencyKey'], meta: { name: 'ImportacionInicialEstucheIdempotencyKey' } }
+    /**
+     * Find zero or one ImportacionInicialEstucheIdempotencyKey that matches the filter.
+     * @param {ImportacionInicialEstucheIdempotencyKeyFindUniqueArgs} args - Arguments to find a ImportacionInicialEstucheIdempotencyKey
+     * @example
+     * // Get one ImportacionInicialEstucheIdempotencyKey
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ImportacionInicialEstucheIdempotencyKeyFindUniqueArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyFindUniqueArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ImportacionInicialEstucheIdempotencyKey that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ImportacionInicialEstucheIdempotencyKeyFindUniqueOrThrowArgs} args - Arguments to find a ImportacionInicialEstucheIdempotencyKey
+     * @example
+     * // Get one ImportacionInicialEstucheIdempotencyKey
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ImportacionInicialEstucheIdempotencyKeyFindUniqueOrThrowArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportacionInicialEstucheIdempotencyKey that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheIdempotencyKeyFindFirstArgs} args - Arguments to find a ImportacionInicialEstucheIdempotencyKey
+     * @example
+     * // Get one ImportacionInicialEstucheIdempotencyKey
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ImportacionInicialEstucheIdempotencyKeyFindFirstArgs>(args?: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyFindFirstArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportacionInicialEstucheIdempotencyKey that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheIdempotencyKeyFindFirstOrThrowArgs} args - Arguments to find a ImportacionInicialEstucheIdempotencyKey
+     * @example
+     * // Get one ImportacionInicialEstucheIdempotencyKey
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ImportacionInicialEstucheIdempotencyKeyFindFirstOrThrowArgs>(args?: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyFindFirstOrThrowArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ImportacionInicialEstucheIdempotencyKeys that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheIdempotencyKeyFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ImportacionInicialEstucheIdempotencyKeys
+     * const importacionInicialEstucheIdempotencyKeys = await prisma.importacionInicialEstucheIdempotencyKey.findMany()
+     * 
+     * // Get first 10 ImportacionInicialEstucheIdempotencyKeys
+     * const importacionInicialEstucheIdempotencyKeys = await prisma.importacionInicialEstucheIdempotencyKey.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const importacionInicialEstucheIdempotencyKeyWithIdOnly = await prisma.importacionInicialEstucheIdempotencyKey.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ImportacionInicialEstucheIdempotencyKeyFindManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ImportacionInicialEstucheIdempotencyKey.
+     * @param {ImportacionInicialEstucheIdempotencyKeyCreateArgs} args - Arguments to create a ImportacionInicialEstucheIdempotencyKey.
+     * @example
+     * // Create one ImportacionInicialEstucheIdempotencyKey
+     * const ImportacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.create({
+     *   data: {
+     *     // ... data to create a ImportacionInicialEstucheIdempotencyKey
+     *   }
+     * })
+     * 
+     */
+    create<T extends ImportacionInicialEstucheIdempotencyKeyCreateArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyCreateArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ImportacionInicialEstucheIdempotencyKeys.
+     * @param {ImportacionInicialEstucheIdempotencyKeyCreateManyArgs} args - Arguments to create many ImportacionInicialEstucheIdempotencyKeys.
+     * @example
+     * // Create many ImportacionInicialEstucheIdempotencyKeys
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ImportacionInicialEstucheIdempotencyKeyCreateManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ImportacionInicialEstucheIdempotencyKeys and returns the data saved in the database.
+     * @param {ImportacionInicialEstucheIdempotencyKeyCreateManyAndReturnArgs} args - Arguments to create many ImportacionInicialEstucheIdempotencyKeys.
+     * @example
+     * // Create many ImportacionInicialEstucheIdempotencyKeys
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ImportacionInicialEstucheIdempotencyKeys and only return the `id`
+     * const importacionInicialEstucheIdempotencyKeyWithIdOnly = await prisma.importacionInicialEstucheIdempotencyKey.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ImportacionInicialEstucheIdempotencyKeyCreateManyAndReturnArgs>(args?: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ImportacionInicialEstucheIdempotencyKey.
+     * @param {ImportacionInicialEstucheIdempotencyKeyDeleteArgs} args - Arguments to delete one ImportacionInicialEstucheIdempotencyKey.
+     * @example
+     * // Delete one ImportacionInicialEstucheIdempotencyKey
+     * const ImportacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.delete({
+     *   where: {
+     *     // ... filter to delete one ImportacionInicialEstucheIdempotencyKey
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ImportacionInicialEstucheIdempotencyKeyDeleteArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyDeleteArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ImportacionInicialEstucheIdempotencyKey.
+     * @param {ImportacionInicialEstucheIdempotencyKeyUpdateArgs} args - Arguments to update one ImportacionInicialEstucheIdempotencyKey.
+     * @example
+     * // Update one ImportacionInicialEstucheIdempotencyKey
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ImportacionInicialEstucheIdempotencyKeyUpdateArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyUpdateArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ImportacionInicialEstucheIdempotencyKeys.
+     * @param {ImportacionInicialEstucheIdempotencyKeyDeleteManyArgs} args - Arguments to filter ImportacionInicialEstucheIdempotencyKeys to delete.
+     * @example
+     * // Delete a few ImportacionInicialEstucheIdempotencyKeys
+     * const { count } = await prisma.importacionInicialEstucheIdempotencyKey.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ImportacionInicialEstucheIdempotencyKeyDeleteManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportacionInicialEstucheIdempotencyKeys.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheIdempotencyKeyUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ImportacionInicialEstucheIdempotencyKeys
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ImportacionInicialEstucheIdempotencyKeyUpdateManyArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportacionInicialEstucheIdempotencyKeys and returns the data updated in the database.
+     * @param {ImportacionInicialEstucheIdempotencyKeyUpdateManyAndReturnArgs} args - Arguments to update many ImportacionInicialEstucheIdempotencyKeys.
+     * @example
+     * // Update many ImportacionInicialEstucheIdempotencyKeys
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ImportacionInicialEstucheIdempotencyKeys and only return the `id`
+     * const importacionInicialEstucheIdempotencyKeyWithIdOnly = await prisma.importacionInicialEstucheIdempotencyKey.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ImportacionInicialEstucheIdempotencyKeyUpdateManyAndReturnArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ImportacionInicialEstucheIdempotencyKey.
+     * @param {ImportacionInicialEstucheIdempotencyKeyUpsertArgs} args - Arguments to update or create a ImportacionInicialEstucheIdempotencyKey.
+     * @example
+     * // Update or create a ImportacionInicialEstucheIdempotencyKey
+     * const importacionInicialEstucheIdempotencyKey = await prisma.importacionInicialEstucheIdempotencyKey.upsert({
+     *   create: {
+     *     // ... data to create a ImportacionInicialEstucheIdempotencyKey
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ImportacionInicialEstucheIdempotencyKey we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ImportacionInicialEstucheIdempotencyKeyUpsertArgs>(args: SelectSubset<T, ImportacionInicialEstucheIdempotencyKeyUpsertArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheIdempotencyKeyClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheIdempotencyKeyPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ImportacionInicialEstucheIdempotencyKeys.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheIdempotencyKeyCountArgs} args - Arguments to filter ImportacionInicialEstucheIdempotencyKeys to count.
+     * @example
+     * // Count the number of ImportacionInicialEstucheIdempotencyKeys
+     * const count = await prisma.importacionInicialEstucheIdempotencyKey.count({
+     *   where: {
+     *     // ... the filter for the ImportacionInicialEstucheIdempotencyKeys we want to count
+     *   }
+     * })
+    **/
+    count<T extends ImportacionInicialEstucheIdempotencyKeyCountArgs>(
+      args?: Subset<T, ImportacionInicialEstucheIdempotencyKeyCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ImportacionInicialEstucheIdempotencyKeyCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ImportacionInicialEstucheIdempotencyKey.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheIdempotencyKeyAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ImportacionInicialEstucheIdempotencyKeyAggregateArgs>(args: Subset<T, ImportacionInicialEstucheIdempotencyKeyAggregateArgs>): Prisma.PrismaPromise<GetImportacionInicialEstucheIdempotencyKeyAggregateType<T>>
+
+    /**
+     * Group by ImportacionInicialEstucheIdempotencyKey.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheIdempotencyKeyGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ImportacionInicialEstucheIdempotencyKeyGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ImportacionInicialEstucheIdempotencyKeyGroupByArgs['orderBy'] }
+        : { orderBy?: ImportacionInicialEstucheIdempotencyKeyGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ImportacionInicialEstucheIdempotencyKeyGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetImportacionInicialEstucheIdempotencyKeyGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ImportacionInicialEstucheIdempotencyKey model
+   */
+  readonly fields: ImportacionInicialEstucheIdempotencyKeyFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ImportacionInicialEstucheIdempotencyKey.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ImportacionInicialEstucheIdempotencyKeyClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    batch<T extends ImportacionInicialEstucheBatchDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ImportacionInicialEstucheIdempotencyKey model
+   */
+  interface ImportacionInicialEstucheIdempotencyKeyFieldRefs {
+    readonly id: FieldRef<"ImportacionInicialEstucheIdempotencyKey", 'String'>
+    readonly idempotencyKey: FieldRef<"ImportacionInicialEstucheIdempotencyKey", 'String'>
+    readonly batchId: FieldRef<"ImportacionInicialEstucheIdempotencyKey", 'String'>
+    readonly createdAt: FieldRef<"ImportacionInicialEstucheIdempotencyKey", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ImportacionInicialEstucheIdempotencyKey findUnique
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheIdempotencyKey to fetch.
+     */
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey findUniqueOrThrow
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheIdempotencyKey to fetch.
+     */
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey findFirst
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheIdempotencyKey to fetch.
+     */
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheIdempotencyKeys to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput | ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportacionInicialEstucheIdempotencyKeys.
+     */
+    cursor?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheIdempotencyKeys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheIdempotencyKeys.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheIdempotencyKeys.
+     */
+    distinct?: ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum | ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey findFirstOrThrow
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheIdempotencyKey to fetch.
+     */
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheIdempotencyKeys to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput | ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportacionInicialEstucheIdempotencyKeys.
+     */
+    cursor?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheIdempotencyKeys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheIdempotencyKeys.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheIdempotencyKeys.
+     */
+    distinct?: ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum | ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey findMany
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheIdempotencyKeys to fetch.
+     */
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheIdempotencyKeys to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput | ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ImportacionInicialEstucheIdempotencyKeys.
+     */
+    cursor?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheIdempotencyKeys from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheIdempotencyKeys.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheIdempotencyKeys.
+     */
+    distinct?: ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum | ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey create
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ImportacionInicialEstucheIdempotencyKey.
+     */
+    data: XOR<ImportacionInicialEstucheIdempotencyKeyCreateInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateInput>
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey createMany
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ImportacionInicialEstucheIdempotencyKeys.
+     */
+    data: ImportacionInicialEstucheIdempotencyKeyCreateManyInput | ImportacionInicialEstucheIdempotencyKeyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey createManyAndReturn
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * The data used to create many ImportacionInicialEstucheIdempotencyKeys.
+     */
+    data: ImportacionInicialEstucheIdempotencyKeyCreateManyInput | ImportacionInicialEstucheIdempotencyKeyCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey update
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ImportacionInicialEstucheIdempotencyKey.
+     */
+    data: XOR<ImportacionInicialEstucheIdempotencyKeyUpdateInput, ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateInput>
+    /**
+     * Choose, which ImportacionInicialEstucheIdempotencyKey to update.
+     */
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey updateMany
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ImportacionInicialEstucheIdempotencyKeys.
+     */
+    data: XOR<ImportacionInicialEstucheIdempotencyKeyUpdateManyMutationInput, ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportacionInicialEstucheIdempotencyKeys to update
+     */
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheIdempotencyKeys to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey updateManyAndReturn
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * The data used to update ImportacionInicialEstucheIdempotencyKeys.
+     */
+    data: XOR<ImportacionInicialEstucheIdempotencyKeyUpdateManyMutationInput, ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportacionInicialEstucheIdempotencyKeys to update
+     */
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheIdempotencyKeys to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey upsert
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ImportacionInicialEstucheIdempotencyKey to update in case it exists.
+     */
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    /**
+     * In case the ImportacionInicialEstucheIdempotencyKey found by the `where` argument doesn't exist, create a new ImportacionInicialEstucheIdempotencyKey with this data.
+     */
+    create: XOR<ImportacionInicialEstucheIdempotencyKeyCreateInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateInput>
+    /**
+     * In case the ImportacionInicialEstucheIdempotencyKey was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ImportacionInicialEstucheIdempotencyKeyUpdateInput, ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateInput>
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey delete
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+    /**
+     * Filter which ImportacionInicialEstucheIdempotencyKey to delete.
+     */
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey deleteMany
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportacionInicialEstucheIdempotencyKeys to delete
+     */
+    where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheIdempotencyKeys to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportacionInicialEstucheIdempotencyKey without action
+   */
+  export type ImportacionInicialEstucheIdempotencyKeyDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheIdempotencyKey
+     */
+    select?: ImportacionInicialEstucheIdempotencyKeySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheIdempotencyKey
+     */
+    omit?: ImportacionInicialEstucheIdempotencyKeyOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheIdempotencyKeyInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ImportacionInicialEstucheItem
+   */
+
+  export type AggregateImportacionInicialEstucheItem = {
+    _count: ImportacionInicialEstucheItemCountAggregateOutputType | null
+    _avg: ImportacionInicialEstucheItemAvgAggregateOutputType | null
+    _sum: ImportacionInicialEstucheItemSumAggregateOutputType | null
+    _min: ImportacionInicialEstucheItemMinAggregateOutputType | null
+    _max: ImportacionInicialEstucheItemMaxAggregateOutputType | null
+  }
+
+  export type ImportacionInicialEstucheItemAvgAggregateOutputType = {
+    sourceRow: number | null
+    cantidad: number | null
+  }
+
+  export type ImportacionInicialEstucheItemSumAggregateOutputType = {
+    sourceRow: number | null
+    cantidad: number | null
+  }
+
+  export type ImportacionInicialEstucheItemMinAggregateOutputType = {
+    id: string | null
+    batchId: string | null
+    productoId: string | null
+    inventarioEstucheId: string | null
+    mercado: $Enums.Mercado | null
+    codigo: string | null
+    sourceRow: number | null
+    cantidad: number | null
+    createdAt: Date | null
+  }
+
+  export type ImportacionInicialEstucheItemMaxAggregateOutputType = {
+    id: string | null
+    batchId: string | null
+    productoId: string | null
+    inventarioEstucheId: string | null
+    mercado: $Enums.Mercado | null
+    codigo: string | null
+    sourceRow: number | null
+    cantidad: number | null
+    createdAt: Date | null
+  }
+
+  export type ImportacionInicialEstucheItemCountAggregateOutputType = {
+    id: number
+    batchId: number
+    productoId: number
+    inventarioEstucheId: number
+    mercado: number
+    codigo: number
+    sourceRow: number
+    cantidad: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ImportacionInicialEstucheItemAvgAggregateInputType = {
+    sourceRow?: true
+    cantidad?: true
+  }
+
+  export type ImportacionInicialEstucheItemSumAggregateInputType = {
+    sourceRow?: true
+    cantidad?: true
+  }
+
+  export type ImportacionInicialEstucheItemMinAggregateInputType = {
+    id?: true
+    batchId?: true
+    productoId?: true
+    inventarioEstucheId?: true
+    mercado?: true
+    codigo?: true
+    sourceRow?: true
+    cantidad?: true
+    createdAt?: true
+  }
+
+  export type ImportacionInicialEstucheItemMaxAggregateInputType = {
+    id?: true
+    batchId?: true
+    productoId?: true
+    inventarioEstucheId?: true
+    mercado?: true
+    codigo?: true
+    sourceRow?: true
+    cantidad?: true
+    createdAt?: true
+  }
+
+  export type ImportacionInicialEstucheItemCountAggregateInputType = {
+    id?: true
+    batchId?: true
+    productoId?: true
+    inventarioEstucheId?: true
+    mercado?: true
+    codigo?: true
+    sourceRow?: true
+    cantidad?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ImportacionInicialEstucheItemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportacionInicialEstucheItem to aggregate.
+     */
+    where?: ImportacionInicialEstucheItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheItems to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheItemOrderByWithRelationInput | ImportacionInicialEstucheItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ImportacionInicialEstucheItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ImportacionInicialEstucheItems
+    **/
+    _count?: true | ImportacionInicialEstucheItemCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ImportacionInicialEstucheItemAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ImportacionInicialEstucheItemSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ImportacionInicialEstucheItemMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ImportacionInicialEstucheItemMaxAggregateInputType
+  }
+
+  export type GetImportacionInicialEstucheItemAggregateType<T extends ImportacionInicialEstucheItemAggregateArgs> = {
+        [P in keyof T & keyof AggregateImportacionInicialEstucheItem]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateImportacionInicialEstucheItem[P]>
+      : GetScalarType<T[P], AggregateImportacionInicialEstucheItem[P]>
+  }
+
+
+
+
+  export type ImportacionInicialEstucheItemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportacionInicialEstucheItemWhereInput
+    orderBy?: ImportacionInicialEstucheItemOrderByWithAggregationInput | ImportacionInicialEstucheItemOrderByWithAggregationInput[]
+    by: ImportacionInicialEstucheItemScalarFieldEnum[] | ImportacionInicialEstucheItemScalarFieldEnum
+    having?: ImportacionInicialEstucheItemScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ImportacionInicialEstucheItemCountAggregateInputType | true
+    _avg?: ImportacionInicialEstucheItemAvgAggregateInputType
+    _sum?: ImportacionInicialEstucheItemSumAggregateInputType
+    _min?: ImportacionInicialEstucheItemMinAggregateInputType
+    _max?: ImportacionInicialEstucheItemMaxAggregateInputType
+  }
+
+  export type ImportacionInicialEstucheItemGroupByOutputType = {
+    id: string
+    batchId: string
+    productoId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt: Date
+    _count: ImportacionInicialEstucheItemCountAggregateOutputType | null
+    _avg: ImportacionInicialEstucheItemAvgAggregateOutputType | null
+    _sum: ImportacionInicialEstucheItemSumAggregateOutputType | null
+    _min: ImportacionInicialEstucheItemMinAggregateOutputType | null
+    _max: ImportacionInicialEstucheItemMaxAggregateOutputType | null
+  }
+
+  type GetImportacionInicialEstucheItemGroupByPayload<T extends ImportacionInicialEstucheItemGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ImportacionInicialEstucheItemGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ImportacionInicialEstucheItemGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ImportacionInicialEstucheItemGroupByOutputType[P]>
+            : GetScalarType<T[P], ImportacionInicialEstucheItemGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ImportacionInicialEstucheItemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    batchId?: boolean
+    productoId?: boolean
+    inventarioEstucheId?: boolean
+    mercado?: boolean
+    codigo?: boolean
+    sourceRow?: boolean
+    cantidad?: boolean
+    createdAt?: boolean
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    inventario?: boolean | InventarioEstucheDefaultArgs<ExtArgs>
+    movimiento?: boolean | ImportacionInicialEstucheItem$movimientoArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheItem"]>
+
+  export type ImportacionInicialEstucheItemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    batchId?: boolean
+    productoId?: boolean
+    inventarioEstucheId?: boolean
+    mercado?: boolean
+    codigo?: boolean
+    sourceRow?: boolean
+    cantidad?: boolean
+    createdAt?: boolean
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    inventario?: boolean | InventarioEstucheDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheItem"]>
+
+  export type ImportacionInicialEstucheItemSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    batchId?: boolean
+    productoId?: boolean
+    inventarioEstucheId?: boolean
+    mercado?: boolean
+    codigo?: boolean
+    sourceRow?: boolean
+    cantidad?: boolean
+    createdAt?: boolean
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    inventario?: boolean | InventarioEstucheDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importacionInicialEstucheItem"]>
+
+  export type ImportacionInicialEstucheItemSelectScalar = {
+    id?: boolean
+    batchId?: boolean
+    productoId?: boolean
+    inventarioEstucheId?: boolean
+    mercado?: boolean
+    codigo?: boolean
+    sourceRow?: boolean
+    cantidad?: boolean
+    createdAt?: boolean
+  }
+
+  export type ImportacionInicialEstucheItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "batchId" | "productoId" | "inventarioEstucheId" | "mercado" | "codigo" | "sourceRow" | "cantidad" | "createdAt", ExtArgs["result"]["importacionInicialEstucheItem"]>
+  export type ImportacionInicialEstucheItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    inventario?: boolean | InventarioEstucheDefaultArgs<ExtArgs>
+    movimiento?: boolean | ImportacionInicialEstucheItem$movimientoArgs<ExtArgs>
+  }
+  export type ImportacionInicialEstucheItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    inventario?: boolean | InventarioEstucheDefaultArgs<ExtArgs>
+  }
+  export type ImportacionInicialEstucheItemIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    batch?: boolean | ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    inventario?: boolean | InventarioEstucheDefaultArgs<ExtArgs>
+  }
+
+  export type $ImportacionInicialEstucheItemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ImportacionInicialEstucheItem"
+    objects: {
+      batch: Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>
+      producto: Prisma.$DepositoProductoPayload<ExtArgs>
+      inventario: Prisma.$InventarioEstuchePayload<ExtArgs>
+      movimiento: Prisma.$MovimientoPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      batchId: string
+      productoId: string
+      inventarioEstucheId: string
+      mercado: $Enums.Mercado
+      codigo: string
+      sourceRow: number
+      cantidad: number
+      createdAt: Date
+    }, ExtArgs["result"]["importacionInicialEstucheItem"]>
+    composites: {}
+  }
+
+  type ImportacionInicialEstucheItemGetPayload<S extends boolean | null | undefined | ImportacionInicialEstucheItemDefaultArgs> = $Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload, S>
+
+  type ImportacionInicialEstucheItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ImportacionInicialEstucheItemFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ImportacionInicialEstucheItemCountAggregateInputType | true
+    }
+
+  export interface ImportacionInicialEstucheItemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ImportacionInicialEstucheItem'], meta: { name: 'ImportacionInicialEstucheItem' } }
+    /**
+     * Find zero or one ImportacionInicialEstucheItem that matches the filter.
+     * @param {ImportacionInicialEstucheItemFindUniqueArgs} args - Arguments to find a ImportacionInicialEstucheItem
+     * @example
+     * // Get one ImportacionInicialEstucheItem
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ImportacionInicialEstucheItemFindUniqueArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemFindUniqueArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ImportacionInicialEstucheItem that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ImportacionInicialEstucheItemFindUniqueOrThrowArgs} args - Arguments to find a ImportacionInicialEstucheItem
+     * @example
+     * // Get one ImportacionInicialEstucheItem
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ImportacionInicialEstucheItemFindUniqueOrThrowArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportacionInicialEstucheItem that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheItemFindFirstArgs} args - Arguments to find a ImportacionInicialEstucheItem
+     * @example
+     * // Get one ImportacionInicialEstucheItem
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ImportacionInicialEstucheItemFindFirstArgs>(args?: SelectSubset<T, ImportacionInicialEstucheItemFindFirstArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportacionInicialEstucheItem that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheItemFindFirstOrThrowArgs} args - Arguments to find a ImportacionInicialEstucheItem
+     * @example
+     * // Get one ImportacionInicialEstucheItem
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ImportacionInicialEstucheItemFindFirstOrThrowArgs>(args?: SelectSubset<T, ImportacionInicialEstucheItemFindFirstOrThrowArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ImportacionInicialEstucheItems that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheItemFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ImportacionInicialEstucheItems
+     * const importacionInicialEstucheItems = await prisma.importacionInicialEstucheItem.findMany()
+     * 
+     * // Get first 10 ImportacionInicialEstucheItems
+     * const importacionInicialEstucheItems = await prisma.importacionInicialEstucheItem.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const importacionInicialEstucheItemWithIdOnly = await prisma.importacionInicialEstucheItem.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ImportacionInicialEstucheItemFindManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ImportacionInicialEstucheItem.
+     * @param {ImportacionInicialEstucheItemCreateArgs} args - Arguments to create a ImportacionInicialEstucheItem.
+     * @example
+     * // Create one ImportacionInicialEstucheItem
+     * const ImportacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.create({
+     *   data: {
+     *     // ... data to create a ImportacionInicialEstucheItem
+     *   }
+     * })
+     * 
+     */
+    create<T extends ImportacionInicialEstucheItemCreateArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemCreateArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ImportacionInicialEstucheItems.
+     * @param {ImportacionInicialEstucheItemCreateManyArgs} args - Arguments to create many ImportacionInicialEstucheItems.
+     * @example
+     * // Create many ImportacionInicialEstucheItems
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ImportacionInicialEstucheItemCreateManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ImportacionInicialEstucheItems and returns the data saved in the database.
+     * @param {ImportacionInicialEstucheItemCreateManyAndReturnArgs} args - Arguments to create many ImportacionInicialEstucheItems.
+     * @example
+     * // Create many ImportacionInicialEstucheItems
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ImportacionInicialEstucheItems and only return the `id`
+     * const importacionInicialEstucheItemWithIdOnly = await prisma.importacionInicialEstucheItem.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ImportacionInicialEstucheItemCreateManyAndReturnArgs>(args?: SelectSubset<T, ImportacionInicialEstucheItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ImportacionInicialEstucheItem.
+     * @param {ImportacionInicialEstucheItemDeleteArgs} args - Arguments to delete one ImportacionInicialEstucheItem.
+     * @example
+     * // Delete one ImportacionInicialEstucheItem
+     * const ImportacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.delete({
+     *   where: {
+     *     // ... filter to delete one ImportacionInicialEstucheItem
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ImportacionInicialEstucheItemDeleteArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemDeleteArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ImportacionInicialEstucheItem.
+     * @param {ImportacionInicialEstucheItemUpdateArgs} args - Arguments to update one ImportacionInicialEstucheItem.
+     * @example
+     * // Update one ImportacionInicialEstucheItem
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ImportacionInicialEstucheItemUpdateArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemUpdateArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ImportacionInicialEstucheItems.
+     * @param {ImportacionInicialEstucheItemDeleteManyArgs} args - Arguments to filter ImportacionInicialEstucheItems to delete.
+     * @example
+     * // Delete a few ImportacionInicialEstucheItems
+     * const { count } = await prisma.importacionInicialEstucheItem.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ImportacionInicialEstucheItemDeleteManyArgs>(args?: SelectSubset<T, ImportacionInicialEstucheItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportacionInicialEstucheItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheItemUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ImportacionInicialEstucheItems
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ImportacionInicialEstucheItemUpdateManyArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportacionInicialEstucheItems and returns the data updated in the database.
+     * @param {ImportacionInicialEstucheItemUpdateManyAndReturnArgs} args - Arguments to update many ImportacionInicialEstucheItems.
+     * @example
+     * // Update many ImportacionInicialEstucheItems
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ImportacionInicialEstucheItems and only return the `id`
+     * const importacionInicialEstucheItemWithIdOnly = await prisma.importacionInicialEstucheItem.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ImportacionInicialEstucheItemUpdateManyAndReturnArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ImportacionInicialEstucheItem.
+     * @param {ImportacionInicialEstucheItemUpsertArgs} args - Arguments to update or create a ImportacionInicialEstucheItem.
+     * @example
+     * // Update or create a ImportacionInicialEstucheItem
+     * const importacionInicialEstucheItem = await prisma.importacionInicialEstucheItem.upsert({
+     *   create: {
+     *     // ... data to create a ImportacionInicialEstucheItem
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ImportacionInicialEstucheItem we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ImportacionInicialEstucheItemUpsertArgs>(args: SelectSubset<T, ImportacionInicialEstucheItemUpsertArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheItemClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ImportacionInicialEstucheItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheItemCountArgs} args - Arguments to filter ImportacionInicialEstucheItems to count.
+     * @example
+     * // Count the number of ImportacionInicialEstucheItems
+     * const count = await prisma.importacionInicialEstucheItem.count({
+     *   where: {
+     *     // ... the filter for the ImportacionInicialEstucheItems we want to count
+     *   }
+     * })
+    **/
+    count<T extends ImportacionInicialEstucheItemCountArgs>(
+      args?: Subset<T, ImportacionInicialEstucheItemCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ImportacionInicialEstucheItemCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ImportacionInicialEstucheItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheItemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ImportacionInicialEstucheItemAggregateArgs>(args: Subset<T, ImportacionInicialEstucheItemAggregateArgs>): Prisma.PrismaPromise<GetImportacionInicialEstucheItemAggregateType<T>>
+
+    /**
+     * Group by ImportacionInicialEstucheItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportacionInicialEstucheItemGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ImportacionInicialEstucheItemGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ImportacionInicialEstucheItemGroupByArgs['orderBy'] }
+        : { orderBy?: ImportacionInicialEstucheItemGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ImportacionInicialEstucheItemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetImportacionInicialEstucheItemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ImportacionInicialEstucheItem model
+   */
+  readonly fields: ImportacionInicialEstucheItemFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ImportacionInicialEstucheItem.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ImportacionInicialEstucheItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    batch<T extends ImportacionInicialEstucheBatchDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ImportacionInicialEstucheBatchDefaultArgs<ExtArgs>>): Prisma__ImportacionInicialEstucheBatchClient<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    producto<T extends DepositoProductoDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProductoDefaultArgs<ExtArgs>>): Prisma__DepositoProductoClient<$Result.GetResult<Prisma.$DepositoProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    inventario<T extends InventarioEstucheDefaultArgs<ExtArgs> = {}>(args?: Subset<T, InventarioEstucheDefaultArgs<ExtArgs>>): Prisma__InventarioEstucheClient<$Result.GetResult<Prisma.$InventarioEstuchePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    movimiento<T extends ImportacionInicialEstucheItem$movimientoArgs<ExtArgs> = {}>(args?: Subset<T, ImportacionInicialEstucheItem$movimientoArgs<ExtArgs>>): Prisma__MovimientoClient<$Result.GetResult<Prisma.$MovimientoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ImportacionInicialEstucheItem model
+   */
+  interface ImportacionInicialEstucheItemFieldRefs {
+    readonly id: FieldRef<"ImportacionInicialEstucheItem", 'String'>
+    readonly batchId: FieldRef<"ImportacionInicialEstucheItem", 'String'>
+    readonly productoId: FieldRef<"ImportacionInicialEstucheItem", 'String'>
+    readonly inventarioEstucheId: FieldRef<"ImportacionInicialEstucheItem", 'String'>
+    readonly mercado: FieldRef<"ImportacionInicialEstucheItem", 'Mercado'>
+    readonly codigo: FieldRef<"ImportacionInicialEstucheItem", 'String'>
+    readonly sourceRow: FieldRef<"ImportacionInicialEstucheItem", 'Int'>
+    readonly cantidad: FieldRef<"ImportacionInicialEstucheItem", 'Int'>
+    readonly createdAt: FieldRef<"ImportacionInicialEstucheItem", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ImportacionInicialEstucheItem findUnique
+   */
+  export type ImportacionInicialEstucheItemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheItem to fetch.
+     */
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheItem findUniqueOrThrow
+   */
+  export type ImportacionInicialEstucheItemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheItem to fetch.
+     */
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheItem findFirst
+   */
+  export type ImportacionInicialEstucheItemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheItem to fetch.
+     */
+    where?: ImportacionInicialEstucheItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheItems to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheItemOrderByWithRelationInput | ImportacionInicialEstucheItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportacionInicialEstucheItems.
+     */
+    cursor?: ImportacionInicialEstucheItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheItems.
+     */
+    distinct?: ImportacionInicialEstucheItemScalarFieldEnum | ImportacionInicialEstucheItemScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheItem findFirstOrThrow
+   */
+  export type ImportacionInicialEstucheItemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheItem to fetch.
+     */
+    where?: ImportacionInicialEstucheItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheItems to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheItemOrderByWithRelationInput | ImportacionInicialEstucheItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportacionInicialEstucheItems.
+     */
+    cursor?: ImportacionInicialEstucheItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheItems.
+     */
+    distinct?: ImportacionInicialEstucheItemScalarFieldEnum | ImportacionInicialEstucheItemScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheItem findMany
+   */
+  export type ImportacionInicialEstucheItemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportacionInicialEstucheItems to fetch.
+     */
+    where?: ImportacionInicialEstucheItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportacionInicialEstucheItems to fetch.
+     */
+    orderBy?: ImportacionInicialEstucheItemOrderByWithRelationInput | ImportacionInicialEstucheItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ImportacionInicialEstucheItems.
+     */
+    cursor?: ImportacionInicialEstucheItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportacionInicialEstucheItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportacionInicialEstucheItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportacionInicialEstucheItems.
+     */
+    distinct?: ImportacionInicialEstucheItemScalarFieldEnum | ImportacionInicialEstucheItemScalarFieldEnum[]
+  }
+
+  /**
+   * ImportacionInicialEstucheItem create
+   */
+  export type ImportacionInicialEstucheItemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ImportacionInicialEstucheItem.
+     */
+    data: XOR<ImportacionInicialEstucheItemCreateInput, ImportacionInicialEstucheItemUncheckedCreateInput>
+  }
+
+  /**
+   * ImportacionInicialEstucheItem createMany
+   */
+  export type ImportacionInicialEstucheItemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ImportacionInicialEstucheItems.
+     */
+    data: ImportacionInicialEstucheItemCreateManyInput | ImportacionInicialEstucheItemCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportacionInicialEstucheItem createManyAndReturn
+   */
+  export type ImportacionInicialEstucheItemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * The data used to create many ImportacionInicialEstucheItems.
+     */
+    data: ImportacionInicialEstucheItemCreateManyInput | ImportacionInicialEstucheItemCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportacionInicialEstucheItem update
+   */
+  export type ImportacionInicialEstucheItemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ImportacionInicialEstucheItem.
+     */
+    data: XOR<ImportacionInicialEstucheItemUpdateInput, ImportacionInicialEstucheItemUncheckedUpdateInput>
+    /**
+     * Choose, which ImportacionInicialEstucheItem to update.
+     */
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheItem updateMany
+   */
+  export type ImportacionInicialEstucheItemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ImportacionInicialEstucheItems.
+     */
+    data: XOR<ImportacionInicialEstucheItemUpdateManyMutationInput, ImportacionInicialEstucheItemUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportacionInicialEstucheItems to update
+     */
+    where?: ImportacionInicialEstucheItemWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheItems to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportacionInicialEstucheItem updateManyAndReturn
+   */
+  export type ImportacionInicialEstucheItemUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * The data used to update ImportacionInicialEstucheItems.
+     */
+    data: XOR<ImportacionInicialEstucheItemUpdateManyMutationInput, ImportacionInicialEstucheItemUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportacionInicialEstucheItems to update
+     */
+    where?: ImportacionInicialEstucheItemWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheItems to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportacionInicialEstucheItem upsert
+   */
+  export type ImportacionInicialEstucheItemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ImportacionInicialEstucheItem to update in case it exists.
+     */
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    /**
+     * In case the ImportacionInicialEstucheItem found by the `where` argument doesn't exist, create a new ImportacionInicialEstucheItem with this data.
+     */
+    create: XOR<ImportacionInicialEstucheItemCreateInput, ImportacionInicialEstucheItemUncheckedCreateInput>
+    /**
+     * In case the ImportacionInicialEstucheItem was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ImportacionInicialEstucheItemUpdateInput, ImportacionInicialEstucheItemUncheckedUpdateInput>
+  }
+
+  /**
+   * ImportacionInicialEstucheItem delete
+   */
+  export type ImportacionInicialEstucheItemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
+    /**
+     * Filter which ImportacionInicialEstucheItem to delete.
+     */
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+  }
+
+  /**
+   * ImportacionInicialEstucheItem deleteMany
+   */
+  export type ImportacionInicialEstucheItemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportacionInicialEstucheItems to delete
+     */
+    where?: ImportacionInicialEstucheItemWhereInput
+    /**
+     * Limit how many ImportacionInicialEstucheItems to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportacionInicialEstucheItem.movimiento
+   */
+  export type ImportacionInicialEstucheItem$movimientoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Movimiento
+     */
+    select?: MovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Movimiento
+     */
+    omit?: MovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: MovimientoInclude<ExtArgs> | null
+    where?: MovimientoWhereInput
+  }
+
+  /**
+   * ImportacionInicialEstucheItem without action
+   */
+  export type ImportacionInicialEstucheItemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportacionInicialEstucheItem
+     */
+    select?: ImportacionInicialEstucheItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportacionInicialEstucheItem
+     */
+    omit?: ImportacionInicialEstucheItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportacionInicialEstucheItemInclude<ExtArgs> | null
   }
 
 
@@ -34628,6 +39654,9 @@ export namespace Prisma {
     cantidad: 'cantidad',
     referenciaId: 'referenciaId',
     referenciaTipo: 'referenciaTipo',
+    productoId: 'productoId',
+    fechaEfectiva: 'fechaEfectiva',
+    importacionInicialEstucheItemId: 'importacionInicialEstucheItemId',
     justificacion: 'justificacion',
     createdBy: 'createdBy',
     createdAt: 'createdAt'
@@ -34693,6 +39722,53 @@ export namespace Prisma {
   };
 
   export type DepositoProductoScalarFieldEnum = (typeof DepositoProductoScalarFieldEnum)[keyof typeof DepositoProductoScalarFieldEnum]
+
+
+  export const SecuenciaCodigoEstucheScalarFieldEnum: {
+    mercado: 'mercado',
+    ultimo: 'ultimo'
+  };
+
+  export type SecuenciaCodigoEstucheScalarFieldEnum = (typeof SecuenciaCodigoEstucheScalarFieldEnum)[keyof typeof SecuenciaCodigoEstucheScalarFieldEnum]
+
+
+  export const ImportacionInicialEstucheBatchScalarFieldEnum: {
+    id: 'id',
+    idempotencyKey: 'idempotencyKey',
+    checksum: 'checksum',
+    actorId: 'actorId',
+    effectiveDate: 'effectiveDate',
+    result: 'result',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ImportacionInicialEstucheBatchScalarFieldEnum = (typeof ImportacionInicialEstucheBatchScalarFieldEnum)[keyof typeof ImportacionInicialEstucheBatchScalarFieldEnum]
+
+
+  export const ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum: {
+    id: 'id',
+    idempotencyKey: 'idempotencyKey',
+    batchId: 'batchId',
+    createdAt: 'createdAt'
+  };
+
+  export type ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum = (typeof ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum)[keyof typeof ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum]
+
+
+  export const ImportacionInicialEstucheItemScalarFieldEnum: {
+    id: 'id',
+    batchId: 'batchId',
+    productoId: 'productoId',
+    inventarioEstucheId: 'inventarioEstucheId',
+    mercado: 'mercado',
+    codigo: 'codigo',
+    sourceRow: 'sourceRow',
+    cantidad: 'cantidad',
+    createdAt: 'createdAt'
+  };
+
+  export type ImportacionInicialEstucheItemScalarFieldEnum = (typeof ImportacionInicialEstucheItemScalarFieldEnum)[keyof typeof ImportacionInicialEstucheItemScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -36292,6 +41368,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionListRelationFilter
     ordenesComoAprobador?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -36308,6 +41385,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionOrderByRelationAggregateInput
     ordenesComoAprobador?: OrdenProduccionOrderByRelationAggregateInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoOrderByRelationAggregateInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -36327,6 +41405,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionListRelationFilter
     ordenesComoAprobador?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchListRelationFilter
   }, "id" | "email" | "platformUserId">
 
   export type UserOrderByWithAggregationInput = {
@@ -36681,6 +41760,7 @@ export namespace Prisma {
     cantidad?: IntFilter<"InventarioEstuche"> | number
     updatedAt?: DateTimeFilter<"InventarioEstuche"> | Date | string
     producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
+    importacionInicialItem?: XOR<ImportacionInicialEstucheItemNullableScalarRelationFilter, ImportacionInicialEstucheItemWhereInput> | null
   }
 
   export type InventarioEstucheOrderByWithRelationInput = {
@@ -36691,6 +41771,7 @@ export namespace Prisma {
     cantidad?: SortOrder
     updatedAt?: SortOrder
     producto?: DepositoProductoOrderByWithRelationInput
+    importacionInicialItem?: ImportacionInicialEstucheItemOrderByWithRelationInput
   }
 
   export type InventarioEstucheWhereUniqueInput = Prisma.AtLeast<{
@@ -36706,6 +41787,7 @@ export namespace Prisma {
     cantidad?: IntFilter<"InventarioEstuche"> | number
     updatedAt?: DateTimeFilter<"InventarioEstuche"> | Date | string
     producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
+    importacionInicialItem?: XOR<ImportacionInicialEstucheItemNullableScalarRelationFilter, ImportacionInicialEstucheItemWhereInput> | null
   }, "id" | "articulo_mercado" | "productoId_mercado">
 
   export type InventarioEstucheOrderByWithAggregationInput = {
@@ -36877,10 +41959,15 @@ export namespace Prisma {
     cantidad?: IntFilter<"Movimiento"> | number
     referenciaId?: StringNullableFilter<"Movimiento"> | string | null
     referenciaTipo?: EnumRefTipoNullableFilter<"Movimiento"> | $Enums.RefTipo | null
+    productoId?: StringNullableFilter<"Movimiento"> | string | null
+    fechaEfectiva?: DateTimeNullableFilter<"Movimiento"> | Date | string | null
+    importacionInicialEstucheItemId?: StringNullableFilter<"Movimiento"> | string | null
     justificacion?: StringNullableFilter<"Movimiento"> | string | null
     createdBy?: StringFilter<"Movimiento"> | string
     createdAt?: DateTimeFilter<"Movimiento"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
+    importacionInicialEstucheItem?: XOR<ImportacionInicialEstucheItemNullableScalarRelationFilter, ImportacionInicialEstucheItemWhereInput> | null
   }
 
   export type MovimientoOrderByWithRelationInput = {
@@ -36892,14 +41979,20 @@ export namespace Prisma {
     cantidad?: SortOrder
     referenciaId?: SortOrderInput | SortOrder
     referenciaTipo?: SortOrderInput | SortOrder
+    productoId?: SortOrderInput | SortOrder
+    fechaEfectiva?: SortOrderInput | SortOrder
+    importacionInicialEstucheItemId?: SortOrderInput | SortOrder
     justificacion?: SortOrderInput | SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
     user?: UserOrderByWithRelationInput
+    producto?: DepositoProductoOrderByWithRelationInput
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemOrderByWithRelationInput
   }
 
   export type MovimientoWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    importacionInicialEstucheItemId?: string
     AND?: MovimientoWhereInput | MovimientoWhereInput[]
     OR?: MovimientoWhereInput[]
     NOT?: MovimientoWhereInput | MovimientoWhereInput[]
@@ -36910,11 +42003,15 @@ export namespace Prisma {
     cantidad?: IntFilter<"Movimiento"> | number
     referenciaId?: StringNullableFilter<"Movimiento"> | string | null
     referenciaTipo?: EnumRefTipoNullableFilter<"Movimiento"> | $Enums.RefTipo | null
+    productoId?: StringNullableFilter<"Movimiento"> | string | null
+    fechaEfectiva?: DateTimeNullableFilter<"Movimiento"> | Date | string | null
     justificacion?: StringNullableFilter<"Movimiento"> | string | null
     createdBy?: StringFilter<"Movimiento"> | string
     createdAt?: DateTimeFilter<"Movimiento"> | Date | string
     user?: XOR<UserScalarRelationFilter, UserWhereInput>
-  }, "id">
+    producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
+    importacionInicialEstucheItem?: XOR<ImportacionInicialEstucheItemNullableScalarRelationFilter, ImportacionInicialEstucheItemWhereInput> | null
+  }, "id" | "importacionInicialEstucheItemId">
 
   export type MovimientoOrderByWithAggregationInput = {
     id?: SortOrder
@@ -36925,6 +42022,9 @@ export namespace Prisma {
     cantidad?: SortOrder
     referenciaId?: SortOrderInput | SortOrder
     referenciaTipo?: SortOrderInput | SortOrder
+    productoId?: SortOrderInput | SortOrder
+    fechaEfectiva?: SortOrderInput | SortOrder
+    importacionInicialEstucheItemId?: SortOrderInput | SortOrder
     justificacion?: SortOrderInput | SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -36947,6 +42047,9 @@ export namespace Prisma {
     cantidad?: IntWithAggregatesFilter<"Movimiento"> | number
     referenciaId?: StringNullableWithAggregatesFilter<"Movimiento"> | string | null
     referenciaTipo?: EnumRefTipoNullableWithAggregatesFilter<"Movimiento"> | $Enums.RefTipo | null
+    productoId?: StringNullableWithAggregatesFilter<"Movimiento"> | string | null
+    fechaEfectiva?: DateTimeNullableWithAggregatesFilter<"Movimiento"> | Date | string | null
+    importacionInicialEstucheItemId?: StringNullableWithAggregatesFilter<"Movimiento"> | string | null
     justificacion?: StringNullableWithAggregatesFilter<"Movimiento"> | string | null
     createdBy?: StringWithAggregatesFilter<"Movimiento"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Movimiento"> | Date | string
@@ -37178,6 +42281,8 @@ export namespace Prisma {
     actaItems?: ActaItemListRelationFilter
     ordenes?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
+    movimientos?: MovimientoListRelationFilter
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemListRelationFilter
   }
 
   export type DepositoProductoOrderByWithRelationInput = {
@@ -37203,6 +42308,8 @@ export namespace Prisma {
     actaItems?: ActaItemOrderByRelationAggregateInput
     ordenes?: OrdenProduccionOrderByRelationAggregateInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoOrderByRelationAggregateInput
+    movimientos?: MovimientoOrderByRelationAggregateInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemOrderByRelationAggregateInput
   }
 
   export type DepositoProductoWhereUniqueInput = Prisma.AtLeast<{
@@ -37232,6 +42339,8 @@ export namespace Prisma {
     actaItems?: ActaItemListRelationFilter
     ordenes?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
+    movimientos?: MovimientoListRelationFilter
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemListRelationFilter
   }, "id" | "codigo" | "nombreCompleto_categoria">
 
   export type DepositoProductoOrderByWithAggregationInput = {
@@ -37276,6 +42385,258 @@ export namespace Prisma {
     mercadosHabilitados?: EnumMercadoNullableListFilter<"DepositoProducto">
     createdAt?: DateTimeWithAggregatesFilter<"DepositoProducto"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DepositoProducto"> | Date | string
+  }
+
+  export type SecuenciaCodigoEstucheWhereInput = {
+    AND?: SecuenciaCodigoEstucheWhereInput | SecuenciaCodigoEstucheWhereInput[]
+    OR?: SecuenciaCodigoEstucheWhereInput[]
+    NOT?: SecuenciaCodigoEstucheWhereInput | SecuenciaCodigoEstucheWhereInput[]
+    mercado?: EnumMercadoFilter<"SecuenciaCodigoEstuche"> | $Enums.Mercado
+    ultimo?: IntFilter<"SecuenciaCodigoEstuche"> | number
+  }
+
+  export type SecuenciaCodigoEstucheOrderByWithRelationInput = {
+    mercado?: SortOrder
+    ultimo?: SortOrder
+  }
+
+  export type SecuenciaCodigoEstucheWhereUniqueInput = Prisma.AtLeast<{
+    mercado?: $Enums.Mercado
+    AND?: SecuenciaCodigoEstucheWhereInput | SecuenciaCodigoEstucheWhereInput[]
+    OR?: SecuenciaCodigoEstucheWhereInput[]
+    NOT?: SecuenciaCodigoEstucheWhereInput | SecuenciaCodigoEstucheWhereInput[]
+    ultimo?: IntFilter<"SecuenciaCodigoEstuche"> | number
+  }, "mercado">
+
+  export type SecuenciaCodigoEstucheOrderByWithAggregationInput = {
+    mercado?: SortOrder
+    ultimo?: SortOrder
+    _count?: SecuenciaCodigoEstucheCountOrderByAggregateInput
+    _avg?: SecuenciaCodigoEstucheAvgOrderByAggregateInput
+    _max?: SecuenciaCodigoEstucheMaxOrderByAggregateInput
+    _min?: SecuenciaCodigoEstucheMinOrderByAggregateInput
+    _sum?: SecuenciaCodigoEstucheSumOrderByAggregateInput
+  }
+
+  export type SecuenciaCodigoEstucheScalarWhereWithAggregatesInput = {
+    AND?: SecuenciaCodigoEstucheScalarWhereWithAggregatesInput | SecuenciaCodigoEstucheScalarWhereWithAggregatesInput[]
+    OR?: SecuenciaCodigoEstucheScalarWhereWithAggregatesInput[]
+    NOT?: SecuenciaCodigoEstucheScalarWhereWithAggregatesInput | SecuenciaCodigoEstucheScalarWhereWithAggregatesInput[]
+    mercado?: EnumMercadoWithAggregatesFilter<"SecuenciaCodigoEstuche"> | $Enums.Mercado
+    ultimo?: IntWithAggregatesFilter<"SecuenciaCodigoEstuche"> | number
+  }
+
+  export type ImportacionInicialEstucheBatchWhereInput = {
+    AND?: ImportacionInicialEstucheBatchWhereInput | ImportacionInicialEstucheBatchWhereInput[]
+    OR?: ImportacionInicialEstucheBatchWhereInput[]
+    NOT?: ImportacionInicialEstucheBatchWhereInput | ImportacionInicialEstucheBatchWhereInput[]
+    id?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    idempotencyKey?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    checksum?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    actorId?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    effectiveDate?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    result?: JsonNullableFilter<"ImportacionInicialEstucheBatch">
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    actor?: XOR<UserScalarRelationFilter, UserWhereInput>
+    items?: ImportacionInicialEstucheItemListRelationFilter
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyListRelationFilter
+  }
+
+  export type ImportacionInicialEstucheBatchOrderByWithRelationInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    checksum?: SortOrder
+    actorId?: SortOrder
+    effectiveDate?: SortOrder
+    result?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    actor?: UserOrderByWithRelationInput
+    items?: ImportacionInicialEstucheItemOrderByRelationAggregateInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyOrderByRelationAggregateInput
+  }
+
+  export type ImportacionInicialEstucheBatchWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    checksum?: string
+    AND?: ImportacionInicialEstucheBatchWhereInput | ImportacionInicialEstucheBatchWhereInput[]
+    OR?: ImportacionInicialEstucheBatchWhereInput[]
+    NOT?: ImportacionInicialEstucheBatchWhereInput | ImportacionInicialEstucheBatchWhereInput[]
+    actorId?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    effectiveDate?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    result?: JsonNullableFilter<"ImportacionInicialEstucheBatch">
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    actor?: XOR<UserScalarRelationFilter, UserWhereInput>
+    items?: ImportacionInicialEstucheItemListRelationFilter
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyListRelationFilter
+  }, "id" | "idempotencyKey" | "checksum">
+
+  export type ImportacionInicialEstucheBatchOrderByWithAggregationInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    checksum?: SortOrder
+    actorId?: SortOrder
+    effectiveDate?: SortOrder
+    result?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ImportacionInicialEstucheBatchCountOrderByAggregateInput
+    _max?: ImportacionInicialEstucheBatchMaxOrderByAggregateInput
+    _min?: ImportacionInicialEstucheBatchMinOrderByAggregateInput
+  }
+
+  export type ImportacionInicialEstucheBatchScalarWhereWithAggregatesInput = {
+    AND?: ImportacionInicialEstucheBatchScalarWhereWithAggregatesInput | ImportacionInicialEstucheBatchScalarWhereWithAggregatesInput[]
+    OR?: ImportacionInicialEstucheBatchScalarWhereWithAggregatesInput[]
+    NOT?: ImportacionInicialEstucheBatchScalarWhereWithAggregatesInput | ImportacionInicialEstucheBatchScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ImportacionInicialEstucheBatch"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"ImportacionInicialEstucheBatch"> | string
+    checksum?: StringWithAggregatesFilter<"ImportacionInicialEstucheBatch"> | string
+    actorId?: StringWithAggregatesFilter<"ImportacionInicialEstucheBatch"> | string
+    effectiveDate?: DateTimeWithAggregatesFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    result?: JsonNullableWithAggregatesFilter<"ImportacionInicialEstucheBatch">
+    createdAt?: DateTimeWithAggregatesFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ImportacionInicialEstucheBatch"> | Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyWhereInput = {
+    AND?: ImportacionInicialEstucheIdempotencyKeyWhereInput | ImportacionInicialEstucheIdempotencyKeyWhereInput[]
+    OR?: ImportacionInicialEstucheIdempotencyKeyWhereInput[]
+    NOT?: ImportacionInicialEstucheIdempotencyKeyWhereInput | ImportacionInicialEstucheIdempotencyKeyWhereInput[]
+    id?: StringFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    idempotencyKey?: StringFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    batchId?: StringFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheIdempotencyKey"> | Date | string
+    batch?: XOR<ImportacionInicialEstucheBatchScalarRelationFilter, ImportacionInicialEstucheBatchWhereInput>
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyOrderByWithRelationInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    batchId?: SortOrder
+    createdAt?: SortOrder
+    batch?: ImportacionInicialEstucheBatchOrderByWithRelationInput
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    AND?: ImportacionInicialEstucheIdempotencyKeyWhereInput | ImportacionInicialEstucheIdempotencyKeyWhereInput[]
+    OR?: ImportacionInicialEstucheIdempotencyKeyWhereInput[]
+    NOT?: ImportacionInicialEstucheIdempotencyKeyWhereInput | ImportacionInicialEstucheIdempotencyKeyWhereInput[]
+    batchId?: StringFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheIdempotencyKey"> | Date | string
+    batch?: XOR<ImportacionInicialEstucheBatchScalarRelationFilter, ImportacionInicialEstucheBatchWhereInput>
+  }, "id" | "idempotencyKey">
+
+  export type ImportacionInicialEstucheIdempotencyKeyOrderByWithAggregationInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    batchId?: SortOrder
+    createdAt?: SortOrder
+    _count?: ImportacionInicialEstucheIdempotencyKeyCountOrderByAggregateInput
+    _max?: ImportacionInicialEstucheIdempotencyKeyMaxOrderByAggregateInput
+    _min?: ImportacionInicialEstucheIdempotencyKeyMinOrderByAggregateInput
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyScalarWhereWithAggregatesInput = {
+    AND?: ImportacionInicialEstucheIdempotencyKeyScalarWhereWithAggregatesInput | ImportacionInicialEstucheIdempotencyKeyScalarWhereWithAggregatesInput[]
+    OR?: ImportacionInicialEstucheIdempotencyKeyScalarWhereWithAggregatesInput[]
+    NOT?: ImportacionInicialEstucheIdempotencyKeyScalarWhereWithAggregatesInput | ImportacionInicialEstucheIdempotencyKeyScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    batchId?: StringWithAggregatesFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"ImportacionInicialEstucheIdempotencyKey"> | Date | string
+  }
+
+  export type ImportacionInicialEstucheItemWhereInput = {
+    AND?: ImportacionInicialEstucheItemWhereInput | ImportacionInicialEstucheItemWhereInput[]
+    OR?: ImportacionInicialEstucheItemWhereInput[]
+    NOT?: ImportacionInicialEstucheItemWhereInput | ImportacionInicialEstucheItemWhereInput[]
+    id?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    batchId?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    productoId?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    inventarioEstucheId?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    mercado?: EnumMercadoFilter<"ImportacionInicialEstucheItem"> | $Enums.Mercado
+    codigo?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    sourceRow?: IntFilter<"ImportacionInicialEstucheItem"> | number
+    cantidad?: IntFilter<"ImportacionInicialEstucheItem"> | number
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheItem"> | Date | string
+    batch?: XOR<ImportacionInicialEstucheBatchScalarRelationFilter, ImportacionInicialEstucheBatchWhereInput>
+    producto?: XOR<DepositoProductoScalarRelationFilter, DepositoProductoWhereInput>
+    inventario?: XOR<InventarioEstucheScalarRelationFilter, InventarioEstucheWhereInput>
+    movimiento?: XOR<MovimientoNullableScalarRelationFilter, MovimientoWhereInput> | null
+  }
+
+  export type ImportacionInicialEstucheItemOrderByWithRelationInput = {
+    id?: SortOrder
+    batchId?: SortOrder
+    productoId?: SortOrder
+    inventarioEstucheId?: SortOrder
+    mercado?: SortOrder
+    codigo?: SortOrder
+    sourceRow?: SortOrder
+    cantidad?: SortOrder
+    createdAt?: SortOrder
+    batch?: ImportacionInicialEstucheBatchOrderByWithRelationInput
+    producto?: DepositoProductoOrderByWithRelationInput
+    inventario?: InventarioEstucheOrderByWithRelationInput
+    movimiento?: MovimientoOrderByWithRelationInput
+  }
+
+  export type ImportacionInicialEstucheItemWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    productoId?: string
+    inventarioEstucheId?: string
+    batchId_sourceRow?: ImportacionInicialEstucheItemBatchIdSourceRowCompoundUniqueInput
+    AND?: ImportacionInicialEstucheItemWhereInput | ImportacionInicialEstucheItemWhereInput[]
+    OR?: ImportacionInicialEstucheItemWhereInput[]
+    NOT?: ImportacionInicialEstucheItemWhereInput | ImportacionInicialEstucheItemWhereInput[]
+    batchId?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    mercado?: EnumMercadoFilter<"ImportacionInicialEstucheItem"> | $Enums.Mercado
+    codigo?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    sourceRow?: IntFilter<"ImportacionInicialEstucheItem"> | number
+    cantidad?: IntFilter<"ImportacionInicialEstucheItem"> | number
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheItem"> | Date | string
+    batch?: XOR<ImportacionInicialEstucheBatchScalarRelationFilter, ImportacionInicialEstucheBatchWhereInput>
+    producto?: XOR<DepositoProductoScalarRelationFilter, DepositoProductoWhereInput>
+    inventario?: XOR<InventarioEstucheScalarRelationFilter, InventarioEstucheWhereInput>
+    movimiento?: XOR<MovimientoNullableScalarRelationFilter, MovimientoWhereInput> | null
+  }, "id" | "productoId" | "inventarioEstucheId" | "batchId_sourceRow">
+
+  export type ImportacionInicialEstucheItemOrderByWithAggregationInput = {
+    id?: SortOrder
+    batchId?: SortOrder
+    productoId?: SortOrder
+    inventarioEstucheId?: SortOrder
+    mercado?: SortOrder
+    codigo?: SortOrder
+    sourceRow?: SortOrder
+    cantidad?: SortOrder
+    createdAt?: SortOrder
+    _count?: ImportacionInicialEstucheItemCountOrderByAggregateInput
+    _avg?: ImportacionInicialEstucheItemAvgOrderByAggregateInput
+    _max?: ImportacionInicialEstucheItemMaxOrderByAggregateInput
+    _min?: ImportacionInicialEstucheItemMinOrderByAggregateInput
+    _sum?: ImportacionInicialEstucheItemSumOrderByAggregateInput
+  }
+
+  export type ImportacionInicialEstucheItemScalarWhereWithAggregatesInput = {
+    AND?: ImportacionInicialEstucheItemScalarWhereWithAggregatesInput | ImportacionInicialEstucheItemScalarWhereWithAggregatesInput[]
+    OR?: ImportacionInicialEstucheItemScalarWhereWithAggregatesInput[]
+    NOT?: ImportacionInicialEstucheItemScalarWhereWithAggregatesInput | ImportacionInicialEstucheItemScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ImportacionInicialEstucheItem"> | string
+    batchId?: StringWithAggregatesFilter<"ImportacionInicialEstucheItem"> | string
+    productoId?: StringWithAggregatesFilter<"ImportacionInicialEstucheItem"> | string
+    inventarioEstucheId?: StringWithAggregatesFilter<"ImportacionInicialEstucheItem"> | string
+    mercado?: EnumMercadoWithAggregatesFilter<"ImportacionInicialEstucheItem"> | $Enums.Mercado
+    codigo?: StringWithAggregatesFilter<"ImportacionInicialEstucheItem"> | string
+    sourceRow?: IntWithAggregatesFilter<"ImportacionInicialEstucheItem"> | number
+    cantidad?: IntWithAggregatesFilter<"ImportacionInicialEstucheItem"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"ImportacionInicialEstucheItem"> | Date | string
   }
 
   export type PlatformUserCreateInput = {
@@ -38585,6 +43946,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -38601,6 +43963,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserUpdateInput = {
@@ -38617,6 +43980,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -38633,6 +43997,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -39006,6 +44371,7 @@ export namespace Prisma {
     cantidad?: number
     updatedAt?: Date | string
     producto?: DepositoProductoCreateNestedOneWithoutInventarioEstuchesInput
+    importacionInicialItem?: ImportacionInicialEstucheItemCreateNestedOneWithoutInventarioInput
   }
 
   export type InventarioEstucheUncheckedCreateInput = {
@@ -39015,6 +44381,7 @@ export namespace Prisma {
     mercado: $Enums.Mercado
     cantidad?: number
     updatedAt?: Date | string
+    importacionInicialItem?: ImportacionInicialEstucheItemUncheckedCreateNestedOneWithoutInventarioInput
   }
 
   export type InventarioEstucheUpdateInput = {
@@ -39024,6 +44391,7 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     producto?: DepositoProductoUpdateOneWithoutInventarioEstuchesNestedInput
+    importacionInicialItem?: ImportacionInicialEstucheItemUpdateOneWithoutInventarioNestedInput
   }
 
   export type InventarioEstucheUncheckedUpdateInput = {
@@ -39033,6 +44401,7 @@ export namespace Prisma {
     mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
     cantidad?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    importacionInicialItem?: ImportacionInicialEstucheItemUncheckedUpdateOneWithoutInventarioNestedInput
   }
 
   export type InventarioEstucheCreateManyInput = {
@@ -39201,9 +44570,12 @@ export namespace Prisma {
     cantidad: number
     referenciaId?: string | null
     referenciaTipo?: $Enums.RefTipo | null
+    fechaEfectiva?: Date | string | null
     justificacion?: string | null
     createdAt?: Date | string
     user: UserCreateNestedOneWithoutMovimientosInput
+    producto?: DepositoProductoCreateNestedOneWithoutMovimientosInput
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemCreateNestedOneWithoutMovimientoInput
   }
 
   export type MovimientoUncheckedCreateInput = {
@@ -39215,6 +44587,9 @@ export namespace Prisma {
     cantidad: number
     referenciaId?: string | null
     referenciaTipo?: $Enums.RefTipo | null
+    productoId?: string | null
+    fechaEfectiva?: Date | string | null
+    importacionInicialEstucheItemId?: string | null
     justificacion?: string | null
     createdBy: string
     createdAt?: Date | string
@@ -39229,9 +44604,12 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
     referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutMovimientosNestedInput
+    producto?: DepositoProductoUpdateOneWithoutMovimientosNestedInput
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemUpdateOneWithoutMovimientoNestedInput
   }
 
   export type MovimientoUncheckedUpdateInput = {
@@ -39243,6 +44621,9 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
     referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    importacionInicialEstucheItemId?: NullableStringFieldUpdateOperationsInput | string | null
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -39257,6 +44638,9 @@ export namespace Prisma {
     cantidad: number
     referenciaId?: string | null
     referenciaTipo?: $Enums.RefTipo | null
+    productoId?: string | null
+    fechaEfectiva?: Date | string | null
+    importacionInicialEstucheItemId?: string | null
     justificacion?: string | null
     createdBy: string
     createdAt?: Date | string
@@ -39271,6 +44655,7 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
     referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -39284,6 +44669,9 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
     referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    importacionInicialEstucheItemId?: NullableStringFieldUpdateOperationsInput | string | null
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -39532,6 +44920,8 @@ export namespace Prisma {
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateInput = {
@@ -39557,6 +44947,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUpdateInput = {
@@ -39582,6 +44974,8 @@ export namespace Prisma {
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateInput = {
@@ -39607,6 +45001,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateManyInput = {
@@ -39661,6 +45057,258 @@ export namespace Prisma {
     mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SecuenciaCodigoEstucheCreateInput = {
+    mercado: $Enums.Mercado
+    ultimo?: number
+  }
+
+  export type SecuenciaCodigoEstucheUncheckedCreateInput = {
+    mercado: $Enums.Mercado
+    ultimo?: number
+  }
+
+  export type SecuenciaCodigoEstucheUpdateInput = {
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    ultimo?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type SecuenciaCodigoEstucheUncheckedUpdateInput = {
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    ultimo?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type SecuenciaCodigoEstucheCreateManyInput = {
+    mercado: $Enums.Mercado
+    ultimo?: number
+  }
+
+  export type SecuenciaCodigoEstucheUpdateManyMutationInput = {
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    ultimo?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type SecuenciaCodigoEstucheUncheckedUpdateManyInput = {
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    ultimo?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type ImportacionInicialEstucheBatchCreateInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    actor: UserCreateNestedOneWithoutImportacionesInicialesEstucheInput
+    items?: ImportacionInicialEstucheItemCreateNestedManyWithoutBatchInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedCreateInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    actorId: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutBatchInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUncheckedCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actor?: UserUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput
+    items?: ImportacionInicialEstucheItemUpdateManyWithoutBatchNestedInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUpdateManyWithoutBatchNestedInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    actorId?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutBatchNestedInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyWithoutBatchNestedInput
+  }
+
+  export type ImportacionInicialEstucheBatchCreateManyInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    actorId: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    actorId?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCreateInput = {
+    id?: string
+    idempotencyKey: string
+    createdAt?: Date | string
+    batch: ImportacionInicialEstucheBatchCreateNestedOneWithoutIdempotencyKeysInput
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedCreateInput = {
+    id?: string
+    idempotencyKey: string
+    batchId: string
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    batch?: ImportacionInicialEstucheBatchUpdateOneRequiredWithoutIdempotencyKeysNestedInput
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCreateManyInput = {
+    id?: string
+    idempotencyKey: string
+    batchId: string
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheItemCreateInput = {
+    id?: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    batch: ImportacionInicialEstucheBatchCreateNestedOneWithoutItemsInput
+    producto: DepositoProductoCreateNestedOneWithoutImportacionesInicialesEstucheInput
+    inventario: InventarioEstucheCreateNestedOneWithoutImportacionInicialItemInput
+    movimiento?: MovimientoCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateInput = {
+    id?: string
+    batchId: string
+    productoId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    movimiento?: MovimientoUncheckedCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    batch?: ImportacionInicialEstucheBatchUpdateOneRequiredWithoutItemsNestedInput
+    producto?: DepositoProductoUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput
+    inventario?: InventarioEstucheUpdateOneRequiredWithoutImportacionInicialItemNestedInput
+    movimiento?: MovimientoUpdateOneWithoutImportacionInicialEstucheItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    inventarioEstucheId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimiento?: MovimientoUncheckedUpdateOneWithoutImportacionInicialEstucheItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemCreateManyInput = {
+    id?: string
+    batchId: string
+    productoId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheItemUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    inventarioEstucheId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -40822,6 +46470,12 @@ export namespace Prisma {
     none?: AuditoriaCatalogoProductoWhereInput
   }
 
+  export type ImportacionInicialEstucheBatchListRelationFilter = {
+    every?: ImportacionInicialEstucheBatchWhereInput
+    some?: ImportacionInicialEstucheBatchWhereInput
+    none?: ImportacionInicialEstucheBatchWhereInput
+  }
+
   export type ActaOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -40839,6 +46493,10 @@ export namespace Prisma {
   }
 
   export type AuditoriaCatalogoProductoOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheBatchOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -41172,6 +46830,11 @@ export namespace Prisma {
     not?: NestedEnumMercadoFilter<$PrismaModel> | $Enums.Mercado
   }
 
+  export type ImportacionInicialEstucheItemNullableScalarRelationFilter = {
+    is?: ImportacionInicialEstucheItemWhereInput | null
+    isNot?: ImportacionInicialEstucheItemWhereInput | null
+  }
+
   export type InventarioEstucheArticuloMercadoCompoundUniqueInput = {
     articulo: string
     mercado: $Enums.Mercado
@@ -41337,6 +47000,9 @@ export namespace Prisma {
     cantidad?: SortOrder
     referenciaId?: SortOrder
     referenciaTipo?: SortOrder
+    productoId?: SortOrder
+    fechaEfectiva?: SortOrder
+    importacionInicialEstucheItemId?: SortOrder
     justificacion?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -41355,6 +47021,9 @@ export namespace Prisma {
     cantidad?: SortOrder
     referenciaId?: SortOrder
     referenciaTipo?: SortOrder
+    productoId?: SortOrder
+    fechaEfectiva?: SortOrder
+    importacionInicialEstucheItemId?: SortOrder
     justificacion?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -41369,6 +47038,9 @@ export namespace Prisma {
     cantidad?: SortOrder
     referenciaId?: SortOrder
     referenciaTipo?: SortOrder
+    productoId?: SortOrder
+    fechaEfectiva?: SortOrder
+    importacionInicialEstucheItemId?: SortOrder
     justificacion?: SortOrder
     createdBy?: SortOrder
     createdAt?: SortOrder
@@ -41623,6 +47295,12 @@ export namespace Prisma {
     none?: InventarioFrascoWhereInput
   }
 
+  export type ImportacionInicialEstucheItemListRelationFilter = {
+    every?: ImportacionInicialEstucheItemWhereInput
+    some?: ImportacionInicialEstucheItemWhereInput
+    none?: ImportacionInicialEstucheItemWhereInput
+  }
+
   export type InventarioDrogaOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -41636,6 +47314,10 @@ export namespace Prisma {
   }
 
   export type InventarioFrascoOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheItemOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -41740,6 +47422,157 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumOrigenProductoCatalogoFilter<$PrismaModel>
     _max?: NestedEnumOrigenProductoCatalogoFilter<$PrismaModel>
+  }
+
+  export type SecuenciaCodigoEstucheCountOrderByAggregateInput = {
+    mercado?: SortOrder
+    ultimo?: SortOrder
+  }
+
+  export type SecuenciaCodigoEstucheAvgOrderByAggregateInput = {
+    ultimo?: SortOrder
+  }
+
+  export type SecuenciaCodigoEstucheMaxOrderByAggregateInput = {
+    mercado?: SortOrder
+    ultimo?: SortOrder
+  }
+
+  export type SecuenciaCodigoEstucheMinOrderByAggregateInput = {
+    mercado?: SortOrder
+    ultimo?: SortOrder
+  }
+
+  export type SecuenciaCodigoEstucheSumOrderByAggregateInput = {
+    ultimo?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyListRelationFilter = {
+    every?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    some?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+    none?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheBatchCountOrderByAggregateInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    checksum?: SortOrder
+    actorId?: SortOrder
+    effectiveDate?: SortOrder
+    result?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheBatchMaxOrderByAggregateInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    checksum?: SortOrder
+    actorId?: SortOrder
+    effectiveDate?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheBatchMinOrderByAggregateInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    checksum?: SortOrder
+    actorId?: SortOrder
+    effectiveDate?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheBatchScalarRelationFilter = {
+    is?: ImportacionInicialEstucheBatchWhereInput
+    isNot?: ImportacionInicialEstucheBatchWhereInput
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCountOrderByAggregateInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    batchId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyMaxOrderByAggregateInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    batchId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyMinOrderByAggregateInput = {
+    id?: SortOrder
+    idempotencyKey?: SortOrder
+    batchId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type InventarioEstucheScalarRelationFilter = {
+    is?: InventarioEstucheWhereInput
+    isNot?: InventarioEstucheWhereInput
+  }
+
+  export type MovimientoNullableScalarRelationFilter = {
+    is?: MovimientoWhereInput | null
+    isNot?: MovimientoWhereInput | null
+  }
+
+  export type ImportacionInicialEstucheItemBatchIdSourceRowCompoundUniqueInput = {
+    batchId: string
+    sourceRow: number
+  }
+
+  export type ImportacionInicialEstucheItemCountOrderByAggregateInput = {
+    id?: SortOrder
+    batchId?: SortOrder
+    productoId?: SortOrder
+    inventarioEstucheId?: SortOrder
+    mercado?: SortOrder
+    codigo?: SortOrder
+    sourceRow?: SortOrder
+    cantidad?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheItemAvgOrderByAggregateInput = {
+    sourceRow?: SortOrder
+    cantidad?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheItemMaxOrderByAggregateInput = {
+    id?: SortOrder
+    batchId?: SortOrder
+    productoId?: SortOrder
+    inventarioEstucheId?: SortOrder
+    mercado?: SortOrder
+    codigo?: SortOrder
+    sourceRow?: SortOrder
+    cantidad?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheItemMinOrderByAggregateInput = {
+    id?: SortOrder
+    batchId?: SortOrder
+    productoId?: SortOrder
+    inventarioEstucheId?: SortOrder
+    mercado?: SortOrder
+    codigo?: SortOrder
+    sourceRow?: SortOrder
+    cantidad?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ImportacionInicialEstucheItemSumOrderByAggregateInput = {
+    sourceRow?: SortOrder
+    cantidad?: SortOrder
   }
 
   export type AppAccessCreateNestedManyWithoutUserInput = {
@@ -42468,6 +48301,13 @@ export namespace Prisma {
     connect?: AuditoriaCatalogoProductoWhereUniqueInput | AuditoriaCatalogoProductoWhereUniqueInput[]
   }
 
+  export type ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput> | ImportacionInicialEstucheBatchCreateWithoutActorInput[] | ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput | ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput[]
+    createMany?: ImportacionInicialEstucheBatchCreateManyActorInputEnvelope
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+  }
+
   export type ActaUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<ActaCreateWithoutUserInput, ActaUncheckedCreateWithoutUserInput> | ActaCreateWithoutUserInput[] | ActaUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ActaCreateOrConnectWithoutUserInput | ActaCreateOrConnectWithoutUserInput[]
@@ -42508,6 +48348,13 @@ export namespace Prisma {
     connectOrCreate?: AuditoriaCatalogoProductoCreateOrConnectWithoutUsuarioInput | AuditoriaCatalogoProductoCreateOrConnectWithoutUsuarioInput[]
     createMany?: AuditoriaCatalogoProductoCreateManyUsuarioInputEnvelope
     connect?: AuditoriaCatalogoProductoWhereUniqueInput | AuditoriaCatalogoProductoWhereUniqueInput[]
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput> | ImportacionInicialEstucheBatchCreateWithoutActorInput[] | ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput | ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput[]
+    createMany?: ImportacionInicialEstucheBatchCreateManyActorInputEnvelope
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
   }
 
   export type EnumRoleFieldUpdateOperationsInput = {
@@ -42598,6 +48445,20 @@ export namespace Prisma {
     deleteMany?: AuditoriaCatalogoProductoScalarWhereInput | AuditoriaCatalogoProductoScalarWhereInput[]
   }
 
+  export type ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput> | ImportacionInicialEstucheBatchCreateWithoutActorInput[] | ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput | ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput[]
+    upsert?: ImportacionInicialEstucheBatchUpsertWithWhereUniqueWithoutActorInput | ImportacionInicialEstucheBatchUpsertWithWhereUniqueWithoutActorInput[]
+    createMany?: ImportacionInicialEstucheBatchCreateManyActorInputEnvelope
+    set?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    update?: ImportacionInicialEstucheBatchUpdateWithWhereUniqueWithoutActorInput | ImportacionInicialEstucheBatchUpdateWithWhereUniqueWithoutActorInput[]
+    updateMany?: ImportacionInicialEstucheBatchUpdateManyWithWhereWithoutActorInput | ImportacionInicialEstucheBatchUpdateManyWithWhereWithoutActorInput[]
+    deleteMany?: ImportacionInicialEstucheBatchScalarWhereInput | ImportacionInicialEstucheBatchScalarWhereInput[]
+  }
+
   export type ActaUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<ActaCreateWithoutUserInput, ActaUncheckedCreateWithoutUserInput> | ActaCreateWithoutUserInput[] | ActaUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ActaCreateOrConnectWithoutUserInput | ActaCreateOrConnectWithoutUserInput[]
@@ -42680,6 +48541,20 @@ export namespace Prisma {
     update?: AuditoriaCatalogoProductoUpdateWithWhereUniqueWithoutUsuarioInput | AuditoriaCatalogoProductoUpdateWithWhereUniqueWithoutUsuarioInput[]
     updateMany?: AuditoriaCatalogoProductoUpdateManyWithWhereWithoutUsuarioInput | AuditoriaCatalogoProductoUpdateManyWithWhereWithoutUsuarioInput[]
     deleteMany?: AuditoriaCatalogoProductoScalarWhereInput | AuditoriaCatalogoProductoScalarWhereInput[]
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput> | ImportacionInicialEstucheBatchCreateWithoutActorInput[] | ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput | ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput[]
+    upsert?: ImportacionInicialEstucheBatchUpsertWithWhereUniqueWithoutActorInput | ImportacionInicialEstucheBatchUpsertWithWhereUniqueWithoutActorInput[]
+    createMany?: ImportacionInicialEstucheBatchCreateManyActorInputEnvelope
+    set?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+    update?: ImportacionInicialEstucheBatchUpdateWithWhereUniqueWithoutActorInput | ImportacionInicialEstucheBatchUpdateWithWhereUniqueWithoutActorInput[]
+    updateMany?: ImportacionInicialEstucheBatchUpdateManyWithWhereWithoutActorInput | ImportacionInicialEstucheBatchUpdateManyWithWhereWithoutActorInput[]
+    deleteMany?: ImportacionInicialEstucheBatchScalarWhereInput | ImportacionInicialEstucheBatchScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutActasInput = {
@@ -42838,6 +48713,18 @@ export namespace Prisma {
     connect?: DepositoProductoWhereUniqueInput
   }
 
+  export type ImportacionInicialEstucheItemCreateNestedOneWithoutInventarioInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedCreateWithoutInventarioInput>
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutInventarioInput
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateNestedOneWithoutInventarioInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedCreateWithoutInventarioInput>
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutInventarioInput
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput
+  }
+
   export type EnumMercadoFieldUpdateOperationsInput = {
     set?: $Enums.Mercado
   }
@@ -42850,6 +48737,26 @@ export namespace Prisma {
     delete?: DepositoProductoWhereInput | boolean
     connect?: DepositoProductoWhereUniqueInput
     update?: XOR<XOR<DepositoProductoUpdateToOneWithWhereWithoutInventarioEstuchesInput, DepositoProductoUpdateWithoutInventarioEstuchesInput>, DepositoProductoUncheckedUpdateWithoutInventarioEstuchesInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateOneWithoutInventarioNestedInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedCreateWithoutInventarioInput>
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutInventarioInput
+    upsert?: ImportacionInicialEstucheItemUpsertWithoutInventarioInput
+    disconnect?: ImportacionInicialEstucheItemWhereInput | boolean
+    delete?: ImportacionInicialEstucheItemWhereInput | boolean
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput
+    update?: XOR<XOR<ImportacionInicialEstucheItemUpdateToOneWithWhereWithoutInventarioInput, ImportacionInicialEstucheItemUpdateWithoutInventarioInput>, ImportacionInicialEstucheItemUncheckedUpdateWithoutInventarioInput>
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateOneWithoutInventarioNestedInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedCreateWithoutInventarioInput>
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutInventarioInput
+    upsert?: ImportacionInicialEstucheItemUpsertWithoutInventarioInput
+    disconnect?: ImportacionInicialEstucheItemWhereInput | boolean
+    delete?: ImportacionInicialEstucheItemWhereInput | boolean
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput
+    update?: XOR<XOR<ImportacionInicialEstucheItemUpdateToOneWithWhereWithoutInventarioInput, ImportacionInicialEstucheItemUpdateWithoutInventarioInput>, ImportacionInicialEstucheItemUncheckedUpdateWithoutInventarioInput>
   }
 
   export type DepositoProductoCreateNestedOneWithoutInventarioEtiquetasInput = {
@@ -42890,6 +48797,18 @@ export namespace Prisma {
     connect?: UserWhereUniqueInput
   }
 
+  export type DepositoProductoCreateNestedOneWithoutMovimientosInput = {
+    create?: XOR<DepositoProductoCreateWithoutMovimientosInput, DepositoProductoUncheckedCreateWithoutMovimientosInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutMovimientosInput
+    connect?: DepositoProductoWhereUniqueInput
+  }
+
+  export type ImportacionInicialEstucheItemCreateNestedOneWithoutMovimientoInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutMovimientoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutMovimientoInput>
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutMovimientoInput
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput
+  }
+
   export type EnumDepositoTipoMovimientoFieldUpdateOperationsInput = {
     set?: $Enums.DepositoTipoMovimiento
   }
@@ -42904,6 +48823,26 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutMovimientosInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutMovimientosInput, UserUpdateWithoutMovimientosInput>, UserUncheckedUpdateWithoutMovimientosInput>
+  }
+
+  export type DepositoProductoUpdateOneWithoutMovimientosNestedInput = {
+    create?: XOR<DepositoProductoCreateWithoutMovimientosInput, DepositoProductoUncheckedCreateWithoutMovimientosInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutMovimientosInput
+    upsert?: DepositoProductoUpsertWithoutMovimientosInput
+    disconnect?: DepositoProductoWhereInput | boolean
+    delete?: DepositoProductoWhereInput | boolean
+    connect?: DepositoProductoWhereUniqueInput
+    update?: XOR<XOR<DepositoProductoUpdateToOneWithWhereWithoutMovimientosInput, DepositoProductoUpdateWithoutMovimientosInput>, DepositoProductoUncheckedUpdateWithoutMovimientosInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateOneWithoutMovimientoNestedInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutMovimientoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutMovimientoInput>
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutMovimientoInput
+    upsert?: ImportacionInicialEstucheItemUpsertWithoutMovimientoInput
+    disconnect?: ImportacionInicialEstucheItemWhereInput | boolean
+    delete?: ImportacionInicialEstucheItemWhereInput | boolean
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput
+    update?: XOR<XOR<ImportacionInicialEstucheItemUpdateToOneWithWhereWithoutMovimientoInput, ImportacionInicialEstucheItemUpdateWithoutMovimientoInput>, ImportacionInicialEstucheItemUncheckedUpdateWithoutMovimientoInput>
   }
 
   export type UserCreateNestedOneWithoutInsumoPendientesInput = {
@@ -43031,6 +48970,20 @@ export namespace Prisma {
     connect?: AuditoriaCatalogoProductoWhereUniqueInput | AuditoriaCatalogoProductoWhereUniqueInput[]
   }
 
+  export type MovimientoCreateNestedManyWithoutProductoInput = {
+    create?: XOR<MovimientoCreateWithoutProductoInput, MovimientoUncheckedCreateWithoutProductoInput> | MovimientoCreateWithoutProductoInput[] | MovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: MovimientoCreateOrConnectWithoutProductoInput | MovimientoCreateOrConnectWithoutProductoInput[]
+    createMany?: MovimientoCreateManyProductoInputEnvelope
+    connect?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+  }
+
+  export type ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput> | ImportacionInicialEstucheItemCreateWithoutProductoInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput | ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyProductoInputEnvelope
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+  }
+
   export type InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput = {
     create?: XOR<InventarioDrogaCreateWithoutProductoInput, InventarioDrogaUncheckedCreateWithoutProductoInput> | InventarioDrogaCreateWithoutProductoInput[] | InventarioDrogaUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: InventarioDrogaCreateOrConnectWithoutProductoInput | InventarioDrogaCreateOrConnectWithoutProductoInput[]
@@ -43078,6 +49031,20 @@ export namespace Prisma {
     connectOrCreate?: AuditoriaCatalogoProductoCreateOrConnectWithoutProductoInput | AuditoriaCatalogoProductoCreateOrConnectWithoutProductoInput[]
     createMany?: AuditoriaCatalogoProductoCreateManyProductoInputEnvelope
     connect?: AuditoriaCatalogoProductoWhereUniqueInput | AuditoriaCatalogoProductoWhereUniqueInput[]
+  }
+
+  export type MovimientoUncheckedCreateNestedManyWithoutProductoInput = {
+    create?: XOR<MovimientoCreateWithoutProductoInput, MovimientoUncheckedCreateWithoutProductoInput> | MovimientoCreateWithoutProductoInput[] | MovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: MovimientoCreateOrConnectWithoutProductoInput | MovimientoCreateOrConnectWithoutProductoInput[]
+    createMany?: MovimientoCreateManyProductoInputEnvelope
+    connect?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput> | ImportacionInicialEstucheItemCreateWithoutProductoInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput | ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyProductoInputEnvelope
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
   }
 
   export type NullableDecimalFieldUpdateOperationsInput = {
@@ -43199,6 +49166,34 @@ export namespace Prisma {
     deleteMany?: AuditoriaCatalogoProductoScalarWhereInput | AuditoriaCatalogoProductoScalarWhereInput[]
   }
 
+  export type MovimientoUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<MovimientoCreateWithoutProductoInput, MovimientoUncheckedCreateWithoutProductoInput> | MovimientoCreateWithoutProductoInput[] | MovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: MovimientoCreateOrConnectWithoutProductoInput | MovimientoCreateOrConnectWithoutProductoInput[]
+    upsert?: MovimientoUpsertWithWhereUniqueWithoutProductoInput | MovimientoUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: MovimientoCreateManyProductoInputEnvelope
+    set?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    disconnect?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    delete?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    connect?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    update?: MovimientoUpdateWithWhereUniqueWithoutProductoInput | MovimientoUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: MovimientoUpdateManyWithWhereWithoutProductoInput | MovimientoUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: MovimientoScalarWhereInput | MovimientoScalarWhereInput[]
+  }
+
+  export type ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput> | ImportacionInicialEstucheItemCreateWithoutProductoInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput | ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput[]
+    upsert?: ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutProductoInput | ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyProductoInputEnvelope
+    set?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    update?: ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutProductoInput | ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: ImportacionInicialEstucheItemUpdateManyWithWhereWithoutProductoInput | ImportacionInicialEstucheItemUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
+  }
+
   export type InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput = {
     create?: XOR<InventarioDrogaCreateWithoutProductoInput, InventarioDrogaUncheckedCreateWithoutProductoInput> | InventarioDrogaCreateWithoutProductoInput[] | InventarioDrogaUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: InventarioDrogaCreateOrConnectWithoutProductoInput | InventarioDrogaCreateOrConnectWithoutProductoInput[]
@@ -43295,6 +49290,220 @@ export namespace Prisma {
     update?: AuditoriaCatalogoProductoUpdateWithWhereUniqueWithoutProductoInput | AuditoriaCatalogoProductoUpdateWithWhereUniqueWithoutProductoInput[]
     updateMany?: AuditoriaCatalogoProductoUpdateManyWithWhereWithoutProductoInput | AuditoriaCatalogoProductoUpdateManyWithWhereWithoutProductoInput[]
     deleteMany?: AuditoriaCatalogoProductoScalarWhereInput | AuditoriaCatalogoProductoScalarWhereInput[]
+  }
+
+  export type MovimientoUncheckedUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<MovimientoCreateWithoutProductoInput, MovimientoUncheckedCreateWithoutProductoInput> | MovimientoCreateWithoutProductoInput[] | MovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: MovimientoCreateOrConnectWithoutProductoInput | MovimientoCreateOrConnectWithoutProductoInput[]
+    upsert?: MovimientoUpsertWithWhereUniqueWithoutProductoInput | MovimientoUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: MovimientoCreateManyProductoInputEnvelope
+    set?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    disconnect?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    delete?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    connect?: MovimientoWhereUniqueInput | MovimientoWhereUniqueInput[]
+    update?: MovimientoUpdateWithWhereUniqueWithoutProductoInput | MovimientoUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: MovimientoUpdateManyWithWhereWithoutProductoInput | MovimientoUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: MovimientoScalarWhereInput | MovimientoScalarWhereInput[]
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput> | ImportacionInicialEstucheItemCreateWithoutProductoInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput | ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput[]
+    upsert?: ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutProductoInput | ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyProductoInputEnvelope
+    set?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    update?: ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutProductoInput | ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: ImportacionInicialEstucheItemUpdateManyWithWhereWithoutProductoInput | ImportacionInicialEstucheItemUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
+  }
+
+  export type UserCreateNestedOneWithoutImportacionesInicialesEstucheInput = {
+    create?: XOR<UserCreateWithoutImportacionesInicialesEstucheInput, UserUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+    connectOrCreate?: UserCreateOrConnectWithoutImportacionesInicialesEstucheInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ImportacionInicialEstucheItemCreateNestedManyWithoutBatchInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheItemCreateWithoutBatchInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyBatchInputEnvelope
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCreateNestedManyWithoutBatchInput = {
+    create?: XOR<ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput[] | ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInputEnvelope
+    connect?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutBatchInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheItemCreateWithoutBatchInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyBatchInputEnvelope
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedCreateNestedManyWithoutBatchInput = {
+    create?: XOR<ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput[] | ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInputEnvelope
+    connect?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+  }
+
+  export type UserUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput = {
+    create?: XOR<UserCreateWithoutImportacionesInicialesEstucheInput, UserUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+    connectOrCreate?: UserCreateOrConnectWithoutImportacionesInicialesEstucheInput
+    upsert?: UserUpsertWithoutImportacionesInicialesEstucheInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutImportacionesInicialesEstucheInput, UserUpdateWithoutImportacionesInicialesEstucheInput>, UserUncheckedUpdateWithoutImportacionesInicialesEstucheInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateManyWithoutBatchNestedInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheItemCreateWithoutBatchInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput[]
+    upsert?: ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyBatchInputEnvelope
+    set?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    update?: ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutBatchInput[]
+    updateMany?: ImportacionInicialEstucheItemUpdateManyWithWhereWithoutBatchInput | ImportacionInicialEstucheItemUpdateManyWithWhereWithoutBatchInput[]
+    deleteMany?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateManyWithoutBatchNestedInput = {
+    create?: XOR<ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput[] | ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput[]
+    upsert?: ImportacionInicialEstucheIdempotencyKeyUpsertWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyUpsertWithWhereUniqueWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInputEnvelope
+    set?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    update?: ImportacionInicialEstucheIdempotencyKeyUpdateWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyUpdateWithWhereUniqueWithoutBatchInput[]
+    updateMany?: ImportacionInicialEstucheIdempotencyKeyUpdateManyWithWhereWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyUpdateManyWithWhereWithoutBatchInput[]
+    deleteMany?: ImportacionInicialEstucheIdempotencyKeyScalarWhereInput | ImportacionInicialEstucheIdempotencyKeyScalarWhereInput[]
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateManyWithoutBatchNestedInput = {
+    create?: XOR<ImportacionInicialEstucheItemCreateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheItemCreateWithoutBatchInput[] | ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput[]
+    upsert?: ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheItemCreateManyBatchInputEnvelope
+    set?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+    update?: ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutBatchInput[]
+    updateMany?: ImportacionInicialEstucheItemUpdateManyWithWhereWithoutBatchInput | ImportacionInicialEstucheItemUpdateManyWithWhereWithoutBatchInput[]
+    deleteMany?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyWithoutBatchNestedInput = {
+    create?: XOR<ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput> | ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput[] | ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput[]
+    connectOrCreate?: ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput[]
+    upsert?: ImportacionInicialEstucheIdempotencyKeyUpsertWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyUpsertWithWhereUniqueWithoutBatchInput[]
+    createMany?: ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInputEnvelope
+    set?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    disconnect?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    delete?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    connect?: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput | ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput[]
+    update?: ImportacionInicialEstucheIdempotencyKeyUpdateWithWhereUniqueWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyUpdateWithWhereUniqueWithoutBatchInput[]
+    updateMany?: ImportacionInicialEstucheIdempotencyKeyUpdateManyWithWhereWithoutBatchInput | ImportacionInicialEstucheIdempotencyKeyUpdateManyWithWhereWithoutBatchInput[]
+    deleteMany?: ImportacionInicialEstucheIdempotencyKeyScalarWhereInput | ImportacionInicialEstucheIdempotencyKeyScalarWhereInput[]
+  }
+
+  export type ImportacionInicialEstucheBatchCreateNestedOneWithoutIdempotencyKeysInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutIdempotencyKeysInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutIdempotencyKeysInput>
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutIdempotencyKeysInput
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateOneRequiredWithoutIdempotencyKeysNestedInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutIdempotencyKeysInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutIdempotencyKeysInput>
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutIdempotencyKeysInput
+    upsert?: ImportacionInicialEstucheBatchUpsertWithoutIdempotencyKeysInput
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput
+    update?: XOR<XOR<ImportacionInicialEstucheBatchUpdateToOneWithWhereWithoutIdempotencyKeysInput, ImportacionInicialEstucheBatchUpdateWithoutIdempotencyKeysInput>, ImportacionInicialEstucheBatchUncheckedUpdateWithoutIdempotencyKeysInput>
+  }
+
+  export type ImportacionInicialEstucheBatchCreateNestedOneWithoutItemsInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutItemsInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutItemsInput
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput
+  }
+
+  export type DepositoProductoCreateNestedOneWithoutImportacionesInicialesEstucheInput = {
+    create?: XOR<DepositoProductoCreateWithoutImportacionesInicialesEstucheInput, DepositoProductoUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutImportacionesInicialesEstucheInput
+    connect?: DepositoProductoWhereUniqueInput
+  }
+
+  export type InventarioEstucheCreateNestedOneWithoutImportacionInicialItemInput = {
+    create?: XOR<InventarioEstucheCreateWithoutImportacionInicialItemInput, InventarioEstucheUncheckedCreateWithoutImportacionInicialItemInput>
+    connectOrCreate?: InventarioEstucheCreateOrConnectWithoutImportacionInicialItemInput
+    connect?: InventarioEstucheWhereUniqueInput
+  }
+
+  export type MovimientoCreateNestedOneWithoutImportacionInicialEstucheItemInput = {
+    create?: XOR<MovimientoCreateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedCreateWithoutImportacionInicialEstucheItemInput>
+    connectOrCreate?: MovimientoCreateOrConnectWithoutImportacionInicialEstucheItemInput
+    connect?: MovimientoWhereUniqueInput
+  }
+
+  export type MovimientoUncheckedCreateNestedOneWithoutImportacionInicialEstucheItemInput = {
+    create?: XOR<MovimientoCreateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedCreateWithoutImportacionInicialEstucheItemInput>
+    connectOrCreate?: MovimientoCreateOrConnectWithoutImportacionInicialEstucheItemInput
+    connect?: MovimientoWhereUniqueInput
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateOneRequiredWithoutItemsNestedInput = {
+    create?: XOR<ImportacionInicialEstucheBatchCreateWithoutItemsInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutItemsInput
+    upsert?: ImportacionInicialEstucheBatchUpsertWithoutItemsInput
+    connect?: ImportacionInicialEstucheBatchWhereUniqueInput
+    update?: XOR<XOR<ImportacionInicialEstucheBatchUpdateToOneWithWhereWithoutItemsInput, ImportacionInicialEstucheBatchUpdateWithoutItemsInput>, ImportacionInicialEstucheBatchUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type DepositoProductoUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput = {
+    create?: XOR<DepositoProductoCreateWithoutImportacionesInicialesEstucheInput, DepositoProductoUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutImportacionesInicialesEstucheInput
+    upsert?: DepositoProductoUpsertWithoutImportacionesInicialesEstucheInput
+    connect?: DepositoProductoWhereUniqueInput
+    update?: XOR<XOR<DepositoProductoUpdateToOneWithWhereWithoutImportacionesInicialesEstucheInput, DepositoProductoUpdateWithoutImportacionesInicialesEstucheInput>, DepositoProductoUncheckedUpdateWithoutImportacionesInicialesEstucheInput>
+  }
+
+  export type InventarioEstucheUpdateOneRequiredWithoutImportacionInicialItemNestedInput = {
+    create?: XOR<InventarioEstucheCreateWithoutImportacionInicialItemInput, InventarioEstucheUncheckedCreateWithoutImportacionInicialItemInput>
+    connectOrCreate?: InventarioEstucheCreateOrConnectWithoutImportacionInicialItemInput
+    upsert?: InventarioEstucheUpsertWithoutImportacionInicialItemInput
+    connect?: InventarioEstucheWhereUniqueInput
+    update?: XOR<XOR<InventarioEstucheUpdateToOneWithWhereWithoutImportacionInicialItemInput, InventarioEstucheUpdateWithoutImportacionInicialItemInput>, InventarioEstucheUncheckedUpdateWithoutImportacionInicialItemInput>
+  }
+
+  export type MovimientoUpdateOneWithoutImportacionInicialEstucheItemNestedInput = {
+    create?: XOR<MovimientoCreateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedCreateWithoutImportacionInicialEstucheItemInput>
+    connectOrCreate?: MovimientoCreateOrConnectWithoutImportacionInicialEstucheItemInput
+    upsert?: MovimientoUpsertWithoutImportacionInicialEstucheItemInput
+    disconnect?: MovimientoWhereInput | boolean
+    delete?: MovimientoWhereInput | boolean
+    connect?: MovimientoWhereUniqueInput
+    update?: XOR<XOR<MovimientoUpdateToOneWithWhereWithoutImportacionInicialEstucheItemInput, MovimientoUpdateWithoutImportacionInicialEstucheItemInput>, MovimientoUncheckedUpdateWithoutImportacionInicialEstucheItemInput>
+  }
+
+  export type MovimientoUncheckedUpdateOneWithoutImportacionInicialEstucheItemNestedInput = {
+    create?: XOR<MovimientoCreateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedCreateWithoutImportacionInicialEstucheItemInput>
+    connectOrCreate?: MovimientoCreateOrConnectWithoutImportacionInicialEstucheItemInput
+    upsert?: MovimientoUpsertWithoutImportacionInicialEstucheItemInput
+    disconnect?: MovimientoWhereInput | boolean
+    delete?: MovimientoWhereInput | boolean
+    connect?: MovimientoWhereUniqueInput
+    update?: XOR<XOR<MovimientoUpdateToOneWithWhereWithoutImportacionInicialEstucheItemInput, MovimientoUpdateWithoutImportacionInicialEstucheItemInput>, MovimientoUncheckedUpdateWithoutImportacionInicialEstucheItemInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -45503,8 +51712,11 @@ export namespace Prisma {
     cantidad: number
     referenciaId?: string | null
     referenciaTipo?: $Enums.RefTipo | null
+    fechaEfectiva?: Date | string | null
     justificacion?: string | null
     createdAt?: Date | string
+    producto?: DepositoProductoCreateNestedOneWithoutMovimientosInput
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemCreateNestedOneWithoutMovimientoInput
   }
 
   export type MovimientoUncheckedCreateWithoutUserInput = {
@@ -45516,6 +51728,9 @@ export namespace Prisma {
     cantidad: number
     referenciaId?: string | null
     referenciaTipo?: $Enums.RefTipo | null
+    productoId?: string | null
+    fechaEfectiva?: Date | string | null
+    importacionInicialEstucheItemId?: string | null
     justificacion?: string | null
     createdAt?: Date | string
   }
@@ -45678,6 +51893,40 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ImportacionInicialEstucheBatchCreateWithoutActorInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: ImportacionInicialEstucheItemCreateNestedManyWithoutBatchInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutBatchInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUncheckedCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput = {
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheBatchCreateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput>
+  }
+
+  export type ImportacionInicialEstucheBatchCreateManyActorInputEnvelope = {
+    data: ImportacionInicialEstucheBatchCreateManyActorInput | ImportacionInicialEstucheBatchCreateManyActorInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ActaUpsertWithWhereUniqueWithoutUserInput = {
     where: ActaWhereUniqueInput
     update: XOR<ActaUpdateWithoutUserInput, ActaUncheckedUpdateWithoutUserInput>
@@ -45735,6 +51984,9 @@ export namespace Prisma {
     cantidad?: IntFilter<"Movimiento"> | number
     referenciaId?: StringNullableFilter<"Movimiento"> | string | null
     referenciaTipo?: EnumRefTipoNullableFilter<"Movimiento"> | $Enums.RefTipo | null
+    productoId?: StringNullableFilter<"Movimiento"> | string | null
+    fechaEfectiva?: DateTimeNullableFilter<"Movimiento"> | Date | string | null
+    importacionInicialEstucheItemId?: StringNullableFilter<"Movimiento"> | string | null
     justificacion?: StringNullableFilter<"Movimiento"> | string | null
     createdBy?: StringFilter<"Movimiento"> | string
     createdAt?: DateTimeFilter<"Movimiento"> | Date | string
@@ -45855,6 +52107,36 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"AuditoriaCatalogoProducto"> | Date | string
   }
 
+  export type ImportacionInicialEstucheBatchUpsertWithWhereUniqueWithoutActorInput = {
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+    update: XOR<ImportacionInicialEstucheBatchUpdateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedUpdateWithoutActorInput>
+    create: XOR<ImportacionInicialEstucheBatchCreateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutActorInput>
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateWithWhereUniqueWithoutActorInput = {
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+    data: XOR<ImportacionInicialEstucheBatchUpdateWithoutActorInput, ImportacionInicialEstucheBatchUncheckedUpdateWithoutActorInput>
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateManyWithWhereWithoutActorInput = {
+    where: ImportacionInicialEstucheBatchScalarWhereInput
+    data: XOR<ImportacionInicialEstucheBatchUpdateManyMutationInput, ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorInput>
+  }
+
+  export type ImportacionInicialEstucheBatchScalarWhereInput = {
+    AND?: ImportacionInicialEstucheBatchScalarWhereInput | ImportacionInicialEstucheBatchScalarWhereInput[]
+    OR?: ImportacionInicialEstucheBatchScalarWhereInput[]
+    NOT?: ImportacionInicialEstucheBatchScalarWhereInput | ImportacionInicialEstucheBatchScalarWhereInput[]
+    id?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    idempotencyKey?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    checksum?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    actorId?: StringFilter<"ImportacionInicialEstucheBatch"> | string
+    effectiveDate?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    result?: JsonNullableFilter<"ImportacionInicialEstucheBatch">
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
+  }
+
   export type UserCreateWithoutActasInput = {
     id?: string
     email: string
@@ -45868,6 +52150,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutActasInput = {
@@ -45883,6 +52166,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutActasInput = {
@@ -45958,6 +52242,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutActasInput = {
@@ -45973,6 +52258,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ActaItemUpsertWithWhereUniqueWithoutActaInput = {
@@ -46059,6 +52345,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutActaItemsInput = {
@@ -46083,6 +52371,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutActaItemsInput = {
@@ -46154,6 +52444,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutActaItemsInput = {
@@ -46178,6 +52470,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutAuditoriasCatalogoInput = {
@@ -46202,6 +52496,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutAuditoriasCatalogoInput = {
@@ -46226,6 +52522,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutAuditoriasCatalogoInput = {
@@ -46246,6 +52544,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAuditoriasCatalogoInput = {
@@ -46261,6 +52560,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAuditoriasCatalogoInput = {
@@ -46301,6 +52601,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutAuditoriasCatalogoInput = {
@@ -46325,6 +52627,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type UserUpsertWithoutAuditoriasCatalogoInput = {
@@ -46351,6 +52655,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditoriasCatalogoInput = {
@@ -46366,6 +52671,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioDrogasInput = {
@@ -46390,6 +52696,8 @@ export namespace Prisma {
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioDrogasInput = {
@@ -46414,6 +52722,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioDrogasInput = {
@@ -46454,6 +52764,8 @@ export namespace Prisma {
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioDrogasInput = {
@@ -46478,6 +52790,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioEstuchesInput = {
@@ -46502,6 +52816,8 @@ export namespace Prisma {
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioEstuchesInput = {
@@ -46526,11 +52842,42 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioEstuchesInput = {
     where: DepositoProductoWhereUniqueInput
     create: XOR<DepositoProductoCreateWithoutInventarioEstuchesInput, DepositoProductoUncheckedCreateWithoutInventarioEstuchesInput>
+  }
+
+  export type ImportacionInicialEstucheItemCreateWithoutInventarioInput = {
+    id?: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    batch: ImportacionInicialEstucheBatchCreateNestedOneWithoutItemsInput
+    producto: DepositoProductoCreateNestedOneWithoutImportacionesInicialesEstucheInput
+    movimiento?: MovimientoCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateWithoutInventarioInput = {
+    id?: string
+    batchId: string
+    productoId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    movimiento?: MovimientoUncheckedCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemCreateOrConnectWithoutInventarioInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedCreateWithoutInventarioInput>
   }
 
   export type DepositoProductoUpsertWithoutInventarioEstuchesInput = {
@@ -46566,6 +52913,8 @@ export namespace Prisma {
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioEstuchesInput = {
@@ -46590,6 +52939,43 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUpsertWithoutInventarioInput = {
+    update: XOR<ImportacionInicialEstucheItemUpdateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutInventarioInput>
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedCreateWithoutInventarioInput>
+    where?: ImportacionInicialEstucheItemWhereInput
+  }
+
+  export type ImportacionInicialEstucheItemUpdateToOneWithWhereWithoutInventarioInput = {
+    where?: ImportacionInicialEstucheItemWhereInput
+    data: XOR<ImportacionInicialEstucheItemUpdateWithoutInventarioInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutInventarioInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateWithoutInventarioInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    batch?: ImportacionInicialEstucheBatchUpdateOneRequiredWithoutItemsNestedInput
+    producto?: DepositoProductoUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput
+    movimiento?: MovimientoUpdateOneWithoutImportacionInicialEstucheItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateWithoutInventarioInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimiento?: MovimientoUncheckedUpdateOneWithoutImportacionInicialEstucheItemNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioEtiquetasInput = {
@@ -46614,6 +53000,8 @@ export namespace Prisma {
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioEtiquetasInput = {
@@ -46638,6 +53026,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioEtiquetasInput = {
@@ -46678,6 +53068,8 @@ export namespace Prisma {
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioEtiquetasInput = {
@@ -46702,6 +53094,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioFrascosInput = {
@@ -46726,6 +53120,8 @@ export namespace Prisma {
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioFrascosInput = {
@@ -46750,6 +53146,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioFrascosInput = {
@@ -46790,6 +53188,8 @@ export namespace Prisma {
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioFrascosInput = {
@@ -46814,6 +53214,8 @@ export namespace Prisma {
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type UserCreateWithoutMovimientosInput = {
@@ -46829,6 +53231,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutMovimientosInput = {
@@ -46844,11 +53247,98 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutMovimientosInput = {
     where: UserWhereUniqueInput
     create: XOR<UserCreateWithoutMovimientosInput, UserUncheckedCreateWithoutMovimientosInput>
+  }
+
+  export type DepositoProductoCreateWithoutMovimientosInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoUncheckedCreateWithoutMovimientosInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoCreateOrConnectWithoutMovimientosInput = {
+    where: DepositoProductoWhereUniqueInput
+    create: XOR<DepositoProductoCreateWithoutMovimientosInput, DepositoProductoUncheckedCreateWithoutMovimientosInput>
+  }
+
+  export type ImportacionInicialEstucheItemCreateWithoutMovimientoInput = {
+    id?: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    batch: ImportacionInicialEstucheBatchCreateNestedOneWithoutItemsInput
+    producto: DepositoProductoCreateNestedOneWithoutImportacionesInicialesEstucheInput
+    inventario: InventarioEstucheCreateNestedOneWithoutImportacionInicialItemInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateWithoutMovimientoInput = {
+    id?: string
+    batchId: string
+    productoId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheItemCreateOrConnectWithoutMovimientoInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutMovimientoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutMovimientoInput>
   }
 
   export type UserUpsertWithoutMovimientosInput = {
@@ -46875,6 +53365,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMovimientosInput = {
@@ -46890,6 +53381,105 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+  }
+
+  export type DepositoProductoUpsertWithoutMovimientosInput = {
+    update: XOR<DepositoProductoUpdateWithoutMovimientosInput, DepositoProductoUncheckedUpdateWithoutMovimientosInput>
+    create: XOR<DepositoProductoCreateWithoutMovimientosInput, DepositoProductoUncheckedCreateWithoutMovimientosInput>
+    where?: DepositoProductoWhereInput
+  }
+
+  export type DepositoProductoUpdateToOneWithWhereWithoutMovimientosInput = {
+    where?: DepositoProductoWhereInput
+    data: XOR<DepositoProductoUpdateWithoutMovimientosInput, DepositoProductoUncheckedUpdateWithoutMovimientosInput>
+  }
+
+  export type DepositoProductoUpdateWithoutMovimientosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+  }
+
+  export type DepositoProductoUncheckedUpdateWithoutMovimientosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUpsertWithoutMovimientoInput = {
+    update: XOR<ImportacionInicialEstucheItemUpdateWithoutMovimientoInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutMovimientoInput>
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutMovimientoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutMovimientoInput>
+    where?: ImportacionInicialEstucheItemWhereInput
+  }
+
+  export type ImportacionInicialEstucheItemUpdateToOneWithWhereWithoutMovimientoInput = {
+    where?: ImportacionInicialEstucheItemWhereInput
+    data: XOR<ImportacionInicialEstucheItemUpdateWithoutMovimientoInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutMovimientoInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateWithoutMovimientoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    batch?: ImportacionInicialEstucheBatchUpdateOneRequiredWithoutItemsNestedInput
+    producto?: DepositoProductoUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput
+    inventario?: InventarioEstucheUpdateOneRequiredWithoutImportacionInicialItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateWithoutMovimientoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    inventarioEstucheId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type UserCreateWithoutInsumoPendientesInput = {
@@ -46905,6 +53495,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutInsumoPendientesInput = {
@@ -46920,6 +53511,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutInsumoPendientesInput = {
@@ -46951,6 +53543,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInsumoPendientesInput = {
@@ -46966,6 +53559,7 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateWithoutOrdenesComoSolicitanteInput = {
@@ -46981,6 +53575,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutOrdenesComoSolicitanteInput = {
@@ -46996,6 +53591,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutOrdenesComoSolicitanteInput = {
@@ -47016,6 +53612,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutOrdenesComoAprobadorInput = {
@@ -47031,6 +53628,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutOrdenesComoAprobadorInput = {
@@ -47060,6 +53658,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutOrdenesInput = {
@@ -47084,6 +53684,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutOrdenesInput = {
@@ -47115,6 +53717,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOrdenesComoSolicitanteInput = {
@@ -47130,6 +53733,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserUpsertWithoutOrdenesComoAprobadorInput = {
@@ -47156,6 +53760,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOrdenesComoAprobadorInput = {
@@ -47171,6 +53776,7 @@ export namespace Prisma {
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type DepositoProductoUpsertWithoutOrdenesInput = {
@@ -47206,6 +53812,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutOrdenesInput = {
@@ -47230,6 +53838,8 @@ export namespace Prisma {
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type InventarioDrogaCreateWithoutProductoInput = {
@@ -47266,6 +53876,7 @@ export namespace Prisma {
     mercado: $Enums.Mercado
     cantidad?: number
     updatedAt?: Date | string
+    importacionInicialItem?: ImportacionInicialEstucheItemCreateNestedOneWithoutInventarioInput
   }
 
   export type InventarioEstucheUncheckedCreateWithoutProductoInput = {
@@ -47274,6 +53885,7 @@ export namespace Prisma {
     mercado: $Enums.Mercado
     cantidad?: number
     updatedAt?: Date | string
+    importacionInicialItem?: ImportacionInicialEstucheItemUncheckedCreateNestedOneWithoutInventarioInput
   }
 
   export type InventarioEstucheCreateOrConnectWithoutProductoInput = {
@@ -47452,6 +54064,82 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type MovimientoCreateWithoutProductoInput = {
+    id?: string
+    tipo: $Enums.DepositoTipoMovimiento
+    categoria: $Enums.Categoria
+    productoNombre: string
+    lote?: string | null
+    cantidad: number
+    referenciaId?: string | null
+    referenciaTipo?: $Enums.RefTipo | null
+    fechaEfectiva?: Date | string | null
+    justificacion?: string | null
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutMovimientosInput
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemCreateNestedOneWithoutMovimientoInput
+  }
+
+  export type MovimientoUncheckedCreateWithoutProductoInput = {
+    id?: string
+    tipo: $Enums.DepositoTipoMovimiento
+    categoria: $Enums.Categoria
+    productoNombre: string
+    lote?: string | null
+    cantidad: number
+    referenciaId?: string | null
+    referenciaTipo?: $Enums.RefTipo | null
+    fechaEfectiva?: Date | string | null
+    importacionInicialEstucheItemId?: string | null
+    justificacion?: string | null
+    createdBy: string
+    createdAt?: Date | string
+  }
+
+  export type MovimientoCreateOrConnectWithoutProductoInput = {
+    where: MovimientoWhereUniqueInput
+    create: XOR<MovimientoCreateWithoutProductoInput, MovimientoUncheckedCreateWithoutProductoInput>
+  }
+
+  export type MovimientoCreateManyProductoInputEnvelope = {
+    data: MovimientoCreateManyProductoInput | MovimientoCreateManyProductoInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ImportacionInicialEstucheItemCreateWithoutProductoInput = {
+    id?: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    batch: ImportacionInicialEstucheBatchCreateNestedOneWithoutItemsInput
+    inventario: InventarioEstucheCreateNestedOneWithoutImportacionInicialItemInput
+    movimiento?: MovimientoCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput = {
+    id?: string
+    batchId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    movimiento?: MovimientoUncheckedCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput>
+  }
+
+  export type ImportacionInicialEstucheItemCreateManyProductoInputEnvelope = {
+    data: ImportacionInicialEstucheItemCreateManyProductoInput | ImportacionInicialEstucheItemCreateManyProductoInput[]
+    skipDuplicates?: boolean
+  }
+
   export type InventarioDrogaUpsertWithWhereUniqueWithoutProductoInput = {
     where: InventarioDrogaWhereUniqueInput
     update: XOR<InventarioDrogaUpdateWithoutProductoInput, InventarioDrogaUncheckedUpdateWithoutProductoInput>
@@ -47612,6 +54300,611 @@ export namespace Prisma {
   export type AuditoriaCatalogoProductoUpdateManyWithWhereWithoutProductoInput = {
     where: AuditoriaCatalogoProductoScalarWhereInput
     data: XOR<AuditoriaCatalogoProductoUpdateManyMutationInput, AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoInput>
+  }
+
+  export type MovimientoUpsertWithWhereUniqueWithoutProductoInput = {
+    where: MovimientoWhereUniqueInput
+    update: XOR<MovimientoUpdateWithoutProductoInput, MovimientoUncheckedUpdateWithoutProductoInput>
+    create: XOR<MovimientoCreateWithoutProductoInput, MovimientoUncheckedCreateWithoutProductoInput>
+  }
+
+  export type MovimientoUpdateWithWhereUniqueWithoutProductoInput = {
+    where: MovimientoWhereUniqueInput
+    data: XOR<MovimientoUpdateWithoutProductoInput, MovimientoUncheckedUpdateWithoutProductoInput>
+  }
+
+  export type MovimientoUpdateManyWithWhereWithoutProductoInput = {
+    where: MovimientoScalarWhereInput
+    data: XOR<MovimientoUpdateManyMutationInput, MovimientoUncheckedUpdateManyWithoutProductoInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutProductoInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    update: XOR<ImportacionInicialEstucheItemUpdateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutProductoInput>
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedCreateWithoutProductoInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutProductoInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    data: XOR<ImportacionInicialEstucheItemUpdateWithoutProductoInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutProductoInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateManyWithWhereWithoutProductoInput = {
+    where: ImportacionInicialEstucheItemScalarWhereInput
+    data: XOR<ImportacionInicialEstucheItemUpdateManyMutationInput, ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoInput>
+  }
+
+  export type ImportacionInicialEstucheItemScalarWhereInput = {
+    AND?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
+    OR?: ImportacionInicialEstucheItemScalarWhereInput[]
+    NOT?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
+    id?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    batchId?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    productoId?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    inventarioEstucheId?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    mercado?: EnumMercadoFilter<"ImportacionInicialEstucheItem"> | $Enums.Mercado
+    codigo?: StringFilter<"ImportacionInicialEstucheItem"> | string
+    sourceRow?: IntFilter<"ImportacionInicialEstucheItem"> | number
+    cantidad?: IntFilter<"ImportacionInicialEstucheItem"> | number
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheItem"> | Date | string
+  }
+
+  export type UserCreateWithoutImportacionesInicialesEstucheInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+  }
+
+  export type UserUncheckedCreateWithoutImportacionesInicialesEstucheInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaUncheckedCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+  }
+
+  export type UserCreateOrConnectWithoutImportacionesInicialesEstucheInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutImportacionesInicialesEstucheInput, UserUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+  }
+
+  export type ImportacionInicialEstucheItemCreateWithoutBatchInput = {
+    id?: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    producto: DepositoProductoCreateNestedOneWithoutImportacionesInicialesEstucheInput
+    inventario: InventarioEstucheCreateNestedOneWithoutImportacionInicialItemInput
+    movimiento?: MovimientoCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput = {
+    id?: string
+    productoId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+    movimiento?: MovimientoUncheckedCreateNestedOneWithoutImportacionInicialEstucheItemInput
+  }
+
+  export type ImportacionInicialEstucheItemCreateOrConnectWithoutBatchInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheItemCreateManyBatchInputEnvelope = {
+    data: ImportacionInicialEstucheItemCreateManyBatchInput | ImportacionInicialEstucheItemCreateManyBatchInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput = {
+    id?: string
+    idempotencyKey: string
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput = {
+    id?: string
+    idempotencyKey: string
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCreateOrConnectWithoutBatchInput = {
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInputEnvelope = {
+    data: ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInput | ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithoutImportacionesInicialesEstucheInput = {
+    update: XOR<UserUpdateWithoutImportacionesInicialesEstucheInput, UserUncheckedUpdateWithoutImportacionesInicialesEstucheInput>
+    create: XOR<UserCreateWithoutImportacionesInicialesEstucheInput, UserUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutImportacionesInicialesEstucheInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutImportacionesInicialesEstucheInput, UserUncheckedUpdateWithoutImportacionesInicialesEstucheInput>
+  }
+
+  export type UserUpdateWithoutImportacionesInicialesEstucheInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutImportacionesInicialesEstucheInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutBatchInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    update: XOR<ImportacionInicialEstucheItemUpdateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutBatchInput>
+    create: XOR<ImportacionInicialEstucheItemCreateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedCreateWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutBatchInput = {
+    where: ImportacionInicialEstucheItemWhereUniqueInput
+    data: XOR<ImportacionInicialEstucheItemUpdateWithoutBatchInput, ImportacionInicialEstucheItemUncheckedUpdateWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheItemUpdateManyWithWhereWithoutBatchInput = {
+    where: ImportacionInicialEstucheItemScalarWhereInput
+    data: XOR<ImportacionInicialEstucheItemUpdateManyMutationInput, ImportacionInicialEstucheItemUncheckedUpdateManyWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUpsertWithWhereUniqueWithoutBatchInput = {
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    update: XOR<ImportacionInicialEstucheIdempotencyKeyUpdateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateWithoutBatchInput>
+    create: XOR<ImportacionInicialEstucheIdempotencyKeyCreateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedCreateWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateWithWhereUniqueWithoutBatchInput = {
+    where: ImportacionInicialEstucheIdempotencyKeyWhereUniqueInput
+    data: XOR<ImportacionInicialEstucheIdempotencyKeyUpdateWithoutBatchInput, ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateManyWithWhereWithoutBatchInput = {
+    where: ImportacionInicialEstucheIdempotencyKeyScalarWhereInput
+    data: XOR<ImportacionInicialEstucheIdempotencyKeyUpdateManyMutationInput, ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyWithoutBatchInput>
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyScalarWhereInput = {
+    AND?: ImportacionInicialEstucheIdempotencyKeyScalarWhereInput | ImportacionInicialEstucheIdempotencyKeyScalarWhereInput[]
+    OR?: ImportacionInicialEstucheIdempotencyKeyScalarWhereInput[]
+    NOT?: ImportacionInicialEstucheIdempotencyKeyScalarWhereInput | ImportacionInicialEstucheIdempotencyKeyScalarWhereInput[]
+    id?: StringFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    idempotencyKey?: StringFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    batchId?: StringFilter<"ImportacionInicialEstucheIdempotencyKey"> | string
+    createdAt?: DateTimeFilter<"ImportacionInicialEstucheIdempotencyKey"> | Date | string
+  }
+
+  export type ImportacionInicialEstucheBatchCreateWithoutIdempotencyKeysInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    actor: UserCreateNestedOneWithoutImportacionesInicialesEstucheInput
+    items?: ImportacionInicialEstucheItemCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedCreateWithoutIdempotencyKeysInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    actorId: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    items?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchCreateOrConnectWithoutIdempotencyKeysInput = {
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheBatchCreateWithoutIdempotencyKeysInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutIdempotencyKeysInput>
+  }
+
+  export type ImportacionInicialEstucheBatchUpsertWithoutIdempotencyKeysInput = {
+    update: XOR<ImportacionInicialEstucheBatchUpdateWithoutIdempotencyKeysInput, ImportacionInicialEstucheBatchUncheckedUpdateWithoutIdempotencyKeysInput>
+    create: XOR<ImportacionInicialEstucheBatchCreateWithoutIdempotencyKeysInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutIdempotencyKeysInput>
+    where?: ImportacionInicialEstucheBatchWhereInput
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateToOneWithWhereWithoutIdempotencyKeysInput = {
+    where?: ImportacionInicialEstucheBatchWhereInput
+    data: XOR<ImportacionInicialEstucheBatchUpdateWithoutIdempotencyKeysInput, ImportacionInicialEstucheBatchUncheckedUpdateWithoutIdempotencyKeysInput>
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateWithoutIdempotencyKeysInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actor?: UserUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput
+    items?: ImportacionInicialEstucheItemUpdateManyWithoutBatchNestedInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedUpdateWithoutIdempotencyKeysInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    actorId?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutBatchNestedInput
+  }
+
+  export type ImportacionInicialEstucheBatchCreateWithoutItemsInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    actor: UserCreateNestedOneWithoutImportacionesInicialesEstucheInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedCreateWithoutItemsInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    actorId: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUncheckedCreateNestedManyWithoutBatchInput
+  }
+
+  export type ImportacionInicialEstucheBatchCreateOrConnectWithoutItemsInput = {
+    where: ImportacionInicialEstucheBatchWhereUniqueInput
+    create: XOR<ImportacionInicialEstucheBatchCreateWithoutItemsInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutItemsInput>
+  }
+
+  export type DepositoProductoCreateWithoutImportacionesInicialesEstucheInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoUncheckedCreateWithoutImportacionesInicialesEstucheInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoCreateOrConnectWithoutImportacionesInicialesEstucheInput = {
+    where: DepositoProductoWhereUniqueInput
+    create: XOR<DepositoProductoCreateWithoutImportacionesInicialesEstucheInput, DepositoProductoUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+  }
+
+  export type InventarioEstucheCreateWithoutImportacionInicialItemInput = {
+    id?: string
+    articulo: string
+    mercado: $Enums.Mercado
+    cantidad?: number
+    updatedAt?: Date | string
+    producto?: DepositoProductoCreateNestedOneWithoutInventarioEstuchesInput
+  }
+
+  export type InventarioEstucheUncheckedCreateWithoutImportacionInicialItemInput = {
+    id?: string
+    productoId?: string | null
+    articulo: string
+    mercado: $Enums.Mercado
+    cantidad?: number
+    updatedAt?: Date | string
+  }
+
+  export type InventarioEstucheCreateOrConnectWithoutImportacionInicialItemInput = {
+    where: InventarioEstucheWhereUniqueInput
+    create: XOR<InventarioEstucheCreateWithoutImportacionInicialItemInput, InventarioEstucheUncheckedCreateWithoutImportacionInicialItemInput>
+  }
+
+  export type MovimientoCreateWithoutImportacionInicialEstucheItemInput = {
+    id?: string
+    tipo: $Enums.DepositoTipoMovimiento
+    categoria: $Enums.Categoria
+    productoNombre: string
+    lote?: string | null
+    cantidad: number
+    referenciaId?: string | null
+    referenciaTipo?: $Enums.RefTipo | null
+    fechaEfectiva?: Date | string | null
+    justificacion?: string | null
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutMovimientosInput
+    producto?: DepositoProductoCreateNestedOneWithoutMovimientosInput
+  }
+
+  export type MovimientoUncheckedCreateWithoutImportacionInicialEstucheItemInput = {
+    id?: string
+    tipo: $Enums.DepositoTipoMovimiento
+    categoria: $Enums.Categoria
+    productoNombre: string
+    lote?: string | null
+    cantidad: number
+    referenciaId?: string | null
+    referenciaTipo?: $Enums.RefTipo | null
+    productoId?: string | null
+    fechaEfectiva?: Date | string | null
+    justificacion?: string | null
+    createdBy: string
+    createdAt?: Date | string
+  }
+
+  export type MovimientoCreateOrConnectWithoutImportacionInicialEstucheItemInput = {
+    where: MovimientoWhereUniqueInput
+    create: XOR<MovimientoCreateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedCreateWithoutImportacionInicialEstucheItemInput>
+  }
+
+  export type ImportacionInicialEstucheBatchUpsertWithoutItemsInput = {
+    update: XOR<ImportacionInicialEstucheBatchUpdateWithoutItemsInput, ImportacionInicialEstucheBatchUncheckedUpdateWithoutItemsInput>
+    create: XOR<ImportacionInicialEstucheBatchCreateWithoutItemsInput, ImportacionInicialEstucheBatchUncheckedCreateWithoutItemsInput>
+    where?: ImportacionInicialEstucheBatchWhereInput
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateToOneWithWhereWithoutItemsInput = {
+    where?: ImportacionInicialEstucheBatchWhereInput
+    data: XOR<ImportacionInicialEstucheBatchUpdateWithoutItemsInput, ImportacionInicialEstucheBatchUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type ImportacionInicialEstucheBatchUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actor?: UserUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUpdateManyWithoutBatchNestedInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    actorId?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyWithoutBatchNestedInput
+  }
+
+  export type DepositoProductoUpsertWithoutImportacionesInicialesEstucheInput = {
+    update: XOR<DepositoProductoUpdateWithoutImportacionesInicialesEstucheInput, DepositoProductoUncheckedUpdateWithoutImportacionesInicialesEstucheInput>
+    create: XOR<DepositoProductoCreateWithoutImportacionesInicialesEstucheInput, DepositoProductoUncheckedCreateWithoutImportacionesInicialesEstucheInput>
+    where?: DepositoProductoWhereInput
+  }
+
+  export type DepositoProductoUpdateToOneWithWhereWithoutImportacionesInicialesEstucheInput = {
+    where?: DepositoProductoWhereInput
+    data: XOR<DepositoProductoUpdateWithoutImportacionesInicialesEstucheInput, DepositoProductoUncheckedUpdateWithoutImportacionesInicialesEstucheInput>
+  }
+
+  export type DepositoProductoUpdateWithoutImportacionesInicialesEstucheInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+  }
+
+  export type DepositoProductoUncheckedUpdateWithoutImportacionesInicialesEstucheInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+  }
+
+  export type InventarioEstucheUpsertWithoutImportacionInicialItemInput = {
+    update: XOR<InventarioEstucheUpdateWithoutImportacionInicialItemInput, InventarioEstucheUncheckedUpdateWithoutImportacionInicialItemInput>
+    create: XOR<InventarioEstucheCreateWithoutImportacionInicialItemInput, InventarioEstucheUncheckedCreateWithoutImportacionInicialItemInput>
+    where?: InventarioEstucheWhereInput
+  }
+
+  export type InventarioEstucheUpdateToOneWithWhereWithoutImportacionInicialItemInput = {
+    where?: InventarioEstucheWhereInput
+    data: XOR<InventarioEstucheUpdateWithoutImportacionInicialItemInput, InventarioEstucheUncheckedUpdateWithoutImportacionInicialItemInput>
+  }
+
+  export type InventarioEstucheUpdateWithoutImportacionInicialItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    articulo?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    producto?: DepositoProductoUpdateOneWithoutInventarioEstuchesNestedInput
+  }
+
+  export type InventarioEstucheUncheckedUpdateWithoutImportacionInicialItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    articulo?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type MovimientoUpsertWithoutImportacionInicialEstucheItemInput = {
+    update: XOR<MovimientoUpdateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedUpdateWithoutImportacionInicialEstucheItemInput>
+    create: XOR<MovimientoCreateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedCreateWithoutImportacionInicialEstucheItemInput>
+    where?: MovimientoWhereInput
+  }
+
+  export type MovimientoUpdateToOneWithWhereWithoutImportacionInicialEstucheItemInput = {
+    where?: MovimientoWhereInput
+    data: XOR<MovimientoUpdateWithoutImportacionInicialEstucheItemInput, MovimientoUncheckedUpdateWithoutImportacionInicialEstucheItemInput>
+  }
+
+  export type MovimientoUpdateWithoutImportacionInicialEstucheItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumDepositoTipoMovimientoFieldUpdateOperationsInput | $Enums.DepositoTipoMovimiento
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    productoNombre?: StringFieldUpdateOperationsInput | string
+    lote?: NullableStringFieldUpdateOperationsInput | string | null
+    cantidad?: IntFieldUpdateOperationsInput | number
+    referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
+    referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    justificacion?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutMovimientosNestedInput
+    producto?: DepositoProductoUpdateOneWithoutMovimientosNestedInput
+  }
+
+  export type MovimientoUncheckedUpdateWithoutImportacionInicialEstucheItemInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumDepositoTipoMovimientoFieldUpdateOperationsInput | $Enums.DepositoTipoMovimiento
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    productoNombre?: StringFieldUpdateOperationsInput | string
+    lote?: NullableStringFieldUpdateOperationsInput | string | null
+    cantidad?: IntFieldUpdateOperationsInput | number
+    referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
+    referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    justificacion?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AppAccessCreateManyUserInput = {
@@ -48174,6 +55467,9 @@ export namespace Prisma {
     cantidad: number
     referenciaId?: string | null
     referenciaTipo?: $Enums.RefTipo | null
+    productoId?: string | null
+    fechaEfectiva?: Date | string | null
+    importacionInicialEstucheItemId?: string | null
     justificacion?: string | null
     createdAt?: Date | string
   }
@@ -48232,6 +55528,16 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type ImportacionInicialEstucheBatchCreateManyActorInput = {
+    id?: string
+    idempotencyKey: string
+    checksum: string
+    effectiveDate: Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ActaUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     fecha?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -48270,8 +55576,11 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
     referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    producto?: DepositoProductoUpdateOneWithoutMovimientosNestedInput
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemUpdateOneWithoutMovimientoNestedInput
   }
 
   export type MovimientoUncheckedUpdateWithoutUserInput = {
@@ -48283,6 +55592,9 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
     referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    importacionInicialEstucheItemId?: NullableStringFieldUpdateOperationsInput | string | null
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -48296,6 +55608,9 @@ export namespace Prisma {
     cantidad?: IntFieldUpdateOperationsInput | number
     referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
     referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    importacionInicialEstucheItemId?: NullableStringFieldUpdateOperationsInput | string | null
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -48462,6 +55777,40 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ImportacionInicialEstucheBatchUpdateWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: ImportacionInicialEstucheItemUpdateManyWithoutBatchNestedInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUpdateManyWithoutBatchNestedInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedUpdateWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutBatchNestedInput
+    idempotencyKeys?: ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyWithoutBatchNestedInput
+  }
+
+  export type ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    checksum?: StringFieldUpdateOperationsInput | string
+    effectiveDate?: DateTimeFieldUpdateOperationsInput | Date | string
+    result?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ActaItemCreateManyActaInput = {
     id?: string
     productoId?: string | null
@@ -48605,6 +55954,33 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type MovimientoCreateManyProductoInput = {
+    id?: string
+    tipo: $Enums.DepositoTipoMovimiento
+    categoria: $Enums.Categoria
+    productoNombre: string
+    lote?: string | null
+    cantidad: number
+    referenciaId?: string | null
+    referenciaTipo?: $Enums.RefTipo | null
+    fechaEfectiva?: Date | string | null
+    importacionInicialEstucheItemId?: string | null
+    justificacion?: string | null
+    createdBy: string
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheItemCreateManyProductoInput = {
+    id?: string
+    batchId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+  }
+
   export type InventarioDrogaUpdateWithoutProductoInput = {
     id?: StringFieldUpdateOperationsInput | string
     nombre?: StringFieldUpdateOperationsInput | string
@@ -48638,6 +56014,7 @@ export namespace Prisma {
     mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
     cantidad?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    importacionInicialItem?: ImportacionInicialEstucheItemUpdateOneWithoutInventarioNestedInput
   }
 
   export type InventarioEstucheUncheckedUpdateWithoutProductoInput = {
@@ -48646,6 +56023,7 @@ export namespace Prisma {
     mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
     cantidad?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    importacionInicialItem?: ImportacionInicialEstucheItemUncheckedUpdateOneWithoutInventarioNestedInput
   }
 
   export type InventarioEstucheUncheckedUpdateManyWithoutProductoInput = {
@@ -48827,6 +56205,159 @@ export namespace Prisma {
     valorAnterior?: NullableJsonNullValueInput | InputJsonValue
     valorNuevo?: NullableJsonNullValueInput | InputJsonValue
     usuarioId?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type MovimientoUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumDepositoTipoMovimientoFieldUpdateOperationsInput | $Enums.DepositoTipoMovimiento
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    productoNombre?: StringFieldUpdateOperationsInput | string
+    lote?: NullableStringFieldUpdateOperationsInput | string | null
+    cantidad?: IntFieldUpdateOperationsInput | number
+    referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
+    referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    justificacion?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutMovimientosNestedInput
+    importacionInicialEstucheItem?: ImportacionInicialEstucheItemUpdateOneWithoutMovimientoNestedInput
+  }
+
+  export type MovimientoUncheckedUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumDepositoTipoMovimientoFieldUpdateOperationsInput | $Enums.DepositoTipoMovimiento
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    productoNombre?: StringFieldUpdateOperationsInput | string
+    lote?: NullableStringFieldUpdateOperationsInput | string | null
+    cantidad?: IntFieldUpdateOperationsInput | number
+    referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
+    referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    importacionInicialEstucheItemId?: NullableStringFieldUpdateOperationsInput | string | null
+    justificacion?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type MovimientoUncheckedUpdateManyWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumDepositoTipoMovimientoFieldUpdateOperationsInput | $Enums.DepositoTipoMovimiento
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    productoNombre?: StringFieldUpdateOperationsInput | string
+    lote?: NullableStringFieldUpdateOperationsInput | string | null
+    cantidad?: IntFieldUpdateOperationsInput | number
+    referenciaId?: NullableStringFieldUpdateOperationsInput | string | null
+    referenciaTipo?: NullableEnumRefTipoFieldUpdateOperationsInput | $Enums.RefTipo | null
+    fechaEfectiva?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    importacionInicialEstucheItemId?: NullableStringFieldUpdateOperationsInput | string | null
+    justificacion?: NullableStringFieldUpdateOperationsInput | string | null
+    createdBy?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheItemUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    batch?: ImportacionInicialEstucheBatchUpdateOneRequiredWithoutItemsNestedInput
+    inventario?: InventarioEstucheUpdateOneRequiredWithoutImportacionInicialItemNestedInput
+    movimiento?: MovimientoUpdateOneWithoutImportacionInicialEstucheItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    inventarioEstucheId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimiento?: MovimientoUncheckedUpdateOneWithoutImportacionInicialEstucheItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    batchId?: StringFieldUpdateOperationsInput | string
+    inventarioEstucheId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheItemCreateManyBatchInput = {
+    id?: string
+    productoId: string
+    inventarioEstucheId: string
+    mercado: $Enums.Mercado
+    codigo: string
+    sourceRow: number
+    cantidad: number
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyCreateManyBatchInput = {
+    id?: string
+    idempotencyKey: string
+    createdAt?: Date | string
+  }
+
+  export type ImportacionInicialEstucheItemUpdateWithoutBatchInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    producto?: DepositoProductoUpdateOneRequiredWithoutImportacionesInicialesEstucheNestedInput
+    inventario?: InventarioEstucheUpdateOneRequiredWithoutImportacionInicialItemNestedInput
+    movimiento?: MovimientoUpdateOneWithoutImportacionInicialEstucheItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateWithoutBatchInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    inventarioEstucheId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    movimiento?: MovimientoUncheckedUpdateOneWithoutImportacionInicialEstucheItemNestedInput
+  }
+
+  export type ImportacionInicialEstucheItemUncheckedUpdateManyWithoutBatchInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    inventarioEstucheId?: StringFieldUpdateOperationsInput | string
+    mercado?: EnumMercadoFieldUpdateOperationsInput | $Enums.Mercado
+    codigo?: StringFieldUpdateOperationsInput | string
+    sourceRow?: IntFieldUpdateOperationsInput | number
+    cantidad?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUpdateWithoutBatchInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateWithoutBatchInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportacionInicialEstucheIdempotencyKeyUncheckedUpdateManyWithoutBatchInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

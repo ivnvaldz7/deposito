@@ -12,6 +12,7 @@ registerMercadoInventoryRoutes({
   messages: {
     conflict: 'Ya existe ese artículo para ese mercado',
     notFound: 'Estuche no encontrado',
+    quantityLocked: 'La cantidad de un estuche con movimientos solo puede cambiar mediante un ingreso o ajuste auditado',
   },
   operations: {
     buildWhere: (mercado): Prisma.InventarioEstucheWhereInput => (
@@ -36,6 +37,9 @@ registerMercadoInventoryRoutes({
     delete: async (id) => {
       await prisma.inventarioEstuche.delete({ where: { id } })
     },
+    canUpdateCantidad: async (estuche) => (
+      !estuche.productoId || await prisma.movimiento.count({ where: { productoId: estuche.productoId } }) === 0
+    ),
   },
 })
 

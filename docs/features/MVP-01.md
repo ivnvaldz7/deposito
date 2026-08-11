@@ -1,8 +1,8 @@
 # MVP-01 — Catálogo maestro de productos e importación
 
-> **Estado:** `DESIGN_READY`
+> **Estado:** `EN_CONSTRUCCION`
 > **Riesgo:** `ALTO` — modifica catálogo, permisos, inventario y migraciones.
-> **Próximo rol:** `BUILDER`
+> **Próximo rol:** `TESTER`
 
 Esta feature define el catálogo maestro de Depósito. No autoriza por sí sola implementación, migraciones, tests, UI, commits ni push.
 

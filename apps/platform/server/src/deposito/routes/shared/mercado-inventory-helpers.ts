@@ -40,6 +40,7 @@ export type MercadoInventoryOrderBy = ReturnType<typeof getMercadoInventoryOrder
 
 interface MercadoInventoryRecord {
   id: string
+  productoId?: string | null
   articulo: string
   mercado: Mercado
   cantidad: number
@@ -54,11 +55,13 @@ interface MercadoInventoryOperations<TRecord extends MercadoInventoryRecord, TWh
   create: (data: CrearMercadoInventoryData) => Promise<TRecord>
   update: (id: string, data: Partial<CrearMercadoInventoryData>) => Promise<TRecord>
   delete: (id: string) => Promise<void>
+  canUpdateCantidad?: (record: TRecord) => Promise<boolean>
 }
 
 interface MercadoInventoryRouteMessages {
   conflict: string
   notFound: string
+  quantityLocked?: string
 }
 
 interface RegisterMercadoInventoryRoutesOptions<TRecord extends MercadoInventoryRecord, TWhereInput> {
@@ -177,6 +180,11 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
 
       if (resolution.hasConflict) {
         res.status(409).json({ message: messages.conflict })
+        return
+      }
+
+      if (result.data.cantidad !== undefined && operations.canUpdateCantidad && !await operations.canUpdateCantidad(resolution.existing)) {
+        res.status(409).json({ message: messages.quantityLocked ?? 'La cantidad no puede editarse directamente' })
         return
       }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useProductFocus } from '../hooks/use-product-focus'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,9 +31,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '../components/ui/Dialog'
-import { PageHeader } from '../components/layout/PageHeader'
+import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
+import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
 
 import type { Etiqueta } from '../queries/use-etiquetas'
 function sortEtiquetas(list: Etiqueta[]): Etiqueta[] {
@@ -149,9 +150,7 @@ function AgregarEtiquetaModal({
 
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{createMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-            <DialogClose asChild>
-              <button type="button" className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
-            </DialogClose>
+            <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
           </div>
         </form>
       </DialogContent>
@@ -240,7 +239,7 @@ function CantidadCell({ etiqueta }: { etiqueta: Etiqueta }) {
 export default function EtiquetasPage() {
   const user = useAuthStore((s) => s.user)
   const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data: allEtiquetas = [], isLoading, error } = useEtiquetas()
   const deleteMutation = useDeleteEtiqueta()
   const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos')
@@ -257,13 +256,32 @@ export default function EtiquetasPage() {
   useEffect(() => { setMercadoFiltro((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos') }, [searchParams])
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const productoIdFiltro = searchParams.get('productoId')
+  const hasFocusSignal = Boolean(searchParams.get('focus'))
+  const focus = useProductFocus(allEtiquetas.map((item) => ({ id: item.id, productoId: item.productoId, name: getDisplayName(item) })))
+
+  const handleMercadoChange = useCallback((mercado: Mercado | 'todos') => {
+    setMercadoFiltro(mercado)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (mercado === 'todos') next.delete('mercado')
+      else next.set('mercado', mercado)
+      return next
+    })
+  }, [setSearchParams])
   const sortedEtiquetas = useMemo(() => sortEtiquetas(allEtiquetas), [allEtiquetas])
   const etiquetas = useMemo(() => {
-    const byMercado = mercadoFiltro === 'todos' ? sortedEtiquetas : sortedEtiquetas.filter((e) => e.mercado === mercadoFiltro)
-    if (!productoFiltro) return byMercado
+    const selected = hasFocusSignal
+      ? sortedEtiquetas.find((item) =>
+          (productoIdFiltro && item.productoId === productoIdFiltro)
+          || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
+      : undefined
+    if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
+    const byMercado = selected || mercadoFiltro === 'todos' ? sortedEtiquetas : sortedEtiquetas.filter((e) => e.mercado === mercadoFiltro)
+    if (!productoFiltro || selected) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((e) => normalizeProducto(getDisplayName(e)) === target)
-  }, [sortedEtiquetas, mercadoFiltro, productoFiltro, getDisplayName])
+  }, [sortedEtiquetas, mercadoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
 
   async function handleDelete(id: string) {
     try {
@@ -281,24 +299,24 @@ export default function EtiquetasPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader title="ETIQUETAS" stats={[
+      <InventoryPageHeader title="Etiquetas" description="Inventario por mercado y alertas de stock." stats={[
         { label: 'artículos', value: etiquetas.length },
         { label: 'mercados', value: MERCADOS.filter((m) => countsByMercado[m.value] > 0).length },
         { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
       ]} primaryAction={isEncargado ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
-        <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={setMercadoFiltro} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
-      </PageHeader>
+        <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={handleMercadoChange} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
+      </InventoryPageHeader>
       {isEncargado && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
       {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onClose={() => setEditingEtiqueta(null)} />}
       {etiquetas.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       : (
         <>
-          <div className="hidden md:block bg-surface-container-low rounded overflow-hidden">
+          <InventoryDataSurface label="Inventario de etiquetas"><div className="hidden md:block">
             <Table>
               <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-36">Mercado</TableHead><TableHead className="w-32">Cantidad</TableHead><TableHead className="w-28">Estado</TableHead>{isEncargado && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
               <TableBody>
                 {etiquetas.map((e) => (
-                  <TableRow key={e.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
+                  <TableRow key={e.id} {...focus.targetProps(e.id)} className={focus.isFocused(e.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(e)}</TableCell>
                     <TableCell><MercadoChip mercado={e.mercado} /></TableCell>
                     <TableCell>{isEncargado ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
@@ -306,8 +324,8 @@ export default function EtiquetasPage() {
                     {isEncargado && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button type="button" onClick={() => setEditingEtiqueta(e)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar"><Pencil size={14} strokeWidth={1.5} /></button>
-                          <button type="button" onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40" title="Eliminar"><Trash2 size={14} strokeWidth={1.5} /></button>
+                          <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                          <RowActionButton destructive label={`Eliminar ${e.articulo}`} onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                         </div>
                       </TableCell>
                     )}
@@ -315,10 +333,10 @@ export default function EtiquetasPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </div></InventoryDataSurface>
           <div className="md:hidden space-y-2">
             {etiquetas.map((e) => (
-              <div key={e.id} className={`bg-surface-container-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}>
+              <div key={e.id} {...focus.targetProps(e.id)} className={`bg-surface-container-low focus:outline-none rounded px-4 py-3 flex items-center justify-between gap-3 ${focus.isFocused(e.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}>
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(e)}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -329,8 +347,8 @@ export default function EtiquetasPage() {
                 {isEncargado && (
                   <div className="flex items-center gap-3 shrink-0">
                     <CantidadCell etiqueta={e} />
-                    <button type="button" onClick={() => setEditingEtiqueta(e)} className="text-on-surface-variant hover:text-on-surface transition-colors"><Pencil size={14} strokeWidth={1.5} /></button>
-                    <button type="button" onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"><Trash2 size={14} strokeWidth={1.5} /></button>
+                    <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                    <RowActionButton destructive label={`Eliminar ${e.articulo}`} onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                   </div>
                 )}
               </div>
