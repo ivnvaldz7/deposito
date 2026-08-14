@@ -18,6 +18,10 @@ export interface Producto {
   fisico: number
   reservado: number
   disponible: number
+  stockTotal?: number
+  stockDeposito?: number
+  stockAcondicionado?: number
+  stockDisponiblePedido?: number
   stockBajo: boolean
   lotes?: Lote[]
 }
@@ -37,8 +41,8 @@ export interface Lote {
   numero: string
   cajas: number
   sueltos: number
-  fechaProduccion: string
-  fechaVencimiento: string
+  fechaProduccion: string | null
+  fechaVencimiento: string | null
   activo: boolean
   unidades: number
   unidadesPorCaja: number
@@ -66,6 +70,7 @@ export interface ReservaStock {
   pedidoId: string
   itemPedidoId: string | null
   loteId: string
+  ubicacionId?: string
   cantidad: number
   estado: EstadoReserva
   createdAt: string
@@ -163,7 +168,7 @@ export interface MovimientoStock {
   id: string
   productoId: string
   cantidad: number
-  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'AJUSTE'
+  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'AJUSTE' | 'TRANSFERENCIA_INTERNA'
   referencia: string | null
   usuarioId: string
   createdAt: string
@@ -172,6 +177,18 @@ export interface MovimientoStock {
 export interface StockOverview {
   productos: Producto[]
   movimientos: MovimientoStock[]
+}
+
+export interface PedidoDisponibilidadStock {
+  status: 'DISPONIBLE' | 'DISPONIBLE_CON_TRANSFERENCIA' | 'INSUFICIENTE'
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
+  stockDisponiblePedido: number
+  allocations: Array<{ itemPedidoId: string; productoId: string; loteId: string; cantidad: number }>
+  transferencias: Array<{ productoId: string; loteId: string; origen: 'ACONDICIONADO'; destino: 'DEPOSITO'; cantidad: number }>
+  shortfall: number
+  fingerprint: string
 }
 
 export interface DashboardPedidoReciente {
@@ -371,7 +388,8 @@ export const aleBetApi = {
       apiClient.post<Pedido>(`${BASE}/pedidos`, data, undefined, mutationOptions(options)),
     update: (id: string, data: UpdatePedidoInput, options?: MutationOptions) =>
       apiClient.patch<Pedido>(`${BASE}/pedidos/${id}`, data, undefined, mutationOptions(options)),
-    aprobar: (id: string, data: { expectedVersion: number }, options?: MutationOptions) =>
+    disponibilidadStock: (id: string) => apiClient.get<PedidoDisponibilidadStock>(`${BASE}/pedidos/${id}/disponibilidad-stock`),
+    aprobar: (id: string, data: { expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
       apiClient.put<Pedido>(`${BASE}/pedidos/${id}/aprobar`, data, undefined, mutationOptions(options)),
     tomar: (id: string, data: { expectedVersion: number }, options?: MutationOptions) =>
       apiClient.put<Pedido>(`${BASE}/pedidos/${id}/tomar`, data, undefined, mutationOptions(options)),
@@ -405,10 +423,12 @@ export const aleBetApi = {
     pdf: (pedidoId: string) => apiClient.getBlob(`${BASE}/pedidos/${pedidoId}/remito.pdf`),
   },
 
-  // Stock (legacy)
+  // Stock
   stock: {
     get: () => apiClient.get<StockOverview>(`${BASE}/stock`),
     movimientos: () => apiClient.get<MovimientoStock[]>(`${BASE}/stock/movimientos`),
+    transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number }, options: MutationOptions) =>
+      apiClient.post<{ movimientoId: string }>(`${BASE}/stock/transferencias`, data, undefined, mutationOptions(options)),
   },
 
   // Historial (legacy)
@@ -442,4 +462,3 @@ export const aleBetApi = {
     },
   },
 }
-

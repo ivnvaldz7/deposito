@@ -27,7 +27,7 @@ vi.mock('../../lib/api', () => ({
     dashboard: vi.fn(),
     productos: { list: vi.fn(), search: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), lotes: { list: vi.fn(), create: vi.fn(), update: vi.fn() } },
     clientes: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
-    pedidos: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn() },
+    pedidos: { list: vi.fn(), get: vi.fn(), disponibilidadStock: vi.fn(), create: vi.fn(), update: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn() },
     transportistas: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
     remitos: { emitir: vi.fn(), anular: vi.fn(), pdf: vi.fn() },
     stock: { get: vi.fn(), movimientos: vi.fn() },
@@ -78,6 +78,7 @@ describe('PedidoDetailPage', () => {
     vi.clearAllMocks()
     mockRol('admin')
     vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido())
+    vi.mocked(aleBetApi.pedidos.disponibilidadStock).mockResolvedValue({ status: 'DISPONIBLE', stockTotal: 10, stockDeposito: 10, stockAcondicionado: 0, stockDisponiblePedido: 10, allocations: [], transferencias: [], shortfall: 0, fingerprint: 'a'.repeat(64) })
     vi.mocked(aleBetApi.productos.list).mockResolvedValue(createProductoList())
     vi.mocked(aleBetApi.clientes.list).mockResolvedValue(createClienteList())
     vi.mocked(aleBetApi.pedidos.list).mockResolvedValue(createPedidoList())
@@ -294,7 +295,7 @@ describe('PedidoDetailPage', () => {
     await waitFor(() =>
       expect(aleBetApi.pedidos.aprobar).toHaveBeenCalledWith(
         'pedido-1',
-        { expectedVersion: 1 },
+        { expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [] },
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )

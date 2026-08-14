@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
+import { displayBusinessSku } from '../lib/logistics-display'
 import { useAuthStore } from '@/stores/auth-store'
 import {
   ESTADO_META,
@@ -40,6 +41,7 @@ import {
   useDespacharPedido,
   useEmitirRemito,
   usePedidoDetalle,
+  usePedidoDisponibilidad,
   usePedidos,
   usePrepararPedido,
   useProductos,
@@ -383,7 +385,7 @@ function LineaDetalle({
             {isEspera && <Badge className="bg-[#A06869] text-white h-5 px-2 text-[10px] uppercase whitespace-nowrap shrink-0 animate-check-pop">ESPERA PRODUCCIÓN</Badge>}
             {!isListo && !isEspera && completable && <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-primary border-primary/50">PREPARAR</Badge>}
           </div>
-          <p className={cn('font-body text-[13px]', isEspera ? 'text-[#8E5A5B]/70' : 'text-on-surface-variant')}>{sku}</p>
+          <p className={cn('font-body text-[13px]', isEspera ? 'text-[#8E5A5B]/70' : 'text-on-surface-variant')}>{displayBusinessSku(sku)}</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -461,7 +463,7 @@ function LineaDetalle({
           {completado && <Badge variant="success" className="h-5 px-1.5 text-[10px]">Listo</Badge>}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[12px] text-on-surface-variant">
-          <span className="font-medium text-on-surface/80">{sku}</span>
+          <span className="font-medium text-on-surface/80">{displayBusinessSku(sku)}</span>
 
           {mostrarStock && (
             <div className="flex items-center gap-2 border-l border-white/10 pl-3">
@@ -659,6 +661,7 @@ export default function PedidoDetailPage() {
   const esRemitos = rol === 'admin' || rol === 'facturacion'
 
   const { data: pedido, isLoading, error, refetch: refetchPedido } = usePedidoDetalle(id)
+  const { data: disponibilidad } = usePedidoDisponibilidad(id)
   const { data: productos = [], refetch: refetchProductos } = useProductos()
   const { data: clientes = [] } = useClientes()
   const { data: transportistas = [] } = useTransportistas({ enabled: esRemitos })
@@ -946,9 +949,15 @@ export default function PedidoDetailPage() {
     isExecutingRef.current = true
     try {
       if (confirm === 'aprobar') {
+        if (!disponibilidad || disponibilidad.status === 'INSUFICIENTE') {
+          toast.error('No hay disponibilidad vigente para aprobar el pedido')
+          return
+        }
         const aprobado = await aprobarMutation.mutateAsync({
           id: pedido.id,
           expectedVersion: pedido.version,
+          fingerprint: disponibilidad.fingerprint,
+          transferencias: disponibilidad.transferencias,
           idempotencyKey: newIdempotencyKey(),
         })
         toast.success(`Pedido ${aprobado.numero} aprobado`)
@@ -1711,7 +1720,9 @@ export default function PedidoDetailPage() {
       <ConfirmDialog
         open={confirm === 'aprobar'}
         titulo="Aprobar pedido"
-        mensaje={`¿Aprobar ${pedido.numero}? Se reservará el stock.`}
+        mensaje={disponibilidad?.status === 'DISPONIBLE_CON_TRANSFERENCIA'
+          ? `¿Aprobar ${pedido.numero}? Confirmarás ${disponibilidad.transferencias.length} traslado(s) internos antes de reservar.`
+          : `¿Aprobar ${pedido.numero}? Se reservará el stock disponible en depósito.`}
         accion="Aprobar"
         loading={aprobarMutation.isPending}
         onCancel={() => setConfirm(null)}

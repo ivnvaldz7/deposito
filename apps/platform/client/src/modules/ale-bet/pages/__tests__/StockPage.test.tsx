@@ -51,4 +51,21 @@ describe('StockPage', () => {
     expect(screen.getByText('Últimos movimientos')).toBeInTheDocument()
     expect(screen.getByText('ENTRADA MANUAL')).toBeInTheDocument()
   })
+
+  it('shows location-aware balances for a product', async () => {
+    const data = createStockOverview()
+    data.productos[0] = {
+      ...data.productos[0],
+      stockTotal: 12,
+      stockDeposito: 7,
+      stockAcondicionado: 5,
+      stockDisponiblePedido: 6,
+    }
+    vi.mocked(aleBetApi.stock.get).mockResolvedValue(data)
+    render(<MemoryRouter><StockPage /></MemoryRouter>)
+
+    expect(await screen.findByText('7')).toBeInTheDocument()
+    expect(screen.getByText('5')).toBeInTheDocument()
+    expect(screen.getByText('6')).toBeInTheDocument()
+  })
 })

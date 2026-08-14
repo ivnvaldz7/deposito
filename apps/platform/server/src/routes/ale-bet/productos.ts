@@ -79,7 +79,16 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
 router.get('/search', requireApp('ale-bet'), async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : ''
   const productos = await prisma.producto.findMany({
-    where: { activo: true, ...(query ? { OR: [{ nombre: { contains: query, mode: 'insensitive' } }, { sku: { contains: query, mode: 'insensitive' } }] } : {}) },
+    where: {
+      activo: true,
+      ...(query ? {
+        OR: [
+          { nombre: { contains: query, mode: 'insensitive' as const } },
+          { lotes: { some: { numero: { contains: query, mode: 'insensitive' as const }, activo: true } } },
+          { AND: [{ sku: { contains: query, mode: 'insensitive' as const } }, { NOT: { sku: { startsWith: 'LOG-' } } }] },
+        ],
+      } : {}),
+    },
     include: { lotes: { where: { activo: true }, include: { reservas: { where: { estado: 'ACTIVA' } } } } },
     orderBy: { nombre: 'asc' },
     take: 50,

@@ -7,6 +7,7 @@ import { toast } from '@/lib/toast'
 import { aleBetApi, type Cliente, type ProductoAgregado, type ReporteVentas } from '../lib/api'
 import { useClientes, useVentas } from '../queries'
 import { generarExcelVentas } from '../lib/ventas-excel'
+import { displayBusinessSku } from '../lib/logistics-display'
 
 // Module-private Spanish month names: deterministic and testable (no Intl month formatting).
 const MESES = [
@@ -173,7 +174,7 @@ function ProductosMobileCards({ productos }: { productos: ProductoAgregado[] }) 
         <div key={p.productoId} className="rounded-xl border border-white/10 bg-surface-container-high p-4">
           <div className="flex items-center justify-between gap-2">
             <p className="font-body text-[13px] font-semibold text-on-surface">{p.nombre}</p>
-            <p className="font-body text-[11px] text-on-surface-variant">{p.sku}</p>
+            <p className="font-body text-[11px] text-on-surface-variant">{displayBusinessSku(p.sku)}</p>
           </div>
           <p className="mt-2 font-body text-[12px] text-on-surface-variant">
             {p.cajas} cajas · {p.sueltos} sueltos / {p.unidades} unidades
@@ -202,7 +203,7 @@ function ProductosTable({ productos }: { productos: ProductoAgregado[] }) {
             // Backend values rendered verbatim — never recompute cajas/sueltos client-side.
             <tr key={p.productoId} className="border-b border-white/10 last:border-0">
               <td className="px-5 py-4 text-on-surface">{p.nombre}</td>
-              <td className="px-5 py-4 text-on-surface-variant">{p.sku}</td>
+              <td className="px-5 py-4 text-on-surface-variant">{displayBusinessSku(p.sku)}</td>
               <td className="px-5 py-4 text-right text-on-surface">{p.cajas}</td>
               <td className="px-5 py-4 text-right text-on-surface">{p.sueltos}</td>
               <td className="px-5 py-4 text-right text-on-surface font-semibold">{p.unidades}</td>

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { useProductos, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useUpdateLote } from '../queries'
 import { StockIndicator } from '../components/StockIndicator'
 import { toast } from '@/lib/toast'
+import { displayBusinessSku, formatOptionalDate, matchesFunctionalProductSearch } from '../lib/logistics-display'
 
 function stockBadge(p: Producto) {
   if (p.disponible <= 0) {
@@ -50,7 +51,7 @@ function LotesInline({ producto }: { producto: Producto }) {
           <div key={l.id} className="rounded-xl border border-white/10 bg-surface-container-high p-4">
             <div className="flex items-center justify-between">
               <span className="font-semibold text-[14px] text-primary">LOTE {l.numero}</span>
-              <span className="font-body text-[11px] text-on-surface-variant">Vto: {new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}</span>
+              <span className="font-body text-[11px] text-on-surface-variant">Vto: {formatOptionalDate(l.fechaVencimiento)}</span>
             </div>
             <div className="mt-3 flex justify-between rounded-lg bg-surface-container/50 p-2 text-center">
               <div>
@@ -170,7 +171,7 @@ export default function ProductosPage() {
 
   const filtered = productos.filter((p) => {
     if (soloCritico && !p.stockBajo) return false
-    return p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
+    return matchesFunctionalProductSearch(p, search)
   })
 
   return (
@@ -251,7 +252,7 @@ export default function ProductosPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="text-[16px] font-semibold text-on-surface">{p.nombre}</p>
-                        <p className="mt-1 font-body text-[13px] font-medium text-on-surface-variant">SKU: {p.sku}</p>
+                        <p className="mt-1 font-body text-[13px] font-medium text-on-surface-variant">SKU: {displayBusinessSku(p.sku)}</p>
                         <p className="mt-0.5 font-body text-[12px] font-medium text-on-surface-variant">
                            {lotesCount} {lotesCount === 1 ? 'Lote activo' : 'Lotes activos'}
                         </p>
@@ -335,7 +336,7 @@ export default function ProductosPage() {
                         <td className="px-5 py-4">
                           <p className="text-[16px] font-semibold text-on-surface">{p.nombre}</p>
                           <div className="mt-1 flex items-center gap-3">
-                            <p className="font-body text-[13px] font-medium text-on-surface-variant">SKU: {p.sku}</p>
+                            <p className="font-body text-[13px] font-medium text-on-surface-variant">SKU: {displayBusinessSku(p.sku)}</p>
                             <span className="text-white/20">·</span>
                             <p className="font-body text-[12px] font-medium text-on-surface-variant">
                               {lotesCount} {lotesCount === 1 ? 'Lote activo' : 'Lotes activos'}
@@ -509,10 +510,10 @@ export default function ProductosPage() {
 
                     <div className="mt-2 flex items-center gap-4">
                       <p className="font-body text-[11px] text-outline">
-                        Vto: <span className="font-medium text-on-surface-variant">{new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}</span>
+                        Vto: <span className="font-medium text-on-surface-variant">{formatOptionalDate(l.fechaVencimiento)}</span>
                       </p>
                       <p className="font-body text-[11px] text-outline">
-                        Prod: <span className="font-medium text-on-surface-variant">{new Date(l.fechaProduccion).toLocaleDateString('es-AR')}</span>
+                        Prod: <span className="font-medium text-on-surface-variant">{formatOptionalDate(l.fechaProduccion)}</span>
                       </p>
                     </div>
                   </div>

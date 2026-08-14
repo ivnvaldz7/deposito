@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { aleBetApi } from '../lib/api'
-import type { Pedido, PedidoEstado, CreatePedidoInput, UpdatePedidoInput } from '../lib/api'
+import type { Pedido, PedidoEstado, CreatePedidoInput, PedidoDisponibilidadStock, UpdatePedidoInput } from '../lib/api'
 
 export const pedidosKeys = {
   all: ['ale-bet', 'pedidos'] as const,
   list: (filters?: { estado?: PedidoEstado; vendedorId?: string }) => [...pedidosKeys.all, 'list', filters] as const,
   detail: (id: string) => [...pedidosKeys.all, 'detail', id] as const,
+  disponibilidad: (id: string) => [...pedidosKeys.detail(id), 'disponibilidad-stock'] as const,
 }
 
 function invalidatePedido(qc: QueryClient, pedido: Pick<Pedido, 'id'> | string) {
@@ -32,6 +33,14 @@ export function usePedidoDetalle(id?: string) {
   })
 }
 
+export function usePedidoDisponibilidad(id?: string) {
+  return useQuery({
+    queryKey: pedidosKeys.disponibilidad(id ?? ''),
+    queryFn: () => aleBetApi.pedidos.disponibilidadStock(id ?? ''),
+    enabled: Boolean(id),
+  })
+}
+
 export function useCreatePedido() {
   const qc = useQueryClient()
   return useMutation({
@@ -55,8 +64,8 @@ export function useUpdatePedido() {
 export function useAprobarPedido() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, expectedVersion, idempotencyKey }: { id: string; expectedVersion: number; idempotencyKey?: string }) =>
-      aleBetApi.pedidos.aprobar(id, { expectedVersion }, idempotencyKey ? { idempotencyKey } : undefined),
+    mutationFn: ({ id, expectedVersion, fingerprint, transferencias, idempotencyKey }: { id: string; expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias']; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.aprobar(id, { expectedVersion, fingerprint, transferencias }, idempotencyKey ? { idempotencyKey } : undefined),
     onSuccess: (pedido) => invalidatePedido(qc, pedido),
   })
 }

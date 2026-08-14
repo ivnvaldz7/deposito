@@ -8,6 +8,7 @@ import { requireApp } from '../../middlewares/require-app'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { canCancelOrder, canConfirmDispatch, canEditOrder, canTransitionOrder, canVendorCancelDirectly, type OrderState } from './order-workflow'
 import { consumeActiveReservations, releaseActiveReservations, reserveFefo, StockConflictError } from './reservas-service'
+import { getOrderAvailability, InventoryConflictError, transferInternal } from './inventory-service'
 import { sseManager } from './sse-manager'
 
 const router = Router()
@@ -15,6 +16,16 @@ const itemSchema = z.object({ productoId: z.string().min(1), cantidad: z.number(
 const createSchema = z.object({ clienteId: z.string().min(1), items: z.array(itemSchema).min(1) })
 const editSchema = createSchema.extend({ expectedVersion: z.number().int().positive() })
 const versionSchema = z.object({ expectedVersion: z.number().int().positive() })
+const approvalSchema = versionSchema.extend({
+  fingerprint: z.string().length(64),
+  transferencias: z.array(z.object({
+    productoId: z.string().min(1),
+    loteId: z.string().min(1),
+    origen: z.literal('ACONDICIONADO'),
+    destino: z.literal('DEPOSITO'),
+    cantidad: z.number().int().positive(),
+  })).default([]),
+})
 const cancelSchema = versionSchema.extend({ motivo: z.string().trim().min(3).max(500).optional() })
 
 class ConflictError extends Error {}
@@ -135,7 +146,7 @@ async function completeAuthorizedIdempotency(
 function errorResponse(error: unknown, res: Response): void {
   if (error instanceof NotFoundError) { res.status(404).json({ error: error.message }); return }
   if (error instanceof ForbiddenError) { res.status(403).json({ error: error.message }); return }
-  if (error instanceof ConflictError || error instanceof StockConflictError) { res.status(409).json({ error: error.message }); return }
+  if (error instanceof ConflictError || error instanceof StockConflictError || error instanceof InventoryConflictError) { res.status(409).json({ error: error.message }); return }
   throw error
 }
 
@@ -156,6 +167,18 @@ router.get('/:id', requireApp('ale-bet'), async (req, res) => {
   const user = req.user as JwtPayload
   if (actorRole(user) === 'vendedor' && pedido.vendedorId !== user.sub) { res.status(403).json({ error: 'No puede consultar este pedido' }); return }
   res.json(pedido)
+})
+
+router.get('/:id/disponibilidad-stock', requireApp('ale-bet'), async (req, res) => {
+  const user = req.user as JwtPayload
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const pedido = await lockOrder(tx, String(req.params.id))
+      assertOwnerOrAdmin(pedido, user)
+      return getOrderAvailability(tx, pedido)
+    })
+    res.json(result)
+  } catch (error) { errorResponse(error, res) }
 })
 
 router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
@@ -195,14 +218,23 @@ router.patch('/:id', requireApp('ale-bet', ['admin', 'vendedor']), async (req, r
 })
 
 router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
-  const parsed = versionSchema.safeParse(req.body)
-  if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
+  const parsed = approvalSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'fingerprint y expectedVersion son requeridos' }); return }
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.aprobar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
       const pedido = await lockOrder(tx, String(req.params.id)); assertOwnerOrAdmin(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
       if (pedido.estado !== 'BORRADOR') throw new ConflictError('Solo se puede aprobar un pedido BORRADOR')
       if (pedido.cliente.estado !== 'VALIDADO') throw new ConflictError('El cliente está PENDIENTE_CLIENTE y debe validarse antes de aprobar')
+      const availability = await getOrderAvailability(tx, pedido)
+      if (availability.status === 'INSUFICIENTE') throw new StockConflictError('Stock insuficiente para aprobar el pedido')
+      if (availability.fingerprint !== parsed.data.fingerprint) throw new ConflictError('La disponibilidad cambió; obtené una nueva sugerencia antes de aprobar')
+      if (JSON.stringify(availability.transferencias) !== JSON.stringify(parsed.data.transferencias)) {
+        throw new ConflictError('Las transferencias confirmadas no coinciden con la sugerencia vigente')
+      }
+      for (const transfer of parsed.data.transferencias) {
+        await transferInternal(tx, { ...transfer, actorId: user.sub, idempotencyKey: `pedido:${pedido.id}:${parsed.data.fingerprint}:${transfer.loteId}` })
+      }
       await reserveFefo(tx, pedido.id, pedido.items)
       const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'APROBADO', aprobadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
       await audit(tx, updated.id, user.sub, 'PEDIDO_APROBADO', { estado: pedido.estado }, { estado: updated.estado })

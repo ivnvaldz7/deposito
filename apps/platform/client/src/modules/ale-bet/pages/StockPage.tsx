@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useStockOverview } from '../queries'
+import { displayBusinessSku, matchesFunctionalProductSearch } from '../lib/logistics-display'
 
 export default function StockPage() {
   const { data, isLoading, error } = useStockOverview()
@@ -8,9 +9,7 @@ export default function StockPage() {
   if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando stock...</p>
   if (error || !data) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar stock'}</p>
 
-  const filtered = data.productos.filter(
-    (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = data.productos.filter((p) => matchesFunctionalProductSearch(p, search))
 
   return (
     <div className="space-y-6">
@@ -36,7 +35,9 @@ export default function StockPage() {
               <tr className="border-b border-white/10 text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
                 <th className="px-5 py-3 font-semibold">Producto</th>
                 <th className="px-5 py-3 font-semibold">SKU</th>
-                <th className="px-5 py-3 font-semibold text-right">Físico</th>
+                <th className="px-5 py-3 font-semibold text-right">Total</th>
+                <th className="px-5 py-3 font-semibold text-right">Depósito</th>
+                <th className="px-5 py-3 font-semibold text-right">Acondicionado</th>
                 <th className="px-5 py-3 font-semibold text-right">Reservado</th>
                 <th className="px-5 py-3 font-semibold text-right">Disponible</th>
                 <th className="px-5 py-3 font-semibold text-right">Mínimo</th>
@@ -47,10 +48,12 @@ export default function StockPage() {
               {filtered.map((p) => (
                 <tr key={p.id} className="border-b border-white/10 hover:bg-surface-variant/30">
                   <td className="px-5 py-4 font-semibold text-on-surface">{p.nombre}</td>
-                  <td className="px-5 py-4 text-on-surface-variant font-medium">{p.sku}</td>
-                  <td className="px-5 py-4 text-right">{p.fisico}</td>
+                  <td className="px-5 py-4 text-on-surface-variant font-medium">{displayBusinessSku(p.sku)}</td>
+                  <td className="px-5 py-4 text-right">{p.stockTotal ?? p.fisico}</td>
+                  <td className="px-5 py-4 text-right">{p.stockDeposito ?? p.fisico}</td>
+                  <td className="px-5 py-4 text-right">{p.stockAcondicionado ?? 0}</td>
                   <td className="px-5 py-4 text-right text-on-surface-variant">{p.reservado}</td>
-                  <td className="px-5 py-4 text-right font-semibold text-[15px]">{p.disponible}</td>
+                  <td className="px-5 py-4 text-right font-semibold text-[15px]">{p.stockDisponiblePedido ?? p.disponible}</td>
                   <td className="px-5 py-4 text-right text-on-surface-variant font-medium">{p.stockMinimo}</td>
                   <td className="px-5 py-4 text-center">
                     <span className={`inline-flex rounded-full px-2.5 py-0.5 font-medium text-[11px] ${p.stockBajo ? 'bg-error/20 text-error' : 'border border-[#AFC8BA] bg-[#E7EFEA] text-[#3F6F5A]'}`}>

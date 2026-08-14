@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Badge } from '@/components/ui/Badge'
 import { cn } from '@/lib/utils'
 import { maxSueltos } from '../lib/constants'
+import { displayBusinessSku } from '../lib/logistics-display'
 
 
 export interface ProductoCardDatos {
@@ -88,7 +89,7 @@ export function ProductCard({
         <div className="min-w-0 flex-1">
           <p className="truncate text-[14px] font-semibold text-on-surface leading-tight">{producto.nombre}</p>
           <div className="mt-1 flex items-center gap-x-3 text-[12px] font-body text-on-surface-variant">
-            <span>{producto.sku}</span>
+            <span>{displayBusinessSku(producto.sku)}</span>
             <span className="text-outline/40">•</span>
             <span className={cn(producto.disponible <= 0 && 'text-warning font-medium')}>Disp: {producto.disponible}</span>
             {producto.reservado > 0 && (

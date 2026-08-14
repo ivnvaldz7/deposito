@@ -330,4 +330,26 @@ describe('Ale-Bet Stock', () => {
       expect(res.body.error).toBe('DB error')
     })
   })
+
+  describe('POST /api/ale-bet/stock/transferencias', () => {
+    it('rejects a malformed transfer before mutating stock', async () => {
+      const app = await createTestApp()
+      const res = await request(app)
+        .post('/api/ale-bet/stock/transferencias')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ productoId: 'producto-1', loteId: 'lote-1', origen: 'DEPOSITO', destino: 'ACONDICIONADO', cantidad: 0 })
+        .expect(400)
+
+      expect(res.body.error).toBe('Datos de transferencia inválidos')
+    })
+
+    it('forbids a vendedor from requesting an internal transfer', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .post('/api/ale-bet/stock/transferencias')
+        .set('Authorization', `Bearer ${signToken({ apps: { 'ale-bet': { rol: 'vendedor', activo: true } } })}`)
+        .send({ productoId: 'producto-1', loteId: 'lote-1', origen: 'DEPOSITO', destino: 'ACONDICIONADO', cantidad: 1 })
+        .expect(403)
+    })
+  })
 })
