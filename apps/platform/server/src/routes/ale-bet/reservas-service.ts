@@ -1,5 +1,6 @@
 import { Prisma, TipoMovimiento } from '@platform/db'
 import { calcularUnidades, descomponerUnidades } from './constants'
+import { evaluateLotLifecycle } from './product-stock-admin-service'
 
 type TransactionClient = Prisma.TransactionClient
 
@@ -121,11 +122,12 @@ export async function consumeActiveReservations(tx: TransactionClient, pedidoId:
     const physical = lot.cantidad
     if (physical < reservation.cantidad) throw new StockConflictError('El stock físico es menor que la reserva a consumir')
 
-    const remaining = calcularUnidades(lot.cajas, lot.sueltos, lot.unidadesPorCaja) - reservation.cantidad
+    const remaining = physical - reservation.cantidad
+    if (remaining < 0) throw new StockConflictError('El stock físico resultante no puede ser negativo')
     await tx.saldoStock.update({ where: { id: lot.saldoId }, data: { cantidad: { decrement: reservation.cantidad } } })
     await tx.lote.update({
       where: { id: lot.id },
-      data: { ...descomponerUnidades(remaining, lot.unidadesPorCaja), activo: remaining > 0 },
+      data: descomponerUnidades(remaining, lot.unidadesPorCaja),
     })
     await tx.reservaStock.update({ where: { id: reservation.id }, data: { estado: 'CONSUMIDA', consumedAt: new Date() } })
     await tx.movimientoStock.create({
@@ -141,5 +143,6 @@ export async function consumeActiveReservations(tx: TransactionClient, pedidoId:
         origenUbicacionId: reservation.ubicacionId,
       },
     })
+    await evaluateLotLifecycle(tx, { loteId: lot.id, productoId: lot.productoId })
   }
 }

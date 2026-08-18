@@ -49,4 +49,29 @@ describe('inventory location service', () => {
     expect(fingerprintAvailability({ pedidoId: 'p1', allocations: [{ loteId: 'l1', cantidad: 2 }], transferencias: [] }))
       .toBe(fingerprintAvailability({ pedidoId: 'p1', allocations: [{ loteId: 'l1', cantidad: 2 }], transferencias: [] }))
   })
+
+  it('splits a request across multiple lots using FEFO and suggests transfer per lot', () => {
+    const availability = allocateAvailability({
+      requested: 100,
+      now: new Date('2026-01-01'),
+      deposito: [
+        { id: 'lot-a', activo: true, fechaVencimiento: new Date('2027-01-01'), fechaProduccion: null, createdAt: new Date('2025-01-01'), cantidad: 30 },
+        { id: 'lot-b', activo: true, fechaVencimiento: new Date('2027-02-01'), fechaProduccion: null, createdAt: new Date('2025-01-02'), cantidad: 20 },
+      ],
+      acondicionado: [
+        { id: 'lot-a', activo: true, fechaVencimiento: new Date('2027-01-01'), fechaProduccion: null, createdAt: new Date('2025-01-01'), cantidad: 30 },
+        { id: 'lot-b', activo: true, fechaVencimiento: new Date('2027-02-01'), fechaProduccion: null, createdAt: new Date('2025-01-02'), cantidad: 50 },
+      ],
+    })
+
+    expect(availability.allocations).toEqual([
+      { loteId: 'lot-a', cantidad: 30 },
+      { loteId: 'lot-b', cantidad: 20 },
+    ])
+    expect(availability.transferencias).toEqual([
+      { loteId: 'lot-a', cantidad: 30 },
+      { loteId: 'lot-b', cantidad: 20 },
+    ])
+    expect(availability.shortfall).toBe(0)
+  })
 })

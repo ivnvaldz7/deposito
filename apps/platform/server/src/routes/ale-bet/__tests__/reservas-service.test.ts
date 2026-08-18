@@ -14,10 +14,11 @@ describe('consumeActiveReservations', () => {
       reservaStock: {
         findMany: vi.fn().mockResolvedValue([{ id: 'reservation-1', loteId: 'lot-1', ubicacionId: 'deposito-id', cantidad: 3 }]),
         update: vi.fn().mockResolvedValue({}),
+        count: vi.fn().mockResolvedValue(0),
       },
       $queryRaw: vi.fn().mockResolvedValue([{ id: 'lot-1', productoId: 'product-1', cajas: 1, sueltos: 5, unidadesPorCaja: 12, cantidad: 17, saldoId: 'balance-1' }]),
-      saldoStock: { update: vi.fn().mockResolvedValue({}) },
-      lote: { update: vi.fn().mockResolvedValue({}) },
+      saldoStock: { update: vi.fn().mockResolvedValue({}), findMany: vi.fn().mockResolvedValue([]) },
+      lote: { update: vi.fn().mockResolvedValue({}), findUnique: vi.fn().mockResolvedValue({ activo: true }) },
       movimientoStock: { create: movimientoCreate },
     }
 

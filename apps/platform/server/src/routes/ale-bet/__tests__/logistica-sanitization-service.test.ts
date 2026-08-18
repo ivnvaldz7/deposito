@@ -17,14 +17,27 @@ describe('logistics sanitization manifest', () => {
     expect(manifest.fingerprint).toMatch(/^[a-f0-9]{64}$/)
   })
 
-  it('blocks a DEMO H/I graph when it has stock or operational reachability', () => {
+  it('classifies a DEMO graph with stock for transactional deletion', () => {
     const manifest = buildSanitizationManifest({
       products: [
         { id: 'h', nombre: 'DEMO Producto H', sku: 'DEMO-PRO-H', unidadesPorCaja: 20, lots: [{ id: 'lot-h', cajas: 0, sueltos: 1 }], balances: [1], reservations: 0, movements: 0, items: 0 },
       ],
     })
 
-    expect(manifest.deletableDemo).toEqual([])
-    expect(manifest.blockers).toContain('DEMO deletion unsafe: DEMO-PRO-H')
+    expect(manifest.deletableDemo.map((product) => product.sku)).toEqual(['DEMO-PRO-H'])
+    expect(manifest.blockers).toHaveLength(43)
+  })
+
+  it('blocks mixed DEMO/canonical orders before any delete is allowed', () => {
+    const manifest = buildSanitizationManifest({
+      products: [
+        { id: 'demo', nombre: 'DEMO Producto', sku: 'DEMO-PRO-X', unidadesPorCaja: 1, lots: [], balances: [], reservations: 0, movements: 0, items: 1 },
+        { id: 'canonical', nombre: 'AMANTINA 250 ML', sku: 'LOG-AMANTINA-250-ML', unidadesPorCaja: 15, lots: [], balances: [], reservations: 0, movements: 0, items: 1 },
+      ],
+      mixedOrderIds: ['pedido-mixto'],
+    })
+
+    expect(manifest.safe).toBe(false)
+    expect(manifest.blockers).toContain('mixed DEMO/canonical pedido: pedido-mixto')
   })
 })

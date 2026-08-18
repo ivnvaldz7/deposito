@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { Prisma, TipoMovimiento } from '@platform/db'
+import { evaluateLotLifecycle } from './product-stock-admin-service'
 
 export type StockLocationCode = 'DEPOSITO' | 'ACONDICIONADO'
 export type AvailabilityStatus = 'DISPONIBLE' | 'DISPONIBLE_CON_TRANSFERENCIA' | 'INSUFICIENTE'
@@ -229,5 +230,6 @@ export async function transferInternal(
       idempotencyKey: input.idempotencyKey,
     },
   })
+  await evaluateLotLifecycle(tx, { loteId: input.loteId, productoId: input.productoId })
   return { movimientoId: movement.id }
 }

@@ -2,8 +2,8 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { platformDb as prisma } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
+import { getAppAccess } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
-import { calcularUnidades } from './constants'
 import { InventoryConflictError, transferInternal } from './inventory-service'
 
 const router = Router()
@@ -15,13 +15,22 @@ const transferSchema = z.object({
   cantidad: z.number().int().positive(),
 }).refine((value) => value.origen !== value.destino, { message: 'Source and destination must differ' })
 
-router.get('/', requireApp('ale-bet', ['admin', 'encargado']), async (_req, res) => {
+router.get('/', requireApp('ale-bet'), async (req, res) => {
+  const user = req.user as JwtPayload
+  const appAccess = getAppAccess(user, 'ale-bet')
+  const includeArchived = req.query.includeArchived === 'true' && ['admin', 'encargado'].includes(appAccess?.rol ?? '')
+
   const [productos, movimientos] = await Promise.all([
     prisma.producto.findMany({
       include: {
         lotes: {
-          where: { activo: true },
+          where: includeArchived ? undefined : { activo: true },
           orderBy: { fechaVencimiento: 'asc' },
+          include: {
+            saldos: {
+              include: { ubicacion: { select: { codigo: true } } },
+            },
+          },
         },
       },
       orderBy: { nombre: 'asc' },
@@ -34,26 +43,46 @@ router.get('/', requireApp('ale-bet', ['admin', 'encargado']), async (_req, res)
 
   res.json({
     productos: productos.map((producto) => {
-      const stock = producto.lotes.reduce(
-        (total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos, producto.unidadesPorCaja),
-        0
-      )
+      const lotes = producto.lotes.map((lote) => {
+        const stockDeposito = lote.saldos
+          .filter((saldo) => saldo.ubicacion.codigo === 'DEPOSITO')
+          .reduce((total, saldo) => total + saldo.cantidad, 0)
+        const stockAcondicionado = lote.saldos
+          .filter((saldo) => saldo.ubicacion.codigo === 'ACONDICIONADO')
+          .reduce((total, saldo) => total + saldo.cantidad, 0)
+        const stockTotal = lote.saldos.reduce((total, saldo) => total + saldo.cantidad, 0)
+
+        return {
+          id: lote.id,
+          numero: lote.numero,
+          fechaProduccion: lote.fechaProduccion,
+          fechaVencimiento: lote.fechaVencimiento,
+          activo: lote.activo,
+          stockTotal,
+          stockDeposito,
+          stockAcondicionado,
+        }
+      })
+      const stockTotal = lotes.reduce((total, lote) => total + lote.stockTotal, 0)
+      const stockDeposito = lotes.reduce((total, lote) => total + lote.stockDeposito, 0)
+      const stockAcondicionado = lotes.reduce((total, lote) => total + lote.stockAcondicionado, 0)
 
       return {
         ...producto,
-        stock,
-        stockTotal: stock,
-        stockDeposito: stock,
-        stockAcondicionado: 0,
-        stockDisponiblePedido: stock,
-        stockBajo: stock < producto.stockMinimo,
+        lotes,
+        stock: stockTotal,
+        stockTotal,
+        stockDeposito,
+        stockAcondicionado,
+        stockDisponiblePedido: stockDeposito,
+        stockBajo: stockTotal < producto.stockMinimo,
       }
     }),
     movimientos,
   })
 })
 
-router.get('/movimientos', requireApp('ale-bet', ['admin', 'encargado']), async (_req, res) => {
+router.get('/movimientos', requireApp('ale-bet'), async (_req, res) => {
   const movimientos = await prisma.movimientoStock.findMany({
     orderBy: { createdAt: 'desc' },
   })

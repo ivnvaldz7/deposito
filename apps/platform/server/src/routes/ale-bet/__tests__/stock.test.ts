@@ -150,13 +150,15 @@ describe('Ale-Bet Stock', () => {
             {
               id: 'lote-1',
               numero: 'L001',
-              cajas: 2,
-              sueltos: 5,
               activo: true,
               productoId: 'prod-1',
               fechaProduccion: new Date(),
               fechaVencimiento: new Date(),
               createdAt: new Date(),
+              saldos: [
+                { cantidad: 35, ubicacion: { codigo: 'DEPOSITO' } },
+                { cantidad: 10, ubicacion: { codigo: 'ACONDICIONADO' } },
+              ],
             },
           ],
         },
@@ -180,8 +182,18 @@ describe('Ale-Bet Stock', () => {
         .expect(200)
 
       expect(res.body.productos).toHaveLength(1)
-      // 2 cajas * 20 + 5 sueltos = 45
       expect(res.body.productos[0].stock).toBe(45)
+      expect(res.body.productos[0].stockTotal).toBe(45)
+      expect(res.body.productos[0].stockDeposito).toBe(35)
+      expect(res.body.productos[0].stockAcondicionado).toBe(10)
+      expect(res.body.productos[0].stockDisponiblePedido).toBe(35)
+      expect(res.body.productos[0].lotes).toEqual([expect.objectContaining({
+        id: 'lote-1',
+        numero: 'L001',
+        stockTotal: 45,
+        stockDeposito: 35,
+        stockAcondicionado: 10,
+      })])
       expect(res.body.productos[0].stockBajo).toBe(false)
       expect(res.body.movimientos).toHaveLength(1)
       expect(res.body.movimientos[0].tipo).toBe('SALIDA_PEDIDO')
@@ -202,13 +214,12 @@ describe('Ale-Bet Stock', () => {
             {
               id: 'lote-1',
               numero: 'L001',
-              cajas: 1,
-              sueltos: 0,
               activo: true,
               productoId: 'prod-1',
               fechaProduccion: new Date(),
               fechaVencimiento: new Date(),
               createdAt: new Date(),
+              saldos: [{ cantidad: 15, ubicacion: { codigo: 'DEPOSITO' } }],
             },
           ],
         },
@@ -223,6 +234,83 @@ describe('Ale-Bet Stock', () => {
 
       // stock = 15, stockMinimo = 100 -> stockBajo = true
       expect(res.body.productos[0].stockBajo).toBe(true)
+    })
+
+    it('aggregates real balances by lot and location, including zero-balance lots', async () => {
+      const date = new Date()
+      mockDb.producto.findMany.mockResolvedValue([
+        {
+          id: 'prod-1',
+          nombre: 'Producto A',
+          sku: 'SKU001',
+          stockMinimo: 1,
+          unidadesPorCaja: 20,
+          activo: true,
+          createdAt: date,
+          updatedAt: date,
+          lotes: [
+            {
+              id: 'lote-deposito',
+              numero: 'L001',
+              activo: true,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [{ cantidad: 7, ubicacion: { codigo: 'DEPOSITO' } }],
+            },
+            {
+              id: 'lote-acondicionado',
+              numero: 'L002',
+              activo: true,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [{ cantidad: 4, ubicacion: { codigo: 'ACONDICIONADO' } }],
+            },
+            {
+              id: 'lote-repartido',
+              numero: 'L003',
+              activo: true,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [
+                { cantidad: 3, ubicacion: { codigo: 'DEPOSITO' } },
+                { cantidad: 5, ubicacion: { codigo: 'ACONDICIONADO' } },
+              ],
+            },
+            {
+              id: 'lote-cero',
+              numero: 'L004',
+              activo: false,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [],
+            },
+          ],
+        },
+      ])
+      mockDb.movimientoStock.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const res = await request(app).get('/api/ale-bet/stock').set('Authorization', `Bearer ${signToken()}`).expect(200)
+      const product = res.body.productos[0]
+
+      expect(product.stockTotal).toBe(19)
+      expect(product.stockDeposito).toBe(10)
+      expect(product.stockAcondicionado).toBe(9)
+      expect(product.lotes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'lote-deposito', stockTotal: 7, stockDeposito: 7, stockAcondicionado: 0 }),
+        expect.objectContaining({ id: 'lote-acondicionado', stockTotal: 4, stockDeposito: 0, stockAcondicionado: 4 }),
+        expect.objectContaining({ id: 'lote-repartido', stockTotal: 8, stockDeposito: 3, stockAcondicionado: 5 }),
+        expect.objectContaining({ id: 'lote-cero', stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 }),
+      ]))
+      expect(product.lotes.reduce((total: number, lote: { stockTotal: number }) => total + lote.stockTotal, 0)).toBe(product.stockTotal)
     })
 
     it('returns empty arrays when no data exists', async () => {
