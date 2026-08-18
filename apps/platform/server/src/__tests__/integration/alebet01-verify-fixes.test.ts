@@ -29,6 +29,11 @@ function auth(userId: string, role: 'admin' | 'vendedor' | 'armador'): string {
 
 async function fixture(state: 'APROBADO' | 'PREPARADO' = 'PREPARADO') {
   const id = crypto.randomUUID()
+  const deposito = await prisma.ubicacionStock.upsert({
+    where: { codigo: 'DEPOSITO' },
+    update: {},
+    create: { codigo: 'DEPOSITO', nombre: 'Depósito' },
+  })
   const cliente = await prisma.cliente.create({ data: { nombre: `Cliente ${id}`, contacto: 'UAT' } })
   const producto = await prisma.producto.create({ data: { nombre: `Producto ${id}`, sku: `SKU-${id}`, unidadesPorCaja: 15 } })
   const lote = await prisma.lote.create({
@@ -42,7 +47,16 @@ async function fixture(state: 'APROBADO' | 'PREPARADO' = 'PREPARADO') {
     },
     include: { items: true },
   })
-  const reserva = await prisma.reservaStock.create({ data: { pedidoId: pedido.id, itemPedidoId: pedido.items[0]!.id, loteId: lote.id, cantidad: 5 } })
+  await prisma.saldoStock.create({ data: { productoId: producto.id, loteId: lote.id, ubicacionId: deposito.id, cantidad: 5 } })
+  const reserva = await prisma.reservaStock.create({
+    data: {
+      cantidad: 5,
+      pedido: { connect: { id: pedido.id } },
+      itemPedido: { connect: { id: pedido.items[0]!.id } },
+      lote: { connect: { id: lote.id } },
+      ubicacion: { connect: { id: deposito.id } },
+    },
+  })
   if (state === 'PREPARADO') {
     await prisma.remito.create({
       data: {

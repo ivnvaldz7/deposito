@@ -85,7 +85,7 @@ describe('ALEBET-01 operational concurrency', () => {
   async function createOrder(input: { sellerId: string, quantity: number, state?: 'BORRADOR' | 'APROBADO' }) {
     const unique = crypto.randomUUID()
     const cliente = await prisma.cliente.create({ data: { nombre: `Cliente ${unique}` } })
-    const producto = await prisma.producto.create({ data: { nombre: `Producto ${unique}`, sku: `SKU-${unique}` } })
+    const producto = await prisma.producto.create({ data: { nombre: `Producto ${unique}`, sku: `SKU-${unique}`, unidadesPorCaja: 15 } })
     const pedido = await prisma.pedido.create({
       data: {
         numero: `P-${unique}`,
@@ -100,7 +100,7 @@ describe('ALEBET-01 operational concurrency', () => {
   }
 
   async function addLot(productoId: string, quantity: number) {
-    return prisma.lote.create({
+    const lote = await prisma.lote.create({
       data: {
         numero: `L-${crypto.randomUUID()}`,
         productoId,
@@ -110,6 +110,13 @@ describe('ALEBET-01 operational concurrency', () => {
         fechaVencimiento: new Date(Date.now() + 86_400_000),
       },
     })
+    const deposito = await prisma.ubicacionStock.upsert({
+      where: { codigo: 'DEPOSITO' },
+      update: {},
+      create: { codigo: 'DEPOSITO', nombre: 'Depósito' },
+    })
+    await prisma.saldoStock.create({ data: { productoId, loteId: lote.id, ubicacionId: deposito.id, cantidad: quantity } })
+    return lote
   }
 
   it('allows exactly one approval against the last available stock and persists one active reservation', async () => {
@@ -120,10 +127,14 @@ describe('ALEBET-01 operational concurrency', () => {
       where: { id: second.pedido.id },
       data: { items: { deleteMany: {}, create: [{ productoId: first.producto.id, cantidad: 5 }] } },
     })
+    const firstAvailability = await request(app).get(`/api/ale-bet/pedidos/${first.pedido.id}/disponibilidad-stock`)
+      .set('Authorization', `Bearer ${signTestToken('seller-1', 'vendedor')}`).expect(200)
+    const secondAvailability = await request(app).get(`/api/ale-bet/pedidos/${second.pedido.id}/disponibilidad-stock`)
+      .set('Authorization', `Bearer ${signTestToken('seller-2', 'vendedor')}`).expect(200)
 
     const [firstResponse, secondResponse] = await Promise.all([
-      request(app).put(`/api/ale-bet/pedidos/${first.pedido.id}/aprobar`).set('Authorization', `Bearer ${signTestToken('seller-1', 'vendedor')}`).send({ expectedVersion: 1 }),
-      request(app).put(`/api/ale-bet/pedidos/${second.pedido.id}/aprobar`).set('Authorization', `Bearer ${signTestToken('seller-2', 'vendedor')}`).send({ expectedVersion: 1 }),
+      request(app).put(`/api/ale-bet/pedidos/${first.pedido.id}/aprobar`).set('Authorization', `Bearer ${signTestToken('seller-1', 'vendedor')}`).send({ expectedVersion: 1, fingerprint: firstAvailability.body.fingerprint, transferencias: firstAvailability.body.transferencias }),
+      request(app).put(`/api/ale-bet/pedidos/${second.pedido.id}/aprobar`).set('Authorization', `Bearer ${signTestToken('seller-2', 'vendedor')}`).send({ expectedVersion: 1, fingerprint: secondAvailability.body.fingerprint, transferencias: secondAvailability.body.transferencias }),
     ])
 
     expect([firstResponse.status, secondResponse.status].sort((left, right) => left - right)).toEqual([200, 409])
@@ -137,7 +148,16 @@ describe('ALEBET-01 operational concurrency', () => {
   it('makes concurrent approved-order cancellation single-effect and releases reservations once', async () => {
     const order = await createOrder({ sellerId: 'seller-1', quantity: 4, state: 'APROBADO' })
     const lote = await addLot(order.producto.id, 4)
-    await prisma.reservaStock.create({ data: { pedidoId: order.pedido.id, itemPedidoId: order.pedido.items[0]!.id, loteId: lote.id, cantidad: 4 } })
+    const deposito = await prisma.ubicacionStock.findUniqueOrThrow({ where: { codigo: 'DEPOSITO' } })
+    await prisma.reservaStock.create({
+      data: {
+        cantidad: 4,
+        pedido: { connect: { id: order.pedido.id } },
+        itemPedido: { connect: { id: order.pedido.items[0]!.id } },
+        lote: { connect: { id: lote.id } },
+        ubicacion: { connect: { id: deposito.id } },
+      },
+    })
 
     const responses = await Promise.all([
       request(app).put(`/api/ale-bet/pedidos/${order.pedido.id}/cancelar`).set('Authorization', `Bearer ${signTestToken('seller-1', 'vendedor')}`).send({ expectedVersion: 1 }),
@@ -153,7 +173,16 @@ describe('ALEBET-01 operational concurrency', () => {
   it('accepts one concurrent APROBADO edit and keeps its recalculated reservation', async () => {
     const order = await createOrder({ sellerId: 'seller-1', quantity: 3, state: 'APROBADO' })
     const lote = await addLot(order.producto.id, 10)
-    await prisma.reservaStock.create({ data: { pedidoId: order.pedido.id, itemPedidoId: order.pedido.items[0]!.id, loteId: lote.id, cantidad: 3 } })
+    const deposito = await prisma.ubicacionStock.findUniqueOrThrow({ where: { codigo: 'DEPOSITO' } })
+    await prisma.reservaStock.create({
+      data: {
+        cantidad: 3,
+        pedido: { connect: { id: order.pedido.id } },
+        itemPedido: { connect: { id: order.pedido.items[0]!.id } },
+        lote: { connect: { id: lote.id } },
+        ubicacion: { connect: { id: deposito.id } },
+      },
+    })
     const auth = `Bearer ${signTestToken('seller-1', 'vendedor')}`
 
     const responses = await Promise.all([

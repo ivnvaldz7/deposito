@@ -84,7 +84,15 @@ export async function reserveFefo(tx: TransactionClient, pedidoId: string, items
         const lot = lots[lotIndex]
         if (remainingInLot === 0 || !lot) throw new StockConflictError('Stock insuficiente luego de bloquear los lotes')
         const quantity = Math.min(remaining, remainingInLot)
-        await tx.reservaStock.create({ data: { pedidoId, itemPedidoId: item.id, loteId: lot.id, ubicacionId: depositoId, cantidad: quantity } })
+        await tx.reservaStock.create({
+          data: {
+            cantidad: quantity,
+            pedido: { connect: { id: pedidoId } },
+            itemPedido: { connect: { id: item.id } },
+            lote: { connect: { id: lot.id } },
+            ubicacion: { connect: { id: depositoId } },
+          },
+        })
         remaining -= quantity
         remainingInLot -= quantity
       }
