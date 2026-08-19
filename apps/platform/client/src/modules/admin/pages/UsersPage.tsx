@@ -36,11 +36,11 @@ export default function UsersPage() {
   async function handleCreate(payload: {
     nombre: string
     email: string
-    password: string
     appAccess: Array<{ app: AppId; rol: string }>
   }) {
-    await adminApi.create(payload)
+    const res = await adminApi.create(payload)
     await loadUsers()
+    return res.temporaryPassword
   }
 
   async function handleSaveAccess(
@@ -59,6 +59,11 @@ export default function UsersPage() {
   async function handleToggleStatus(userId: string, activo: boolean) {
     await adminApi.updateStatus(userId, { activo })
     await loadUsers()
+  }
+
+  async function handleResetPassword(userId: string) {
+    const res = await adminApi.resetPassword(userId)
+    return res.tempPassword
   }
 
   return (
@@ -115,6 +120,7 @@ export default function UsersPage() {
         onSaveAccess={handleSaveAccess}
         onRemoveAccess={handleRemoveAccess}
         onToggleStatus={handleToggleStatus}
+        onResetPassword={handleResetPassword}
       />
     </div>
   )

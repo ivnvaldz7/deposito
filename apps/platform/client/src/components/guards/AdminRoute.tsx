@@ -12,6 +12,10 @@ export function AdminRoute({ children }: AdminRouteProps) {
     return <Navigate to="/login" replace />
   }
 
+  if (user.mustChangePassword) {
+    return <Navigate to="/change-password" replace />
+  }
+
   if (!user.isPlatformAdmin) {
     return <Navigate to="/app-selector" replace />
   }

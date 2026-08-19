@@ -8,9 +8,8 @@ interface UserModalProps {
   onCreate: (payload: {
     nombre: string
     email: string
-    password: string
     appAccess: Array<{ app: AppId; rol: string }>
-  }) => Promise<void>
+  }) => Promise<string>
 }
 
 type AccessState = Record<AppId, { enabled: boolean; rol: string }>
@@ -23,10 +22,10 @@ const initialAccess: AccessState = {
 export function UserModal({ open, onClose, onCreate }: UserModalProps) {
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [access, setAccess] = useState<AccessState>(initialAccess)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tempPassword, setTempPassword] = useState<string | null>(null)
 
   const appAccess = useMemo(
     () =>
@@ -43,24 +42,27 @@ export function UserModal({ open, onClose, onCreate }: UserModalProps) {
     return null
   }
 
+  function handleCloseFull() {
+    setNombre('')
+    setEmail('')
+    setAccess(initialAccess)
+    setTempPassword(null)
+    onClose()
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSubmitting(true)
     setError(null)
 
     try {
-      await onCreate({
+      const generatedPassword = await onCreate({
         nombre,
         email,
-        password,
         appAccess,
       })
 
-      setNombre('')
-      setEmail('')
-      setPassword('')
-      setAccess(initialAccess)
-      onClose()
+      setTempPassword(generatedPassword)
     } catch (submitError) {
       setError(
         submitError instanceof Error
@@ -80,6 +82,45 @@ export function UserModal({ open, onClose, onCreate }: UserModalProps) {
         ...next,
       },
     }))
+  }
+
+  if (tempPassword) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-surface-dim/85 px-4">
+        <div className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container p-6 shadow-xl">
+          <h3 className="text-lg font-semibold text-on-surface">Usuario creado correctamente</h3>
+          
+          <div className="mt-6">
+            <p className="font-body text-sm font-semibold text-on-surface-variant mb-2">
+              Contraseña temporal:
+            </p>
+            <div className="flex items-center justify-between rounded bg-surface-container-high p-3 mb-4">
+              <code className="font-mono text-lg text-primary select-all">{tempPassword}</code>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(tempPassword)}
+                className="text-xs font-medium text-primary hover:text-primary-dim uppercase"
+              >
+                Copiar contraseña
+              </button>
+            </div>
+            <p className="font-body text-xs text-on-surface-variant/80 italic mb-6">
+              Esta contraseña se mostrará una sola vez. El usuario deberá cambiarla en su primer ingreso.
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={handleCloseFull}
+              className="rounded-xl bg-surface-variant px-4 py-2 font-body text-sm font-medium text-on-surface hover:bg-surface-variant/80"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -123,17 +164,6 @@ export function UserModal({ open, onClose, onCreate }: UserModalProps) {
               />
             </label>
           </div>
-
-          <label className="space-y-2 font-body text-sm text-on-surface-variant">
-            <span>Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-surface-container-high px-4 py-3 text-on-surface outline-none transition focus:border-primary"
-              required
-            />
-          </label>
 
           <div className="rounded-xl border border-white/10 bg-surface-dim/40 p-4">
             <h3 className="font-body text-sm font-semibold uppercase tracking-[0.18em] text-on-surface-variant">

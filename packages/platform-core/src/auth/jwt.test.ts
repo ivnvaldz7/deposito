@@ -91,21 +91,22 @@ describe('signRefreshToken', () => {
   })
 
   it('genera un string token válido', () => {
-    const token = signRefreshToken('user_123')
+    const token = signRefreshToken('user_123', 'session_1')
     expect(typeof token).toBe('string')
     expect(token.length).toBeGreaterThan(0)
   })
 
-  it('codifica sub y type=refresh en el payload', () => {
-    const token = signRefreshToken('user_123')
+  it('codifica sub, type=refresh y sid en el payload', () => {
+    const token = signRefreshToken('user_123', 'session_1')
     const decoded = jwt.decode(token) as jwt.JwtPayload | null
     expect(decoded).not.toBeNull()
     expect(decoded!.sub).toBe('user_123')
     expect(decoded!.type).toBe('refresh')
+    expect(decoded!.sid).toBe('session_1')
   })
 
   it('expira en 7 días', () => {
-    const token = signRefreshToken('user_123')
+    const token = signRefreshToken('user_123', 'session_1')
     const decoded = jwt.decode(token) as jwt.JwtPayload | null
     expect(decoded).not.toBeNull()
     const exp = decoded!.exp!
@@ -121,11 +122,12 @@ describe('verifyRefreshToken', () => {
   })
 
   it('devuelve el payload correcto con token válido', () => {
-    const token = signRefreshToken('user_123')
+    const token = signRefreshToken('user_123', 'session_1')
     const verified = verifyRefreshToken(token)
     expect(verified).not.toBeNull()
     expect(verified!.sub).toBe('user_123')
     expect(verified!.type).toBe('refresh')
+    expect(verified!.sid).toBe('session_1')
   })
 
   it('devuelve null con token inválido', () => {
@@ -134,7 +136,7 @@ describe('verifyRefreshToken', () => {
 
   it('devuelve null con token expirado', () => {
     const token = jwt.sign(
-      { sub: 'user_123', type: 'refresh' },
+      { sub: 'user_123', type: 'refresh', sid: 'session_1' },
       process.env.PLATFORM_JWT_SECRET!,
       { expiresIn: -1 }
     )
@@ -143,6 +145,15 @@ describe('verifyRefreshToken', () => {
 
   it('devuelve null si el type no es refresh', () => {
     const token = signAccessToken(payload)
+    expect(verifyRefreshToken(token)).toBeNull()
+  })
+
+  it('devuelve null si falta sid (token legacy)', () => {
+    const token = jwt.sign(
+      { sub: 'user_123', type: 'refresh' },
+      process.env.PLATFORM_JWT_SECRET!,
+      { expiresIn: '7d' }
+    )
     expect(verifyRefreshToken(token)).toBeNull()
   })
 })

@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { Router } from 'express'
 import { platformDb } from '@platform/db'
 import {
@@ -7,7 +8,10 @@ import {
   signRefreshToken,
   APP_SLUG_BY_ID,
   AppIdEnum,
+  PLATFORM_AUDIT_ACTIONS,
 } from '@platform/core'
+import { createSession } from '../../services/auth/session-service'
+import { auditAdminEvent } from '../../services/audit/platform-audit-service'
 
 const router = Router()
 
@@ -27,13 +31,13 @@ function setRefreshTokenCookie(res: any, refreshToken: string): void {
 /**
  * POST /api/auth/login
  *
- * Email/password login for pre-registered users.
- * Returns JWT tokens matching the existing Google OAuth format.
+ * Email/password login for pre-registered internal users.
  */
 router.post('/login', async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string }
+  const ip = req.ip ?? req.socket.remoteAddress ?? undefined
+  const userAgent = req.headers['user-agent'] ?? undefined
 
-  // Validate required fields
   if (!email) {
     res.status(400).json({ error: 'Email requerido' })
     return
@@ -44,43 +48,75 @@ router.post('/login', async (req, res) => {
     return
   }
 
-  // Look up user
   const platformUser = await getUserByEmail(
     platformDb as Parameters<typeof getUserByEmail>[0],
     email,
   )
 
   if (!platformUser) {
+    await auditAdminEvent(platformDb as any, {
+      action: PLATFORM_AUDIT_ACTIONS.LOGIN_FAILURE,
+      previous: { email, reason: 'not_found' },
+      ip,
+      userAgent,
+    })
     res.status(401).json({ error: 'Email o contraseña incorrectos' })
     return
   }
 
-  // User state enforcement
   if (!platformUser.activo || platformUser.estado === 'disabled') {
+    await auditAdminEvent(platformDb as any, {
+      actorId: platformUser.id,
+      targetUserId: platformUser.id,
+      action: PLATFORM_AUDIT_ACTIONS.LOGIN_FAILURE,
+      previous: { email, reason: 'disabled' },
+      ip,
+      userAgent,
+    })
     res.status(401).json({ error: 'Cuenta deshabilitada' })
     return
   }
 
-  // Reject pending users (they have no password — created via Google OAuth)
   if (platformUser.estado === 'pending') {
+    await auditAdminEvent(platformDb as any, {
+      actorId: platformUser.id,
+      targetUserId: platformUser.id,
+      action: PLATFORM_AUDIT_ACTIONS.LOGIN_FAILURE,
+      previous: { email, reason: 'pending' },
+      ip,
+      userAgent,
+    })
     res.status(401).json({ error: 'Email o contraseña incorrectos' })
     return
   }
 
-  // Check password hash exists
   if (!platformUser.password) {
+    await auditAdminEvent(platformDb as any, {
+      actorId: platformUser.id,
+      targetUserId: platformUser.id,
+      action: PLATFORM_AUDIT_ACTIONS.LOGIN_FAILURE,
+      previous: { email, reason: 'no_password' },
+      ip,
+      userAgent,
+    })
     res.status(401).json({ error: 'Email o contraseña incorrectos' })
     return
   }
 
-  // Verify password
   const valid = await comparePassword(password, platformUser.password)
   if (!valid) {
+    await auditAdminEvent(platformDb as any, {
+      actorId: platformUser.id,
+      targetUserId: platformUser.id,
+      action: PLATFORM_AUDIT_ACTIONS.LOGIN_FAILURE,
+      previous: { email, reason: 'bad_password' },
+      ip,
+      userAgent,
+    })
     res.status(401).json({ error: 'Email o contraseña incorrectos' })
     return
   }
 
-  // Build apps record from access
   const apps = platformUser.appAccess.reduce<
     Record<string, { rol: string; activo: boolean }>
   >((acc, access) => {
@@ -94,7 +130,6 @@ router.post('/login', async (req, res) => {
     return acc
   }, {})
 
-  // Sign tokens
   const accessToken = signAccessToken({
     sub: platformUser.id,
     email: platformUser.email,
@@ -103,10 +138,30 @@ router.post('/login', async (req, res) => {
     apps,
   })
 
-  const refreshToken = signRefreshToken(platformUser.id)
+  const sessionId = crypto.randomUUID()
+  const refreshToken = signRefreshToken(platformUser.id, sessionId)
+  const expiresAt = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS)
+
+  const session = await createSession(platformDb as any, {
+    id: sessionId,
+    platformUserId: platformUser.id,
+    refreshToken,
+    expiresAt,
+    userAgent,
+    ip,
+  })
+
   setRefreshTokenCookie(res, refreshToken)
 
-  // Return token and user (same format as refresh.ts)
+  await auditAdminEvent(platformDb as any, {
+    actorId: platformUser.id,
+    targetUserId: platformUser.id,
+    action: PLATFORM_AUDIT_ACTIONS.LOGIN_SUCCESS,
+    previous: { method: 'local', sessionId: session.id },
+    ip,
+    userAgent,
+  })
+
   res.json({
     token: accessToken,
     user: {
@@ -115,6 +170,7 @@ router.post('/login', async (req, res) => {
       name: platformUser.nombre,
       apps,
       isPlatformAdmin: platformUser.isPlatformAdmin ?? false,
+      mustChangePassword: platformUser.mustChangePassword,
     },
   })
 })

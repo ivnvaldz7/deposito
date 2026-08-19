@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { Router } from 'express'
 import { platformDb } from '@platform/db'
 import {
@@ -7,6 +8,7 @@ import {
   signRefreshToken,
   updateAppAccess,
 } from '@platform/core'
+import { createSession } from '../../services/auth/session-service'
 
 const router = Router()
 
@@ -138,7 +140,21 @@ router.post('/dev-login', async (req, res) => {
     apps,
   })
 
-  const refreshToken = signRefreshToken(userForToken.id)
+  const sessionId = crypto.randomUUID()
+  const refreshToken = signRefreshToken(userForToken.id, sessionId)
+  const expiresAt = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS)
+  const ip = req.ip ?? req.socket.remoteAddress ?? undefined
+  const userAgent = req.headers['user-agent'] ?? undefined
+
+  await createSession(platformDb as any, {
+    id: sessionId,
+    platformUserId: userForToken.id,
+    refreshToken,
+    expiresAt,
+    userAgent,
+    ip,
+  })
+
   setRefreshTokenCookie(res, refreshToken)
 
   // Respond with the redirect URL so the frontend can navigate

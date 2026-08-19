@@ -1,3 +1,4 @@
+import crypto from 'crypto'
 import { Router } from 'express'
 import { platformDb } from '@platform/db'
 import {
@@ -5,9 +6,15 @@ import {
   signAccessToken,
   signRefreshToken,
   verifyRefreshToken,
+  hashRefreshToken,
   APP_SLUG_BY_ID,
   AppIdEnum,
 } from '@platform/core'
+import {
+  createSession,
+  findSessionByTokenHash,
+  revokeSession,
+} from '../../services/auth/session-service'
 
 const router = Router()
 
@@ -49,14 +56,14 @@ function clearRefreshTokenCookie(res: any): void {
 
 // POST /api/auth/refresh — refresh access token
 router.post('/refresh', async (req, res: any) => {
-  const refreshToken = getCookieValue(req, REFRESH_COOKIE_NAME)
-
-  if (!refreshToken) {
-    res.status(401).json({ error: 'Refresh token requerido' })
-    return
-  }
-
   try {
+    const refreshToken = getCookieValue(req, REFRESH_COOKIE_NAME)
+
+    if (!refreshToken) {
+      res.status(401).json({ error: 'Refresh token requerido' })
+      return
+    }
+
     const payload = verifyRefreshToken(refreshToken)
 
     if (!payload) {
@@ -65,18 +72,37 @@ router.post('/refresh', async (req, res: any) => {
       return
     }
 
-    const platformUser = await getUserById(
-      platformDb as Parameters<typeof getUserById>[0],
-      payload.sub
+    const session = await findSessionByTokenHash(
+      platformDb as any,
+      hashRefreshToken(refreshToken),
     )
 
-    if (!platformUser || !platformUser.activo) {
+    if (!session || session.id !== payload.sid) {
+      clearRefreshTokenCookie(res)
+      res.status(401).json({ error: 'Sesión no encontrada' })
+      return
+    }
+
+    if (session.revokedAt || session.expiresAt < new Date()) {
+      clearRefreshTokenCookie(res)
+      res.status(401).json({ error: 'Sesión revocada o expirada' })
+      return
+    }
+
+    const platformUser = await getUserById(
+      platformDb as Parameters<typeof getUserById>[0],
+      payload.sub,
+    )
+
+    if (!platformUser) {
+      await revokeSession(platformDb as any, session.id).catch(() => undefined)
       clearRefreshTokenCookie(res)
       res.status(401).json({ error: 'Usuario no encontrado' })
       return
     }
 
-    if (platformUser.estado === 'disabled') {
+    if (!platformUser.activo || platformUser.estado === 'disabled') {
+      await revokeSession(platformDb as any, session.id).catch(() => undefined)
       clearRefreshTokenCookie(res)
       res.status(401).json({ error: 'Cuenta deshabilitada' })
       return
@@ -95,7 +121,24 @@ router.post('/refresh', async (req, res: any) => {
       return acc
     }, {})
 
-    // Rotate tokens
+    // Rotate: mark previous session as revoked and create a new one.
+    await revokeSession(platformDb as any, session.id)
+
+    const sessionId = crypto.randomUUID()
+    const newRefreshToken = signRefreshToken(platformUser.id, sessionId)
+    const expiresAt = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS)
+    const ip = req.ip ?? req.socket.remoteAddress ?? undefined
+    const userAgent = req.headers['user-agent'] ?? undefined
+
+    await createSession(platformDb as any, {
+      id: sessionId,
+      platformUserId: platformUser.id,
+      refreshToken: newRefreshToken,
+      expiresAt,
+      userAgent,
+      ip,
+    })
+
     const newAccessToken = signAccessToken({
       sub: platformUser.id,
       email: platformUser.email,
@@ -103,7 +146,6 @@ router.post('/refresh', async (req, res: any) => {
       isPlatformAdmin: platformUser.isPlatformAdmin ?? false,
       apps,
     })
-    const newRefreshToken = signRefreshToken(platformUser.id)
 
     setRefreshTokenCookie(res, newRefreshToken)
 
@@ -115,12 +157,13 @@ router.post('/refresh', async (req, res: any) => {
         name: platformUser.nombre,
         apps,
         isPlatformAdmin: platformUser.isPlatformAdmin ?? false,
+        mustChangePassword: platformUser.mustChangePassword,
       },
     })
   } catch (error) {
     console.error('Error en refresh:', error)
     clearRefreshTokenCookie(res)
-    res.status(401).json({ error: 'Refresh token inválido' })
+    res.status(401).json({ error: 'Refresh token inválido o expirado' })
   }
 })
 

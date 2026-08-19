@@ -26,6 +26,25 @@ const { mockGetUserByEmail, mockGetUserById, mockUpdateAppAccess, mockGoogleStra
           create: vi.fn(),
         },
         appAccess: { upsert: vi.fn() },
+        session: {
+          create: vi.fn().mockResolvedValue({
+            id: 'session_rotated_1',
+            platformUserId: 'user_abc123',
+            tokenHash: 'hash',
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            revokedAt: null,
+          }),
+          findUnique: vi.fn().mockResolvedValue({
+            id: 'session_test_1',
+            platformUserId: 'user_abc123',
+            tokenHash: 'hash',
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+            revokedAt: null,
+          }),
+          update: vi.fn(),
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        },
+        platformAuditoria: { create: vi.fn() },
       },
     },
   }))
@@ -44,10 +63,12 @@ vi.mock('@platform/core', () => {
     signAccessToken: (payload: Record<string, unknown>) => {
       return _jwt.sign(payload, _getSecret(), { expiresIn: '15m' })
     },
-    signRefreshToken: (userId: string) => {
-      return _jwt.sign({ sub: userId, type: 'refresh' as const }, _getSecret(), {
-        expiresIn: '7d',
-      })
+    signRefreshToken: (userId: string, sessionId: string = 'session_test_1') => {
+      return _jwt.sign(
+        { sub: userId, type: 'refresh' as const, sid: sessionId },
+        _getSecret(),
+        { expiresIn: '7d' },
+      )
     },
     
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
@@ -76,9 +97,14 @@ vi.mock('@platform/core', () => {
       try {
         const decoded = _jwt.verify(token, _getSecret())
         if (typeof decoded !== 'object' || !decoded) return null
-        const { sub, type, iat } = decoded as Record<string, unknown>
+        const { sub, type, iat, sid } = decoded as Record<string, unknown>
         if (!sub || type !== 'refresh') return null
-        return { sub, type, iat: iat ?? Math.floor(Date.now() / 1000) }
+        return {
+          sub,
+          type,
+          iat: iat ?? Math.floor(Date.now() / 1000),
+          sid: sid ?? 'session_test_1',
+        }
       } catch {
         return null
       }
@@ -111,6 +137,27 @@ vi.mock('@platform/core', () => {
     listUsers: vi.fn().mockResolvedValue([]),
     updateAppAccess: mockUpdateAppAccess,
     deactivateUser: vi.fn(),
+    hashRefreshToken: (token: string) => {
+      const crypto = require('crypto')
+      return crypto.createHash('sha256').update(token).digest('hex')
+    },
+    validatePasswordPolicy: vi.fn(),
+    PLATFORM_AUDIT_ACTIONS: {
+      LOGIN_SUCCESS: 'LOGIN_SUCCESS',
+      LOGIN_FAILURE: 'LOGIN_FAILURE',
+      LOGOUT: 'LOGOUT',
+      PASSWORD_CHANGED: 'PASSWORD_CHANGED',
+      PASSWORD_RESET: 'PASSWORD_RESET',
+      USER_CREATED: 'USER_CREATED',
+      USER_ACTIVATED: 'USER_ACTIVATED',
+      USER_DEACTIVATED: 'USER_DEACTIVATED',
+      SESSIONS_REVOKED: 'SESSIONS_REVOKED',
+      APP_ACCESS_GRANTED: 'APP_ACCESS_GRANTED',
+      APP_ACCESS_REVOKED: 'APP_ACCESS_REVOKED',
+      APP_ACCESS_ROLE_CHANGED: 'APP_ACCESS_ROLE_CHANGED',
+      APP_ACCESS_ENABLED: 'APP_ACCESS_ENABLED',
+      APP_ACCESS_DISABLED: 'APP_ACCESS_DISABLED',
+    },
   }
 })
 
@@ -498,7 +545,7 @@ describe('Auth Flow — Integration Tests (P1.12)', () => {
         .set('Cookie', `platform_refresh_token=${token}`)
 
       expect(res.status).toBe(401)
-      expect(res.body.error).toMatch(/no encontrado/i)
+      expect(res.body.error).toMatch(/deshabilitad/i)
     })
 
     it('returns 401 when user estado is disabled', async () => {

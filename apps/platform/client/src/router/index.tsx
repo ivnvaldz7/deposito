@@ -9,6 +9,8 @@ import GoogleCallbackHandler from '@/modules/auth/GoogleCallbackHandler'
 import NoAccessPage from '@/modules/auth/NoAccessPage'
 import DesignPreviewPage from '@/modules/design-preview/DesignPreviewPage'
 
+import ChangePasswordPage from '@/modules/auth/ChangePasswordPage'
+
 // Lazy-loaded modules
 const AppSelector = lazy(() => import('@/modules/app-selector/AppSelector'))
 const AdminModule = lazy(() => import('@/modules/admin/App'))
@@ -21,6 +23,10 @@ function NavigateBasedOnAccess() {
 
   if (!token || !user) {
     return <Navigate to="/login" replace />
+  }
+
+  if (user.mustChangePassword) {
+    return <Navigate to="/change-password" replace />
   }
 
   const activeApps = Object.entries(user.apps ?? {})
@@ -53,6 +59,7 @@ export function AppRouter() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/auth/google/callback" element={<GoogleCallbackHandler />} />
       <Route path="/no-access" element={<NoAccessPage />} />
+      <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/design-preview" element={<DesignPreviewPage />} />
 
       {/* App selector */}

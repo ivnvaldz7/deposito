@@ -1,14 +1,15 @@
+import crypto from 'crypto'
 import { Router } from 'express'
 import { platformDb } from '@platform/db'
 import { GoogleStrategy } from '../../auth/strategies/google'
 import {
   getUserByEmail,
-  getUserById,
   signAccessToken,
   signRefreshToken,
   APP_SLUG_BY_ID,
   AppIdEnum,
 } from '@platform/core'
+import { createSession } from '../../services/auth/session-service'
 
 const router = Router()
 
@@ -28,7 +29,7 @@ function setRefreshTokenCookie(res: any, refreshToken: string): void {
 // GET /api/auth/google/callback — handle Google OAuth callback
 router.get('/google/callback', async (req, res) => {
   try {
-    const { code, state } = req.query as { code?: string; state?: string }
+    const { code } = req.query as { code?: string }
 
     if (!code) {
       res.redirect('/login?error=missing_code')
@@ -38,14 +39,12 @@ router.get('/google/callback', async (req, res) => {
     const strategy = new GoogleStrategy()
     const authUser = await strategy.exchangeCode(code)
 
-    // Look up PlatformUser by email
     const platformUser = await getUserByEmail(
       platformDb as Parameters<typeof getUserByEmail>[0],
-      authUser.email
+      authUser.email,
     )
 
     if (!platformUser) {
-      // User not pre-registered
       res.redirect('/login?error=unauthorized')
       return
     }
@@ -55,7 +54,12 @@ router.get('/google/callback', async (req, res) => {
       return
     }
 
-    // If pending, activate user
+    if (!platformUser.activo) {
+      res.redirect('/login?error=disabled')
+      return
+    }
+
+    // Activate pending users created for Google login.
     if (platformUser.estado === 'pending' || !platformUser.estado) {
       await platformDb.platformUser.update({
         where: { id: platformUser.id },
@@ -63,12 +67,6 @@ router.get('/google/callback', async (req, res) => {
       })
     }
 
-    if (!platformUser.activo) {
-      res.redirect('/login?error=disabled')
-      return
-    }
-
-    // Build apps record from access
     const apps = platformUser.appAccess.reduce<
       Record<string, { rol: string; activo: boolean }>
     >((acc, access) => {
@@ -82,7 +80,6 @@ router.get('/google/callback', async (req, res) => {
       return acc
     }, {})
 
-    // Sign tokens
     const accessToken = signAccessToken({
       sub: platformUser.id,
       email: platformUser.email,
@@ -90,11 +87,24 @@ router.get('/google/callback', async (req, res) => {
       isPlatformAdmin: platformUser.isPlatformAdmin ?? false,
       apps,
     })
-    const refreshToken = signRefreshToken(platformUser.id)
+
+    const sessionId = crypto.randomUUID()
+    const refreshToken = signRefreshToken(platformUser.id, sessionId)
+    const expiresAt = new Date(Date.now() + REFRESH_COOKIE_MAX_AGE_MS)
+    const ip = req.ip ?? req.socket.remoteAddress ?? undefined
+    const userAgent = req.headers['user-agent'] ?? undefined
+
+    await createSession(platformDb as any, {
+      id: sessionId,
+      platformUserId: platformUser.id,
+      refreshToken,
+      expiresAt,
+      userAgent,
+      ip,
+    })
 
     setRefreshTokenCookie(res, refreshToken)
 
-    // Redirect to frontend with token
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:5176'
     res.redirect(`${frontendUrl}/auth/google/callback?token=${accessToken}`)
   } catch (error) {

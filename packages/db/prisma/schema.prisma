@@ -10,16 +10,18 @@ datasource db {
 }
 
 model PlatformUser {
-  id        String      @id @default(cuid())
-  email     String      @unique
-  nombre    String
-  password  String
-  activo    Boolean     @default(true)
-  estado    String      @default("pending")
-  isPlatformAdmin Boolean @default(false)
-  appAccess AppAccess[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id                 String      @id @default(cuid())
+  email              String      @unique
+  nombre             String
+  password           String
+  activo             Boolean     @default(true)
+  estado             String      @default("pending")
+  isPlatformAdmin    Boolean     @default(false)
+  mustChangePassword Boolean     @default(false)
+  appAccess          AppAccess[]
+  sessions           Session[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@schema("platform")
 }
@@ -50,6 +52,41 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, leida, createdAt])
+  @@schema("platform")
+}
+
+model Session {
+  id             String       @id @default(cuid())
+  platformUserId String
+  user           PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  userAgent      String?
+  ip             String?
+
+  @@index([platformUserId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@schema("platform")
+}
+
+model PlatformAuditoria {
+  id           String   @id @default(cuid())
+  actorId      String?
+  targetUserId String?
+  action       String
+  app          AppId?
+  previous     Json?
+  next         Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([actorId, createdAt])
   @@schema("platform")
 }
 
@@ -101,6 +138,7 @@ model Producto {
   updatedAt   DateTime    @updatedAt
   lotes       Lote[]
   itemsPedido ItemPedido[]
+  saldos      SaldoStock[]
 
   @@schema("ale_bet")
 }
@@ -112,13 +150,15 @@ model Lote {
   producto         Producto  @relation(fields: [productoId], references: [id])
   cajas            Int       @default(0)
   sueltos          Int       @default(0)
-  fechaProduccion  DateTime
-  fechaVencimiento DateTime
+  fechaProduccion  DateTime?
+  fechaVencimiento DateTime?
   activo           Boolean   @default(true)
   createdAt        DateTime  @default(now())
   reservas         ReservaStock[]
+  saldos           SaldoStock[]
 
   @@unique([numero, productoId])
+  @@unique([id, productoId])
   @@schema("ale_bet")
 }
 
@@ -192,6 +232,11 @@ model MovimientoStock {
   pedidoId   String?
   loteId     String?
   reservaId  String?
+  origenUbicacionId  String?
+  destinoUbicacionId String?
+  idempotencyKey     String?         @unique
+  origenUbicacion    UbicacionStock? @relation("MovimientoOrigenUbicacion", fields: [origenUbicacionId], references: [id])
+  destinoUbicacion   UbicacionStock? @relation("MovimientoDestinoUbicacion", fields: [destinoUbicacionId], references: [id])
   createdAt  DateTime       @default(now())
 
   @@schema("ale_bet")
@@ -207,15 +252,47 @@ model ReservaStock {
   itemPedido    ItemPedido?   @relation(fields: [itemPedidoId], references: [id], onDelete: SetNull)
   loteId        String
   lote          Lote          @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  ubicacionId   String
+  ubicacion     UbicacionStock @relation(fields: [ubicacionId], references: [id], onDelete: Restrict)
   cantidad      Int
   estado        EstadoReserva @default(ACTIVA)
   createdAt     DateTime      @default(now())
   releasedAt    DateTime?
   consumedAt    DateTime?
 
-  @@unique([itemPedidoId, loteId])
+  @@unique([itemPedidoId, loteId, ubicacionId])
   @@index([loteId, estado])
   @@index([pedidoId, estado])
+  @@schema("ale_bet")
+}
+
+model UbicacionStock {
+  id                   String           @id @default(cuid())
+  codigo               String           @unique
+  nombre               String
+  activo               Boolean          @default(true)
+  createdAt            DateTime         @default(now())
+  saldos               SaldoStock[]
+  reservas             ReservaStock[]
+  movimientosOrigen    MovimientoStock[] @relation("MovimientoOrigenUbicacion")
+  movimientosDestino   MovimientoStock[] @relation("MovimientoDestinoUbicacion")
+
+  @@schema("ale_bet")
+}
+
+model SaldoStock {
+  id          String         @id @default(cuid())
+  productoId  String
+  loteId      String
+  ubicacionId String
+  cantidad    Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  producto    Producto       @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  lote        Lote           @relation(fields: [loteId, productoId], references: [id, productoId], onDelete: Restrict)
+  ubicacion   UbicacionStock @relation(fields: [ubicacionId], references: [id], onDelete: Restrict)
+
+  @@unique([productoId, loteId, ubicacionId])
   @@schema("ale_bet")
 }
 
@@ -308,6 +385,7 @@ enum TipoMovimiento {
   ENTRADA_MANUAL
   SALIDA_PEDIDO
   AJUSTE
+  TRANSFERENCIA_INTERNA
 
   @@schema("ale_bet")
 }
@@ -394,8 +472,8 @@ model ActaItem {
   condicionEmbalaje   CondicionEmbalaje? @map("condicion_embalaje")
   observacionesCalidad String? @map("observaciones_calidad")
   aprobadoCalidad     Boolean   @default(false) @map("aprobado_calidad")
-  cantidadIngresada   Int       @map("cantidad_ingresada")
-  cantidadDistribuida Int       @default(0) @map("cantidad_distribuida")
+  cantidadIngresada   Float       @map("cantidad_ingresada")
+  cantidadDistribuida Float       @default(0) @map("cantidad_distribuida")
   mercado             Mercado?  // solo para categoría estuche/etiqueta
   createdAt           DateTime  @default(now()) @map("created_at")
 
@@ -496,7 +574,8 @@ model InventarioDroga {
   nombre      String
   lote        String?
   vencimiento DateTime? @db.Date @map("vencimiento")
-  cantidad    Int       @default(0)
+  cantidad    Float       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
@@ -561,7 +640,7 @@ model InventarioEtiqueta {
 model InventarioFrasco {
   id              String   @id @default(uuid())
   productoId      String?  @map("producto_id")
-  articulo        String   @unique
+  articulo        String
   unidadesPorCaja Int      @map("unidades_por_caja")
   cantidadCajas   Int      @default(0) @map("cantidad_cajas")
   total           Int      @default(0)
@@ -585,7 +664,7 @@ model Movimiento {
   categoria      Categoria
   productoNombre String         @map("producto_nombre")
   lote           String?
-  cantidad       Int // positivo = ingreso, negativo = egreso
+  cantidad       Float // positivo = ingreso, negativo = egreso
   referenciaId   String?        @map("referencia_id")
   referenciaTipo RefTipo?       @map("referencia_tipo")
   productoId     String?        @map("producto_id")
@@ -715,6 +794,7 @@ model DepositoProducto {
   origen         OrigenProductoCatalogo @default(MIGRACION)
   presentacion   Int?
   mercadosHabilitados Mercado[] @default([]) @map("mercados_habilitados")
+  mercado              Mercado?
   createdAt      DateTime  @default(now()) @map("created_at")
   updatedAt      DateTime  @updatedAt @map("updated_at")
 
@@ -728,7 +808,7 @@ model DepositoProducto {
   movimientos          Movimiento[]
   importacionesInicialesEstuche ImportacionInicialEstucheItem[]
 
-  @@unique([nombreCompleto, categoria])
+  @@unique([nombreCompleto, categoria, mercado])
   @@map("productos")
 
   @@schema("deposito")
@@ -739,6 +819,22 @@ model SecuenciaCodigoEstuche {
   ultimo  Int     @default(0)
 
   @@map("secuencias_codigo_estuche")
+  @@schema("deposito")
+}
+
+model SecuenciaCodigoEtiqueta {
+  mercado Mercado @id
+  ultimo  Int     @default(0)
+
+  @@map("secuencias_codigo_etiqueta")
+  @@schema("deposito")
+}
+
+model SecuenciaCodigoFrasco {
+  id     String @id @default("canonical")
+  ultimo Int    @default(62)
+
+  @@map("secuencias_codigo_frasco")
   @@schema("deposito")
 }
 

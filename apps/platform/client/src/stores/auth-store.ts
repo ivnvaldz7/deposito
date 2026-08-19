@@ -19,6 +19,7 @@ export interface PlatformUser {
   name: string
   apps: Record<string, AppAccess>
   isPlatformAdmin: boolean
+  mustChangePassword?: boolean
 }
 
 export interface RefreshResponse {

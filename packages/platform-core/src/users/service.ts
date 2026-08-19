@@ -16,6 +16,8 @@ interface CreateUserInput {
   email: string
   nombre: string
   password: string
+  mustChangePassword?: boolean
+  estado?: string
   appAccess: Array<{
     app: AppId
     rol: string
@@ -38,6 +40,8 @@ export async function createUser(
       email: input.email,
       nombre: input.nombre,
       password,
+      mustChangePassword: input.mustChangePassword ?? true,
+      estado: input.estado ?? 'active',
       appAccess: {
         create: input.appAccess.map((access) => ({
           app: access.app,

@@ -32,6 +32,13 @@ const { mockGetUserByEmail, mockGetUserById, mockGoogleStrategy, mockDb, mockCor
             create: vi.fn(),
           },
           appAccess: { upsert: vi.fn(), findFirst: vi.fn(), delete: vi.fn() },
+          session: {
+            create: vi.fn(),
+            findUnique: vi.fn(),
+            update: vi.fn(),
+            updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+          platformAuditoria: { create: vi.fn() },
         },
       },
       mockCore: {
@@ -143,6 +150,27 @@ vi.mock('@platform/core', () => {
     updateAppAccess: mockCore.updateAppAccess,
     deactivateUser: mockCore.deactivateUser,
     removeAppAccess: mockCore.removeAppAccess,
+    hashRefreshToken: (token: string) => {
+      const crypto = require('crypto')
+      return crypto.createHash('sha256').update(token).digest('hex')
+    },
+    validatePasswordPolicy: vi.fn(),
+    PLATFORM_AUDIT_ACTIONS: {
+      LOGIN_SUCCESS: 'LOGIN_SUCCESS',
+      LOGIN_FAILURE: 'LOGIN_FAILURE',
+      LOGOUT: 'LOGOUT',
+      PASSWORD_CHANGED: 'PASSWORD_CHANGED',
+      PASSWORD_RESET: 'PASSWORD_RESET',
+      USER_CREATED: 'USER_CREATED',
+      USER_ACTIVATED: 'USER_ACTIVATED',
+      USER_DEACTIVATED: 'USER_DEACTIVATED',
+      SESSIONS_REVOKED: 'SESSIONS_REVOKED',
+      APP_ACCESS_GRANTED: 'APP_ACCESS_GRANTED',
+      APP_ACCESS_REVOKED: 'APP_ACCESS_REVOKED',
+      APP_ACCESS_ROLE_CHANGED: 'APP_ACCESS_ROLE_CHANGED',
+      APP_ACCESS_ENABLED: 'APP_ACCESS_ENABLED',
+      APP_ACCESS_DISABLED: 'APP_ACCESS_DISABLED',
+    },
   }
 })
 
@@ -374,8 +402,10 @@ describe('Admin CRUD — Integration Tests (P3.6)', () => {
         })
 
       expect(res.status).toBe(201)
-      expect(res.body.email).toBe('nuevo@deposito.com')
-      expect(res.body.nombre).toBe('Nuevo Usuario')
+      expect(res.body.user.email).toBe('nuevo@deposito.com')
+      expect(res.body.user.nombre).toBe('Nuevo Usuario')
+      expect(typeof res.body.temporaryPassword).toBe('string')
+      expect(res.body.temporaryPassword.length).toBeGreaterThan(0)
       expect(mockCore.createUser).toHaveBeenCalledTimes(1)
     })
 

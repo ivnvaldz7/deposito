@@ -29,9 +29,8 @@ export const adminApi = {
   create: (payload: {
     email: string
     nombre: string
-    password: string
     appAccess: Array<{ app: AppId; rol: string }>
-  }) => apiClient.post<PlatformUser>('/admin/', payload),
+  }) => apiClient.post<{ user: PlatformUser; temporaryPassword: string }>('/admin/', payload),
 
   updateAccess: (
     userId: string,
@@ -43,4 +42,7 @@ export const adminApi = {
 
   updateStatus: (userId: string, payload: { activo: boolean }) =>
     apiClient.put<PlatformUser>(`/admin/${userId}/status`, payload),
+
+  resetPassword: (userId: string) =>
+    apiClient.post<{ tempPassword: string }>(`/admin/${userId}/reset-password`),
 }
