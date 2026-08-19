@@ -15,7 +15,8 @@ import {
   useCreatePedido,
   useAprobarPedido,
 } from '../queries'
-import type { Cliente, PedidoItemInput } from '../lib/api'
+import { aleBetApi } from '../lib/api'
+import type { Cliente, Pedido, PedidoDisponibilidadStock, PedidoItemInput } from '../lib/api'
 import { BottomSheet } from '../components/BottomSheet'
 import { CartBottomBar } from '../components/CartBottomBar'
 import { ProductCard, type ProductoCardDatos } from '../components/ProductCard'
@@ -57,6 +58,46 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 
 const porActualizadoDesc = (a: { updatedAt: string }, b: { updatedAt: string }) =>
   new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+
+interface ConfirmDialogProps {
+  open: boolean
+  titulo: string
+  mensaje: React.ReactNode
+  accion: string
+  loading: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function ConfirmDialog({ open, titulo, mensaje, accion, loading, onCancel, onConfirm }: ConfirmDialogProps) {
+  if (!open) return null
+  return (
+    <div
+      data-testid="confirm-dialog"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop-in bg-black/50"
+      onClick={onCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={titulo}
+        className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5 animate-dialog-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-[16px] font-bold text-on-surface">{titulo}</h2>
+        <div className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">{mensaje}</div>
+        <div className="mt-5 flex justify-end gap-3">
+          <Button variant="outline" onClick={onCancel} disabled={loading}>
+            Volver
+          </Button>
+          <Button onClick={onConfirm} loading={loading}>
+            {accion}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function ClienteCard({ cliente, onSelect }: { cliente: Cliente; onSelect: () => void }) {
   return (
@@ -258,6 +299,10 @@ export default function NuevoPedidoPage() {
   const [stockError, setStockError] = useState<{ ids: string[]; message: string } | null>(null)
   const [conflictIds, setConflictIds] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [pendingAprobacion, setPendingAprobacion] = useState<{
+    pedido: Pedido
+    disponibilidad: PedidoDisponibilidadStock
+  } | null>(null)
 
   const createPedido = useCreatePedido()
   const aprobarPedido = useAprobarPedido()
@@ -416,6 +461,43 @@ export default function NuevoPedidoPage() {
     }
   }
 
+  async function ejecutarAprobacion(pedido: Pedido, disponibilidad: PedidoDisponibilidadStock) {
+    isExecutingRef.current = true
+    setIsSubmitting(true)
+    try {
+      const aprobado = await aprobarPedido.mutateAsync({
+        id: pedido.id,
+        expectedVersion: pedido.version,
+        fingerprint: disponibilidad.fingerprint,
+        transferencias: disponibilidad.transferencias,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      setPendingAprobacion(null)
+      toast.success(`Pedido ${aprobado.numero} aprobado`)
+      navigate(`/ale-bet/pedidos/${aprobado.id}`)
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409) {
+        if (e.message.includes('PENDIENTE_CLIENTE')) {
+          toast.error('El cliente debe ser validado por Facturación antes de aprobar. El pedido quedó guardado como borrador.')
+          navigate(`/ale-bet/pedidos/${pedido.id}`)
+        } else if (e.message.includes('Stock insuficiente')) {
+          const ids = extractProductoIds(e.message)
+          setConflictIds(ids)
+          setStockError({ ids, message: e.message })
+          void refetchProductos()
+          toast.error('Stock insuficiente: revisá las líneas en rojo del resumen')
+        } else {
+          toast.error(e.message)
+        }
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Error al aprobar el pedido')
+      }
+    } finally {
+      isExecutingRef.current = false
+      setIsSubmitting(false)
+    }
+  }
+
   async function handleAprobar() {
     if (!clienteSeleccionado || isExecutingRef.current) return
     const items = buildItems()
@@ -428,35 +510,25 @@ export default function NuevoPedidoPage() {
         items,
         idempotencyKey: newIdempotencyKey(),
       })
-      try {
-        const aprobado = await aprobarPedido.mutateAsync({
-          id: creado.id,
-          expectedVersion: creado.version,
-          idempotencyKey: newIdempotencyKey(),
-        })
-        toast.success(`Pedido ${aprobado.numero} aprobado`)
-        navigate(`/ale-bet/pedidos/${aprobado.id}`)
-      } catch (e) {
-        if (e instanceof ApiError && e.status === 409) {
-          if (e.message.includes('PENDIENTE_CLIENTE')) {
-            toast.error('El cliente debe ser validado por Facturación antes de aprobar. El pedido quedó guardado como borrador.')
-            navigate(`/ale-bet/pedidos/${creado.id}`)
-          } else if (e.message.includes('Stock insuficiente')) {
-            const ids = extractProductoIds(e.message)
-            setConflictIds(ids)
-            setStockError({ ids, message: e.message })
-            void refetchProductos()
-            toast.error('Stock insuficiente: revisá las líneas en rojo del resumen')
-          } else {
-            toast.error(e.message)
-          }
-        } else {
-          toast.error(e instanceof Error ? e.message : 'Error al aprobar el pedido')
-        }
+      const disponibilidad = await aleBetApi.pedidos.disponibilidadStock(creado.id)
+      if (disponibilidad.status === 'INSUFICIENTE') {
+        setStockError({ ids: items.map((i) => i.productoId), message: 'Stock insuficiente para aprobar el pedido' })
+        setConflictIds(items.map((i) => i.productoId))
+        void refetchProductos()
+        toast.error('Stock insuficiente: revisá las líneas en rojo del resumen')
+        isExecutingRef.current = false
+        setIsSubmitting(false)
+        return
       }
+      if (disponibilidad.status === 'DISPONIBLE_CON_TRANSFERENCIA' && disponibilidad.transferencias.length > 0) {
+        setPendingAprobacion({ pedido: creado, disponibilidad })
+        isExecutingRef.current = false
+        setIsSubmitting(false)
+        return
+      }
+      await ejecutarAprobacion(creado, disponibilidad)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al crear el pedido')
-    } finally {
       isExecutingRef.current = false
       setIsSubmitting(false)
     }
@@ -724,6 +796,41 @@ export default function NuevoPedidoPage() {
           {resumenContenido}
         </BottomSheet>
       </div>
+
+      <ConfirmDialog
+        open={pendingAprobacion !== null}
+        titulo="Confirmar aprobación"
+        mensaje={pendingAprobacion && (
+          <div className="space-y-2">
+            <p>¿Aprobar el pedido {pendingAprobacion.pedido.numero}?</p>
+            {pendingAprobacion.disponibilidad.transferencias.length > 0 && (
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+                <p className="font-semibold text-warning text-[12px]">Requiere transferencia interna</p>
+                <ul className="mt-1 space-y-1 font-body text-[12px] text-on-surface-variant">
+                  {pendingAprobacion.disponibilidad.transferencias.map((t, index) => (
+                    <li key={index}>
+                      Transferir {t.cantidad} unidades del lote desde Acondicionado a Depósito
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+        accion="Aprobar y enviar"
+        loading={aprobarPedido.isPending}
+        onCancel={() => {
+          setPendingAprobacion(null)
+          if (pendingAprobacion) {
+            navigate(`/ale-bet/pedidos/${pendingAprobacion.pedido.id}`)
+          }
+        }}
+        onConfirm={() => {
+          if (pendingAprobacion) {
+            void ejecutarAprobacion(pendingAprobacion.pedido, pendingAprobacion.disponibilidad)
+          }
+        }}
+      />
 
       <CartBottomBar
         productos={totalProductos}

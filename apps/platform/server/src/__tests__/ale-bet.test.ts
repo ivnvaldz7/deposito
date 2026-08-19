@@ -89,6 +89,12 @@ vi.mock('../routes/ale-bet/reservas-service', () => ({
   reserveFefo,
   consumeActiveReservations,
 }))
+vi.mock('../routes/ale-bet/inventory-service', () => ({
+  InventoryConflictError: class InventoryConflictError extends Error {},
+  transferInternal: vi.fn(),
+  getOrderAvailability: vi.fn(),
+}))
+import { getOrderAvailability } from '../routes/ale-bet/inventory-service'
 vi.mock('../utils/idempotency', () => ({
   calculateFingerprint: () => 'fingerprint',
   getSingleIdempotencyKey: (headers: string[]) => {
@@ -134,6 +140,17 @@ describe('ALEBET-01 HTTP contracts', () => {
     completeIdempotencyRecord.mockResolvedValue(undefined)
     mockDb.remito.updateMany.mockResolvedValue({ count: 0 })
     mockDb.pedidoAuditoria.create.mockResolvedValue({})
+    vi.mocked(getOrderAvailability).mockResolvedValue({
+      status: 'DISPONIBLE',
+      stockTotal: 10,
+      stockDeposito: 10,
+      stockAcondicionado: 0,
+      stockDisponiblePedido: 10,
+      allocations: [],
+      transferencias: [],
+      shortfall: 0,
+      fingerprint: 'a'.repeat(64),
+    })
   })
 
   it('creates a validated customer order as BORRADOR without a reservation', async () => {
@@ -151,7 +168,7 @@ describe('ALEBET-01 HTTP contracts', () => {
     mockDb.pedido.findUnique.mockResolvedValue(pedido({ cliente: { id: 'cliente-1', estado: 'PENDIENTE_CLIENTE' } }))
     const server = await app()
     await request(server).put('/api/ale-bet/pedidos/pedido-1/aprobar').set('Authorization', `Bearer ${token('vendedor')}`)
-      .send({ expectedVersion: 1 }).expect(409)
+      .send({ expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [] }).expect(409)
     expect(reserveFefo).not.toHaveBeenCalled()
   })
 
@@ -160,7 +177,7 @@ describe('ALEBET-01 HTTP contracts', () => {
     mockDb.pedido.update.mockResolvedValue(pedido({ estado: 'APROBADO', version: 2 }))
     const server = await app()
     const response = await request(server).put('/api/ale-bet/pedidos/pedido-1/aprobar').set('Authorization', `Bearer ${token('vendedor')}`)
-      .send({ expectedVersion: 1 }).expect(200)
+      .send({ expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [] }).expect(200)
     expect(response.body.estado).toBe('APROBADO')
     expect(reserveFefo).toHaveBeenCalledWith(mockDb, 'pedido-1', expect.any(Array))
   })
@@ -300,10 +317,18 @@ describe('ALEBET-01 HTTP contracts', () => {
   })
 
   it('returns physical, reserved and available stock to a vendedor', async () => {
-    mockDb.producto.findMany.mockResolvedValue([{ id: 'producto-1', nombre: 'Producto', sku: 'SKU', unidadesPorCaja: 15, lotes: [{ cajas: 1, sueltos: 2, reservas: [{ cantidad: 4 }] }] }])
+    mockDb.producto.findMany.mockResolvedValue([{ id: 'producto-1', nombre: 'Producto', sku: 'SKU', unidadesPorCaja: 15, lotes: [{ saldos: [{ cantidad: 17, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [{ cantidad: 4 }] }] }])
     const server = await app()
     const response = await request(server).get('/api/ale-bet/productos/search?q=pro').set('Authorization', `Bearer ${token('vendedor')}`).expect(200)
     expect(response.body[0]).toMatchObject({ fisico: 17, reservado: 4, disponible: 13 })
+    expect(mockDb.producto.findMany).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        OR: expect.arrayContaining([
+          { nombre: { contains: 'pro', mode: 'insensitive' } },
+          { lotes: { some: { numero: { contains: 'pro', mode: 'insensitive' }, activo: true } } },
+        ]),
+      }),
+    }))
   })
 
   it('rejects deactivating a lot while it has active reservations', async () => {

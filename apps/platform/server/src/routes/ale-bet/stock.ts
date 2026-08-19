@@ -5,6 +5,7 @@ import type { JwtPayload } from '@platform/core'
 import { getAppAccess } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { InventoryConflictError, transferInternal } from './inventory-service'
+import { aggregateProductAvailability } from './stock-aggregation'
 
 const router = Router()
 const transferSchema = z.object({
@@ -30,6 +31,7 @@ router.get('/', requireApp('ale-bet'), async (req, res) => {
             saldos: {
               include: { ubicacion: { select: { codigo: true } } },
             },
+            reservas: { where: { estado: 'ACTIVA' }, select: { cantidad: true } },
           },
         },
       },
@@ -43,39 +45,16 @@ router.get('/', requireApp('ale-bet'), async (req, res) => {
 
   res.json({
     productos: productos.map((producto) => {
-      const lotes = producto.lotes.map((lote) => {
-        const stockDeposito = lote.saldos
-          .filter((saldo) => saldo.ubicacion.codigo === 'DEPOSITO')
-          .reduce((total, saldo) => total + saldo.cantidad, 0)
-        const stockAcondicionado = lote.saldos
-          .filter((saldo) => saldo.ubicacion.codigo === 'ACONDICIONADO')
-          .reduce((total, saldo) => total + saldo.cantidad, 0)
-        const stockTotal = lote.saldos.reduce((total, saldo) => total + saldo.cantidad, 0)
-
-        return {
-          id: lote.id,
-          numero: lote.numero,
-          fechaProduccion: lote.fechaProduccion,
-          fechaVencimiento: lote.fechaVencimiento,
-          activo: lote.activo,
-          stockTotal,
-          stockDeposito,
-          stockAcondicionado,
-        }
-      })
-      const stockTotal = lotes.reduce((total, lote) => total + lote.stockTotal, 0)
-      const stockDeposito = lotes.reduce((total, lote) => total + lote.stockDeposito, 0)
-      const stockAcondicionado = lotes.reduce((total, lote) => total + lote.stockAcondicionado, 0)
-
+      const availability = aggregateProductAvailability(producto)
       return {
         ...producto,
-        lotes,
-        stock: stockTotal,
-        stockTotal,
-        stockDeposito,
-        stockAcondicionado,
-        stockDisponiblePedido: stockDeposito,
-        stockBajo: stockTotal < producto.stockMinimo,
+        lotes: availability.lotes,
+        stock: availability.stockTotal,
+        stockTotal: availability.stockTotal,
+        stockDeposito: availability.stockDeposito,
+        stockAcondicionado: availability.stockAcondicionado,
+        stockDisponiblePedido: availability.disponible,
+        stockBajo: availability.stockBajo,
       }
     }),
     movimientos,

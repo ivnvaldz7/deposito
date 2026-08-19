@@ -23,7 +23,7 @@ vi.mock('../../lib/api', () => ({
     dashboard: vi.fn(),
     productos: { list: vi.fn(), search: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), lotes: { list: vi.fn(), create: vi.fn(), update: vi.fn() } },
     clientes: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
-    pedidos: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn() },
+    pedidos: { list: vi.fn(), get: vi.fn(), create: vi.fn(), update: vi.fn(), aprobar: vi.fn(), disponibilidadStock: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn() },
     transportistas: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
     remitos: { emitir: vi.fn(), anular: vi.fn(), pdf: vi.fn() },
     stock: { get: vi.fn(), movimientos: vi.fn() },
@@ -86,6 +86,17 @@ describe('NuevoPedidoPage', () => {
     vi.mocked(aleBetApi.productos.list).mockResolvedValue(createProductoList())
     vi.mocked(aleBetApi.pedidos.list).mockResolvedValue(createPedidoList())
     vi.mocked(aleBetApi.pedidos.create).mockResolvedValue(createPedido())
+    vi.mocked(aleBetApi.pedidos.disponibilidadStock).mockResolvedValue({
+      status: 'DISPONIBLE',
+      stockTotal: 500,
+      stockDeposito: 500,
+      stockAcondicionado: 0,
+      stockDisponiblePedido: 500,
+      allocations: [],
+      transferencias: [],
+      shortfall: 0,
+      fingerprint: 'fp-disp',
+    })
     vi.mocked(aleBetApi.pedidos.aprobar).mockResolvedValue(createPedido({ estado: 'APROBADO' }))
     vi.mocked(aleBetApi.clientes.create).mockResolvedValue(createClientePendiente({ id: 'cliente-nuevo', nombre: 'Nuevo Cliente' }))
   })
@@ -367,7 +378,7 @@ describe('NuevoPedidoPage', () => {
     await waitFor(() => expect(screen.getByText('Detalle:pedido-1')).toBeInTheDocument())
   })
 
-  it('aprueba y envía: POST + PUT aprobar con expectedVersion y navega', async () => {
+  it('aprueba y envía: POST + disponibilidad + PUT aprobar con fingerprint y navega', async () => {
     renderNuevoPedido()
     await seleccionarCliente('Cliente A')
     await agregarProducto('Producto A')
@@ -376,10 +387,11 @@ describe('NuevoPedidoPage', () => {
     fireEvent.click(within(sheet()).getByRole('button', { name: 'Aprobar y enviar' }))
 
     await waitFor(() => expect(aleBetApi.pedidos.create).toHaveBeenCalled())
+    await waitFor(() => expect(aleBetApi.pedidos.disponibilidadStock).toHaveBeenCalledWith('pedido-1'))
     await waitFor(() =>
       expect(aleBetApi.pedidos.aprobar).toHaveBeenCalledWith(
         'pedido-1',
-        expect.objectContaining({ expectedVersion: 1 }),
+        expect.objectContaining({ expectedVersion: 1, fingerprint: 'fp-disp', transferencias: [] }),
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )
@@ -388,6 +400,17 @@ describe('NuevoPedidoPage', () => {
   })
 
   it('409 cliente pendiente: mensaje claro, conserva el carrito y navega al borrador', async () => {
+    vi.mocked(aleBetApi.pedidos.disponibilidadStock).mockResolvedValue({
+      status: 'DISPONIBLE',
+      stockTotal: 500,
+      stockDeposito: 500,
+      stockAcondicionado: 0,
+      stockDisponiblePedido: 500,
+      allocations: [],
+      transferencias: [],
+      shortfall: 0,
+      fingerprint: 'fp-pendiente',
+    })
     vi.mocked(aleBetApi.pedidos.aprobar).mockRejectedValue(
       new ApiError(409, 'El cliente está PENDIENTE_CLIENTE y debe validarse antes de aprobar'),
     )
@@ -412,9 +435,17 @@ describe('NuevoPedidoPage', () => {
   })
 
   it('409 stock: marca los productos conflictivos, refetch de stock, conserva el carrito y no navega', async () => {
-    vi.mocked(aleBetApi.pedidos.aprobar).mockRejectedValue(
-      new ApiError(409, 'Stock insuficiente para reservar producto prod-1. Disponible: 5u, solicitado: 15u'),
-    )
+    vi.mocked(aleBetApi.pedidos.disponibilidadStock).mockResolvedValue({
+      status: 'INSUFICIENTE',
+      stockTotal: 5,
+      stockDeposito: 5,
+      stockAcondicionado: 0,
+      stockDisponiblePedido: 5,
+      allocations: [],
+      transferencias: [],
+      shortfall: 10,
+      fingerprint: 'fp-insuficiente',
+    })
     vi.mocked(aleBetApi.productos.list)
       .mockResolvedValueOnce(createProductoList())
       .mockResolvedValueOnce([createProducto({ id: 'prod-1', disponible: 5, fisico: 5, stock: 5, stockBajo: true })])
@@ -427,7 +458,7 @@ describe('NuevoPedidoPage', () => {
 
     const banner = await screen.findByTestId('stock-error-banner')
     expect(banner).toHaveTextContent('Stock insuficiente')
-    expect(banner).toHaveTextContent('prod-1')
+    expect(banner).toHaveTextContent('Producto A')
     await waitFor(() => expect(aleBetApi.productos.list).toHaveBeenCalledTimes(2))
 
     await waitFor(() => expect(within(sheet()).getByText('Faltan 10u')).toBeInTheDocument())

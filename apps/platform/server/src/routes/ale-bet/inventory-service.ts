@@ -92,7 +92,7 @@ export function allocateAvailability(input: {
     stockDeposito,
     stockAcondicionado,
     stockTotal: stockDeposito + stockAcondicionado,
-    stockDisponiblePedido: stockDeposito,
+    stockDisponiblePedido: stockDeposito + stockAcondicionado,
     allocations,
     transferencias: status === 'DISPONIBLE_CON_TRANSFERENCIA' ? transferencias : [],
     shortfall: Math.max(0, input.requested - stockDeposito - stockAcondicionado),
@@ -168,7 +168,7 @@ export async function getOrderAvailability(
     transferencias.push(...result.transferencias.map((transfer) => ({ productoId: item.productoId, loteId: transfer.loteId, origen: 'ACONDICIONADO' as const, destino: 'DEPOSITO' as const, cantidad: transfer.cantidad })))
   }
   const fingerprint = fingerprintAvailability({ pedidoId: pedido.id, allocations: allocations.map(({ loteId, cantidad }) => ({ loteId, cantidad })), transferencias: transferencias.map(({ loteId, cantidad }) => ({ loteId, cantidad })) })
-  return { status: overall, stockTotal, stockDeposito, stockAcondicionado, stockDisponiblePedido: stockDeposito, allocations, transferencias, shortfall, fingerprint }
+  return { status: overall, stockTotal, stockDeposito, stockAcondicionado, stockDisponiblePedido: stockTotal, allocations, transferencias, shortfall, fingerprint }
 }
 
 export async function transferInternal(

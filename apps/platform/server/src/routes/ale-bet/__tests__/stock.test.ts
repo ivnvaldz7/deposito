@@ -186,7 +186,7 @@ describe('Ale-Bet Stock', () => {
       expect(res.body.productos[0].stockTotal).toBe(45)
       expect(res.body.productos[0].stockDeposito).toBe(35)
       expect(res.body.productos[0].stockAcondicionado).toBe(10)
-      expect(res.body.productos[0].stockDisponiblePedido).toBe(35)
+      expect(res.body.productos[0].stockDisponiblePedido).toBe(45)
       expect(res.body.productos[0].lotes).toEqual([expect.objectContaining({
         id: 'lote-1',
         numero: 'L001',

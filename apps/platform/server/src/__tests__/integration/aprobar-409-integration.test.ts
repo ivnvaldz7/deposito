@@ -1,10 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import request from 'supertest'
-import { createTestApp } from '../helpers/create-test-app'
 import { type Express } from 'express'
+import express from 'express'
 import { platformDb as prisma } from '@platform/db'
 import jwt from 'jsonwebtoken'
 import { truncateDb } from '../utils/db-cleaner'
+import { createAleBetRoutes } from '../../routes/ale-bet/index'
+import { verifyToken } from '../../middlewares/verify-token'
+import type { JwtPayload } from '@platform/core'
+
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: JwtPayload
+  }
+}
 
 describe('409 Aprobar y enviar reproduction', () => {
   let adminToken: string
@@ -13,10 +22,13 @@ describe('409 Aprobar y enviar reproduction', () => {
   let app: Express
 
   beforeEach(async () => {
-    app = createTestApp()
+    process.env.PLATFORM_JWT_SECRET = process.env.PLATFORM_JWT_SECRET || 'test-secret'
+    app = express()
+    app.use(express.json())
+    app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
     adminToken = jwt.sign(
-      { sub: 'admin-1', apps: { 'ale-bet': { rol: 'admin' } } },
-      process.env.JWT_SECRET || 'test-secret',
+      { sub: 'admin-1', email: 'admin@test.com', apps: { 'ale-bet': { rol: 'admin', activo: true } } },
+      process.env.PLATFORM_JWT_SECRET || 'test-secret',
       { expiresIn: '1h' }
     )
     await truncateDb(prisma as any)
@@ -34,17 +46,32 @@ describe('409 Aprobar y enviar reproduction', () => {
       data: {
         nombre: 'Producto Test',
         sku: 'TEST-1',
-        stockMinimo: 10
+        stockMinimo: 10,
+        unidadesPorCaja: 1,
       }
     })
     productoId = producto.id
 
-    await prisma.lote.create({
+    const lote = await prisma.lote.create({
       data: {
         productoId,
+        numero: 'TEST-0001',
         cajas: 100,
         sueltos: 0
       }
+    })
+    const deposito = await prisma.ubicacionStock.upsert({
+      where: { codigo: 'DEPOSITO' },
+      update: {},
+      create: { codigo: 'DEPOSITO', nombre: 'Depósito' },
+    })
+    await prisma.saldoStock.create({
+      data: {
+        productoId,
+        loteId: lote.id,
+        ubicacionId: deposito.id,
+        cantidad: 100,
+      },
     })
   })
 
@@ -57,20 +84,28 @@ describe('409 Aprobar y enviar reproduction', () => {
       .send({
         clienteId,
         items: [
-          { productoId, cajas: 1, sueltos: 0 }
+          { productoId, cantidad: 1 }
         ]
       })
 
     expect(createRes.status).toBe(201)
     const pedidoCreado = createRes.body
 
-    // 2. Aprobar pedido (like in NuevoPedidoPage.tsx aprobarPedido.mutateAsync)
+    // 2. Consultar disponibilidad vigente
+    const disponibilidadRes = await request(app)
+      .get(`/api/ale-bet/pedidos/${pedidoCreado.id}/disponibilidad-stock`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+
+    // 3. Aprobar pedido enviando fingerprint + transferencias sugeridas
     const aprobarRes = await request(app)
       .put(`/api/ale-bet/pedidos/${pedidoCreado.id}/aprobar`)
       .set('Authorization', `Bearer ${adminToken}`)
       .set('Idempotency-Key', 'idemp-456')
       .send({
-        expectedVersion: pedidoCreado.version
+        expectedVersion: pedidoCreado.version,
+        fingerprint: disponibilidadRes.body.fingerprint,
+        transferencias: disponibilidadRes.body.transferencias,
       })
 
     if (aprobarRes.status === 409) {

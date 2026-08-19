@@ -6,6 +6,7 @@ import { getAppAccess } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { VENCIMIENTO_DEFAULT_AÑOS, calcularUnidades, validarSueltos } from './constants'
 import { adjustManagedStock, createManagedLot, getManagedProductStock, ProductStockAdminConflict } from './product-stock-admin-service'
+import { aggregateProductAvailability } from './stock-aggregation'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 
 const router = Router()
@@ -60,8 +61,8 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
     include: {
       lotes: {
         where: { activo: true },
-        include: { 
-          saldos: { select: { cantidad: true } },
+        include: {
+          saldos: { select: { cantidad: true, ubicacion: { select: { codigo: true } } } },
           reservas: { where: { estado: 'ACTIVA' }, select: { cantidad: true } } 
         },
       },
@@ -70,19 +71,18 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
   })
 
   const response = productos.map((producto) => {
-    const stock = producto.lotes.reduce(
-      (total, lote) => total + lote.saldos.reduce((sum, saldo) => sum + saldo.cantidad, 0),
-      0
-    )
-
-    const reserved = producto.lotes.reduce((total, lote) => total + (lote.reservas ?? []).reduce((sum, reserva) => sum + reserva.cantidad, 0), 0)
+    const availability = aggregateProductAvailability(producto)
     return {
       ...producto,
-      stock,
-      fisico: stock,
-      reservado: reserved,
-      disponible: stock - reserved,
-      stockBajo: stock < producto.stockMinimo,
+      lotes: availability.lotes,
+      stock: availability.stockTotal,
+      fisico: availability.stockTotal,
+      stockTotal: availability.stockTotal,
+      stockDeposito: availability.stockDeposito,
+      stockAcondicionado: availability.stockAcondicionado,
+      reservado: availability.reservado,
+      disponible: availability.disponible,
+      stockBajo: availability.stockBajo,
     }
   })
 
@@ -102,14 +102,29 @@ router.get('/search', requireApp('ale-bet'), async (req, res) => {
         ],
       } : {}),
     },
-    include: { lotes: { where: { activo: true }, include: { reservas: { where: { estado: 'ACTIVA' } } } } },
+    include: {
+      lotes: {
+        where: { activo: true },
+        include: {
+          saldos: { select: { cantidad: true, ubicacion: { select: { codigo: true } } } },
+          reservas: { where: { estado: 'ACTIVA' }, select: { cantidad: true } },
+        },
+      },
+    },
     orderBy: { nombre: 'asc' },
     take: 50,
   })
   res.json(productos.map((producto) => {
-    const fisico = producto.lotes.reduce((sum, lote) => sum + calcularUnidades(lote.cajas, lote.sueltos, producto.unidadesPorCaja), 0)
-    const reservado = producto.lotes.reduce((sum, lote) => sum + lote.reservas.reduce((inner, reserva) => inner + reserva.cantidad, 0), 0)
-    return { id: producto.id, nombre: producto.nombre, sku: producto.sku, unidadesPorCaja: producto.unidadesPorCaja, fisico, reservado, disponible: fisico - reservado }
+    const availability = aggregateProductAvailability(producto)
+    return {
+      id: producto.id,
+      nombre: producto.nombre,
+      sku: producto.sku,
+      unidadesPorCaja: producto.unidadesPorCaja,
+      fisico: availability.stockTotal,
+      reservado: availability.reservado,
+      disponible: availability.disponible,
+    }
   }))
 })
 
