@@ -44,8 +44,6 @@ describe('Sidebar', () => {
     mockRol('vendedor')
     renderSidebar()
 
-    // In desktop sidebar, the string "Nuevo pedido" was removed
-    // We can only find "Nuevo" in the mobile bottom nav
     expect(screen.queryByText('Nuevo pedido')).not.toBeInTheDocument()
     expect(screen.getByText('Nuevo')).toBeInTheDocument()
     expect(screen.getByText('Nuevo').closest('a')).toHaveAttribute('href', '/ale-bet/pedidos/nuevo')
@@ -75,38 +73,39 @@ describe('Sidebar', () => {
     expect(screen.getByTestId('location-display')).toHaveTextContent('/login')
   })
 
-  it('shows Ventas por cliente for admin and facturacion in sidebar and bottom nav', () => {
-    // Bottom-nav displacement per design R1: admin loses Stock, facturacion
-    // loses Clientes in the bottom nav (both keep the full desktop sidebar).
-    const displacedByRol: Record<string, string> = {
-      admin: 'Stock',
-      facturacion: 'Clientes',
-    }
-    for (const rol of ['admin', 'facturacion']) {
-      // Each iteration renders into the same document; wipe the previous tree.
-      cleanup()
-      mockRol(rol)
-      renderSidebar()
-
-      // Desktop sidebar (aside) + mobile bottom nav both render in jsdom;
-      // the label appears exactly twice when the role can see it.
-      const ventasLinks = screen.getAllByRole('link', { name: 'Ventas por cliente' })
-      expect(ventasLinks).toHaveLength(2)
-      for (const link of ventasLinks) {
-        expect(link).toHaveAttribute('href', '/ale-bet/ventas')
-      }
-      // The displaced section stays in the desktop sidebar (single occurrence)
-      // while its bottom-nav slot was taken over by ventas.
-      expect(screen.getAllByText(displacedByRol[rol])).toHaveLength(1)
-    }
-  })
-
-  it('hides Ventas por cliente for vendedor; historial unchanged', () => {
-    mockRol('vendedor')
+  it('does not show Insumos for admin', () => {
+    mockRol('admin')
     renderSidebar()
 
-    expect(screen.queryByRole('link', { name: 'Ventas por cliente' })).not.toBeInTheDocument()
-    // Vendedor keeps Historial in the sidebar AND the bottom-nav extra slot.
-    expect(screen.getAllByText('Historial')).toHaveLength(2)
+    expect(screen.queryByText('Insumos')).not.toBeInTheDocument()
+  })
+
+  it('shows Stock and Productos for admin', () => {
+    mockRol('admin')
+    renderSidebar()
+
+    expect(screen.getAllByText('Stock').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Productos').length).toBeGreaterThan(0)
+  })
+
+  it('facturación y admin ven Transportistas, pero otros roles no', () => {
+    mockRol('facturacion')
+    const { unmount: unmount1 } = renderSidebar()
+    expect(screen.getAllByText('Transportistas').length).toBeGreaterThan(0)
+    unmount1()
+
+    mockRol('admin')
+    const { unmount: unmount2 } = renderSidebar()
+    expect(screen.getAllByText('Transportistas').length).toBeGreaterThan(0)
+    unmount2()
+
+    mockRol('vendedor')
+    const { unmount: unmount3 } = renderSidebar()
+    expect(screen.queryByText('Transportistas')).not.toBeInTheDocument()
+    unmount3()
+
+    mockRol('armador')
+    renderSidebar()
+    expect(screen.queryByText('Transportistas')).not.toBeInTheDocument()
   })
 })

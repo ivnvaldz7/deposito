@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
-import { displayBusinessSku } from '../lib/logistics-display'
+
 import { useAuthStore } from '@/stores/auth-store'
 import {
   ESTADO_META,
@@ -385,7 +385,7 @@ function LineaDetalle({
             {isEspera && <Badge className="bg-[#A06869] text-white h-5 px-2 text-[10px] uppercase whitespace-nowrap shrink-0 animate-check-pop">ESPERA PRODUCCIÓN</Badge>}
             {!isListo && !isEspera && completable && <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-primary border-primary/50">PREPARAR</Badge>}
           </div>
-          <p className={cn('font-body text-[13px]', isEspera ? 'text-[#8E5A5B]/70' : 'text-on-surface-variant')}>{displayBusinessSku(sku)}</p>
+
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
@@ -463,7 +463,7 @@ function LineaDetalle({
           {completado && <Badge variant="success" className="h-5 px-1.5 text-[10px]">Listo</Badge>}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[12px] text-on-surface-variant">
-          <span className="font-medium text-on-surface/80">{displayBusinessSku(sku)}</span>
+
 
           {mostrarStock && (
             <div className="flex items-center gap-2 border-l border-white/10 pl-3">
@@ -1466,9 +1466,32 @@ export default function PedidoDetailPage() {
                     </Button>
                   </div>
                   {usarOcasional && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full md:max-w-md pt-1 mt-1 border-t border-white/5">
-                      <input ref={ocasionalNombreRef} value={ocasionalNombre} onChange={(e) => setOcasionalNombre(e.target.value)} aria-label="Nombre del transporte ocasional" placeholder="Nombre del transporte" className="input-field text-[14px] h-11 px-3" />
-                      <input ref={ocasionalDireccionRef} value={ocasionalDireccion} onChange={(e) => setOcasionalDireccion(e.target.value)} aria-label="Dirección del transporte ocasional" placeholder="Dirección" className="input-field text-[14px] h-11 px-3" />
+                    <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-surface-container-low p-4 w-full">
+                      <p className="font-body text-[13px] font-medium text-on-surface">Datos del transporte ocasional</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Nombre / Razón Social <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalNombreRef} 
+                            value={ocasionalNombre} 
+                            onChange={(e) => setOcasionalNombre(e.target.value)} 
+                            aria-label="Nombre del transporte ocasional"
+                            placeholder="Ej: Flete particular" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Dirección / Referencia <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalDireccionRef} 
+                            value={ocasionalDireccion} 
+                            onChange={(e) => setOcasionalDireccion(e.target.value)} 
+                            aria-label="Dirección del transporte ocasional"
+                            placeholder="Ej: Av. Siempreviva 123" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
                   {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error mt-2">{remitoError}</p>}

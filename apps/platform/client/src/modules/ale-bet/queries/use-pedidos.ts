@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { aleBetApi } from '../lib/api'
 import type { Pedido, PedidoEstado, CreatePedidoInput, PedidoDisponibilidadStock, UpdatePedidoInput } from '../lib/api'
+import { productosKeys } from './use-productos'
 
 export const pedidosKeys = {
   all: ['ale-bet', 'pedidos'] as const,
@@ -14,6 +15,12 @@ function invalidatePedido(qc: QueryClient, pedido: Pick<Pedido, 'id'> | string) 
   qc.invalidateQueries({ queryKey: pedidosKeys.all })
   qc.invalidateQueries({ queryKey: pedidosKeys.detail(pedidoId) })
   qc.invalidateQueries({ queryKey: ['ale-bet', 'dashboard'] })
+}
+
+function invalidateProductos(qc: QueryClient) {
+  // Invalida listado y búsqueda de productos para que el Disp: se refresque
+  // tras cambios de reserva/stock (aprobar, cancelar, despachar).
+  qc.invalidateQueries({ queryKey: productosKeys.all })
 }
 
 export function usePedidos(filters?: { estado?: PedidoEstado; vendedorId?: string }) {
@@ -66,7 +73,10 @@ export function useAprobarPedido() {
   return useMutation({
     mutationFn: ({ id, expectedVersion, fingerprint, transferencias, idempotencyKey }: { id: string; expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias']; idempotencyKey?: string }) =>
       aleBetApi.pedidos.aprobar(id, { expectedVersion, fingerprint, transferencias }, idempotencyKey ? { idempotencyKey } : undefined),
-    onSuccess: (pedido) => invalidatePedido(qc, pedido),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
   })
 }
 
@@ -102,7 +112,10 @@ export function useCancelarPedido() {
   return useMutation({
     mutationFn: ({ id, expectedVersion, motivo, idempotencyKey }: { id: string; expectedVersion: number; motivo?: string; idempotencyKey?: string }) =>
       aleBetApi.pedidos.cancelar(id, { expectedVersion, motivo }, idempotencyKey ? { idempotencyKey } : undefined),
-    onSuccess: (response, { id }) => invalidatePedido(qc, response.discarded ? response.pedidoId : response.pedido.id ?? id),
+    onSuccess: (response, { id }) => {
+      invalidatePedido(qc, response.discarded ? response.pedidoId : response.pedido.id ?? id)
+      invalidateProductos(qc)
+    },
   })
 }
 
@@ -111,7 +124,10 @@ export function useConfirmarCancelacionPedido() {
   return useMutation({
     mutationFn: ({ id, expectedVersion, motivo, idempotencyKey }: { id: string; expectedVersion: number; motivo: string; idempotencyKey?: string }) =>
       aleBetApi.pedidos.confirmarCancelacion(id, { expectedVersion, motivo }, idempotencyKey ? { idempotencyKey } : undefined),
-    onSuccess: (pedido) => invalidatePedido(qc, pedido),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
   })
 }
 
@@ -120,6 +136,9 @@ export function useDespacharPedido() {
   return useMutation({
     mutationFn: ({ id, expectedVersion, idempotencyKey }: { id: string; expectedVersion: number; idempotencyKey?: string }) =>
       aleBetApi.pedidos.despachar(id, { expectedVersion }, idempotencyKey ? { idempotencyKey } : undefined),
-    onSuccess: (pedido) => invalidatePedido(qc, pedido),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
   })
 }

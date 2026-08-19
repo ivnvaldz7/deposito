@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  LayoutDashboard, ClipboardList, Package, Users, Box, Clock, Truck, Plus, BarChart2,
+  LayoutDashboard, ClipboardList, Package, Box, Plus, Truck
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppSidebarLayout, SidebarNavItem } from '@/components/layout/AppSidebar'
@@ -24,48 +24,38 @@ const NAV_ITEMS: NavItemDef[] = [
   { path: '/ale-bet/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/ale-bet/pedidos', label: 'Pedidos', icon: ClipboardList },
   { path: '/ale-bet/productos', label: 'Productos', icon: Package },
-  { path: '/ale-bet/clientes', label: 'Clientes', icon: Users },
-  { path: '/ale-bet/ventas', label: 'Ventas por cliente', icon: BarChart2 },
   { path: '/ale-bet/stock', label: 'Stock', icon: Box },
-  { path: '/ale-bet/historial', label: 'Historial', icon: Clock },
   { path: '/ale-bet/transportistas', label: 'Transportistas', icon: Truck },
 ]
 
 type Rol = string | undefined
 
-const canSeeClientes = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
-const canSeeVentas = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
 const canSeeStock = (rol: Rol) => rol === 'admin' || rol === 'encargado'
-const canSeeInsumos = (rol: Rol) => rol === 'admin' || rol === 'encargado'
-const canSeeHistorial = (rol: Rol) => rol === 'admin' || rol === 'vendedor'
-const canSeeTransportistas = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
 const canCreatePedido = (rol: Rol) => rol === 'admin' || rol === 'vendedor'
+const canManageTransportistas = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
 
 function visibleItems(rol: Rol): NavItemDef[] {
-  return [
-    ...NAV_ITEMS.filter((item) => {
-      switch (item.path) {
-        case '/ale-bet/clientes': return canSeeClientes(rol)
-        case '/ale-bet/ventas': return canSeeVentas(rol)
-        case '/ale-bet/stock': return canSeeStock(rol)
-        case '/ale-bet/historial': return canSeeHistorial(rol)
-        case '/ale-bet/transportistas': return canSeeTransportistas(rol)
-        default: return true
-      }
-    }),
-    ...(canSeeInsumos(rol) ? [{ path: '/deposito', label: 'Insumos', icon: Box }] : [])
-  ]
+  return NAV_ITEMS.filter((item) => {
+    switch (item.path) {
+      case '/ale-bet/stock': return canSeeStock(rol)
+      case '/ale-bet/transportistas': return canManageTransportistas(rol)
+      default: return true
+    }
+  })
 }
 
 function bottomNavItems(rol: Rol): NavItemDef[] {
   const item = (path: string) => NAV_ITEMS.find((entry) => entry.path === path)
 
-  const extra: NavItemDef | null =
-    canSeeVentas(rol) ? item('/ale-bet/ventas') ?? null
-    : canSeeStock(rol) ? item('/ale-bet/stock') ?? null
-    : canSeeClientes(rol) ? item('/ale-bet/clientes') ?? null
-    : canSeeHistorial(rol) ? item('/ale-bet/historial') ?? null
-    : null
+  const extra: NavItemDef[] = []
+  if (canSeeStock(rol)) {
+    const s = item('/ale-bet/stock')
+    if (s) extra.push(s)
+  }
+  if (canManageTransportistas(rol)) {
+    const t = item('/ale-bet/transportistas')
+    if (t) extra.push(t)
+  }
 
   const base = [
     item('/ale-bet/dashboard'),
@@ -73,7 +63,7 @@ function bottomNavItems(rol: Rol): NavItemDef[] {
     item('/ale-bet/productos'),
   ].filter((entry): entry is NavItemDef => entry !== null)
 
-  return extra ? [...base, extra] : base
+  return [...base, ...extra]
 }
 
 export default function Sidebar() {

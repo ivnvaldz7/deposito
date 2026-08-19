@@ -78,4 +78,34 @@ describe('PRODUCTOS stock administration', () => {
     expect(balances.reduce((sum, row) => sum + row.cantidad, 0)).toBe(150)
     expect(await prisma.movimientoStock.count({ where: { loteId: lot.id, tipo: 'TRANSFERENCIA_INTERNA' } })).toBe(1)
   })
+
+  it('returns identical physical aggregates from GET /productos and GET /stock', async () => {
+    const data = await fixture()
+    const lot1 = await prisma.lote.create({ data: { numero: 'L-DEP', productoId: data.producto.id } })
+    const lot2 = await prisma.lote.create({ data: { numero: 'L-ACO', productoId: data.producto.id } })
+    await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: lot1.id, ubicacionId: data.deposito.id, cantidad: 40 } })
+    await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: lot1.id, ubicacionId: data.acondicionado.id, cantidad: 0 } })
+    await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: lot2.id, ubicacionId: data.deposito.id, cantidad: 0 } })
+    await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: lot2.id, ubicacionId: data.acondicionado.id, cantidad: 40 } })
+
+    const productos = await request(app).get('/api/ale-bet/productos').set('Authorization', auth('vendedor'))
+    const stock = await request(app).get('/api/ale-bet/stock').set('Authorization', auth('vendedor'))
+
+    expect(productos.status).toBe(200)
+    expect(stock.status).toBe(200)
+
+    const prod = productos.body.find((p: { id: string }) => p.id === data.producto.id)
+    const stockProd = stock.body.productos.find((p: { id: string }) => p.id === data.producto.id)
+
+    expect(prod).toMatchObject({ stockTotal: 80, stockDeposito: 40, stockAcondicionado: 40 })
+    expect(stockProd).toMatchObject({ stockTotal: 80, stockDeposito: 40, stockAcondicionado: 40 })
+    expect(prod.lotes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: lot1.id, numero: 'L-DEP', stockTotal: 40, stockDeposito: 40, stockAcondicionado: 0 }),
+      expect.objectContaining({ id: lot2.id, numero: 'L-ACO', stockTotal: 40, stockDeposito: 0, stockAcondicionado: 40 }),
+    ]))
+    expect(stockProd.lotes).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: lot1.id, numero: 'L-DEP', stockTotal: 40, stockDeposito: 40, stockAcondicionado: 0 }),
+      expect.objectContaining({ id: lot2.id, numero: 'L-ACO', stockTotal: 40, stockDeposito: 0, stockAcondicionado: 40 }),
+    ]))
+  })
 })

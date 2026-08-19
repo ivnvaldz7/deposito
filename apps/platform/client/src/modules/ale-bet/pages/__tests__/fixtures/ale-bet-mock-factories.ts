@@ -37,6 +37,9 @@ export function createProducto(overrides: Record<string, unknown> = {}) {
     reservado: 0,
     disponible: 500,
     stockBajo: false,
+    stockTotal: 500,
+    stockDeposito: 500,
+    stockAcondicionado: 0,
     lotes: [],
     ...overrides,
   }
@@ -45,7 +48,7 @@ export function createProducto(overrides: Record<string, unknown> = {}) {
 export function createProductoList() {
   return [
     createProducto(),
-    createProducto({ id: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', stock: 50, fisico: 50, reservado: 0, disponible: 50, stockBajo: true }),
+    createProducto({ id: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', stock: 50, fisico: 50, reservado: 0, disponible: 50, stockBajo: true, stockTotal: 50, stockDeposito: 50, stockAcondicionado: 0 }),
   ]
 }
 

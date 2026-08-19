@@ -18,9 +18,9 @@ export interface Producto {
   fisico: number
   reservado: number
   disponible: number
-  stockTotal?: number
-  stockDeposito?: number
-  stockAcondicionado?: number
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
   stockDisponiblePedido?: number
   stockBajo: boolean
   lotes?: Lote[]
@@ -44,8 +44,13 @@ export interface Lote {
   fechaProduccion: string | null
   fechaVencimiento: string | null
   activo: boolean
-  unidades: number
-  unidadesPorCaja: number
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
+}
+
+export interface LoteHistorial extends Lote {
+  movimientos: MovimientoStock[]
 }
 
 export interface Cliente {
@@ -343,6 +348,23 @@ function mutationOptions(options?: MutationOptions): ApiRequestOptions | undefin
   return options?.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : undefined
 }
 
+export interface LoteAdminStock {
+  id: string
+  numero: string
+  fechaProduccion: string | null
+  fechaVencimiento: string | null
+  activo: boolean
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
+}
+
+export interface ProductoAdminStock {
+  producto: { id: string; nombre: string }
+  lotes: LoteAdminStock[]
+  ubicaciones: Array<{ id: string; codigo: string; nombre: string }>
+}
+
 export const aleBetApi = {
   // Dashboard (legacy, still unaligned on the server)
   dashboard: () => apiClient.get<DashboardOverview>(`${BASE}/dashboard`),
@@ -362,6 +384,15 @@ export const aleBetApi = {
         apiClient.post<Lote>(`${BASE}/productos/${id}/lotes`, data),
       update: (id: string, loteId: string, data: { cajas?: number; sueltos?: number; activo?: boolean }) =>
         apiClient.put<Lote>(`${BASE}/productos/${id}/lotes/${loteId}`, data),
+    },
+    stock: {
+      get: (id: string) => apiClient.get<ProductoAdminStock>(`${BASE}/productos/${id}/stock`),
+      lotes: {
+        create: (id: string, data: { numero: string; fechaProduccion?: string | null; fechaVencimiento?: string | null }) =>
+          apiClient.post<{ id: string; numero: string; fechaProduccion: string | null; fechaVencimiento: string | null; activo: boolean; stockTotal: number; stockDeposito: number; stockAcondicionado: number }>(`${BASE}/productos/${id}/stock/lotes`, data),
+        ajuste: (id: string, loteId: string, data: { ubicacionId: string; cantidadFinal: number; motivo?: string }, options?: MutationOptions) =>
+          apiClient.patch<{ loteId: string; ubicacionId: string; anterior: number; nuevo: number; delta: number; movimientoId: string | null }>(`${BASE}/productos/${id}/stock/lotes/${loteId}/ajuste`, data, undefined, mutationOptions(options)),
+      },
     },
   },
 
@@ -427,7 +458,7 @@ export const aleBetApi = {
   stock: {
     get: () => apiClient.get<StockOverview>(`${BASE}/stock`),
     movimientos: () => apiClient.get<MovimientoStock[]>(`${BASE}/stock/movimientos`),
-    transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number }, options: MutationOptions) =>
+    transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number }, options?: MutationOptions) =>
       apiClient.post<{ movimientoId: string }>(`${BASE}/stock/transferencias`, data, undefined, mutationOptions(options)),
   },
 
@@ -462,3 +493,8 @@ export const aleBetApi = {
     },
   },
 }
+
+export async function getHistorialLotes(productoId: string): Promise<LoteHistorial[]> {
+  return apiClient.get<LoteHistorial[]>(`${BASE}/productos/${productoId}/lotes/historial`)
+}
+

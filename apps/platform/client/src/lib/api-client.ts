@@ -11,6 +11,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly details?: Record<string, string[]>
   ) {
     super(message)
     this.name = 'ApiError'
@@ -25,8 +26,21 @@ interface RefreshResponse {
 let refreshPromise: Promise<string | null> | null = null
 
 async function parseError(res: Response): Promise<ApiError> {
-  const body = await res.json().catch(() => ({ error: 'Error desconocido' })) as { message?: string; error?: string }
-  return new ApiError(res.status, body.message ?? body.error ?? 'Error del servidor')
+  const body = await res.json().catch(() => ({ error: 'Error desconocido' })) as { 
+    message?: string; 
+    error?: string;
+    errors?: { fieldErrors?: Record<string, string[]> }
+  }
+  
+  if (body.errors?.fieldErrors) {
+    console.error('Backend validation error:', JSON.stringify(body.errors.fieldErrors, null, 2))
+  }
+
+  return new ApiError(
+    res.status, 
+    body.message ?? body.error ?? 'Error del servidor',
+    body.errors?.fieldErrors
+  )
 }
 
 async function refreshAccessToken(): Promise<string | null> {

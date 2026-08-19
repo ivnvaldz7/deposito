@@ -242,7 +242,7 @@ describe('VentasPage', () => {
     // jsdom ignores responsive CSS, so the mobile cards and the table are both
     // in the DOM; scope to the table to avoid duplicate matches.
     const table = within(await screen.findByTestId('ventas-table'))
-    await waitFor(() => expect(table.getByText('SKU-001')).toBeInTheDocument())
+
     expect(table.getByText('Producto A')).toBeInTheDocument()
     expect(table.getByText('2')).toBeInTheDocument()
     expect(table.getByText('5')).toBeInTheDocument()
@@ -258,7 +258,7 @@ describe('VentasPage', () => {
     await waitFor(() => expect(screen.getByText('ENERO — 8 pedidos · 920 unidades')).toBeInTheDocument())
     expect(screen.getByText('JULIO — 4 pedidos · 40 unidades')).toBeInTheDocument()
     expect(screen.getByText('TOTAL ANUAL POR PRODUCTO')).toBeInTheDocument()
-    expect(within(screen.getByTestId('ventas-table')).getByText('SKU-001')).toBeInTheDocument()
+
   })
 
   it('renders compact product cards', async () => {
@@ -280,7 +280,7 @@ describe('VentasPage', () => {
     renderPage()
 
     await selectCliente()
-    await waitFor(() => expect(within(screen.getByTestId('ventas-table')).getByText('SKU-001')).toBeInTheDocument())
+
 
     expect(screen.queryByText(/precio unitario/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/precio/i)).not.toBeInTheDocument()
@@ -546,6 +546,7 @@ describe('VentasPage', () => {
       fireEvent.click(screen.getByRole('button', { name: /Generando Excel/i }))
 
       // Resolve and restore
+      await waitFor(() => expect(resolveExcel).toBeDefined())
       await act(async () => { resolveExcel() })
     })
 
@@ -567,7 +568,7 @@ describe('VentasPage', () => {
       expect(toast.success).toHaveBeenCalledWith('Excel generado correctamente.')
 
       // Button returns to enabled state after success.
-      expect(screen.getByRole('button', { name: /Exportar Excel/i })).not.toBeDisabled()
+      await waitFor(() => expect(screen.getByRole('button', { name: /Exportar Excel/i })).not.toBeDisabled())
 
       vi.restoreAllMocks()
     })

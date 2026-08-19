@@ -213,3 +213,7 @@ export function canEditarPedido(pedido: Pedido, rol: string, userId: string): bo
   if (rol === 'admin') return true
   return rol === 'vendedor' && pedido.vendedorId === userId
 }
+
+export function canGestionarStock(rol: string | undefined): boolean {
+  return rol === 'admin' || rol === 'encargado'
+}

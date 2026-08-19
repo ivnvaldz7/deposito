@@ -1,4 +1,4 @@
-export { useProductos, useProductosSearch, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useCreateLote, useUpdateLote, productosKeys } from './use-productos'
+export { useProductos, useProductosSearch, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useCreateLote, useUpdateLote, useProductoAdminStock, useCreateAdminLote, useAjusteAdminStock, useTransferirStock, productosKeys } from './use-productos'
 export { useClientes, useCreateCliente, useUpdateCliente, clientesKeys } from './use-clientes'
 export { usePedidos, usePedidoDetalle, usePedidoDisponibilidad, useCreatePedido, useUpdatePedido, useAprobarPedido, useTomarPedido, useCompletarItemPedido, usePrepararPedido, useCancelarPedido, useConfirmarCancelacionPedido, useDespacharPedido, pedidosKeys } from './use-pedidos'
 export { useTransportistas, useCreateTransportista, useUpdateTransportista, transportistasKeys } from './use-transportistas'
