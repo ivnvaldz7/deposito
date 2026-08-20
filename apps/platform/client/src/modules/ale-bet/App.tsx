@@ -39,8 +39,8 @@ export default function AleBetModule() {
               <Route path="clientes" element={<ClientesPage />} />
               <Route path="stock" element={<StockPage />} />
               <Route path="historial" element={<HistorialPage />} />
-              <Route path="transportistas" element={<TransportistasPage />} />
-              <Route path="ventas" element={<VentasPage />} />
+              <Route path="transportistas" element={<PermissionRoute app="ale-bet" permission="transportistas.read"><TransportistasPage /></PermissionRoute>} />
+              <Route path="ventas" element={<PermissionRoute app="ale-bet" permission="facturacion.read"><VentasPage /></PermissionRoute>} />
               <Route path="*" element={<Navigate to="dashboard" replace />} />
             </Routes>
           </Suspense>

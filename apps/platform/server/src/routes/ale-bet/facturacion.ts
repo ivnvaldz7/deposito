@@ -1,15 +1,12 @@
 import { Router } from 'express'
 import PDFDocument from 'pdfkit'
 import { platformDb as prisma } from '@platform/db'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 import { descomponerUnidades } from './unidades-por-caja'
 import { slugify } from './slugify'
 import { renderVentasPdf, type VentasPdfInput } from './ventas-pdf'
 
 const router = Router()
-
-// Only FACTURACION and ADMIN can access billing reports.
-const ALLOWED_ROLES = ['admin', 'facturacion']
 
 interface ProductoAgregado {
   productoId: string
@@ -120,7 +117,7 @@ export function agregarPorProducto(
  */
 router.get(
   '/ventas',
-  requireApp('ale-bet', ALLOWED_ROLES),
+  requirePermission('ale-bet', 'facturacion.read'),
   async (req, res) => {
     // ── Parameter validation ────────────────────────────────────────────────
 
@@ -297,7 +294,7 @@ router.get(
  */
 router.get(
   '/ventas/pdf',
-  requireApp('ale-bet', ALLOWED_ROLES),
+  requirePermission('ale-bet', 'facturacion.export.pdf'),
   async (req, res) => {
     // ── Parameter validation (verbatim messages from the JSON route) ───────
 

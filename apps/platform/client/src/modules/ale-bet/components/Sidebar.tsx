@@ -34,12 +34,11 @@ import type { PlatformUser } from '@/stores/auth-store'
 type Rol = string | undefined
 
 function visibleItems(user: PlatformUser | null): NavItemDef[] {
-  const rol = user?.apps?.['ale-bet']?.rol
   return NAV_ITEMS.filter((item) => {
     switch (item.path) {
       case '/ale-bet/stock': return can(user, 'ale-bet', 'stock.read')
       case '/ale-bet/pedidos': return can(user, 'ale-bet', 'pedidos.read')
-      case '/ale-bet/transportistas': return rol === 'admin' || rol === 'facturacion'
+      case '/ale-bet/transportistas': return can(user, 'ale-bet', 'transportistas.read')
       default: return true
     }
   })
@@ -47,14 +46,13 @@ function visibleItems(user: PlatformUser | null): NavItemDef[] {
 
 function bottomNavItems(user: PlatformUser | null): NavItemDef[] {
   const item = (path: string) => NAV_ITEMS.find((entry) => entry.path === path)
-  const rol = user?.apps?.['ale-bet']?.rol
 
   const extra: NavItemDef[] = []
   if (can(user, 'ale-bet', 'stock.read')) {
     const s = item('/ale-bet/stock')
     if (s) extra.push(s)
   }
-  if (rol === 'admin' || rol === 'facturacion') {
+  if (can(user, 'ale-bet', 'transportistas.read')) {
     const t = item('/ale-bet/transportistas')
     if (t) extra.push(t)
   }

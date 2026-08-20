@@ -28,9 +28,18 @@ vi.mock('../../lib/ventas-excel', () => ({
   generarExcelVentas: vi.fn(),
 }))
 
-// Safety net: VentasPage does not read the auth store today; keep the mock in
-// case a future edit introduces it (HistorialPage.test.tsx precedent).
+import { useAuthStore } from '@/stores/auth-store'
+import { createMockUser } from '@/test-utils'
+
 vi.mock('@/stores/auth-store', () => ({ useAuthStore: vi.fn() }))
+
+function mockRol(rol: string) {
+  const user = createMockUser({ apps: { 'ale-bet': { rol, activo: true } } })
+  ;(useAuthStore as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+    (selector: (state: { user: typeof user; token: string }) => unknown) =>
+      selector({ user, token: 'token' }),
+  )
+}
 
 vi.mock('@/lib/toast', () => ({
   toast: {
@@ -73,6 +82,7 @@ function deferred<T>() {
 describe('VentasPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockRol('facturacion')
     clientesMock.mockResolvedValue(createClienteList())
     // Stub URL.createObjectURL / revokeObjectURL (not implemented in jsdom).
     vi.stubGlobal('URL', {

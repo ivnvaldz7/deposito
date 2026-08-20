@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { createMockUser } from '@/test-utils'
 import ProductosPage from '../ProductosPage'
 import { createLote, createProductoList } from './fixtures/ale-bet-mock-factories'
+import { readFileSync } from 'node:fs'
 
 vi.mock('../../lib/api', () => ({
   aleBetApi: {
@@ -43,6 +44,10 @@ describe('ProductosPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRol('admin')
+  })
+
+  it('uses the canonical stock adjustment permission', () => {
+    expect(readFileSync('src/modules/ale-bet/pages/ProductosPage.tsx', 'utf8')).not.toContain("'stock.adjust'")
   })
 
   it('renders loading state', () => {

@@ -4,7 +4,7 @@ import PDFDocument from 'pdfkit'
 import { z } from 'zod'
 import { Prisma, platformDb as prisma } from '@platform/db'
 import { getAppAccess, type JwtPayload } from '@platform/core'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { canEmitRemito, canReadRemitoPdf } from './order-workflow'
 import { renderRemitoPdf } from './remito-pdf'
@@ -46,7 +46,7 @@ async function emitRemito(user: JwtPayload, pedidoId: string, payload: z.infer<t
   })
 }
 
-router.post('/:id/remitos', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+router.post('/:id/remitos', requirePermission('ale-bet', 'remitos.create'), async (req, res) => {
   const parsed = emitSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
   const user = req.user as JwtPayload
@@ -65,7 +65,7 @@ router.post('/:id/remitos', requireApp('ale-bet', ['admin', 'facturacion']), asy
   }
 })
 
-router.put('/:id/remitos/:remitoId/anular', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+router.put('/:id/remitos/:remitoId/anular', requirePermission('ale-bet', 'remitos.void'), async (req, res) => {
   const parsed = invalidateSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Motivo inválido' }); return }
   const user = req.user as JwtPayload
@@ -75,7 +75,7 @@ router.put('/:id/remitos/:remitoId/anular', requireApp('ale-bet', ['admin', 'fac
   res.json(remito)
 })
 
-router.get('/:id/remito.pdf', requireApp('ale-bet'), async (req, res) => {
+router.get('/:id/remito.pdf', requirePermission('ale-bet', 'remitos.read.pdf'), async (req, res) => {
   const remito = await prisma.remito.findFirst({ where: { pedidoId: String(req.params.id), estado: 'VIGENTE' }, include: { pedido: { select: { vendedorId: true } } } })
   if (!remito) { res.status(404).json({ error: 'Remito vigente no encontrado' }); return }
   const user = req.user as JwtPayload

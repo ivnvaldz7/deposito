@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { toast } from '@/lib/toast'
 import { aleBetApi, type Cliente, type ProductoAgregado, type ReporteVentas } from '../lib/api'
 import { useClientes, useVentas } from '../queries'
+import { usePermission } from '@/lib/permissions'
 import { generarExcelVentas } from '../lib/ventas-excel'
 
 
@@ -229,7 +230,10 @@ export default function VentasPage() {
     month: modo === 'mensual' ? mes : undefined,
   })
 
-  const pdfEnabled = !generating && !!cliente && !isLoading && !isError && !!reporte
+  const { can } = usePermission()
+  const canExport = can('ale-bet', 'facturacion.export.pdf')
+
+  const pdfEnabled = !generating && !!cliente && !isLoading && !isError && !!reporte && canExport
 
   async function handleExportPdf() {
     if (!pdfEnabled || !cliente) return
@@ -259,7 +263,7 @@ export default function VentasPage() {
   }
 
   const [generatingExcel, setGeneratingExcel] = useState(false)
-  const excelEnabled = !generatingExcel && !!cliente && !isLoading && !isError && !!reporte && !isEmptyReport(reporte)
+  const excelEnabled = !generatingExcel && !!cliente && !isLoading && !isError && !!reporte && !isEmptyReport(reporte) && canExport
 
   async function handleExportExcel() {
     if (!excelEnabled || !cliente || !reporte) return
@@ -362,24 +366,28 @@ export default function VentasPage() {
         ) : (
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row items-center justify-end gap-3" data-testid="ventas-acciones">
-              <button
-                type="button"
-                onClick={handleExportPdf}
-                disabled={!pdfEnabled}
-                className="flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-primary px-5 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <FileDown className="w-4 h-4" />
-                {generating ? 'Generando PDF…' : 'Exportar PDF'}
-              </button>
-              <button
-                type="button"
-                onClick={handleExportExcel}
-                disabled={!excelEnabled}
-                className="flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-primary px-5 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <FileSpreadsheet className="w-4 h-4" />
-                {generatingExcel ? 'Generando Excel…' : 'Exportar Excel'}
-              </button>
+              {canExport && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleExportPdf}
+                    disabled={!pdfEnabled}
+                    className="flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-primary px-5 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    {generating ? 'Generando PDF…' : 'Exportar PDF'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExportExcel}
+                    disabled={!excelEnabled}
+                    className="flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-full border border-primary px-5 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    {generatingExcel ? 'Generando Excel…' : 'Exportar Excel'}
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-3" data-testid="ventas-metrics">

@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/Skeleton'
 import { cn } from '@/lib/utils'
 
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import {
   ESTADO_META,
   canAccionesBarraArmador,
@@ -658,7 +659,7 @@ export default function PedidoDetailPage() {
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
   const userId = user?.sub ?? ''
-  const esRemitos = rol === 'admin' || rol === 'facturacion'
+  const esRemitos = can(user, 'ale-bet', 'remitos.create')
 
   const { data: pedido, isLoading, error, refetch: refetchPedido } = usePedidoDetalle(id)
   const { data: disponibilidad } = usePedidoDisponibilidad(id)
@@ -1445,8 +1446,12 @@ export default function PedidoDetailPage() {
                   </div>
                 </div>
                 <div className="mt-4 md:mt-0 shrink-0 flex flex-row md:flex-col gap-2 md:w-40">
-                  <Button variant="outline" onClick={() => void descargarRemito()} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
-                  <Button variant="outline" onClick={abrirAnular} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
+                  {can(user, 'ale-bet', 'remitos.read.pdf') && (
+                    <Button variant="outline" onClick={() => void descargarRemito()} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
+                  )}
+                  {can(user, 'ale-bet', 'remitos.void') && (
+                    <Button variant="outline" onClick={abrirAnular} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
+                  )}
                 </div>
               </div>
             ) : canEmitirRemito(pedido, rol) ? (

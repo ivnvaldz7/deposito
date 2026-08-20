@@ -7,6 +7,8 @@ import { useTransportistas, useCreateTransportista, useUpdateTransportista } fro
 import { toast } from '@/lib/toast'
 import { BottomSheet } from '../components/BottomSheet'
 
+import { usePermission } from '@/lib/permissions'
+
 interface TransportistaFormState {
   nombre: string
   direccion: string
@@ -107,9 +109,9 @@ function TransportistaFormModal({
 }
 
 export default function TransportistasPage() {
-  const user = useAuthStore((state) => state.user)
-  const rol = user?.apps?.['ale-bet']?.rol ?? ''
-  const sinAcceso = rol !== 'admin' && rol !== 'facturacion'
+  const { can } = usePermission()
+  const sinAcceso = !can('ale-bet', 'transportistas.read')
+  const canManage = can('ale-bet', 'transportistas.manage')
 
   const { data: transportistas = [], isLoading, error } = useTransportistas({ enabled: !sinAcceso })
   const createMutation = useCreateTransportista()
@@ -215,13 +217,15 @@ export default function TransportistasPage() {
           <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Transportistas</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Gestión de transportistas</p>
         </div>
-        <button
-          type="button"
-          onClick={abrirNuevo}
-          className="shrink-0 rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
-        >
-          + Nuevo transportista
-        </button>
+        {canManage && (
+          <button
+            type="button"
+            onClick={abrirNuevo}
+            className="shrink-0 rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
+          >
+            + Nuevo transportista
+          </button>
+        )}
       </div>
 
       <input
@@ -248,15 +252,17 @@ export default function TransportistasPage() {
                   </div>
                   <Badge variant={t.activo ? 'success' : 'default'}>{t.activo ? 'Activo' : 'Inactivo'}</Badge>
                 </div>
-                <div className="mt-3 flex items-center justify-end border-t border-white/10 pt-3">
-                  <button
-                    type="button"
-                    onClick={() => abrirEdicion(t)}
-                    className="min-h-11 rounded-full border border-primary px-4 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
-                  >
-                    Editar
-                  </button>
-                </div>
+                {canManage && (
+                  <div className="mt-3 flex items-center justify-end border-t border-white/10 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => abrirEdicion(t)}
+                      className="min-h-11 rounded-full border border-primary px-4 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -268,7 +274,7 @@ export default function TransportistasPage() {
                   <th className="px-5 py-3 font-medium">Nombre</th>
                   <th className="px-5 py-3 font-medium">Dirección</th>
                   <th className="px-5 py-3 font-medium text-center">Estado</th>
-                  <th className="px-5 py-3 font-medium text-center">Acción</th>
+                  {canManage && <th className="px-5 py-3 font-medium text-center">Acción</th>}
                 </tr>
               </thead>
               <tbody>
@@ -279,15 +285,17 @@ export default function TransportistasPage() {
                     <td className="px-5 py-4 text-center">
                       <Badge variant={t.activo ? 'success' : 'default'}>{t.activo ? 'Activo' : 'Inactivo'}</Badge>
                     </td>
-                    <td className="px-5 py-4 text-center">
-                      <button
-                        type="button"
-                        onClick={() => abrirEdicion(t)}
-                        className="rounded-full border border-primary px-4 py-2 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
-                      >
-                        Editar
-                      </button>
-                    </td>
+                    {canManage && (
+                      <td className="px-5 py-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => abrirEdicion(t)}
+                          className="rounded-full border border-primary px-4 py-2 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
+                        >
+                          Editar
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

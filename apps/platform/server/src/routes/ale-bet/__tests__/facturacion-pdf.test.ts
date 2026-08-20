@@ -82,6 +82,10 @@ vi.mock('@platform/core', () => {
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
     getAppAccess: (user: Record<string, unknown>, slug: string) =>
       user && user.apps ? (user.apps as Record<string, unknown>)[slug] : undefined,
+    hasPermission: (user: { apps?: Record<string, { rol?: string; activo?: boolean }> }, app: string, permission: string) => {
+      const access = user.apps?.[app]
+      return Boolean(access?.activo && ['admin', 'facturacion'].includes(access.rol ?? '') && permission === 'facturacion.export.pdf')
+    },
     verifyAccessToken: (token: string) => {
       try {
         return _jwt.verify(token, _getSecret())
@@ -190,7 +194,7 @@ describe('ALEBET-FACT-02 — GET /ventas/pdf export endpoint', () => {
         .get(`${BASE_URL}?clienteId=${CLIENTE_ID}&year=2026&month=8`)
         .set('Authorization', `Bearer ${signVendedorToken()}`)
         .expect(403)
-      expect(res.body.error).toMatch(/[Rr]ol/)
+      expect(res.body.error).toMatch(/[Pp]ermiso|[Rr]ol/)
       expect(res.headers['content-type']).not.toMatch(/application\/pdf/)
       expect(res.text.startsWith('%PDF')).toBe(false)
       expect(mockDb.pedido.findMany).not.toHaveBeenCalled()
@@ -202,7 +206,7 @@ describe('ALEBET-FACT-02 — GET /ventas/pdf export endpoint', () => {
         .get(`${BASE_URL}?clienteId=${CLIENTE_ID}&year=2026&month=8`)
         .set('Authorization', `Bearer ${signArmadorToken()}`)
         .expect(403)
-      expect(res.body.error).toMatch(/[Rr]ol/)
+      expect(res.body.error).toMatch(/[Pp]ermiso|[Rr]ol/)
       expect(res.headers['content-type']).not.toMatch(/application\/pdf/)
       expect(res.text.startsWith('%PDF')).toBe(false)
     })
@@ -213,7 +217,7 @@ describe('ALEBET-FACT-02 — GET /ventas/pdf export endpoint', () => {
         .get(`${BASE_URL}?clienteId=${CLIENTE_ID}&year=2026&month=8`)
         .set('Authorization', `Bearer ${signEncargadoDepositoToken()}`)
         .expect(403)
-      expect(res.body.error).toMatch(/[Rr]ol/)
+      expect(res.body.error).toMatch(/[Pp]ermiso|[Rr]ol/)
       expect(res.headers['content-type']).not.toMatch(/application\/pdf/)
       expect(res.text.startsWith('%PDF')).toBe(false)
     })

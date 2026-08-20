@@ -67,8 +67,10 @@ vi.mock('pdfkit', () => {
 
 vi.mock('@platform/core', () => {
   const jsonwebtoken = require('jsonwebtoken')
+  const { hasPermission } = require('@platform/core/permissions')
   return {
     getAppAccess: (user: { apps?: Record<string, unknown> }, app: string) => user.apps?.[app],
+    hasPermission,
     verifyAccessToken: (token: string) => {
       try { return jsonwebtoken.verify(token, process.env.PLATFORM_JWT_SECRET ?? JWT_SECRET) } catch { return null }
     },
@@ -234,7 +236,7 @@ describe('ALEBET-01 HTTP contracts', () => {
     await request(server).put('/api/ale-bet/pedidos/pedido-1/confirmar-cancelacion').set('Authorization', `Bearer ${token('facturacion')}`)
       .send({ expectedVersion: 1, motivo: 'Cliente pidió detener el armado' }).expect(403)
 
-    mockDb.pedido.findUnique.mockResolvedValue(pedido({ estado: 'EN_ARMADO', cancelacionSolicitadaAt: new Date() }))
+    mockDb.pedido.findUnique.mockResolvedValue(pedido({ estado: 'EN_ARMADO', armadorId: 'armador-1', cancelacionSolicitadaAt: new Date() }))
     mockDb.pedido.update.mockResolvedValue(pedido({ estado: 'CANCELADO', version: 2 }))
     await request(server).put('/api/ale-bet/pedidos/pedido-1/confirmar-cancelacion').set('Authorization', `Bearer ${token('armador')}`)
       .send({ expectedVersion: 1, motivo: 'Cancelación confirmada en armado' }).expect(200)
@@ -298,7 +300,7 @@ describe('ALEBET-01 HTTP contracts', () => {
     await request(server).post('/api/ale-bet/pedidos/pedido-1/despachar').set('Authorization', `Bearer ${token('facturacion')}`)
       .send({ expectedVersion: 1 }).expect(403)
 
-    mockDb.pedido.findUnique.mockResolvedValue(pedido({ estado: 'PREPARADO' }))
+    mockDb.pedido.findUnique.mockResolvedValue(pedido({ estado: 'PREPARADO', armadorId: 'armador-1' }))
     mockDb.remito.findFirst.mockResolvedValue({ id: 'remito-1', estado: 'VIGENTE' })
     mockDb.pedido.update.mockResolvedValue(pedido({ estado: 'DESPACHADO', version: 2 }))
     const response = await request(server).post('/api/ale-bet/pedidos/pedido-1/despachar').set('Authorization', `Bearer ${token('armador')}`)

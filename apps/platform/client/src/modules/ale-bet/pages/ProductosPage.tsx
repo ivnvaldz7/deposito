@@ -54,7 +54,7 @@ function LotesInline({ producto }: { producto: Producto }) {
 export default function ProductosPage() {
   const user = useAuthStore((state) => state.user)
   const puedeGestionar = can(user, 'ale-bet', 'productos.manage')
-  const puedeGestionarStock = can(user, 'ale-bet', 'stock.lots.create') || can(user, 'ale-bet', 'stock.adjust') || can(user, 'ale-bet', 'stock.lots.adjust')
+  const puedeGestionarStock = can(user, 'ale-bet', 'stock.lots.create') || can(user, 'ale-bet', 'stock.lots.adjust')
 
   const { data: productos = [], isLoading, error } = useProductos()
   const createMutation = useCreateProducto()
@@ -125,7 +125,7 @@ export default function ProductosPage() {
           <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Productos</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Catálogo y administración de stock</p>
         </div>
-        {esAdmin && (
+        {puedeGestionar && (
           <button onClick={openCreate} className="shrink-0 rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
             + Nuevo producto
           </button>
@@ -164,7 +164,7 @@ export default function ProductosPage() {
                 <th className="px-5 py-4 font-semibold text-right">Total</th>
                 <th className="px-5 py-4 font-semibold text-right">Depósito</th>
                 <th className="px-5 py-4 font-semibold text-right">Acondicionado</th>
-                {(puedeGestionarStock || esAdmin) && (
+                {(puedeGestionarStock || puedeGestionar) && (
                   <th className="px-5 py-4 font-semibold text-right">Acciones</th>
                 )}
               </tr>
@@ -196,14 +196,14 @@ export default function ProductosPage() {
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-4">
                           <p className="text-[16px] font-medium text-on-surface-variant">{p.stockAcondicionado}</p>
-                          {!(puedeGestionarStock || esAdmin) && (
+                          {!(puedeGestionarStock || puedeGestionar) && (
                             <div className="text-on-surface-variant transition-colors group-hover:text-on-surface">
                               {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                             </div>
                           )}
                         </div>
                       </td>
-                      {(puedeGestionarStock || esAdmin) && (
+                      {(puedeGestionarStock || puedeGestionar) && (
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-4">
                             <div className="flex justify-end gap-2">
@@ -215,7 +215,7 @@ export default function ProductosPage() {
                                   Gestionar stock
                                 </button>
                               )}
-                              {esAdmin && (
+                              {puedeGestionar && (
                                 <>
                                   <button 
                                     onClick={(e) => openEdit(p, e)}
@@ -241,7 +241,7 @@ export default function ProductosPage() {
                     </tr>
                     {isExpanded && (
                       <tr className="border-b border-white/10 last:border-0">
-                        <td colSpan={(puedeGestionarStock || esAdmin) ? 6 : 5} className="p-0">
+                        <td colSpan={(puedeGestionarStock || puedeGestionar) ? 6 : 5} className="p-0">
                           <LotesInline producto={p} />
                         </td>
                       </tr>
