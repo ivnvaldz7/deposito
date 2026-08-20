@@ -181,8 +181,6 @@ export function hasPermission(
   permission: Permission,
 ): boolean {
   if (!user) return false
-  if (user.isPlatformAdmin) return true
-  
   const access = user.apps?.[app]
   if (!access || !access.activo || !access.rol) return false
   
@@ -195,7 +193,6 @@ export function hasAnyPermission(
   permissions: Permission[],
 ): boolean {
   if (!user) return false
-  if (user.isPlatformAdmin) return true
   return permissions.some(p => hasPermission(user, app, p))
 }
 
@@ -205,7 +202,6 @@ export function hasAllPermissions(
   permissions: Permission[],
 ): boolean {
   if (!user) return false
-  if (user.isPlatformAdmin) return true
   if (permissions.length === 0) return true
   return permissions.every(p => hasPermission(user, app, p))
 }

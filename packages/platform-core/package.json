@@ -3,6 +3,21 @@
   "version": "0.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./permissions": {
+      "types": "./dist/auth/permissions.d.ts",
+      "browser": "./src/auth/permissions.ts",
+      "node": "./dist/auth/permissions.js",
+      "import": "./dist/auth/permissions.js",
+      "require": "./dist/auth/permissions.js",
+      "default": "./dist/auth/permissions.js"
+    }
+  },
   "scripts": {
     "build": "tsc"
   },

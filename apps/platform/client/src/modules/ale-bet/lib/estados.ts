@@ -147,7 +147,7 @@ export function esArmadorAsignado(pedido: Pedido, userId: string): boolean {
   return pedido.armadorId === userId
 }
 
-import { roleHasPermission } from '@platform/core'
+import { roleHasPermission } from '@platform/core/permissions'
 
 export function canAprobar(pedido: Pedido, rol: string, userId: string): boolean {
   if (pedido.estado !== 'BORRADOR') return false
@@ -167,11 +167,9 @@ export function canPreparar(pedido: Pedido, rol: string, userId: string): boolea
 }
 
 export function canDespachar(pedido: Pedido, rol: string, userId: string): boolean {
-  return (
-    roleHasPermission('ale-bet', rol, 'pedidos.dispatch') &&
-    pedido.estado === 'PREPARADO' &&
-    Boolean(pedido.remitos?.some((r) => r.estado === 'VIGENTE'))
-  )
+  if (!roleHasPermission('ale-bet', rol, 'pedidos.dispatch') || pedido.estado !== 'PREPARADO') return false
+  if (rol !== 'admin' && rol !== 'encargado' && !esArmadorAsignado(pedido, userId)) return false
+  return Boolean(pedido.remitos?.some((r) => r.estado === 'VIGENTE'))
 }
 
 export function canCancelarDirecto(pedido: Pedido, rol: string, userId: string): boolean {
@@ -187,11 +185,8 @@ export function canSolicitarCancelacion(pedido: Pedido, rol: string, userId: str
 }
 
 export function canConfirmarCancelacion(pedido: Pedido, rol: string, userId: string): boolean {
-  return (
-    roleHasPermission('ale-bet', rol, 'pedidos.confirm_cancel') &&
-    pedido.estado === 'EN_ARMADO' &&
-    Boolean(pedido.cancelacionSolicitadaAt)
-  )
+  if (!roleHasPermission('ale-bet', rol, 'pedidos.confirm_cancel') || pedido.estado !== 'EN_ARMADO' || !pedido.cancelacionSolicitadaAt) return false
+  return rol === 'admin' || rol === 'encargado' || esArmadorAsignado(pedido, userId)
 }
 
 export function canEmitirRemito(pedido: Pedido, rol: string): boolean {
@@ -218,5 +213,5 @@ export function canEditarPedido(pedido: Pedido, rol: string, userId: string): bo
 
 export function canGestionarStock(rol: string | undefined): boolean {
   if (!rol) return false
-  return roleHasPermission('ale-bet', rol, 'stock.lots.create') || roleHasPermission('ale-bet', rol, 'stock.adjust') || roleHasPermission('ale-bet', rol, 'stock.lots.adjust')
+  return roleHasPermission('ale-bet', rol, 'stock.lots.create') || roleHasPermission('ale-bet', rol, 'stock.lots.adjust')
 }

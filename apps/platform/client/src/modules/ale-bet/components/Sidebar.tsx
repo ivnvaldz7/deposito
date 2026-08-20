@@ -29,22 +29,23 @@ const NAV_ITEMS: NavItemDef[] = [
 ]
 
 import { can } from '@/lib/permissions'
+import type { PlatformUser } from '@/stores/auth-store'
 
 type Rol = string | undefined
 
-function visibleItems(user: any): NavItemDef[] {
+function visibleItems(user: PlatformUser | null): NavItemDef[] {
   const rol = user?.apps?.['ale-bet']?.rol
   return NAV_ITEMS.filter((item) => {
     switch (item.path) {
       case '/ale-bet/stock': return can(user, 'ale-bet', 'stock.read')
-      case '/ale-bet/pedidos': return true // visible for all?
+      case '/ale-bet/pedidos': return can(user, 'ale-bet', 'pedidos.read')
       case '/ale-bet/transportistas': return rol === 'admin' || rol === 'facturacion'
       default: return true
     }
   })
 }
 
-function bottomNavItems(user: any): NavItemDef[] {
+function bottomNavItems(user: PlatformUser | null): NavItemDef[] {
   const item = (path: string) => NAV_ITEMS.find((entry) => entry.path === path)
   const rol = user?.apps?.['ale-bet']?.rol
 
@@ -80,7 +81,7 @@ export default function Sidebar() {
 
   const items = visibleItems(user)
   const bottomItems = bottomNavItems(user)
-  const showNuevoPedido = rol === 'admin' || rol === 'vendedor'
+  const showNuevoPedido = can(user, 'ale-bet', 'pedidos.create')
 
   const mobileContent = (
     <>

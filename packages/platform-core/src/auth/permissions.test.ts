@@ -71,8 +71,9 @@ describe('permissions', () => {
       expect(hasPermission(null, 'ale-bet', 'dashboard.read')).toBe(false)
     })
 
-    it('returns true if user is platformAdmin', () => {
-      expect(hasPermission({ ...mockUser, isPlatformAdmin: true }, 'ale-bet', 'unknown.permission' as any)).toBe(true)
+    it('does not let a platform admin bypass Ale-Bet app access or permission checks', () => {
+      expect(hasPermission({ ...mockUser, isPlatformAdmin: true, apps: {} }, 'ale-bet', 'pedidos.read')).toBe(false)
+      expect(hasPermission({ ...mockUser, isPlatformAdmin: true }, 'ale-bet', 'unknown.permission' as any)).toBe(false)
     })
 
     it('returns false if app is inactive', () => {

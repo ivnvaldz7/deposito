@@ -35,7 +35,7 @@ export function ArmadorActionBar({
 }: ArmadorActionBarProps) {
   if (!canAccionesBarraArmador(pedido, rol, userId)) return null
 
-  const enArmado = pedido.estado === 'EN_ARMADO' && (rol === 'admin' || esArmadorAsignado(pedido, userId))
+  const enArmado = pedido.estado === 'EN_ARMADO' && (rol === 'admin' || rol === 'encargado' || esArmadorAsignado(pedido, userId))
   const prepararListo = canPreparar(pedido, rol, userId)
   const itemsCompletados = pedido.items.filter((i) => i.completado).length
   const itemsPendientes = pedido.items.length - itemsCompletados

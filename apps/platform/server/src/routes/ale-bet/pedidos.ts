@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { Prisma, platformDb as prisma } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
 import { eventBus, getAppAccess } from '@platform/core'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { canCancelOrder, canConfirmDispatch, canEditOrder, canTransitionOrder, canVendorCancelDirectly, type OrderState } from './order-workflow'
 import { consumeActiveReservations, releaseActiveReservations, reserveFefo, StockConflictError } from './reservas-service'
@@ -46,6 +46,13 @@ function actorRole(user: JwtPayload): string | undefined {
 
 function assertOwnerOrAdmin(pedido: { vendedorId: string }, user: JwtPayload): void {
   if (actorRole(user) !== 'admin' && pedido.vendedorId !== user.sub) throw new ForbiddenError('Solo el vendedor propietario puede operar el pedido')
+}
+
+function assertAssignedArmadorOrSupervisor(pedido: { armadorId: string | null }, user: JwtPayload): void {
+  const role = actorRole(user)
+  if (role !== 'admin' && role !== 'encargado' && pedido.armadorId !== user.sub) {
+    throw new ForbiddenError('Solo el armador asignado o un supervisor puede operar el pedido')
+  }
 }
 
 function asJson(value: unknown): Prisma.InputJsonValue {
@@ -150,7 +157,7 @@ function errorResponse(error: unknown, res: Response): void {
   throw error
 }
 
-router.get('/', requireApp('ale-bet'), async (req, res) => {
+router.get('/', requirePermission('ale-bet', 'pedidos.read'), async (req, res) => {
   const user = req.user as JwtPayload
   const role = actorRole(user)
   const requestedState = typeof req.query.estado === 'string' ? req.query.estado : undefined
@@ -161,7 +168,7 @@ router.get('/', requireApp('ale-bet'), async (req, res) => {
   res.json(pedidos)
 })
 
-router.get('/:id', requireApp('ale-bet'), async (req, res) => {
+router.get('/:id', requirePermission('ale-bet', 'pedidos.read'), async (req, res) => {
   const pedido = await prisma.pedido.findUnique({ where: { id: String(req.params.id) }, include: { cliente: true, items: { include: { producto: true, reservas: true } }, reservas: true, remitos: true, auditorias: { orderBy: { createdAt: 'desc' } } } })
   if (!pedido) { res.status(404).json({ error: 'Pedido no encontrado' }); return }
   const user = req.user as JwtPayload
@@ -169,7 +176,7 @@ router.get('/:id', requireApp('ale-bet'), async (req, res) => {
   res.json(pedido)
 })
 
-router.get('/:id/disponibilidad-stock', requireApp('ale-bet'), async (req, res) => {
+router.get('/:id/disponibilidad-stock', requirePermission('ale-bet', 'pedidos.availability.read'), async (req, res) => {
   const user = req.user as JwtPayload
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -181,7 +188,7 @@ router.get('/:id/disponibilidad-stock', requireApp('ale-bet'), async (req, res) 
   } catch (error) { errorResponse(error, res) }
 })
 
-router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+router.post('/', requirePermission('ale-bet', 'pedidos.create'), async (req, res) => {
   const parsed = createSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
   const user = req.user as JwtPayload
@@ -195,7 +202,7 @@ router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) 
   res.status(201).json(pedido)
 })
 
-router.patch('/:id', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+router.patch('/:id', requirePermission('ale-bet', 'pedidos.edit'), async (req, res) => {
   const parsed = editSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
   const user = req.user as JwtPayload
@@ -217,7 +224,7 @@ router.patch('/:id', requireApp('ale-bet', ['admin', 'vendedor']), async (req, r
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+router.put('/:id/aprobar', requirePermission('ale-bet', 'pedidos.approve'), async (req, res) => {
   const parsed = approvalSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'fingerprint y expectedVersion son requeridos' }); return }
   const user = req.user as JwtPayload
@@ -246,7 +253,7 @@ router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+router.put('/:id/tomar', requirePermission('ale-bet', 'pedidos.take'), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload
@@ -263,7 +270,7 @@ router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador', 'encargado']
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+router.put('/:id/items/:itemId/completar', requirePermission('ale-bet', 'pedidos.complete_items'), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload
@@ -271,7 +278,7 @@ router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'arma
     const result = await prisma.$transaction(async (tx): Promise<{ body: Prisma.JsonValue | unknown; replayed: boolean }> => {
       const locked = await lockOrder(tx, String(req.params.id))
       if (locked.estado !== 'EN_ARMADO') throw new ConflictError('Solo se pueden completar items de un pedido EN_ARMADO')
-      if (actorRole(user) !== 'admin' && locked.armadorId !== user.sub) throw new ForbiddenError('Solo el armador asignado puede completar items')
+      assertAssignedArmadorOrSupervisor(locked, user)
       const item = locked.items.find((entry) => entry.id === String(req.params.itemId)); if (!item) throw new NotFoundError('Item no encontrado')
       const acquisition = await acquireAuthorizedIdempotency(tx, user, 'ale-bet.pedido.item.completar', `${locked.id}:${item.id}`, req.method, parsed.data, req.rawHeaders)
       if (acquisition.replayed) return { body: acquisition.body, replayed: true }
@@ -289,14 +296,14 @@ router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'arma
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/preparar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+router.put('/:id/preparar', requirePermission('ale-bet', 'pedidos.prepare'), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload
   try {
     const result = await prisma.$transaction(async (tx): Promise<{ body: Prisma.JsonValue | unknown; replayed: boolean }> => {
       const locked = await lockOrder(tx, String(req.params.id))
-      if (actorRole(user) !== 'admin' && locked.armadorId !== user.sub) throw new ForbiddenError('Solo el armador asignado puede preparar el pedido')
+      assertAssignedArmadorOrSupervisor(locked, user)
       if (locked.estado === 'PREPARADO') {
         const acquisition = await acquireAuthorizedIdempotency(tx, user, 'ale-bet.pedido.preparar', locked.id, req.method, parsed.data, req.rawHeaders)
         if (acquisition.replayed) return { body: acquisition.body, replayed: true }
@@ -318,7 +325,7 @@ router.put('/:id/preparar', requireApp('ale-bet', ['admin', 'armador', 'encargad
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/cancelar', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+router.put('/:id/cancelar', requirePermission('ale-bet', 'pedidos.cancel'), async (req, res) => {
   const parsed = cancelSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
   const user = req.user as JwtPayload
@@ -351,13 +358,13 @@ router.put('/:id/cancelar', requireApp('ale-bet', ['admin', 'vendedor']), async 
   } catch (error) { errorResponse(error, res) }
 })
 
-router.put('/:id/confirmar-cancelacion', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+router.put('/:id/confirmar-cancelacion', requirePermission('ale-bet', 'pedidos.confirm_cancel'), async (req, res) => {
   const parsed = cancelSchema.safeParse(req.body)
   if (!parsed.success || !parsed.data.motivo) { res.status(400).json({ error: 'expectedVersion y motivo son requeridos' }); return }
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.confirmar-cancelacion', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertAssignedArmadorOrSupervisor(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
       if (pedido.estado !== 'EN_ARMADO' || !pedido.cancelacionSolicitadaAt) throw new ConflictError('No hay una solicitud de cancelación EN_ARMADO pendiente')
       await releaseActiveReservations(tx, pedido.id)
       const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'CANCELADO', canceladoAt: new Date(), motivoCancelacion: parsed.data.motivo, version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
@@ -370,13 +377,13 @@ router.put('/:id/confirmar-cancelacion', requireApp('ale-bet', ['admin', 'armado
   } catch (error) { errorResponse(error, res) }
 })
 
-router.post('/:id/despachar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+router.post('/:id/despachar', requirePermission('ale-bet', 'pedidos.dispatch'), async (req, res) => {
   const parsed = versionSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'expectedVersion es requerido' }); return }
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.despachar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertAssignedArmadorOrSupervisor(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
       const remito = await tx.remito.findFirst({ where: { pedidoId: pedido.id, estado: 'VIGENTE' } })
       if (!canConfirmDispatch(state(pedido.estado), Boolean(remito))) throw new ConflictError('Despacho requiere pedido PREPARADO y remito vigente')
       await consumeActiveReservations(tx, pedido.id, user.sub)

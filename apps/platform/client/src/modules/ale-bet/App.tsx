@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
+import { PermissionRoute } from '@/components/guards/PermissionRoute'
 
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const PedidosPage = lazy(() => import('./pages/PedidosPage'))
@@ -31,9 +32,9 @@ export default function AleBetModule() {
             <Routes>
               <Route index element={<Navigate to="dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="pedidos" element={<PedidosPage />} />
-              <Route path="pedidos/nuevo" element={<NuevoPedidoPage />} />
-              <Route path="pedidos/:id" element={<PedidoDetailPage />} />
+              <Route path="pedidos" element={<PermissionRoute app="ale-bet" permission="pedidos.read"><PedidosPage /></PermissionRoute>} />
+              <Route path="pedidos/nuevo" element={<PermissionRoute app="ale-bet" permission="pedidos.create"><NuevoPedidoPage /></PermissionRoute>} />
+              <Route path="pedidos/:id" element={<PermissionRoute app="ale-bet" permission="pedidos.read"><PedidoDetailPage /></PermissionRoute>} />
               <Route path="productos" element={<ProductosPage />} />
               <Route path="clientes" element={<ClientesPage />} />
               <Route path="stock" element={<StockPage />} />
