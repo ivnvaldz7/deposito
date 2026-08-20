@@ -4,6 +4,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/stores/auth-store'
+import { usePermission } from '@/lib/permissions'
 import { ApiError } from '../lib/api'
 import {
   useProductos,
@@ -839,8 +840,9 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function ProductosPage() {
-  const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
+  const { user } = useAuthStore()
+  const { can } = usePermission()
+  const isEncargado = can('deposito', 'productos_catalogo.manage')
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreate, setShowCreate] = useState(false)

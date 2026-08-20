@@ -11,6 +11,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 import { CatalogoError, CatalogoProductoService, isMarketCategory, normalizeCodigo, validateCatalogoInput } from '../services/catalogo-producto-service'
 
 const router = Router()
@@ -356,7 +357,7 @@ function getMultipartFile(req: Request): { bytes: Buffer; fileName: string } | n
   return { bytes: req.file.buffer, fileName: req.file.originalname }
 }
 
-router.get('/', authenticate, async (req, res): Promise<void> => {
+router.get('/', authenticate, requirePermission('deposito', 'productos_catalogo.read'), async (req, res): Promise<void> => {
   const categoria = typeof req.query.categoria === 'string' && categorias.includes(req.query.categoria as Categoria) ? req.query.categoria as Categoria : undefined
   const estado = typeof req.query.estado === 'string' && estados.includes(req.query.estado as EstadoProductoCatalogo) ? req.query.estado as EstadoProductoCatalogo : undefined
   const buscar = typeof req.query.buscar === 'string' ? req.query.buscar.trim() : undefined
@@ -369,19 +370,19 @@ router.get('/', authenticate, async (req, res): Promise<void> => {
   } catch { res.status(500).json({ message: 'Error interno del servidor' }) }
 })
 
-router.get('/:id', authenticate, async (req, res): Promise<void> => {
+router.get('/:id', authenticate, requirePermission('deposito', 'productos_catalogo.read'), async (req, res): Promise<void> => {
   const producto = await prisma.depositoProducto.findUnique({ where: { id: String(req.params.id) }, include: { auditoriasCatalogo: { orderBy: { createdAt: 'desc' } } } })
   if (!producto) { res.status(404).json({ message: 'Producto no encontrado' }); return }
   res.json(producto)
 })
 
-router.post('/', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+router.post('/', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
   const parsed = baseSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ message: 'Datos inválidos', errors: parsed.error.flatten() }); return }
   try { res.status(201).json(await service.createManual(toCreateInput(parsed.data), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
 })
 
-router.patch('/:id', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+router.patch('/:id', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
   const parsed = editSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ message: 'Datos inválidos', errors: parsed.error.flatten() }); return }
   const input: Parameters<CatalogoProductoService['update']>[1] = {
@@ -398,20 +399,20 @@ router.patch('/:id', authenticate, requireRole('encargado'), async (req, res): P
   try { res.json(await service.update(String(req.params.id), input, req.depositoUser!.id)) } catch (error) { sendError(res, error) }
 })
 
-router.post('/:id/activar', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+router.post('/:id/activar', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
   try { res.json(await service.activate(String(req.params.id), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
 })
-router.post('/:id/reactivar', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+router.post('/:id/reactivar', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
   try { res.json(await service.reactivate(String(req.params.id), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
 })
-router.post('/:id/desactivar', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+router.post('/:id/desactivar', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
   try { res.json(await service.deactivate(String(req.params.id), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
 })
-router.delete('/:id', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+router.delete('/:id', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
   try { await service.deletePending(String(req.params.id)); res.status(204).send() } catch (error) { sendError(res, error) }
 })
 
-router.post('/importaciones/dry-run', authenticate, requireRole('encargado'), upload.single('archivo'), async (req, res): Promise<void> => {
+router.post('/importaciones/dry-run', authenticate, requirePermission('deposito', 'productos_catalogo.import'), upload.single('archivo'), async (req, res): Promise<void> => {
   const multipart = getMultipartFile(req)
   const payload = multipart ? null : importPayloadSchema.safeParse(req.body)
   const fallback = payload?.success ? payload.data : null
@@ -457,7 +458,7 @@ async function confirmPendingImport(res: Response, result: ImportResult[], usuar
   })
 }
 
-router.post('/importaciones/confirmar', authenticate, requireRole('encargado'), upload.single('archivo'), async (req, res): Promise<void> => {
+router.post('/importaciones/confirmar', authenticate, requirePermission('deposito', 'productos_catalogo.import'), upload.single('archivo'), async (req, res): Promise<void> => {
   const multipart = getMultipartFile(req)
   try {
     if (multipart) {

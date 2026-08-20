@@ -28,31 +28,32 @@ const NAV_ITEMS: NavItemDef[] = [
   { path: '/ale-bet/transportistas', label: 'Transportistas', icon: Truck },
 ]
 
+import { can } from '@/lib/permissions'
+
 type Rol = string | undefined
 
-const canSeeStock = (rol: Rol) => rol === 'admin' || rol === 'encargado'
-const canCreatePedido = (rol: Rol) => rol === 'admin' || rol === 'vendedor'
-const canManageTransportistas = (rol: Rol) => rol === 'admin' || rol === 'facturacion'
-
-function visibleItems(rol: Rol): NavItemDef[] {
+function visibleItems(user: any): NavItemDef[] {
+  const rol = user?.apps?.['ale-bet']?.rol
   return NAV_ITEMS.filter((item) => {
     switch (item.path) {
-      case '/ale-bet/stock': return canSeeStock(rol)
-      case '/ale-bet/transportistas': return canManageTransportistas(rol)
+      case '/ale-bet/stock': return can(user, 'ale-bet', 'stock.read')
+      case '/ale-bet/pedidos': return true // visible for all?
+      case '/ale-bet/transportistas': return rol === 'admin' || rol === 'facturacion'
       default: return true
     }
   })
 }
 
-function bottomNavItems(rol: Rol): NavItemDef[] {
+function bottomNavItems(user: any): NavItemDef[] {
   const item = (path: string) => NAV_ITEMS.find((entry) => entry.path === path)
+  const rol = user?.apps?.['ale-bet']?.rol
 
   const extra: NavItemDef[] = []
-  if (canSeeStock(rol)) {
+  if (can(user, 'ale-bet', 'stock.read')) {
     const s = item('/ale-bet/stock')
     if (s) extra.push(s)
   }
-  if (canManageTransportistas(rol)) {
+  if (rol === 'admin' || rol === 'facturacion') {
     const t = item('/ale-bet/transportistas')
     if (t) extra.push(t)
   }
@@ -77,9 +78,9 @@ export default function Sidebar() {
     navigate('/login', { replace: true })
   }
 
-  const items = visibleItems(rol)
-  const bottomItems = bottomNavItems(rol)
-  const showNuevoPedido = canCreatePedido(rol)
+  const items = visibleItems(user)
+  const bottomItems = bottomNavItems(user)
+  const showNuevoPedido = rol === 'admin' || rol === 'vendedor'
 
   const mobileContent = (
     <>

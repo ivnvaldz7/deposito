@@ -4,6 +4,7 @@ import { platformDb as prisma, Prisma, TipoMovimiento } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
 import { getAppAccess } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 import { VENCIMIENTO_DEFAULT_AÑOS, calcularUnidades, validarSueltos } from './constants'
 import { adjustManagedStock, createManagedLot, getManagedProductStock, ProductStockAdminConflict } from './product-stock-admin-service'
 import { aggregateProductAvailability } from './stock-aggregation'
@@ -56,7 +57,7 @@ async function getProductStock(productId: string, unidadesPorCaja: number): Prom
   return lotes.reduce((total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos, unidadesPorCaja), 0)
 }
 
-router.get('/', requireApp('ale-bet'), async (_req, res) => {
+router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.read'), async (_req, res) => {
   const productos = await prisma.producto.findMany({
     include: {
       lotes: {
@@ -89,7 +90,7 @@ router.get('/', requireApp('ale-bet'), async (_req, res) => {
   res.json(response)
 })
 
-router.get('/search', requireApp('ale-bet'), async (req, res) => {
+router.get('/search', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.read'), async (req, res) => {
   const query = typeof req.query.q === 'string' ? req.query.q.trim() : ''
   const productos = await prisma.producto.findMany({
     where: {
@@ -128,7 +129,7 @@ router.get('/search', requireApp('ale-bet'), async (req, res) => {
   }))
 })
 
-router.post('/', requireApp('ale-bet', ['admin']), async (req, res) => {
+router.post('/', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
   const parsed = productoSchema.safeParse(req.body)
 
   if (!parsed.success) {
@@ -141,7 +142,7 @@ router.post('/', requireApp('ale-bet', ['admin']), async (req, res) => {
   res.status(201).json({ ...producto, stock: 0, stockBajo: true })
 })
 
-router.put('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
+router.put('/:id', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
   const productoId = String(req.params.id)
   const parsed = updateProductoSchema.safeParse(req.body)
 
@@ -168,7 +169,7 @@ router.put('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
   res.json({ ...producto, stock, stockBajo: stock < producto.stockMinimo })
 })
 
-router.delete('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
+router.delete('/:id', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
   const productoId = String(req.params.id)
 
   const activeItems = await prisma.itemPedido.findFirst({
@@ -190,7 +191,7 @@ router.delete('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
   res.status(204).send()
 })
 
-router.get('/:id/lotes', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
+router.get('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.read'), async (req, res) => {
   const productoId = String(req.params.id)
 
   const [producto, lotes] = await Promise.all([
@@ -218,7 +219,7 @@ const updateLoteSchema = z.object({
   activo: z.boolean().optional(),
 })
 
-router.put('/:id/lotes/:loteId', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
+router.put('/:id/lotes/:loteId', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
   const productoId = String(req.params.id)
   const loteId = String(req.params.loteId)
   const user = req.user as JwtPayload
@@ -300,7 +301,7 @@ router.put('/:id/lotes/:loteId', requireApp('ale-bet', ['admin', 'encargado']), 
   }
 })
 
-router.post('/:id/lotes', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
+router.post('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.create'), async (req, res) => {
   const productoId = String(req.params.id)
   const user = req.user as JwtPayload
   const parsed = loteSchema.safeParse(req.body)
@@ -369,7 +370,7 @@ router.post('/:id/lotes', requireApp('ale-bet', ['admin', 'encargado']), async (
 
 // Location-aware product administration. The legacy lot endpoints above remain
 // available for existing clients; these contracts never derive stock from cajas/sueltos.
-router.get('/:id/stock', requireApp('ale-bet'), async (req, res) => {
+router.get('/:id/stock', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (req, res) => {
   const user = req.user as JwtPayload
   const appAccess = getAppAccess(user, 'ale-bet')
   const includeArchived = req.query.includeArchived === 'true' && ['admin', 'encargado'].includes(appAccess?.rol ?? '')
@@ -377,7 +378,7 @@ router.get('/:id/stock', requireApp('ale-bet'), async (req, res) => {
   res.json(result)
 })
 
-router.get('/:id/lotes/historial', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
+router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.history.read'), async (req, res) => {
   const productoId = String(req.params.id)
   const lotes = await prisma.lote.findMany({
     where: { productoId },
@@ -423,7 +424,7 @@ router.get('/:id/lotes/historial', requireApp('ale-bet', ['admin', 'encargado'])
   }))
 })
 
-router.post('/:id/stock/lotes', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
+router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.create'), async (req, res) => {
   const schema = z.object({
     numero: z.string().trim().min(1).max(60),
     fechaProduccion: z.string().datetime().nullable().optional(),
@@ -455,7 +456,7 @@ router.post('/:id/stock/lotes', requireApp('ale-bet', ['admin', 'encargado']), a
   }
 })
 
-router.patch('/:id/stock/lotes/:loteId/ajuste', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
+router.patch('/:id/stock/lotes/:loteId/ajuste', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.adjust'), async (req, res) => {
   const schema = z.object({
     ubicacionId: z.string().min(1),
     cantidadFinal: z.number().int().min(0),

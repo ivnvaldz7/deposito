@@ -4,6 +4,7 @@ import { platformDb as prisma } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
 import { getAppAccess } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 import { InventoryConflictError, transferInternal } from './inventory-service'
 import { aggregateProductAvailability } from './stock-aggregation'
 
@@ -16,10 +17,10 @@ const transferSchema = z.object({
   cantidad: z.number().int().positive(),
 }).refine((value) => value.origen !== value.destino, { message: 'Source and destination must differ' })
 
-router.get('/', requireApp('ale-bet'), async (req, res) => {
+router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (req, res) => {
   const user = req.user as JwtPayload
   const appAccess = getAppAccess(user, 'ale-bet')
-  const includeArchived = req.query.includeArchived === 'true' && ['admin', 'encargado'].includes(appAccess?.rol ?? '')
+  const includeArchived = req.query.includeArchived === 'true' && (user.isPlatformAdmin || ['admin', 'encargado'].includes(appAccess?.rol ?? ''))
 
   const [productos, movimientos] = await Promise.all([
     prisma.producto.findMany({
@@ -61,7 +62,7 @@ router.get('/', requireApp('ale-bet'), async (req, res) => {
   })
 })
 
-router.get('/movimientos', requireApp('ale-bet'), async (_req, res) => {
+router.get('/movimientos', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (_req, res) => {
   const movimientos = await prisma.movimientoStock.findMany({
     orderBy: { createdAt: 'desc' },
   })
@@ -69,7 +70,7 @@ router.get('/movimientos', requireApp('ale-bet'), async (_req, res) => {
   res.json(movimientos)
 })
 
-router.post('/transferencias', requireApp('ale-bet', ['admin', 'encargado']), async (req, res) => {
+router.post('/transferencias', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.transfer'), async (req, res) => {
   const parsed = transferSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos de transferencia inválidos', details: parsed.error.flatten() }); return }
   const idempotencyKey = req.header('Idempotency-Key')

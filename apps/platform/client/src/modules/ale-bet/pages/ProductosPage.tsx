@@ -9,6 +9,7 @@ import { GestionarStockModal } from '../components/GestionarStockModal'
 import { HistorialLotesModal } from '../components/HistorialLotesModal'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { canGestionarStock } from '../lib/estados'
+import { can } from '@/lib/permissions'
 
 function LotesInline({ producto }: { producto: Producto }) {
   if (!producto.lotes || producto.lotes.length === 0) {
@@ -52,9 +53,8 @@ function LotesInline({ producto }: { producto: Producto }) {
 
 export default function ProductosPage() {
   const user = useAuthStore((state) => state.user)
-  const rol = user?.apps?.['ale-bet']?.rol
-  const esAdmin = rol === 'admin'
-  const puedeGestionarStock = canGestionarStock(rol)
+  const puedeGestionar = can(user, 'ale-bet', 'productos.manage')
+  const puedeGestionarStock = can(user, 'ale-bet', 'stock.lots.create') || can(user, 'ale-bet', 'stock.adjust') || can(user, 'ale-bet', 'stock.lots.adjust')
 
   const { data: productos = [], isLoading, error } = useProductos()
   const createMutation = useCreateProducto()

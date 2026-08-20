@@ -147,26 +147,28 @@ export function esArmadorAsignado(pedido: Pedido, userId: string): boolean {
   return pedido.armadorId === userId
 }
 
+import { roleHasPermission } from '@platform/core'
+
 export function canAprobar(pedido: Pedido, rol: string, userId: string): boolean {
   if (pedido.estado !== 'BORRADOR') return false
-  if (rol === 'admin') return true
+  if (roleHasPermission('ale-bet', rol, 'pedidos.approve')) return true
   return rol === 'vendedor' && pedido.vendedorId === userId
 }
 
 export function canTomar(pedido: Pedido, rol: string, userId: string): boolean {
-  return (rol === 'admin' || rol === 'armador') && pedido.estado === 'APROBADO'
+  return roleHasPermission('ale-bet', rol, 'pedidos.take') && pedido.estado === 'APROBADO'
 }
 
 export function canPreparar(pedido: Pedido, rol: string, userId: string): boolean {
   if (pedido.estado !== 'EN_ARMADO') return false
-  if (rol !== 'admin' && rol !== 'armador') return false
-  if (rol !== 'admin' && !esArmadorAsignado(pedido, userId)) return false
+  if (!roleHasPermission('ale-bet', rol, 'pedidos.prepare')) return false
+  if (rol !== 'admin' && rol !== 'encargado' && !esArmadorAsignado(pedido, userId)) return false
   return pedido.items.length > 0 && pedido.items.every((item) => item.completado)
 }
 
 export function canDespachar(pedido: Pedido, rol: string, userId: string): boolean {
   return (
-    (rol === 'admin' || rol === 'armador') &&
+    roleHasPermission('ale-bet', rol, 'pedidos.dispatch') &&
     pedido.estado === 'PREPARADO' &&
     Boolean(pedido.remitos?.some((r) => r.estado === 'VIGENTE'))
   )
@@ -186,23 +188,23 @@ export function canSolicitarCancelacion(pedido: Pedido, rol: string, userId: str
 
 export function canConfirmarCancelacion(pedido: Pedido, rol: string, userId: string): boolean {
   return (
-    (rol === 'admin' || rol === 'armador') &&
+    roleHasPermission('ale-bet', rol, 'pedidos.confirm_cancel') &&
     pedido.estado === 'EN_ARMADO' &&
     Boolean(pedido.cancelacionSolicitadaAt)
   )
 }
 
 export function canEmitirRemito(pedido: Pedido, rol: string): boolean {
-  if (rol !== 'admin' && rol !== 'facturacion') return false
+  if (!roleHasPermission('ale-bet', rol, 'remitos.create')) return false
   if (pedido.estado !== 'APROBADO' && pedido.estado !== 'EN_ARMADO' && pedido.estado !== 'PREPARADO') return false
   return !pedido.remitos?.some((r) => r.estado === 'VIGENTE')
 }
 
 export function canAccionesBarraArmador(pedido: Pedido, rol: string, userId: string): boolean {
-  if (rol !== 'admin' && rol !== 'armador') return false
+  if (!roleHasPermission('ale-bet', rol, 'pedidos.take') && !roleHasPermission('ale-bet', rol, 'pedidos.prepare')) return false
   return (
     canTomar(pedido, rol, userId) ||
-    (pedido.estado === 'EN_ARMADO' && (rol === 'admin' || esArmadorAsignado(pedido, userId))) ||
+    (pedido.estado === 'EN_ARMADO' && (rol === 'admin' || rol === 'encargado' || esArmadorAsignado(pedido, userId))) ||
     canDespachar(pedido, rol, userId) ||
     canConfirmarCancelacion(pedido, rol, userId)
   )
@@ -210,10 +212,11 @@ export function canAccionesBarraArmador(pedido: Pedido, rol: string, userId: str
 
 export function canEditarPedido(pedido: Pedido, rol: string, userId: string): boolean {
   if (pedido.estado !== 'BORRADOR' && pedido.estado !== 'APROBADO') return false
-  if (rol === 'admin') return true
+  if (roleHasPermission('ale-bet', rol, 'pedidos.edit')) return true
   return rol === 'vendedor' && pedido.vendedorId === userId
 }
 
 export function canGestionarStock(rol: string | undefined): boolean {
-  return rol === 'admin' || rol === 'encargado'
+  if (!rol) return false
+  return roleHasPermission('ale-bet', rol, 'stock.lots.create') || roleHasPermission('ale-bet', rol, 'stock.adjust') || roleHasPermission('ale-bet', rol, 'stock.lots.adjust')
 }

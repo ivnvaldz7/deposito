@@ -1,4 +1,5 @@
 export { signToken, verifyToken, decodeToken, APP_SLUG_BY_ID, getAppAccess } from './auth/jwt'
+export * from './auth/permissions'
 export {
   signAccessToken,
   signRefreshToken,
