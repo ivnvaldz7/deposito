@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { ApiError } from '../lib/api'
 import { useEstuches, useCreateEstuche, useUpdateEstuche, useDeleteEstuche } from '../queries/use-estuches'
 import { toast } from '../lib/toast'
@@ -346,7 +347,7 @@ function CantidadCell({ estuche }: { estuche: Estuche }) {
 
 export default function EstuchesPage() {
   const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
+  const canManage = can(user, 'deposito', 'estuches.manage')
   const [searchParams, setSearchParams] = useSearchParams()
 
   const { data: allEstuches = [], isLoading, error } = useEstuches()
@@ -444,7 +445,7 @@ export default function EstuchesPage() {
           { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
         ]}
         primaryAction={
-          isEncargado
+          canManage
             ? {
                 label: 'Agregar estuche',
                 onClick: () => setAgregarOpen(true),
@@ -461,7 +462,7 @@ export default function EstuchesPage() {
         />
       </InventoryPageHeader>
 
-      {isEncargado ? (
+      {canManage ? (
         <AgregarEstucheModal
           open={agregarOpen}
           onOpenChange={setAgregarOpen}
@@ -487,7 +488,7 @@ export default function EstuchesPage() {
                   <TableHead className="w-36">Mercado</TableHead>
                   <TableHead className="w-32">Cantidad</TableHead>
                   <TableHead className="w-28">Estado</TableHead>
-                  {isEncargado && <TableHead className="w-24 text-right">Acciones</TableHead>}
+                  {canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -498,7 +499,7 @@ export default function EstuchesPage() {
                       <MercadoChip mercado={estuche.mercado} />
                     </TableCell>
                     <TableCell>
-                      {isEncargado ? (
+                      {canManage ? (
                         <CantidadCell estuche={estuche} />
                       ) : (
                         <span className="font-body text-on-surface tabular-nums">{estuche.cantidad}</span>
@@ -507,7 +508,7 @@ export default function EstuchesPage() {
                     <TableCell>
                       <StockChip cantidad={estuche.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
                     </TableCell>
-                    {isEncargado && (
+                    {canManage && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <RowActionButton label={`Editar ${estuche.articulo}`} onClick={() => setEditingEstuche(estuche)} icon={<Pencil size={16} strokeWidth={1.5} />} />
@@ -538,7 +539,7 @@ export default function EstuchesPage() {
                     <StockChip cantidad={estuche.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
                   </div>
                 </div>
-                {isEncargado && (
+                {canManage && (
                   <div className="flex items-center gap-3 shrink-0">
                     <CantidadCell estuche={estuche} />
                     <RowActionButton label={`Editar ${estuche.articulo}`} onClick={() => setEditingEstuche(estuche)} icon={<Pencil size={16} strokeWidth={1.5} />} />

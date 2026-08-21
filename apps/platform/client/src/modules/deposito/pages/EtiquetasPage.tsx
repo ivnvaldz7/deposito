@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { ApiError } from '../lib/api'
 import { useEtiquetas, useCreateEtiqueta, useUpdateEtiqueta, useDeleteEtiqueta } from '../queries/use-etiquetas'
 import { toast } from '../lib/toast'
@@ -238,7 +239,7 @@ function CantidadCell({ etiqueta }: { etiqueta: Etiqueta }) {
 
 export default function EtiquetasPage() {
   const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
+  const canManage = can(user, 'deposito', 'etiquetas.manage')
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: allEtiquetas = [], isLoading, error } = useEtiquetas()
   const deleteMutation = useDeleteEtiqueta()
@@ -303,25 +304,25 @@ export default function EtiquetasPage() {
         { label: 'artículos', value: etiquetas.length },
         { label: 'mercados', value: MERCADOS.filter((m) => countsByMercado[m.value] > 0).length },
         { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
-      ]} primaryAction={isEncargado ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
+      ]} primaryAction={canManage ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
         <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={handleMercadoChange} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
       </InventoryPageHeader>
-      {isEncargado && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
+      {canManage && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
       {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onClose={() => setEditingEtiqueta(null)} />}
       {etiquetas.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       : (
         <>
           <InventoryDataSurface label="Inventario de etiquetas"><div className="hidden md:block">
             <Table>
-              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-36">Mercado</TableHead><TableHead className="w-32">Cantidad</TableHead><TableHead className="w-28">Estado</TableHead>{isEncargado && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-36">Mercado</TableHead><TableHead className="w-32">Cantidad</TableHead><TableHead className="w-28">Estado</TableHead>{canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
               <TableBody>
                 {etiquetas.map((e) => (
                   <TableRow key={e.id} {...focus.targetProps(e.id)} className={focus.isFocused(e.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(e)}</TableCell>
                     <TableCell><MercadoChip mercado={e.mercado} /></TableCell>
-                    <TableCell>{isEncargado ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
+                    <TableCell>{canManage ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
                     <TableCell><StockChip cantidad={e.cantidad} threshold={STOCK_BAJO_THRESHOLD} /></TableCell>
-                    {isEncargado && (
+                    {canManage && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />
@@ -344,7 +345,7 @@ export default function EtiquetasPage() {
                     <StockChip cantidad={e.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
                   </div>
                 </div>
-                {isEncargado && (
+                {canManage && (
                   <div className="flex items-center gap-3 shrink-0">
                     <CantidadCell etiqueta={e} />
                     <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />

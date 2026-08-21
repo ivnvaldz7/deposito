@@ -3,7 +3,7 @@ import { Request, Response, Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 import { sseManager } from '../lib/sse-manager'
 import { eventBus } from '@platform/core'
 import { generarLote } from '../lib/lote-generator'
@@ -26,7 +26,7 @@ const crearIngresoSchema = z.object({
 
 function invalid(res: Response, message: string) { res.status(400).json({ message }) }
 
-router.post('/', authenticate, requireRole('encargado'), async (req: Request, res: Response): Promise<void> => {
+router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'), async (req: Request, res: Response): Promise<void> => {
   const result = crearIngresoSchema.safeParse(req.body)
   if (!result.success) { res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() }); return }
   const data = result.data

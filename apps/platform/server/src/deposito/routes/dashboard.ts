@@ -1,11 +1,12 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
 // GET /api/dashboard/stats — resumen general
-router.get('/stats', authenticate, async (_req: Request, res: Response): Promise<void> => {
+router.get('/stats', authenticate, requirePermission('deposito', 'dashboard.read'), async (_req: Request, res: Response): Promise<void> => {
   try {
     const todayStart = new Date()
     todayStart.setUTCHours(0, 0, 0, 0)

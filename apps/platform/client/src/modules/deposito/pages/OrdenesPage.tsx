@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Check, X, ChevronDown } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import {
@@ -379,11 +380,17 @@ function RechazarModal({
 
 function OrdenCard({
   orden,
-  isEncargado,
+  canAprobarPerm,
+  canEjecutarPerm,
+  canRechazarPerm,
+  canCompletarPerm,
   onUpdated,
 }: {
   orden: OrdenProduccion
-  isEncargado: boolean
+  canAprobarPerm: boolean
+  canEjecutarPerm: boolean
+  canRechazarPerm: boolean
+  canCompletarPerm: boolean
   onUpdated: (o: OrdenProduccion) => void
 }) {
   const approveMutation = useAprobarOrden()
@@ -407,10 +414,10 @@ function OrdenCard({
     }
   }
 
-  const canAprobar = isEncargado && orden.estado === 'solicitada'
-  const canEjecutar = isEncargado && orden.estado === 'aprobada'
-  const canRechazar = isEncargado && (orden.estado === 'solicitada' || orden.estado === 'aprobada')
-  const canCompletar = isEncargado && orden.estado === 'ejecutada'
+  const canAprobar = canAprobarPerm && orden.estado === 'solicitada'
+  const canEjecutar = canEjecutarPerm && orden.estado === 'aprobada'
+  const canRechazar = canRechazarPerm && (orden.estado === 'solicitada' || orden.estado === 'aprobada')
+  const canCompletar = canCompletarPerm && orden.estado === 'ejecutada'
 
   return (
     <div className="bg-surface-container-low rounded px-4 py-4 space-y-3">
@@ -463,7 +470,7 @@ function OrdenCard({
       )}
 
       {/* Actions */}
-      {isEncargado && (canAprobar || canEjecutar || canCompletar || canRechazar) && (
+      {(canAprobar || canEjecutar || canCompletar || canRechazar) && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {canAprobar && (
             <button
@@ -542,9 +549,7 @@ function FiltroEstado({
 
 export default function OrdenesPage() {
   const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
-  const isSolicitante = user?.apps?.['deposito']?.rol === 'solicitante'
-  const canCreate = isEncargado || isSolicitante
+  const canCreate = can(user, 'deposito', 'ordenes.create')
 
   const [filtroEstado, setFiltroEstado] = useState<EstadoOrden | 'todas'>('todas')
   const [nuevaOrdenOpen, setNuevaOrdenOpen] = useState(false)
@@ -621,7 +626,10 @@ export default function OrdenesPage() {
             <OrdenCard
               key={o.id}
               orden={o}
-              isEncargado={isEncargado}
+              canAprobarPerm={can(user, 'deposito', 'ordenes.approve')}
+              canEjecutarPerm={can(user, 'deposito', 'ordenes.execute')}
+              canRechazarPerm={can(user, 'deposito', 'ordenes.reject')}
+              canCompletarPerm={can(user, 'deposito', 'ordenes.complete')}
               onUpdated={handleUpdated}
             />
           ))}

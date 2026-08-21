@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -33,7 +34,7 @@ const editarDrogaSchema = z
 
 // ─── GET /api/drogas — listar (con filtro opcional por nombre) ─────────────────
 
-router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, requirePermission('deposito', 'drogas.read'), async (req: Request, res: Response): Promise<void> => {
   const nombreFilter = typeof req.query['nombre'] === 'string' ? req.query['nombre'] : undefined
 
   try {
@@ -49,7 +50,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 
 // ─── GET /api/drogas/por-vencer?dias=30 ───────────────────────────────────────
 
-router.get('/por-vencer', authenticate, async (req: Request, res: Response): Promise<void> => {
+router.get('/por-vencer', authenticate, requirePermission('deposito', 'drogas.read.por_vencer'), async (req: Request, res: Response): Promise<void> => {
   const dias = typeof req.query['dias'] === 'string' ? parseInt(req.query['dias'], 10) : 30
   const validDias = isNaN(dias) || dias <= 0 ? 30 : Math.min(dias, 365)
 

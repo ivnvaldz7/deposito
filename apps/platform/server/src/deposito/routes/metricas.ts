@@ -3,7 +3,7 @@ import type { Prisma } from '@platform/db'
 import PDFDocument from 'pdfkit'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -162,7 +162,7 @@ function drawPdfFooter(doc: PdfDoc) {
   )
 }
 
-router.get('/', authenticate, requireRole('encargado', 'observador'), async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, requirePermission('deposito', 'metricas.read'), async (req: Request, res: Response): Promise<void> => {
   const filters = parseQueryParams(req)
 
   try {
@@ -174,7 +174,7 @@ router.get('/', authenticate, requireRole('encargado', 'observador'), async (req
 })
 
 // GET /api/metricas/productos — catálogo de nombres para el autocomplete
-router.get('/productos', authenticate, async (_req: Request, res: Response): Promise<void> => {
+router.get('/productos', authenticate, requirePermission('deposito', 'metricas.productos.read'), async (_req: Request, res: Response): Promise<void> => {
   try {
     const productos = await prisma.depositoProducto.findMany({
       where: { activo: true },
@@ -187,7 +187,7 @@ router.get('/productos', authenticate, async (_req: Request, res: Response): Pro
   }
 })
 
-router.get('/exportar-pdf', authenticate, requireRole('encargado', 'observador'), async (req: Request, res: Response): Promise<void> => {
+router.get('/exportar-pdf', authenticate, requirePermission('deposito', 'metricas.export.pdf'), async (req: Request, res: Response): Promise<void> => {
   const filters = parseQueryParams(req)
 
   try {

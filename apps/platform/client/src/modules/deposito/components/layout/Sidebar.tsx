@@ -2,29 +2,33 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FlaskConical, Package, Tag, Box, BookOpen,
-  ArrowLeftRight, BarChart2, LogOut,
+  ArrowLeftRight, BarChart2, LogOut, Users,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { useSidebarStore } from '../../stores/sidebar-store'
 
 const navItems = [
-  { path: '/deposito/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
-  { path: '/deposito/productos',   label: 'Productos',   icon: Package },
-  { path: '/deposito/drogas',      label: 'Drogas',       icon: FlaskConical },
-  { path: '/deposito/estuches',    label: 'Estuches',     icon: Package },
-  { path: '/deposito/etiquetas',   label: 'Etiquetas',    icon: Tag },
-  { path: '/deposito/frascos',     label: 'Frascos',      icon: Box },
-  { path: '/deposito/actas',       label: 'Actas',        icon: BookOpen },
-  { path: '/deposito/movimientos', label: 'Movimientos',  icon: ArrowLeftRight },
-]
+  { path: '/deposito/dashboard',   label: 'Dashboard',   icon: LayoutDashboard, permission: 'dashboard.read' },
+  { path: '/deposito/productos',   label: 'Productos',   icon: Package, permission: 'productos_catalogo.read' },
+  { path: '/deposito/drogas',      label: 'Drogas',      icon: FlaskConical, permission: 'drogas.read' },
+  { path: '/deposito/estuches',    label: 'Estuches',    icon: Package, permission: 'estuches.read' },
+  { path: '/deposito/etiquetas',   label: 'Etiquetas',   icon: Tag, permission: 'etiquetas.read' },
+  { path: '/deposito/frascos',     label: 'Frascos',     icon: Box, permission: 'frascos.read' },
+  { path: '/deposito/actas',       label: 'Actas',       icon: BookOpen, permission: 'actas.read' },
+  { path: '/deposito/movimientos', label: 'Movimientos', icon: ArrowLeftRight, permission: 'movimientos.read' },
+  { path: '/deposito/pendientes',  label: 'Pendientes',  icon: ArrowLeftRight, permission: 'pendientes.read' },
+  { path: '/deposito/ordenes',     label: 'Órdenes',     icon: BookOpen, permission: 'ordenes.read' },
+  { path: '/deposito/usuarios',    label: 'Usuarios',    icon: Users, permission: 'usuarios_deposito.read' },
+] as const
 
 export function Sidebar() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const depositoRole = user?.apps?.['deposito']?.rol
-  const isEncargado = depositoRole === 'encargado'
+  const visibleNavItems = navItems.filter((item) => can(user, 'deposito', item.permission))
   const navigate = useNavigate()
   const collapsed = useSidebarStore((s) => s.collapsed)
   const [hoverOpen, setHoverOpen] = useState(false)
@@ -94,7 +98,7 @@ export function Sidebar() {
 
         {/* Navigation Links */}
         <nav className="flex-1 flex flex-col gap-1 px-3">
-          {navItems.map(({ path, label, icon: Icon }, index) => (
+          {visibleNavItems.map(({ path, label, icon: Icon }, index) => (
             <NavLink
               key={path}
               to={path}
@@ -114,7 +118,7 @@ export function Sidebar() {
             </NavLink>
           ))}
 
-          {(isEncargado || depositoRole === 'observador') && (
+          {can(user, 'deposito', 'metricas.read') && (
             <NavLink
               to="/deposito/metricas"
               className={({ isActive }) =>
@@ -126,7 +130,7 @@ export function Sidebar() {
                     : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
                 )
               }
-              style={{ animationDelay: `${navItems.length * 0.04}s` }}
+              style={{ animationDelay: `${visibleNavItems.length * 0.04}s` }}
             >
               <BarChart2 size={16} strokeWidth={1.5} className="shrink-0" />
               Métricas

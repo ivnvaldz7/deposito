@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Fuse from 'fuse.js'
 import { Check, ChevronDown, PackagePlus, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import {
@@ -624,7 +625,7 @@ function PendienteCard({
 
 export default function PendientesPage() {
   const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
+  const canManage = can(user, 'deposito', 'pendientes.manage')
   const navigate = useNavigate()
 
   const [enviarOpen, setEnviarOpen] = useState(false)
@@ -660,7 +661,7 @@ export default function PendientesPage() {
           { label: 'cajas afuera', value: isLoading ? '...' : cajasEnEsterilizacion, warning: cajasEnEsterilizacion > 0 && !isLoading },
         ]}
         primaryAction={
-          isEncargado
+          canManage
             ? {
                 label: 'Enviar a esterilización',
                 onClick: () => setEnviarOpen(true),
@@ -670,7 +671,7 @@ export default function PendientesPage() {
         }
       />
 
-      {isEncargado ? (
+      {canManage ? (
         <EnviarModal
           onCreated={handleCreated}
           open={enviarOpen}
@@ -712,7 +713,7 @@ export default function PendientesPage() {
                   <PendienteCard
                     key={p.id}
                     pendiente={p}
-                    onRecibido={isEncargado ? handleRecibido : undefined}
+                    onRecibido={canManage ? handleRecibido : undefined}
                   />
                 ))}
               </div>
@@ -743,7 +744,7 @@ export default function PendientesPage() {
                   <PendienteCard
                     key={p.id}
                     pendiente={p}
-                    onCrearIngreso={isEncargado ? handleCrearIngreso : undefined}
+                    onCrearIngreso={canManage ? handleCrearIngreso : undefined}
                   />
                 ))}
               </div>

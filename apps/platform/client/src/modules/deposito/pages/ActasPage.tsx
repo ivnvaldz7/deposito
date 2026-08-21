@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Search, Calendar, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { useActas } from '../queries/use-actas'
 import { ApiError } from '../lib/api'
 import {
@@ -26,7 +27,7 @@ function uniqueJoined(values: string[]): string {
 
 export default function ActasPage() {
   const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
+  const canCreate = can(user, 'deposito', 'ingresos.create')
   const navigate = useNavigate()
 
   const { data: actas = [], isLoading, error } = useActas()
@@ -93,7 +94,7 @@ export default function ActasPage() {
             {actas.length} actas · {completadasCount} completadas
           </p>
         </div>
-        {isEncargado && (
+        {canCreate && (
           <button
             onClick={() => navigate('/ingresos')}
             className="flex items-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float"
@@ -155,7 +156,7 @@ export default function ActasPage() {
           <p className="font-body text-on-surface-variant text-sm">
             {hasFilters ? 'No se encontraron actas con esos filtros.' : 'No hay actas registradas todavía.'}
           </p>
-          {isEncargado && !hasFilters && (
+          {canCreate && !hasFilters && (
             <p className="font-body text-on-surface-variant/60 text-xs">
               Usá "Nuevo Ingreso" para empezar.
             </p>

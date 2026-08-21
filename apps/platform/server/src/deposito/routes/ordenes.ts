@@ -4,7 +4,7 @@ import { Mercado, Prisma } from '@platform/db'
 import { extractDbConstraintViolation, isKnownInventoryConflict } from '../../utils/db-errors'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 import { sseManager, STOCK_BAJO_THRESHOLD, STOCK_BAJO_FRASCOS_THRESHOLD } from '../lib/sse-manager'
 import { eventBus } from '@platform/core'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
@@ -59,6 +59,10 @@ function normalizeForMatch(str: string): string {
 }
 
 // Helper: verifica si el stock bajó del threshold después de un egreso
+function isSolicitante(req: Request): boolean {
+  return req.user?.apps.deposito?.rol === 'solicitante'
+}
+
 async function checkStockBajo(
   categoria: string,
   productoNombre: string,
@@ -96,7 +100,7 @@ async function checkStockBajo(
 router.post(
   '/',
   authenticate,
-  requireRole('solicitante', 'encargado'),
+  requirePermission('deposito', 'ordenes.create'),
   async (req: Request, res: Response): Promise<void> => {
     const result = crearOrdenSchema.safeParse(req.body)
     if (!result.success) {
@@ -179,10 +183,11 @@ router.get(
     const { estado } = req.query
 
     const estadoFilter = typeof estado === 'string' ? estado : undefined
+  requirePermission('deposito', 'ordenes.read'),
 
     // Solicitante solo ve sus propias órdenes
     const roleFilter =
-      req.depositoUser?.role === 'solicitante'
+      isSolicitante(req) && req.depositoUser
         ? { solicitanteId: req.depositoUser.id }
         : {}
 
@@ -213,6 +218,7 @@ router.get(
     const id = req.params['id'] as string
 
     try {
+  requirePermission('deposito', 'ordenes.read'),
       const orden = await prisma.ordenProduccion.findUnique({
         where: { id },
         include: {
@@ -227,7 +233,7 @@ router.get(
       }
 
       // Solicitante solo puede ver sus propias órdenes
-      if (req.depositoUser?.role === 'solicitante' && orden.solicitanteId !== req.depositoUser.id) {
+      if (isSolicitante(req) && orden.solicitanteId !== req.depositoUser!.id) {
         res.status(403).json({ message: 'No autorizado' })
         return
       }
@@ -244,7 +250,7 @@ router.get(
 router.put(
   '/:id/aprobar',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'ordenes.approve'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
@@ -303,7 +309,7 @@ router.put(
 router.post(
   '/:id/ejecutar',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'ordenes.execute'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
@@ -606,7 +612,7 @@ router.post(
 router.put(
   '/:id/rechazar',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'ordenes.reject'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
@@ -671,7 +677,7 @@ router.put(
 router.put(
   '/:id/completar',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'ordenes.complete'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 

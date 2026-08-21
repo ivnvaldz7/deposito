@@ -12,10 +12,11 @@ vi.mock('@platform/db', () => ({
 
 vi.mock('../lib/prisma', () => ({ prisma: {} }))
 vi.mock('../middleware/auth', () => ({
-  authenticate: (req: { header(name: string): string | undefined; depositoUser?: unknown }, res: { status(code: number): { json(body: unknown): void } }, next: () => void) => {
+  authenticate: (req: { header(name: string): string | undefined; depositoUser?: { id: string; role: string }; user?: { sub: string; apps: { deposito: { rol: string; activo: boolean } } } }, res: { status(code: number): { json(body: unknown): void } }, next: () => void) => {
     const role = req.header('x-test-role')
     if (!role) return res.status(401).json({ message: 'Token requerido' })
     req.depositoUser = { id: 'enc-1', role }
+    req.user = { sub: req.depositoUser.id, apps: { deposito: { rol: role, activo: true } } }
     next()
   },
 }))

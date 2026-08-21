@@ -13,6 +13,7 @@ registerMercadoInventoryRoutes({
     conflict: 'Ya existe esa etiqueta para ese mercado',
     notFound: 'Etiqueta no encontrada',
   },
+  permissions: { read: 'etiquetas.read', manage: 'etiquetas.manage' },
   operations: {
     buildWhere: (mercado): Prisma.InventarioEtiquetaWhereInput => (
       mercado ? { mercado } : {}

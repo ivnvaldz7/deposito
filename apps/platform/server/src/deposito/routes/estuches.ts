@@ -13,6 +13,7 @@ registerMercadoInventoryRoutes({
     conflict: 'Ya existe ese artículo para ese mercado',
     notFound: 'Estuche no encontrado',
     quantityLocked: 'La cantidad de un estuche con movimientos solo puede cambiar mediante un ingreso o ajuste auditado',
+  permissions: { read: 'estuches.read', manage: 'estuches.manage' },
   },
   operations: {
     buildWhere: (mercado): Prisma.InventarioEstucheWhereInput => (

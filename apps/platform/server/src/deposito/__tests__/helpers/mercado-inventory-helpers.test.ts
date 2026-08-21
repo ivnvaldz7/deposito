@@ -28,6 +28,7 @@ vi.mock('../../middleware/auth', () => ({
       role,
       name: 'Usuario Test',
     }
+    req.user = { sub: req.depositoUser.id, apps: { deposito: { rol: role, activo: true } } }
     next()
   },
 }))
@@ -308,6 +309,7 @@ describe('mercado-inventory-helpers', () => {
         router,
         operations: mock.operations,
         messages: { conflict: 'Conflicto', notFound: 'No encontrado' },
+        permissions: { read: 'estuches.read', manage: 'estuches.manage' },
       })
 
       expect(spyGet).toHaveBeenCalledTimes(1)
@@ -324,6 +326,7 @@ describe('mercado-inventory-helpers', () => {
           router,
           operations: mock.operations,
           messages: { conflict: 'c', notFound: 'n' },
+          permissions: { read: 'estuches.read', manage: 'estuches.manage' },
         })
         const app = createTestApp('/api/test', router)
 
@@ -344,6 +347,7 @@ describe('mercado-inventory-helpers', () => {
           router,
           operations: mock.operations,
           messages: { conflict: 'Conflicto', notFound: 'No encontrado' },
+          permissions: { read: 'estuches.read', manage: 'estuches.manage' },
         })
         const app = createTestApp('/api/test', router)
 
@@ -364,6 +368,7 @@ describe('mercado-inventory-helpers', () => {
           router,
           operations: mock.operations,
           messages: { conflict: 'Ya existe', notFound: 'No encontrado' },
+          permissions: { read: 'estuches.read', manage: 'estuches.manage' },
         })
         const app = createTestApp('/api/test', router)
 
@@ -387,6 +392,7 @@ describe('mercado-inventory-helpers', () => {
           router,
           operations: mock.operations,
           messages: { conflict: 'c', notFound: 'n' },
+          permissions: { read: 'estuches.read', manage: 'estuches.manage' },
         })
         const app = createTestApp('/api/test', router)
 
@@ -413,6 +419,7 @@ describe('mercado-inventory-helpers', () => {
           router,
           operations: mock.operations,
           messages: { conflict: 'c', notFound: 'No encontrado' },
+          permissions: { read: 'estuches.read', manage: 'estuches.manage' },
         })
         const app = createTestApp('/api/test', router)
 
@@ -433,6 +440,7 @@ describe('mercado-inventory-helpers', () => {
           router,
           operations: mock.operations,
           messages: { conflict: 'c', notFound: 'n' },
+          permissions: { read: 'estuches.read', manage: 'estuches.manage' },
         })
         const app = createTestApp('/api/test', router)
 
@@ -457,6 +465,7 @@ describe('mercado-inventory-helpers', () => {
           router,
           operations: mock.operations,
           messages: { conflict: 'c', notFound: 'No encontrado' },
+          permissions: { read: 'estuches.read', manage: 'estuches.manage' },
         })
         const app = createTestApp('/api/test', router)
 

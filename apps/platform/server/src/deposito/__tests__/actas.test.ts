@@ -238,6 +238,7 @@ vi.mock('../middleware/auth', () => ({
       role,
       name: req.header('x-test-user-name') ?? 'Usuario Test',
     }
+    req.user = { sub: req.depositoUser.id, apps: { deposito: { rol: role, activo: true } } }
     next()
   },
 }))

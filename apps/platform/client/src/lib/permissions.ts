@@ -1,4 +1,5 @@
-import { hasPermission, type AppPermissionKey, type Permission, type JwtPayload } from '@platform/core/permissions'
+import { hasPermission, type AppPermissionKey, type Permission } from '@platform/core/permissions'
+import type { JwtPayload } from '@platform/core'
 import { useAuthStore } from '@/stores/auth-store'
 
 export function usePermission() {

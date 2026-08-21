@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { randomUUID } from 'crypto'
 import { verifyToken } from '../lib/jwt'
 import { authenticate } from '../middleware/auth'
+import { requirePermission } from '../../middlewares/require-permission'
 import { sseManager } from '../lib/sse-manager'
 
 const router = Router()
@@ -26,7 +27,7 @@ function purgeExpiredTickets() {
 
 // ─── POST /api/events/auth — emitir ticket SSE (auth por header) ──────────────
 
-router.post('/auth', authenticate, async (req: Request, res: Response): Promise<void> => {
+router.post('/auth', authenticate, requirePermission('deposito', 'eventos.stream'), async (req: Request, res: Response): Promise<void> => {
   const ticketId = randomUUID()
   tickets.set(ticketId, {
     userId: req.depositoUser!.id,

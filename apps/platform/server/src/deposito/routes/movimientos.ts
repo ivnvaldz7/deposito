@@ -3,6 +3,7 @@ import type { Prisma } from '@platform/db'
 import { DepositoTipoMovimiento } from '@platform/db'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -10,7 +11,7 @@ const TIPOS_VALIDOS = Object.values(DepositoTipoMovimiento)
 const CATEGORIAS_VALIDAS = ['droga', 'estuche', 'etiqueta', 'frasco'] as const
 
 // GET /api/movimientos — listar con filtros opcionales
-router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, requirePermission('deposito', 'movimientos.read'), async (req: Request, res: Response): Promise<void> => {
   const { tipo, producto, desde, hasta, categoria } = req.query
 
   const where: Prisma.MovimientoWhereInput = {}

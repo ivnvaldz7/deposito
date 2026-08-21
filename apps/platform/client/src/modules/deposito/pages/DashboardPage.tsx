@@ -2,6 +2,8 @@ import { type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, ArrowRight, Package, Plus } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
+import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { useDashboard, type DashboardStats, type UltimoMovimiento, type DrogaBajo, type ItemMercadoBajo, type FrascoBajo, type DrogaPorVencer, type TipoMovimiento } from '../queries'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -98,6 +100,7 @@ function StockAlertCard({
 
 export default function DashboardPage() {
   const navigate = useNavigate()
+  const user = useAuthStore((s) => s.user)
   const { data: stats, isLoading, error } = useDashboard()
 
   if (isLoading) {
@@ -143,13 +146,15 @@ export default function DashboardPage() {
             Resumen del inventario y alertas críticas.
           </p>
         </div>
-        <button
-          onClick={() => navigate('/deposito/ingresos')}
-          className="flex items-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float"
-        >
-          <Plus size={18} />
-          <span>Nuevo ingreso</span>
-        </button>
+        {can(user, 'deposito', 'ingresos.create') && (
+          <button
+            onClick={() => navigate('/deposito/ingresos')}
+            className="flex items-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float"
+          >
+            <Plus size={18} />
+            <span>Nuevo ingreso</span>
+          </button>
+        )}
       </div>
 
       {/* Metrics Grid */}
@@ -180,12 +185,14 @@ export default function DashboardPage() {
         <div className="lg:col-span-2">
           <div className="flex items-center justify-between mb-md">
             <h2 className="text-lg font-semibold text-on-surface">Alertas de stock bajo</h2>
-            <button
-              onClick={() => navigate('/deposito/drogas')}
-              className="font-body text-xs text-primary hover:underline"
-            >
-              Ver todo
-            </button>
+            {can(user, 'deposito', 'drogas.read') && (
+              <button
+                onClick={() => navigate('/deposito/drogas')}
+                className="font-body text-xs text-primary hover:underline"
+              >
+                Ver todo
+              </button>
+            )}
           </div>
 
           {!hayStockBajo ? (
@@ -282,7 +289,7 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
-            {stats.ultimosMovimientos.length > 0 && (
+            {stats.ultimosMovimientos.length > 0 && can(user, 'deposito', 'movimientos.read') && (
               <div className="p-3 border-t border-white/5 text-center">
                 <button
                   onClick={() => navigate('/deposito/movimientos')}

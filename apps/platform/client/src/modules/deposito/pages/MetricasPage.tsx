@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { TrendingUp, TrendingDown, Scale, Activity, FileDown, BarChart2, Search, Check, Calendar } from 'lucide-react'
 import Fuse from 'fuse.js'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { toast } from '../lib/toast'
 import { PageHeader } from '../components/layout/PageHeader'
 import { useMetricas, useProductosCatalogo } from '../queries'
@@ -246,6 +247,8 @@ function ProductFilter({
 
 export default function MetricasPage() {
   const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
+  const canExport = can(user, 'deposito', 'metricas.export.pdf')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -313,11 +316,15 @@ export default function MetricasPage() {
           { label: 'balance', value: loading ? '...' : (data?.balance ?? 0), warning: !loading && (data?.balance ?? 0) < 0 },
           { label: 'movimientos', value: loading ? '...' : (data?.movimientosPeriodo ?? 0) },
         ]}
-        primaryAction={{
-          label: exporting ? 'Exportando…' : 'Exportar PDF',
-          onClick: handleExportPdf,
-          icon: <FileDown size={14} strokeWidth={1.5} />,
-        }}
+        primaryAction={
+          canExport
+            ? {
+                label: exporting ? 'Exportando…' : 'Exportar PDF',
+                onClick: handleExportPdf,
+                icon: <FileDown size={14} strokeWidth={1.5} />,
+              }
+            : undefined
+        }
       >
         <div className="space-y-4">
           <div className="flex items-center gap-2 font-body text-sm text-on-surface-variant">

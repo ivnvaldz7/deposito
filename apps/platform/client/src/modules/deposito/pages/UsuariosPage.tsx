@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import { useUsuarios, useCreateUsuario, useUpdateUsuarioRole, useDeleteUsuario } from '../queries/use-usuarios'
@@ -306,6 +307,7 @@ function DeleteButton({
 
 export default function UsuariosPage() {
   const currentUser = useAuthStore((s) => s.user)
+  const canManage = can(currentUser, 'deposito', 'usuarios_deposito.manage')
 
   const { data: usuarios = [], isLoading, error } = useUsuarios()
   const [crearOpen, setCrearOpen] = useState(false)
@@ -350,11 +352,15 @@ export default function UsuariosPage() {
           { label: 'encargados', value: encargadosCount },
           { label: 'solicitantes', value: solicitantesCount },
         ]}
-        primaryAction={{
-          label: 'Crear usuario',
-          onClick: () => setCrearOpen(true),
-          icon: <Plus size={14} strokeWidth={2} />,
-        }}
+        primaryAction={
+          canManage
+            ? {
+                label: 'Crear usuario',
+                onClick: () => setCrearOpen(true),
+                icon: <Plus size={14} strokeWidth={2} />,
+              }
+            : undefined
+        }
       />
 
       <CrearUsuarioModal
@@ -387,16 +393,18 @@ export default function UsuariosPage() {
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <RoleChip role={u.role} />
-                    <RoleSelector
-                      userId={u.id}
-                      currentRole={u.role}
-                      currentUserId={currentUser?.id ?? ''}
-                      onUpdated={handleUpdated}
-                    />
+                    {canManage && (
+                      <RoleSelector
+                        userId={u.id}
+                        currentRole={u.role}
+                        currentUserId={currentUser?.id ?? ''}
+                        onUpdated={handleUpdated}
+                      />
+                    )}
                   </div>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  {u.id !== currentUser?.id && (
+                  {canManage && u.id !== currentUser?.id && (
                     <DeleteButton usuario={u} onDeleted={handleDeleted} />
                   )}
                 </td>
@@ -422,17 +430,19 @@ export default function UsuariosPage() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <RoleChip role={u.role} />
-                {u.id !== currentUser?.id && (
+                {canManage && u.id !== currentUser?.id && (
                   <DeleteButton usuario={u} onDeleted={handleDeleted} />
                 )}
               </div>
             </div>
-            <RoleSelector
-              userId={u.id}
-              currentRole={u.role}
-              currentUserId={currentUser?.id ?? ''}
-              onUpdated={handleUpdated}
-            />
+            {canManage && (
+              <RoleSelector
+                userId={u.id}
+                currentRole={u.role}
+                currentUserId={currentUser?.id ?? ''}
+                onUpdated={handleUpdated}
+              />
+            )}
           </div>
         ))}
       </div>

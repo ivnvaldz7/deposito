@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { Mercado } from '@platform/db'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 import { ImportacionInicialEstuchesService, InitialEstuchesImportError } from '../services/importacion-inicial-estuches-service'
 
 const router = Router()
@@ -23,7 +23,7 @@ const payloadSchema = z.object({
   })).min(1),
 })
 
-router.post('/estuches-inicial', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+router.post('/estuches-inicial', authenticate, requirePermission('deposito', 'importaciones_iniciales.create'), async (req, res): Promise<void> => {
   const parsed = payloadSchema.safeParse(req.body)
   const idempotencyKey = req.header('Idempotency-Key')
   if (!parsed.success || !idempotencyKey) {

@@ -196,6 +196,7 @@ vi.mock('../middleware/auth', () => ({
       role,
       name: req.header('x-test-user-name') ?? 'Usuario Test',
     }
+    req.user = { sub: req.depositoUser.id, apps: { deposito: { rol: role, activo: true } } }
     next()
   },
 }))
@@ -378,5 +379,31 @@ describe('Órdenes de producción críticas', () => {
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(1)
     expect(res.body[0]?.solicitanteId).toBe('sol-1')
+  })
+
+  it('bloquea el detalle de una orden ajena antes de devolverla', async () => {
+    mocks.state.ordenes.push({
+      id: 'orden-ajena',
+      solicitanteId: 'sol-2',
+      aprobadoPor: null,
+      productoId: null,
+      categoria: 'estuche',
+      productoNombre: 'OLIVITASAN 500 ML',
+      mercado: 'argentina',
+      cantidad: 2,
+      urgencia: 'normal',
+      estado: 'solicitada',
+      motivoRechazo: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    const res = await request(app)
+      .get('/api/ordenes/orden-ajena')
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+
+    expect(res.status).toBe(403)
+    expect(res.body).toEqual({ message: 'No autorizado' })
   })
 })

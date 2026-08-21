@@ -4,12 +4,14 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { CommandPalette } from '../command-palette/CommandPalette'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
+import { useSSE } from '../../hooks/use-sse'
 
 const HIDE_TOPBAR_PATHS = ['/ingresos', '/ingresos/nueva', '/productos']
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const togglePalette = useCommandPaletteStore((s) => s.togglePalette)
+  useSSE()
   const hideTopbar = HIDE_TOPBAR_PATHS.some((p) => pathname.endsWith(p))
 
   useEffect(() => {

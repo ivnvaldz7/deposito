@@ -10,7 +10,6 @@ import * as XLSX from 'xlsx'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
 import { requirePermission } from '../../middlewares/require-permission'
 import { CatalogoError, CatalogoProductoService, isMarketCategory, normalizeCodigo, validateCatalogoInput } from '../services/catalogo-producto-service'
 

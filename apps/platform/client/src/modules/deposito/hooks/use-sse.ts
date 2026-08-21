@@ -41,13 +41,18 @@ async function fetchTicket(token: string): Promise<TicketResult> {
   }
 }
 
+import { can } from '@/lib/permissions'
+
 export function useSSE() {
   const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const addNotification = useNotificationsStore((s) => s.addNotification)
 
+  const canStream = can(user, 'deposito', 'eventos.stream')
+
   useEffect(() => {
-    if (!token) return
+    if (!token || !canStream) return
     const authToken = token
 
     let es: EventSource | null = null
@@ -124,5 +129,5 @@ export function useSSE() {
       if (retryTimeout) clearTimeout(retryTimeout)
       es?.close()
     }
-  }, [token, logout, addNotification])
+  }, [token, canStream, logout, addNotification])
 }

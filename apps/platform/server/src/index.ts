@@ -8,6 +8,7 @@ import notificationRoutes from './routes/notifications/index'
 import { createAdminRoutes } from './routes/admin/index'
 import { createAleBetRoutes } from './routes/ale-bet/index'
 import { createDepositoRoutes } from './deposito/routes/index'
+import depositoEventsRoutes from './deposito/routes/events'
 import { verifyToken } from './middlewares/verify-token'
 import { createBootstrapRoutes } from './routes/bootstrap/index'
 import { eventBus, createNotificationHandler } from '@platform/core'
@@ -45,6 +46,7 @@ app.use('/api', createBootstrapRoutes())
 // Module routes (JWT required)
 app.use('/api/notifications', verifyToken, notificationRoutes)
 app.use('/api/admin', verifyToken, createAdminRoutes())
+app.use('/api/deposito/events', depositoEventsRoutes)
 app.use('/api/deposito', verifyToken, createDepositoRoutes())
 app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
 

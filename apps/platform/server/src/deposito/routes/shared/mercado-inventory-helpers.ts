@@ -2,7 +2,8 @@ import { Mercado } from '@platform/db'
 import type { Router, Response } from 'express'
 import { z } from 'zod'
 import { authenticate } from '../../middleware/auth'
-import { requireRole } from '../../middleware/require-role'
+import { requirePermission } from '../../../middlewares/require-permission'
+import type { DepositoPermission } from '@platform/core'
 
 export const MERCADOS_VALIDOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
 
@@ -68,6 +69,10 @@ interface RegisterMercadoInventoryRoutesOptions<TRecord extends MercadoInventory
   router: Router
   operations: MercadoInventoryOperations<TRecord, TWhereInput>
   messages: MercadoInventoryRouteMessages
+  permissions: {
+    read: DepositoPermission
+    manage: DepositoPermission
+  }
 }
 
 export function parseCrearMercadoInventoryBody(body: unknown) {
@@ -126,8 +131,9 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
   router,
   operations,
   messages,
+  permissions,
 }: RegisterMercadoInventoryRoutesOptions<TRecord, TWhereInput>) {
-  router.get('/', authenticate, async (req, res): Promise<void> => {
+  router.get('/', authenticate, requirePermission('deposito', permissions.read), async (req, res): Promise<void> => {
     const mercadoValue = resolveMercadoQuery(req.query['mercado'])
 
     try {
@@ -141,7 +147,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     }
   })
 
-  router.post('/', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+  router.post('/', authenticate, requirePermission('deposito', permissions.manage), async (req, res): Promise<void> => {
     const result = parseCrearMercadoInventoryBody(req.body)
     if (!result.success) {
       sendInvalidMercadoInventoryBody(res, result.error)
@@ -163,7 +169,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     }
   })
 
-  router.put('/:id', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+  router.put('/:id', authenticate, requirePermission('deposito', permissions.manage), async (req, res): Promise<void> => {
     const id = req.params['id'] as string
     const result = parseEditarMercadoInventoryBody(req.body)
     if (!result.success) {
@@ -195,7 +201,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     }
   })
 
-  router.delete('/:id', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+  router.delete('/:id', authenticate, requirePermission('deposito', permissions.manage), async (req, res): Promise<void> => {
     const id = req.params['id'] as string
     try {
       await operations.delete(id)

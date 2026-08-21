@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { verifyToken as verifyPlatformToken } from '@platform/core'
+import { isValidAppRole, verifyToken as verifyPlatformToken } from '@platform/core'
 import { prisma } from '../lib/prisma'
 
 export async function authenticate(
@@ -24,10 +24,17 @@ export async function authenticate(
     return
   }
 
+  req.user = payload
+
   const depositoAccess = payload.apps.deposito
 
   if (!depositoAccess || depositoAccess.activo !== true) {
     res.status(403).json({ message: 'No tiene acceso a Depósito' })
+    return
+  }
+
+  if (!isValidAppRole('deposito', depositoAccess.rol)) {
+    res.status(403).json({ message: 'Rol de Depósito inválido' })
     return
   }
 
