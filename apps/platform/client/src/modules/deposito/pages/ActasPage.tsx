@@ -96,7 +96,7 @@ export default function ActasPage() {
         </div>
         {canCreate && (
           <button
-            onClick={() => navigate('/ingresos')}
+            onClick={() => navigate('/deposito/ingresos')}
             className="flex items-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float"
           >
             <Plus size={16} strokeWidth={2} />

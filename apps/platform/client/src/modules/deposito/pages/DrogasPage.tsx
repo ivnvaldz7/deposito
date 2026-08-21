@@ -1,13 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import {
-  Trash2, CalendarClock, Search, Pill, FlaskConical,
-  Edit, Syringe, Check, X,
-} from 'lucide-react'
-import { useAuthStore } from '@/stores/auth-store'
+import { CalendarClock, Search, Pill, FlaskConical } from 'lucide-react'
 import { ApiError } from '../lib/api'
-import { useDrogas, useDeleteDroga, useUpdateDroga, type DrogaRecord } from '../queries/use-drogas'
-import { toast } from '../lib/toast'
+import { useDrogas, type DrogaRecord } from '../queries/use-drogas'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { StatusBadge } from '@/components/ui/StatusBadge'
@@ -108,17 +103,11 @@ function DrugIcon({ nombre }: { nombre: string }) {
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DrogasPage() {
-  const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
   const [searchParams] = useSearchParams()
 
   const { data: records = [], isLoading, error } = useDrogas()
-  const deleteMutation = useDeleteDroga()
-  const updateMutation = useUpdateDroga()
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [searchQuery, setSearchQuery] = useState('')
-  const [editingLote, setEditingLote] = useState<string | null>(null)
-  const [loteValue, setLoteValue] = useState('')
 
   useEffect(() => {
     fetchCatalogoProductos('droga')
@@ -167,37 +156,8 @@ export default function DrogasPage() {
     return groups
   }, [groups, records, productoFiltro, productoIdFiltro, hasFocusSignal, searchQuery, catalogMap])
 
-  async function handleDelete(id: string, nombre: string) {
-    try {
-      await deleteMutation.mutateAsync(id)
-      toast.success(`Droga "${nombre}" eliminada.`)
-    } catch {
-      toast.error('No se pudo eliminar la droga.')
-    }
-  }
-
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar el inventario'} />
-
-  function startEditLote(id: string, current: string | null) {
-    setEditingLote(id)
-    setLoteValue(current ?? '')
-  }
-
-  async function saveLote(id: string) {
-    try {
-      await updateMutation.mutateAsync({ id, lote: loteValue.trim() || null })
-      toast.success('Lote actualizado')
-      setEditingLote(null)
-    } catch {
-      toast.error('No se pudo actualizar el lote')
-    }
-  }
-
-  function cancelEditLote() {
-    setEditingLote(null)
-    setLoteValue('')
-  }
 
   return (
     <div className="flex flex-col h-full">
@@ -266,39 +226,7 @@ export default function DrogasPage() {
                         </span>
                       </div>
                       <div className="col-span-3 text-sm text-on-surface">
-                        {editingLote === lote.id ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="text"
-                              value={loteValue}
-                              onChange={(e) => setLoteValue(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') saveLote(lote.id)
-                                if (e.key === 'Escape') cancelEditLote()
-                              }}
-                              className="w-full bg-surface-container-high border border-outline-variant rounded px-2 py-1 text-sm text-on-surface focus:outline-none focus:border-primary"
-                              autoFocus
-                            />
-                            <button
-                              type="button"
-                              onClick={() => saveLote(lote.id)}
-                              className="shrink-0 p-1 rounded text-primary hover:bg-primary-container/20 transition-colors"
-                              title="Confirmar"
-                            >
-                              <Check size={16} strokeWidth={2} />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEditLote}
-                              className="shrink-0 p-1 rounded text-on-surface-variant hover:text-error hover:bg-error-container/10 transition-colors"
-                              title="Cancelar"
-                            >
-                              <X size={16} strokeWidth={2} />
-                            </button>
-                          </div>
-                        ) : (
-                          lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>
-                        )}
+                        {lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>}
                       </div>
                       <div className="col-span-2 text-right text-sm text-on-surface font-medium tabular-nums">
                         {lote.cantidad}
@@ -310,14 +238,6 @@ export default function DrogasPage() {
                           showDot={getStatusVariant(lote.cantidad) !== 'critical'}
                         />
                         <VencimientoChip vencimiento={lote.vencimiento} />
-                        <button
-                          type="button"
-                          onClick={() => startEditLote(lote.id, lote.lote)}
-                          className="hover:text-primary transition-colors shrink-0 ml-1 p-1 rounded hover:bg-surface-variant"
-                          title="Editar lote"
-                        >
-                          <Edit size={14} />
-                        </button>
                       </div>
                     </div>
                   )
@@ -343,23 +263,9 @@ export default function DrogasPage() {
                       <span className="font-body text-sm font-medium text-on-surface truncate">
                         {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
                       </span>
-                      {editingLote === lote.id ? (
-                        <input
-                          type="text"
-                          value={loteValue}
-                          onChange={(e) => setLoteValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') saveLote(lote.id)
-                            if (e.key === 'Escape') cancelEditLote()
-                          }}
-                          className="w-20 bg-surface-container-high border border-outline-variant rounded px-1.5 py-0.5 text-xs text-on-surface focus:outline-none focus:border-primary"
-                          autoFocus
-                        />
-                      ) : (
-                        <span className="text-xs text-on-surface-variant shrink-0">
-                          {lote.lote ?? '—'}
-                        </span>
-                      )}
+                      <span className="text-xs text-on-surface-variant shrink-0">
+                        {lote.lote ?? '—'}
+                      </span>
                     </div>
                     <span className="text-sm font-bold text-on-surface tabular-nums shrink-0">
                       {lote.cantidad}
@@ -369,20 +275,6 @@ export default function DrogasPage() {
                       label={getStatusVariant(lote.cantidad) === 'optimal' ? 'Optimo' : getStatusVariant(lote.cantidad) === 'low' ? 'Bajo' : 'Crítico'}
                       showDot={getStatusVariant(lote.cantidad) !== 'critical'}
                     />
-                    {isEncargado && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(lote.id, `${lote.nombre} (lote ${lote.lote ?? 'sin lote'})`)}
-                        disabled={deleteMutation.isPending}
-                        className="hover:text-error transition-colors disabled:opacity-40 shrink-0"
-                        title="Eliminar"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-                    <button className="hover:text-primary transition-colors shrink-0" title="Editar">
-                      <Edit size={14} />
-                    </button>
                   </div>
                 )
               })

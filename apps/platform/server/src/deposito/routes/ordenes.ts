@@ -179,11 +179,11 @@ router.post(
 router.get(
   '/',
   authenticate,
+  requirePermission('deposito', 'ordenes.read'),
   async (req: Request, res: Response): Promise<void> => {
     const { estado } = req.query
 
     const estadoFilter = typeof estado === 'string' ? estado : undefined
-  requirePermission('deposito', 'ordenes.read'),
 
     // Solicitante solo ve sus propias órdenes
     const roleFilter =
@@ -214,11 +214,11 @@ router.get(
 router.get(
   '/:id',
   authenticate,
+  requirePermission('deposito', 'ordenes.read'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
     try {
-  requirePermission('deposito', 'ordenes.read'),
       const orden = await prisma.ordenProduccion.findUnique({
         where: { id },
         include: {

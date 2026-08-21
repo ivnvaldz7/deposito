@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/Button'
 import type { Pedido } from '../lib/api'
 import { canAccionesBarraArmador, canConfirmarCancelacion, canDespachar, canPreparar, canTomar, esArmadorAsignado } from '../lib/estados'
+import { roleHasPermission } from '@platform/core/permissions'
 
 interface ArmadorActionBarProps {
   pedido: Pedido
@@ -35,7 +36,7 @@ export function ArmadorActionBar({
 }: ArmadorActionBarProps) {
   if (!canAccionesBarraArmador(pedido, rol, userId)) return null
 
-  const enArmado = pedido.estado === 'EN_ARMADO' && (rol === 'admin' || rol === 'encargado' || esArmadorAsignado(pedido, userId))
+  const enArmado = pedido.estado === 'EN_ARMADO' && (roleHasPermission('ale-bet', rol, 'pedidos.take') || esArmadorAsignado(pedido, userId))
   const prepararListo = canPreparar(pedido, rol, userId)
   const itemsCompletados = pedido.items.filter((i) => i.completado).length
   const itemsPendientes = pedido.items.length - itemsCompletados

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { X } from 'lucide-react'
 import { type Producto } from '../lib/api'
 import { useLotesHistorial } from '../queries/use-productos'
+import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 
 interface HistorialLotesModalProps {
   productos: Producto[]
@@ -9,6 +11,7 @@ interface HistorialLotesModalProps {
 }
 
 export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalProps) {
+  const user = useAuthStore((s) => s.user)
   const [selectedProductoId, setSelectedProductoId] = useState<string>('')
   const [estadoFilter, setEstadoFilter] = useState<'TODOS' | 'ACTIVOS' | 'ARCHIVADOS'>('TODOS')
   const [searchTerm, setSearchTerm] = useState('')
@@ -68,7 +71,9 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
             >
               <option value="TODOS">Todos</option>
               <option value="ACTIVOS">Activos</option>
-              <option value="ARCHIVADOS">Archivados</option>
+              {can(user, 'ale-bet', 'stock.read.archived') && (
+                <option value="ARCHIVADOS">Archivados</option>
+              )}
             </select>
           </div>
 

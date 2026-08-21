@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { roleHasPermission } from '@platform/core/permissions'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { type Pedido, type PedidoEstado } from '../lib/api'
@@ -29,7 +30,7 @@ function porActualizadoDesc(a: { updatedAt: string }, b: { updatedAt: string }):
 }
 
 function rankBandeja(pedido: Pedido, rol: string, userId: string): number {
-  const propioEnArmado = pedido.estado === 'EN_ARMADO' && (rol === 'admin' || esArmadorAsignado(pedido, userId))
+  const propioEnArmado = pedido.estado === 'EN_ARMADO' && (roleHasPermission('ale-bet', rol, 'pedidos.take') || esArmadorAsignado(pedido, userId))
   if (propioEnArmado) return 0.5
   return ESTADO_META[pedido.estado].priority
 }
@@ -131,8 +132,8 @@ export default function PedidosPage() {
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
   const userId = user?.sub ?? ''
-  const esOperativo = rol === 'armador' || rol === 'admin'
-  const puedeCrear = rol === 'admin' || rol === 'vendedor'
+  const esOperativo = can(user, 'ale-bet', 'pedidos.prepare') || can(user, 'ale-bet', 'pedidos.take')
+  const puedeCrear = can(user, 'ale-bet', 'pedidos.create')
 
   const armadorFiltros = [
     { valor: '', etiqueta: 'Todos' },

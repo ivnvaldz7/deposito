@@ -66,4 +66,16 @@ describe('DrogasPage', () => {
     expect(screen.queryByText(/paracetamol/i)).not.toBeInTheDocument()
   })
 
+  it('is strictly a read-only view with no CRUD actions', async () => {
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url.startsWith('/drogas')) return createDrogaRecords()
+      return []
+    })
+    render(<MemoryRouter><DrogasPage /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
+    })
+    expect(screen.queryByTitle(/Eliminar/i)).not.toBeInTheDocument()
+    expect(screen.queryByTitle(/Editar lote/i)).not.toBeInTheDocument()
+  })
 })

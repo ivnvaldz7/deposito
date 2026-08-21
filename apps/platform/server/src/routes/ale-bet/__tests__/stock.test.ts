@@ -6,14 +6,21 @@ import jwt from 'jsonwebtoken'
 // ──────────────────────────────────────────────────
 // Hoisted mocks
 // ──────────────────────────────────────────────────
-const { mockDb } = vi.hoisted(() => ({
+const { mockDb, mockPermissions } = vi.hoisted(() => ({
   mockDb: {
     producto: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     movimientoStock: {
       findMany: vi.fn(),
     },
+    ubicacionStock: {
+      findMany: vi.fn(),
+    },
+  },
+  mockPermissions: {
+    archivedStockAllowed: true,
   },
 }))
 
@@ -60,6 +67,15 @@ vi.mock('@platform/core', () => {
 
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
     getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+    hasPermission: (user: { apps?: Record<string, { activo?: boolean; rol?: string }> } | null, app: string, permission: string) => {
+      const access = user?.apps?.[app]
+      if (!access?.activo) return false
+      const role = access.rol ?? ''
+      if (permission === 'stock.read') return ['admin', 'encargado', 'vendedor', 'armador', 'facturacion', 'observador'].includes(role)
+      if (permission === 'stock.read.archived') return mockPermissions.archivedStockAllowed && ['admin', 'encargado'].includes(role)
+      if (permission === 'stock.transfer') return ['admin', 'encargado'].includes(role)
+      return false
+    },
     verifyAccessToken: (token: string) => {
       try {
         return _jwt.verify(token, _getSecret())
@@ -132,6 +148,7 @@ async function createTestApp(): Promise<Express> {
 describe('Ale-Bet Stock', () => {
   beforeEach(() => {
     process.env.PLATFORM_JWT_SECRET = JWT_SECRET
+    mockPermissions.archivedStockAllowed = true
   })
 
   describe('GET /api/ale-bet/stock', () => {
@@ -342,6 +359,52 @@ describe('Ale-Bet Stock', () => {
       expect(res.body.error).toBe('No tiene acceso a esta aplicación')
     })
 
+    it('uses stock.read.archived rather than role or Platform Admin to include archived lots', async () => {
+      mockDb.producto.findMany.mockResolvedValue([])
+      mockDb.movimientoStock.findMany.mockResolvedValue([])
+      const app = await createTestApp()
+
+      mockPermissions.archivedStockAllowed = false
+      await request(app)
+        .get('/api/ale-bet/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken({ isPlatformAdmin: true })}`)
+        .expect(200)
+
+      const deniedQuery = mockDb.producto.findMany.mock.calls.at(-1)?.[0]
+      expect(deniedQuery.include.lotes.where).toEqual({ activo: true })
+
+      mockPermissions.archivedStockAllowed = true
+      await request(app)
+        .get('/api/ale-bet/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      const allowedQuery = mockDb.producto.findMany.mock.calls.at(-1)?.[0]
+      expect(allowedQuery.include.lotes.where).toBeUndefined()
+    })
+
+    it('denies inactive, absent, and Platform Admin-only Ale-Bet access before querying stock', async () => {
+      const app = await createTestApp()
+      const tokens = [
+        signToken({ apps: { 'ale-bet': { rol: 'admin', activo: false } } }),
+        signSinAccesoToken(),
+        signToken({
+          sub: 'platform-admin-without-alebet',
+          isPlatformAdmin: true,
+          apps: { deposito: { rol: 'encargado', activo: true } },
+        }),
+      ]
+
+      for (const token of tokens) {
+        await request(app)
+          .get('/api/ale-bet/stock?includeArchived=true')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(403)
+      }
+
+      expect(mockDb.producto.findMany).not.toHaveBeenCalled()
+    })
+
     it('returns 500 on DB error', async () => {
       mockDb.producto.findMany.mockRejectedValue(new Error('DB connection failed'))
       const app = await createTestApp()
@@ -352,6 +415,32 @@ describe('Ale-Bet Stock', () => {
         .expect(500)
 
       expect(res.body.error).toBe('DB connection failed')
+    })
+  })
+
+  describe('GET /api/ale-bet/productos/:id/stock', () => {
+    it('uses stock.read.archived for product stock as well', async () => {
+      mockDb.producto.findUnique.mockResolvedValue({ id: 'prod-1', nombre: 'Producto A', lotes: [] })
+      mockDb.ubicacionStock.findMany.mockResolvedValue([])
+      const app = await createTestApp()
+
+      mockPermissions.archivedStockAllowed = false
+      await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      const deniedQuery = mockDb.producto.findUnique.mock.calls.at(-1)?.[0]
+      expect(deniedQuery.select.lotes.where).toEqual({ activo: true })
+
+      mockPermissions.archivedStockAllowed = true
+      await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      const allowedQuery = mockDb.producto.findUnique.mock.calls.at(-1)?.[0]
+      expect(allowedQuery.select.lotes.where).toBeUndefined()
     })
   })
 

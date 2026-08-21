@@ -1,7 +1,5 @@
 export {
   useDrogas,
-  useCreateDroga,
-  useDeleteDroga,
   drogasKeys,
 } from './use-drogas'
 export type { DrogaRecord } from './use-drogas'

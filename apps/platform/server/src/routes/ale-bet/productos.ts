@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { platformDb as prisma, Prisma, TipoMovimiento } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
-import { getAppAccess } from '@platform/core'
+import { getAppAccess, hasPermission } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { requirePermission } from '../../middlewares/require-permission'
 import { VENCIMIENTO_DEFAULT_AÑOS, calcularUnidades, validarSueltos } from './constants'
@@ -372,8 +372,7 @@ router.post('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 's
 // available for existing clients; these contracts never derive stock from cajas/sueltos.
 router.get('/:id/stock', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (req, res) => {
   const user = req.user as JwtPayload
-  const appAccess = getAppAccess(user, 'ale-bet')
-  const includeArchived = req.query.includeArchived === 'true' && ['admin', 'encargado'].includes(appAccess?.rol ?? '')
+  const includeArchived = req.query.includeArchived === 'true' && hasPermission(user, 'ale-bet', 'stock.read.archived')
   const result = await getManagedProductStock(String(req.params.id), prisma, includeArchived)
   res.json(result)
 })

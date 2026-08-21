@@ -28,6 +28,7 @@ import {
   esArmadorAsignado,
   pedidoClientePendiente,
 } from '../lib/estados'
+import { roleHasPermission } from '@platform/core/permissions'
 import type { Cliente, PedidoItemInput } from '../lib/api'
 import {
   descargarRemitoPdf,
@@ -822,7 +823,7 @@ export default function PedidoDetailPage() {
   )
 
   const puedeProgreso = pedido
-    ? pedido.estado === 'EN_ARMADO' && (rol === 'admin' || (rol === 'armador' && esArmadorAsignado(pedido, userId)))
+    ? pedido.estado === 'EN_ARMADO' && roleHasPermission('ale-bet', rol, 'pedidos.complete_items') && (esArmadorAsignado(pedido, userId) || rol === 'admin' || rol === 'encargado')
     : false
   const prepararListo = pedido ? canPreparar(pedido, rol, userId) : false
   const itemsCompletados = pedido?.items.filter((i) => i.completado).length ?? 0

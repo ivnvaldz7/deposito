@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { platformDb as prisma } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
-import { getAppAccess } from '@platform/core'
+import { hasPermission } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { requirePermission } from '../../middlewares/require-permission'
 import { InventoryConflictError, transferInternal } from './inventory-service'
@@ -19,8 +19,7 @@ const transferSchema = z.object({
 
 router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (req, res) => {
   const user = req.user as JwtPayload
-  const appAccess = getAppAccess(user, 'ale-bet')
-  const includeArchived = req.query.includeArchived === 'true' && (user.isPlatformAdmin || ['admin', 'encargado'].includes(appAccess?.rol ?? ''))
+  const includeArchived = req.query.includeArchived === 'true' && hasPermission(user, 'ale-bet', 'stock.read.archived')
 
   const [productos, movimientos] = await Promise.all([
     prisma.producto.findMany({

@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
 // Types (copied from DrogasPage — only the ones needed for API responses)
@@ -23,31 +23,5 @@ export function useDrogas() {
   return useQuery({
     queryKey: drogasKeys.list(),
     queryFn: () => api.get<DrogaRecord[]>('/drogas'),
-  })
-}
-
-export function useCreateDroga() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: { nombre: string; cantidad: number; lote?: string; vencimiento?: string }) =>
-      api.post<DrogaRecord>('/drogas', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: drogasKeys.all }),
-  })
-}
-
-export function useUpdateDroga() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; lote?: string | null; cantidad?: number }) =>
-      api.put<DrogaRecord>(`/drogas/${id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: drogasKeys.all }),
-  })
-}
-
-export function useDeleteDroga() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => api.del(`/drogas/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: drogasKeys.all }),
   })
 }

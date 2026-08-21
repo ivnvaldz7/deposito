@@ -406,4 +406,24 @@ describe('Órdenes de producción críticas', () => {
     expect(res.status).toBe(403)
     expect(res.body).toEqual({ message: 'No autorizado' })
   })
+
+  it('ejecuta ordenes.read antes de consultar el listado', async () => {
+    const res = await request(app)
+      .get('/api/ordenes')
+      .set('x-test-role', 'rol-desconocido')
+      .set('x-test-user-id', 'unknown-1')
+
+    expect(res.status).toBe(403)
+    expect(mocks.prisma.ordenProduccion.findMany).not.toHaveBeenCalled()
+  })
+
+  it('ejecuta ordenes.read antes de consultar el detalle', async () => {
+    const res = await request(app)
+      .get('/api/ordenes/orden-ajena')
+      .set('x-test-role', 'rol-desconocido')
+      .set('x-test-user-id', 'unknown-1')
+
+    expect(res.status).toBe(403)
+    expect(mocks.prisma.ordenProduccion.findUnique).not.toHaveBeenCalled()
+  })
 })
