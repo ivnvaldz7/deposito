@@ -55,6 +55,7 @@ function signSinAccesoToken(): string {
 // ──────────────────────────────────────────────────
 vi.mock('@platform/core', () => {
   const _jwt = require('jsonwebtoken')
+  const { hasPermission } = require('@platform/core/permissions')
 
   function _getSecret(): string {
     return process.env.PLATFORM_JWT_SECRET || JWT_SECRET
@@ -67,6 +68,7 @@ vi.mock('@platform/core', () => {
     
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
     getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+    hasPermission,
     verifyAccessToken: (token: string) => {
       try {
         return _jwt.verify(token, _getSecret())
@@ -288,7 +290,7 @@ describe('Ale-Bet Historial', () => {
         .set('Authorization', `Bearer ${signSinAccesoToken()}`)
         .expect(403)
 
-      expect(res.body.error).toBe('No tiene acceso a esta aplicación')
+      expect(res.body.error).toBe('Permiso insuficiente')
     })
 
     it('returns 500 on DB error', async () => {
@@ -362,7 +364,7 @@ describe('Ale-Bet Historial', () => {
         .set('Authorization', `Bearer ${signSinAccesoToken()}`)
         .expect(403)
 
-      expect(res.body.error).toBe('No tiene acceso a esta aplicación')
+      expect(res.body.error).toBe('Permiso insuficiente')
     })
 
     it('returns 500 on DB error', async () => {

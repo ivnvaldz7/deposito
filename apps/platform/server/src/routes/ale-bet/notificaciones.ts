@@ -1,14 +1,14 @@
 import { Router } from 'express'
 import { getAppAccess } from '@platform/core'
 import type { JwtPayload } from '@platform/core'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 import { sseManager } from './sse-manager'
 
 const router = Router()
 
 router.get(
   '/stream',
-  requireApp('ale-bet', ['admin', 'vendedor', 'armador', 'encargado']),
+  requirePermission('ale-bet', 'notificaciones.stream'),
   (req, res) => {
     const user = req.user as JwtPayload | undefined
 

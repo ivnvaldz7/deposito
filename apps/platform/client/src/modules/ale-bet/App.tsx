@@ -31,14 +31,14 @@ export default function AleBetModule() {
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route index element={<Navigate to="dashboard" replace />} />
-              <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="dashboard" element={<PermissionRoute app="ale-bet" permission="dashboard.read"><DashboardPage /></PermissionRoute>} />
               <Route path="pedidos" element={<PermissionRoute app="ale-bet" permission="pedidos.read"><PedidosPage /></PermissionRoute>} />
               <Route path="pedidos/nuevo" element={<PermissionRoute app="ale-bet" permission="pedidos.create"><NuevoPedidoPage /></PermissionRoute>} />
               <Route path="pedidos/:id" element={<PermissionRoute app="ale-bet" permission="pedidos.read"><PedidoDetailPage /></PermissionRoute>} />
               <Route path="productos" element={<ProductosPage />} />
-              <Route path="clientes" element={<ClientesPage />} />
+              <Route path="clientes" element={<PermissionRoute app="ale-bet" permission="clientes.read"><ClientesPage /></PermissionRoute>} />
               <Route path="stock" element={<StockPage />} />
-              <Route path="historial" element={<HistorialPage />} />
+              <Route path="historial" element={<PermissionRoute app="ale-bet" permission="historial.read"><HistorialPage /></PermissionRoute>} />
               <Route path="transportistas" element={<PermissionRoute app="ale-bet" permission="transportistas.read"><TransportistasPage /></PermissionRoute>} />
               <Route path="ventas" element={<PermissionRoute app="ale-bet" permission="facturacion.read"><VentasPage /></PermissionRoute>} />
               <Route path="*" element={<Navigate to="dashboard" replace />} />

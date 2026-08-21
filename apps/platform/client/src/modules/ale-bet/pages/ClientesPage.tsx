@@ -79,7 +79,7 @@ interface ClienteFormModalProps {
   error: string | null
   guardando: boolean
   esNuevo: boolean
-  esFacturacion: boolean
+  puedeEditar: boolean
   onChange: (campo: keyof ClienteFormState, valor: string) => void
   onClose: () => void
   onGuardar: (validar: boolean) => void
@@ -93,7 +93,7 @@ function ClienteFormModal({
   error,
   guardando,
   esNuevo,
-  esFacturacion,
+  puedeEditar,
   onChange,
   onClose,
   onGuardar,
@@ -110,7 +110,7 @@ function ClienteFormModal({
       desktop="modal"
       footer={
         <div className="flex flex-wrap items-center justify-end gap-2">
-          {!esNuevo && (
+          {!esNuevo && puedeEditar && (
             <button
               type="button"
               onClick={onToggleActivo}
@@ -123,12 +123,12 @@ function ClienteFormModal({
           <Button variant="outline" onClick={onClose} disabled={guardando}>
             Cancelar
           </Button>
-          {pendiente && (
+          {pendiente && puedeEditar && (
             <Button onClick={() => onGuardar(true)} loading={guardando}>
               VALIDAR CLIENTE
             </Button>
           )}
-          <Button variant={pendiente ? "outline" : "default"} onClick={() => onGuardar(false)} loading={guardando}>
+          <Button variant={pendiente && puedeEditar ? "outline" : "default"} onClick={() => onGuardar(false)} loading={guardando}>
             {esNuevo ? 'Crear cliente' : 'Guardar'}
           </Button>
         </div>
@@ -150,7 +150,7 @@ function ClienteFormModal({
         <div className="space-y-3 mt-5">
           <h4 className="font-body text-[12px] font-semibold text-primary uppercase tracking-wider">Domicilio</h4>
           <Campo label="Dirección" value={form.direccion} maxLength={200} onChange={(v) => onChange('direccion', v)} />
-          {(esFacturacion || !esNuevo) && (
+          {(puedeEditar || !esNuevo) && (
             <>
               <Campo label="Localidad" value={form.localidad} maxLength={120} onChange={(v) => onChange('localidad', v)} />
               <Campo label="Provincia" value={form.provincia} maxLength={120} onChange={(v) => onChange('provincia', v)} />
@@ -158,7 +158,7 @@ function ClienteFormModal({
           )}
         </div>
 
-        {(esFacturacion || !esNuevo) && (
+        {(puedeEditar || !esNuevo) && (
           <div className="space-y-3 mt-5">
             <h4 className="font-body text-[12px] font-semibold text-primary uppercase tracking-wider">Datos Fiscales</h4>
             <Campo label="CUIT" value={form.cuit} maxLength={11} tipo="tel" onChange={(v) => onChange('cuit', v)} />
@@ -206,11 +206,14 @@ function ClienteCard({ cliente, puedeEditar, onEditar }: ClienteCardProps) {
   )
 }
 
+import { can } from '@/lib/permissions'
+
 export default function ClientesPage() {
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
-  const esFacturacion = rol === 'admin' || rol === 'facturacion'
-  const puedeCrear = esFacturacion || rol === 'vendedor'
+  const esVendedor = rol === 'vendedor'
+  const puedeCrear = can(user, 'ale-bet', 'clientes.create')
+  const puedeEditar = can(user, 'ale-bet', 'clientes.update')
 
   const { data: clientes = [], isLoading, error } = useClientes()
   const createMutation = useCreateCliente()
@@ -284,7 +287,7 @@ export default function ClientesPage() {
           contacto: form.contacto.trim() || undefined,
           referencia: form.referencia.trim() || undefined,
           direccion: form.direccion.trim() || undefined,
-          ...(esFacturacion ? {
+          ...(!esVendedor ? {
             localidad: form.localidad.trim() || undefined,
             provincia: form.provincia.trim() || undefined,
             cuit: form.cuit.trim() || undefined,
@@ -292,7 +295,7 @@ export default function ClientesPage() {
             condicionVenta: form.condicionVenta.trim() || undefined,
           } : {})
         })
-        toast.success(rol === 'vendedor' ? 'Cliente creado · quedará pendiente de validación' : 'Cliente creado')
+        toast.success(esVendedor ? 'Cliente creado · quedará pendiente de validación' : 'Cliente creado')
       } else if (modal) {
         await updateMutation.mutateAsync({
           id: modal.cliente.id,
@@ -366,9 +369,11 @@ export default function ClientesPage() {
             <Badge variant="warning">{pendientes.length}</Badge>
           </div>
           <p className="mt-1 font-body text-[12px] text-on-surface-variant">
-            {rol === 'vendedor'
+            {esVendedor
               ? 'Facturación completará los datos y validará el cliente'
-              : 'Completá los datos fiscales y validá para habilitarlo en pedidos'}
+              : puedeEditar
+                ? 'Completá los datos fiscales y validá para habilitarlo en pedidos'
+                : 'Requiere validación antes de habilitarlo en pedidos'}
           </p>
           <div className="mt-3 space-y-2">
             {pendientes.map((c) => (
@@ -384,7 +389,7 @@ export default function ClientesPage() {
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {estadoBadge(c.estado)}
-                  {esFacturacion && (
+                  {puedeEditar && (
                     <button
                       type="button"
                       onClick={() => abrirEdicion(c)}
@@ -408,7 +413,7 @@ export default function ClientesPage() {
         <>
           <div className="space-y-3 md:hidden" data-testid="clientes-mobile">
             {filtrados.map((c) => (
-              <ClienteCard key={c.id} cliente={c} puedeEditar={esFacturacion} onEditar={() => abrirEdicion(c)} />
+              <ClienteCard key={c.id} cliente={c} puedeEditar={puedeEditar} onEditar={() => abrirEdicion(c)} />
             ))}
           </div>
 
@@ -435,7 +440,7 @@ export default function ClientesPage() {
                       <Badge variant={c.activo ? 'success' : 'default'}>{c.activo ? 'Activo' : 'Inactivo'}</Badge>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      {esFacturacion && (
+                      {puedeEditar && (
                         <button
                           type="button"
                           onClick={() => abrirEdicion(c)}
@@ -460,7 +465,7 @@ export default function ClientesPage() {
         error={formError}
         guardando={guardando}
         esNuevo={modal === 'nuevo'}
-        esFacturacion={esFacturacion}
+        puedeEditar={puedeEditar}
         onChange={cambiarForm}
         onClose={cerrarModal}
         onGuardar={(validar) => void guardar(validar)}

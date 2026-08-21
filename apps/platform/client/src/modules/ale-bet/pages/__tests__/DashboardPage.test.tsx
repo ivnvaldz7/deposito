@@ -55,4 +55,16 @@ describe('DashboardPage (Ale-Bet)', () => {
     expect(screen.getByText('45')).toBeInTheDocument()
     expect(screen.getByText('Pedidos recientes')).toBeInTheDocument()
   })
+
+  it('keeps encargado on the general dashboard instead of the armador-only presentation', async () => {
+    ;(useAuthStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      user: createMockUser({ apps: { 'ale-bet': { rol: 'encargado', activo: true } } }),
+      token: 'token',
+    })
+    vi.mocked(aleBetApi.dashboard).mockResolvedValue(createDashboardOverview())
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+
+    await waitFor(() => expect(screen.getByText('Stock crítico')).toBeInTheDocument())
+    expect(screen.queryByText('PENDIENTES DE TOMAR')).not.toBeInTheDocument()
+  })
 })

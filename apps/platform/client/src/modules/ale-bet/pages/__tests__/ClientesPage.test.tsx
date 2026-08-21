@@ -178,6 +178,18 @@ describe('ClientesPage', () => {
     expect(screen.queryByRole('button', { name: 'Desactivar' })).not.toBeInTheDocument()
   })
 
+  it('keeps armador read-only without applying the vendedor-specific pending message', async () => {
+    mockRol('armador')
+    vi.mocked(aleBetApi.clientes.list).mockResolvedValue([createClientePendiente(), createCliente()])
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId('clientes-pendientes')).toBeInTheDocument())
+    expect(pendientesSection().getByText('Requiere validación antes de habilitarlo en pedidos')).toBeInTheDocument()
+    expect(pendientesSection().queryByText(/Facturación completará los datos/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Nuevo cliente/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument()
+  })
+
   it('shows server 400 error when creating a client without contacto or referencia', async () => {
     vi.mocked(aleBetApi.clientes.list).mockResolvedValue([])
     vi.mocked(aleBetApi.clientes.create).mockRejectedValue(

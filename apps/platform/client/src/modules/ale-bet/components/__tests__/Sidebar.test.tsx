@@ -108,4 +108,12 @@ describe('Sidebar', () => {
     renderSidebar()
     expect(screen.queryByText('Transportistas')).not.toBeInTheDocument()
   })
+
+  it('shows Clientes and Historial only through their read permissions', () => {
+    mockRol('armador')
+    renderSidebar()
+
+    expect(screen.getByText('Clientes')).toBeInTheDocument()
+    expect(screen.getByText('Historial')).toBeInTheDocument()
+  })
 })

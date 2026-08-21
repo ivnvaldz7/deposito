@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { platformDb as prisma } from '@platform/db'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 import { calcularUnidades } from './constants'
 
 const router = Router()
@@ -17,7 +17,7 @@ async function getPlatformUserNames(): Promise<Map<string, string>> {
   }
 }
 
-router.get('/', requireApp('ale-bet'), async (_req, res) => {
+router.get('/', requirePermission('ale-bet', 'dashboard.read'), async (_req, res) => {
   const hoy = new Date()
   hoy.setHours(0, 0, 0, 0)
   const mañana = new Date(hoy)

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { type DashboardPedidoReciente } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/Badge'
 import { useDashboardOverview, dashboardKeys } from '../queries'
@@ -159,7 +160,10 @@ export default function DashboardPage() {
   if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando dashboard...</p>
   if (error || !data) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'No se pudo cargar el dashboard'}</p>
 
-  const isAdmin = user?.apps?.['ale-bet']?.rol === 'admin'
+  const esArmador = user?.apps?.['ale-bet']?.rol === 'armador'
+  const canReadProductos = can(user, 'ale-bet', 'productos.read')
+  const canReadPedidos = can(user, 'ale-bet', 'pedidos.read')
+  const canReadStock = can(user, 'ale-bet', 'stock.read')
 
   return (
     <div className="space-y-6 text-on-surface">
@@ -169,7 +173,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {user?.apps?.['ale-bet']?.rol === 'armador' ? (
+        {esArmador ? (
           <>
             <MetricCard label="PENDIENTES DE TOMAR" value={data.pendientesTomar} subtitle="Pedidos Aprobados" valueClassName="text-warning" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'APROBADO' } })} />
             <MetricCard label="EN ARMADO" value={data.enArmado} subtitle="Tus pedidos asignados" valueClassName="text-info" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } })} />
@@ -178,10 +182,10 @@ export default function DashboardPage() {
           </>
         ) : (
           <>
-            <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={isAdmin ? () => navigate('/ale-bet/productos', { state: { stockCritico: true } }) : undefined} />
-            <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { pedidosHoy: true } }) : undefined} />
-            <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={isAdmin ? () => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } }) : undefined} />
-            <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/stock') : undefined} />
+            <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={canReadProductos ? () => navigate('/ale-bet/productos', { state: { stockCritico: true } }) : undefined} />
+            <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={canReadPedidos ? () => navigate('/ale-bet/pedidos', { state: { pedidosHoy: true } }) : undefined} />
+            <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={canReadPedidos ? () => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } }) : undefined} />
+            <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={canReadStock ? () => navigate('/ale-bet/stock') : undefined} />
           </>
         )}
       </div>
@@ -189,9 +193,11 @@ export default function DashboardPage() {
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
           <h2 className="text-[24px] font-bold tracking-tight text-on-surface">Pedidos recientes</h2>
-          <button type="button" onClick={() => navigate('/ale-bet/pedidos')} className="font-body text-[12px] font-medium text-on-surface-variant transition hover:text-on-surface">
-            Ver todos →
-          </button>
+          {canReadPedidos && (
+            <button type="button" onClick={() => navigate('/ale-bet/pedidos')} className="font-body text-[12px] font-medium text-on-surface-variant transition hover:text-on-surface">
+              Ver todos →
+            </button>
+          )}
         </div>
 
         <div className="bg-surface-container-high rounded-xl overflow-hidden">
@@ -203,7 +209,7 @@ export default function DashboardPage() {
             <div className="text-center">Acción</div>
           </div>
 
-          {(user?.apps?.['ale-bet']?.rol === 'armador'
+          {(esArmador
             ? data.pedidosRecientes.filter(p => p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO')
             : data.pedidosRecientes).map((pedido) => (
             <div key={pedido.id} className={animatedPedidoId === pedido.id ? (animatedTone === 'danger' ? 'alebet-flash-danger' : 'alebet-flash-success') : ''}>

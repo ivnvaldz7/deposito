@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  LayoutDashboard, ClipboardList, Package, Box, Plus, Truck
+  LayoutDashboard, ClipboardList, Package, Box, Plus, Truck, Users, History
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppSidebarLayout, SidebarNavItem } from '@/components/layout/AppSidebar'
@@ -25,7 +25,9 @@ const NAV_ITEMS: NavItemDef[] = [
   { path: '/ale-bet/pedidos', label: 'Pedidos', icon: ClipboardList },
   { path: '/ale-bet/productos', label: 'Productos', icon: Package },
   { path: '/ale-bet/stock', label: 'Stock', icon: Box },
+  { path: '/ale-bet/clientes', label: 'Clientes', icon: Users },
   { path: '/ale-bet/transportistas', label: 'Transportistas', icon: Truck },
+  { path: '/ale-bet/historial', label: 'Historial', icon: History },
 ]
 
 import { can } from '@/lib/permissions'
@@ -36,9 +38,12 @@ type Rol = string | undefined
 function visibleItems(user: PlatformUser | null): NavItemDef[] {
   return NAV_ITEMS.filter((item) => {
     switch (item.path) {
+      case '/ale-bet/dashboard': return can(user, 'ale-bet', 'dashboard.read')
       case '/ale-bet/stock': return can(user, 'ale-bet', 'stock.read')
       case '/ale-bet/pedidos': return can(user, 'ale-bet', 'pedidos.read')
+      case '/ale-bet/clientes': return can(user, 'ale-bet', 'clientes.read')
       case '/ale-bet/transportistas': return can(user, 'ale-bet', 'transportistas.read')
+      case '/ale-bet/historial': return can(user, 'ale-bet', 'historial.read')
       default: return true
     }
   })
@@ -58,8 +63,8 @@ function bottomNavItems(user: PlatformUser | null): NavItemDef[] {
   }
 
   const base = [
-    item('/ale-bet/dashboard'),
-    item('/ale-bet/pedidos'),
+    can(user, 'ale-bet', 'dashboard.read') ? item('/ale-bet/dashboard') : null,
+    can(user, 'ale-bet', 'pedidos.read') ? item('/ale-bet/pedidos') : null,
     item('/ale-bet/productos'),
   ].filter((entry): entry is NavItemDef => entry !== null)
 

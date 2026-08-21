@@ -2,7 +2,7 @@ import { Router, type Request } from 'express'
 import ExcelJS from 'exceljs'
 import { platformDb as prisma, type Prisma } from '@platform/db'
 import { getAppAccess, type JwtPayload } from '@platform/core'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -148,7 +148,7 @@ function buildProductosCell(items: HistorialPedidoResponse['items']): string {
   return items.map((item) => `${item.productoNombre} x${item.cantidad}`).join(', ')
 }
 
-router.get('/', requireApp('ale-bet'), async (req, res) => {
+router.get('/', requirePermission('ale-bet', 'historial.read'), async (req, res) => {
   const user = req.user as JwtPayload
   const where = buildHistorialWhere(req, user)
 
@@ -160,7 +160,7 @@ router.get('/', requireApp('ale-bet'), async (req, res) => {
   res.json(await loadHistorialPedidos(where))
 })
 
-router.get('/export', requireApp('ale-bet'), async (req, res) => {
+router.get('/export', requirePermission('ale-bet', 'historial.export'), async (req, res) => {
   const user = req.user as JwtPayload
   const where = buildHistorialWhere(req, user)
 

@@ -26,9 +26,12 @@ function getEstadoBadge(estado: string) {
   return map[estado] ?? 'bg-surface-highest text-on-surface-variant'
 }
 
+import { can } from '@/lib/permissions'
+
 export default function HistorialPage() {
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? null
+  const canExport = can(user, 'ale-bet', 'historial.export')
 
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
@@ -68,13 +71,15 @@ export default function HistorialPage() {
           <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Historial</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Historial de pedidos</p>
         </div>
-        <button
-          onClick={handleExport}
-          disabled={exporting}
-          className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
-        >
-          {exporting ? 'Exportando...' : 'Exportar Excel'}
-        </button>
+        {canExport && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
+          >
+            {exporting ? 'Exportando...' : 'Exportar Excel'}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-4">
