@@ -16,4 +16,9 @@ describe('Depósito Sidebar', () => {
     expect(screen.getByRole('button', { name: 'Cambiar módulo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
   })
+
+  it('does not render Usuarios link in the sidebar', () => {
+    render(<MemoryRouter><Sidebar /></MemoryRouter>)
+    expect(screen.queryByRole('link', { name: /Usuarios/i })).not.toBeInTheDocument()
+  })
 })

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FlaskConical, Package, Tag, Box, BookOpen,
-  ArrowLeftRight, BarChart2, LogOut, Users,
+  ArrowLeftRight, BarChart2, LogOut,
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { apiClient } from '@/lib/api-client'
@@ -21,7 +21,6 @@ const navItems = [
   { path: '/deposito/movimientos', label: 'Movimientos', icon: ArrowLeftRight, permission: 'movimientos.read' },
   { path: '/deposito/pendientes',  label: 'Pendientes',  icon: ArrowLeftRight, permission: 'pendientes.read' },
   { path: '/deposito/ordenes',     label: 'Órdenes',     icon: BookOpen, permission: 'ordenes.read' },
-  { path: '/deposito/usuarios',    label: 'Usuarios',    icon: Users, permission: 'usuarios_deposito.read' },
 ] as const
 
 export function Sidebar() {

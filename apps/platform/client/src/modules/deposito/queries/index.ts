@@ -43,9 +43,6 @@ export {
 
 export {
   useUsuarios,
-  useCreateUsuario,
-  useUpdateUsuarioRole,
-  useDeleteUsuario,
   usuariosKeys,
 } from './use-usuarios'
 export type { DepositoUser } from './use-usuarios'
