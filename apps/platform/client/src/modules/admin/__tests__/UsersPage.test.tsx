@@ -288,7 +288,7 @@ describe('UsersPage', () => {
   it('allows platform admin to reset password and displays temporary password once', async () => {
     const user = userEvent.setup()
     vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
-    vi.mocked(adminApi.resetPassword).mockResolvedValue({ tempPassword: 'new-temp-pwd' })
+    vi.mocked(adminApi.resetPassword).mockResolvedValue({ temporaryPassword: 'new-temp-pwd' })
 
     renderPage()
 
@@ -309,6 +309,7 @@ describe('UsersPage', () => {
 
     await waitFor(() => {
       expect(adminApi.resetPassword).toHaveBeenCalledWith('user_001')
+      expect(adminApi.resetPassword).toHaveBeenCalledTimes(1)
     })
 
     // Wait for generated password modal
@@ -324,6 +325,24 @@ describe('UsersPage', () => {
     )
 
     // Verify modal is closed
+    expect(screen.queryByRole('heading', { name: 'Contraseña generada' })).not.toBeInTheDocument()
+    expect(window.localStorage.length).toBe(0)
+  })
+
+  it('shows reset errors without closing the confirmation flow', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+    vi.mocked(adminApi.resetPassword).mockRejectedValue(new Error('No autorizado'))
+
+    renderPage()
+    await user.click((await screen.findAllByRole('button', { name: 'Editar' }))[0])
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }))
+
+    const confirmModal = (await screen.findByRole('heading', { name: 'Restablecer contraseña' })).closest('.fixed') as HTMLElement
+    await user.click(within(confirmModal).getByRole('button', { name: 'Restablecer' }))
+
+    expect(await screen.findByText('No autorizado')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Restablecer contraseña' })).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Contraseña generada' })).not.toBeInTheDocument()
   })
 

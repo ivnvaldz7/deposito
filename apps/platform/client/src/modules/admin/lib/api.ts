@@ -44,5 +44,5 @@ export const adminApi = {
     apiClient.put<PlatformUser>(`/admin/${userId}/status`, payload),
 
   resetPassword: (userId: string) =>
-    apiClient.post<{ tempPassword: string }>(`/admin/${userId}/reset-password`),
+    apiClient.post<{ temporaryPassword: string }>(`/admin/${userId}/reset-password`),
 }

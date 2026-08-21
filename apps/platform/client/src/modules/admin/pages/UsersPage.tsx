@@ -63,7 +63,7 @@ export default function UsersPage() {
 
   async function handleResetPassword(userId: string) {
     const res = await adminApi.resetPassword(userId)
-    return res.tempPassword
+    return res.temporaryPassword
   }
 
   return (
