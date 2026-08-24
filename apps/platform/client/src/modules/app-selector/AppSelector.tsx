@@ -51,10 +51,15 @@ export default function AppSelector() {
   const user = useAuthStore((s) => s.user)
   const setLastApp = useAppStore((s) => s.setLastApp)
 
-  const activeApps = Object.entries(user?.apps ?? {})
+  const activeAppIds = Object.entries(user?.apps ?? {})
     .filter(([_, access]) => access.activo)
+    .map(([appId]) => appId)
 
-  if (activeApps.length === 0) {
+  if (user?.isPlatformAdmin && !activeAppIds.includes('admin')) {
+    activeAppIds.push('admin')
+  }
+
+  if (activeAppIds.length === 0) {
     return <EmptyState />
   }
 
@@ -87,7 +92,7 @@ export default function AppSelector() {
 
         {/* App cards */}
         <div className="space-y-4">
-          {activeApps.map(([appId, _access], index) => {
+          {activeAppIds.map((appId, index) => {
             const info = APP_LABELS[appId]
             if (!info) return null
 

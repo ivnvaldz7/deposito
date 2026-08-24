@@ -88,4 +88,29 @@ describe('AppSelector', () => {
     expect(screen.getByText(/ale.bet/i)).toBeInTheDocument()
     expect(screen.queryByText(/depósito/i)).not.toBeInTheDocument()
   })
+
+  it('shows Admin app for platform admin without explicit AppAccess', () => {
+    const adminUser = { ...multiAppUser, apps: {}, isPlatformAdmin: true }
+    useAuthStore.setState({ token: 't', user: adminUser, authResolved: true })
+
+    render(<TestApp />)
+
+    expect(screen.getByText(/admin/i)).toBeInTheDocument()
+  })
+
+  it('does not show Admin app for ale-bet admin without isPlatformAdmin', () => {
+    const aleBetAdmin = {
+      ...multiAppUser,
+      apps: {
+        'ale-bet': { rol: 'admin', activo: true },
+      },
+      isPlatformAdmin: false,
+    }
+    useAuthStore.setState({ token: 't', user: aleBetAdmin, authResolved: true })
+
+    render(<TestApp />)
+
+    expect(screen.getByText(/ale.bet/i)).toBeInTheDocument()
+    expect(screen.queryByText(/admin/i)).not.toBeInTheDocument()
+  })
 })
