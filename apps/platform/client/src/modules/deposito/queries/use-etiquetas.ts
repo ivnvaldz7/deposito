@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { Mercado } from '../components/inventory-shared/mercados'
+import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 
 export interface Etiqueta {
   id: string
@@ -9,6 +10,7 @@ export interface Etiqueta {
   mercado: Mercado
   cantidad: number
   updatedAt: string
+  stockMinimo?: number | null
 }
 
 export const etiquetasKeys = {
@@ -19,7 +21,11 @@ export const etiquetasKeys = {
 export function useEtiquetas() {
   return useQuery({
     queryKey: etiquetasKeys.list(),
-    queryFn: () => api.get<Etiqueta[]>('/etiquetas'),
+    queryFn: async () => {
+      const [inventario, catalogo] = await Promise.all([api.get<Etiqueta[]>('/etiquetas'), fetchCatalogoProductos('etiqueta')])
+      const existing = new Set(inventario.map((row) => `${row.productoId}:${row.mercado}`))
+      return [...inventario, ...catalogo.flatMap((p) => (p.mercadosHabilitados ?? (p.mercado ? [p.mercado] : [])).filter((mercado) => !existing.has(`${p.id}:${mercado}`)).map((mercado) => ({ id: `${p.id}:${mercado}`, productoId: p.id, articulo: p.nombreCompleto, mercado, cantidad: 0, updatedAt: new Date().toISOString(), stockMinimo: p.stockMinimo ?? null })))]
+    },
   })
 }
 

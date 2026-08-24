@@ -26,9 +26,15 @@ const editarFrascoSchema = z
 // GET /api/frascos
 router.get('/', authenticate, requirePermission('deposito', 'frascos.read'), async (_req: Request, res: Response): Promise<void> => {
   try {
-    const frascos = await prisma.inventarioFrasco.findMany({
-      orderBy: { articulo: 'asc' },
-    })
+    const [productos, inventario] = await Promise.all([
+      prisma.depositoProducto.findMany({ where: { categoria: 'frasco', activo: true }, orderBy: { nombreCompleto: 'asc' } }),
+      prisma.inventarioFrasco.findMany({ orderBy: { articulo: 'asc' } }),
+    ])
+    const byProduct = new Map(inventario.filter((row) => row.productoId).map((row) => [row.productoId!, row]))
+    const frascos = productos.map((producto) => byProduct.get(producto.id) ?? ({
+      id: producto.id, productoId: producto.id, articulo: producto.nombreCompleto,
+      unidadesPorCaja: producto.presentacion ?? 1, cantidadCajas: 0, total: 0, updatedAt: producto.updatedAt,
+    }))
     res.json(frascos)
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })

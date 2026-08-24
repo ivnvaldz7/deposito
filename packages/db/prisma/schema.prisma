@@ -131,7 +131,7 @@ model Producto {
   id          String      @id @default(cuid())
   nombre      String
   sku         String      @unique
-  stockMinimo Int         @default(100)
+  stockMinimo Int?
   unidadesPorCaja Int
   activo      Boolean     @default(true)
   createdAt   DateTime    @default(now())
@@ -385,6 +385,7 @@ enum TipoMovimiento {
   ENTRADA_MANUAL
   SALIDA_PEDIDO
   AJUSTE
+  SALDO_APERTURA
   TRANSFERENCIA_INTERNA
 
   @@schema("ale_bet")
@@ -793,6 +794,7 @@ model DepositoProducto {
   codigo         String?   @unique
   origen         OrigenProductoCatalogo @default(MIGRACION)
   presentacion   Int?
+  stockMinimo    Int?      @map("stock_minimo")
   mercadosHabilitados Mercado[] @default([]) @map("mercados_habilitados")
   mercado              Mercado?
   createdAt      DateTime  @default(now()) @map("created_at")
