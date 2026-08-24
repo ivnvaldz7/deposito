@@ -20,6 +20,7 @@ export interface CatalogoValidationInput {
   mercadosHabilitados?: Mercado[]
   presentacion?: number | null
   estado?: EstadoProductoCatalogo | null
+  stockMinimo?: number | null
 }
 
 export interface CatalogoCreateInput extends CatalogoValidationInput {
@@ -41,6 +42,7 @@ export interface CatalogoUpdateInput {
   volumen?: Prisma.Decimal | null
   unidad?: string | null
   variante?: string | null
+  stockMinimo?: number | null
 }
 
 export function hasValidCodigo(codigo: string | null | undefined): boolean {
@@ -77,9 +79,13 @@ export function deriveMigratedEstado(activo: boolean, codigo: string | null | un
 }
 
 export function validateCatalogoInput(input: CatalogoValidationInput): void {
+  if (input.stockMinimo !== undefined && input.stockMinimo !== null && (!Number.isInteger(input.stockMinimo) || input.stockMinimo < 0)) throw new Error('El stock mínimo debe ser un entero no negativo')
   const mercados = input.mercadosHabilitados ?? []
   const usesMarkets = MARKET_CATEGORIES.includes(input.categoria)
   const requiresPresentation = PRESENTATION_CATEGORIES.includes(input.categoria)
+  if (input.categoria === 'estuche' && mercados.length !== 1) {
+    throw new Error('La categoría estuche requiere exactamente un mercado habilitado')
+  }
   if (usesMarkets && mercados.length === 0) throw new Error('La categoría requiere al menos un mercado habilitado')
   if (!usesMarkets && mercados.length > 0) throw new Error('La categoría no utiliza mercados habilitados')
 
@@ -188,9 +194,11 @@ export class CatalogoProductoService {
             origen: 'MANUAL',
             presentacion: input.presentacion ?? null,
             mercadosHabilitados: input.mercadosHabilitados ?? [],
+            mercado: input.categoria === 'estuche' ? input.mercadosHabilitados?.[0] : null,
             volumen: input.volumen ?? null,
             unidad: input.unidad ?? null,
             variante: input.variante ?? null,
+            stockMinimo: input.stockMinimo ?? null,
           },
         })
         await seedInitialInventory(tx, producto)
@@ -273,11 +281,15 @@ export class CatalogoProductoService {
           ...(input.codigo !== undefined ? { codigo } : {}),
           ...(input.categoria !== undefined ? { categoria } : {}),
           ...(input.mercadosHabilitados !== undefined ? { mercadosHabilitados: mercados } : {}),
+          ...(input.categoria !== undefined || input.mercadosHabilitados !== undefined
+            ? { mercado: categoria === 'estuche' ? mercados[0] : null }
+            : {}),
           ...(input.volumen !== undefined ? { volumen: input.volumen } : {}),
           ...(input.unidad !== undefined ? { unidad: input.unidad } : {}),
           ...(input.variante !== undefined ? { variante: input.variante } : {}),
+          ...(input.stockMinimo !== undefined ? { stockMinimo: input.stockMinimo } : {}),
         }
-        const actualizado = await tx.depositoProducto.update({ where: { id: productoId }, data })
+      const actualizado = await tx.depositoProducto.update({ where: { id: productoId }, data })
         const tipo = input.codigo !== undefined
           ? 'CODIGO_ACTUALIZADO'
           : input.nombreCompleto !== undefined || input.nombreBase !== undefined
@@ -343,13 +355,16 @@ export class CatalogoProductoService {
       where: {
         OR: inputs.map(input => ({
           nombreCompleto: input.nombreCompleto,
-          categoria: input.categoria
+          categoria: input.categoria,
+          mercado: input.categoria === 'estuche' ? input.mercadosHabilitados?.[0] : null,
         }))
       },
-      select: { nombreCompleto: true, categoria: true }
+      select: { nombreCompleto: true, categoria: true, mercado: true }
     })
     const existingCodes = new Set(existing.map((item) => item.codigo))
-    const existingNamesSet = new Set(existingNames.map((item) => `${item.nombreCompleto}|${item.categoria}`))
+    const identityKey = (input: Pick<CatalogoCreateInput, 'nombreCompleto' | 'categoria' | 'mercadosHabilitados'>) =>
+      `${input.nombreCompleto}|${input.categoria}|${input.categoria === 'estuche' ? input.mercadosHabilitados?.[0] ?? '' : ''}`
+    const existingNamesSet = new Set(existingNames.map((item) => `${item.nombreCompleto}|${item.categoria}|${item.mercado ?? ''}`))
     const productos: Prisma.DepositoProductoGetPayload<null>[] = []
     let omitidosPorCarrera = 0
     for (const input of inputs) {
@@ -358,11 +373,11 @@ export class CatalogoProductoService {
         omitidosPorCarrera++
         continue
       }
-      if (existingNamesSet.has(`${input.nombreCompleto}|${input.categoria}`)) {
+      if (existingNamesSet.has(identityKey(input))) {
         omitidosPorCarrera++
         continue
       }
-      existingNamesSet.add(`${input.nombreCompleto}|${input.categoria}`)
+      existingNamesSet.add(identityKey(input))
       
       try {
         const producto = await this.db.$transaction(async (tx) => {
@@ -375,6 +390,7 @@ export class CatalogoProductoService {
               origen: OrigenProductoCatalogo.IMPORTACION,
               presentacion: input.presentacion ?? null,
               mercadosHabilitados: input.mercadosHabilitados ?? [],
+              mercado: input.categoria === 'estuche' ? input.mercadosHabilitados?.[0] : null,
             },
           })
           await audit(tx, prod.id, usuarioId, 'IMPORTACION_CREADA', null, { estado: prod.estado, codigo: prod.codigo })
