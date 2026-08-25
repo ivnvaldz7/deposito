@@ -1,8 +1,16 @@
 import { PrismaClient } from '@platform/db'
 import { Client } from 'pg'
 import crypto from 'crypto'
+import { assertAutomationDatabaseUrl } from './setup-integration'
 
 export async function truncateDb(prisma: PrismaClient) {
+  assertAutomationDatabaseUrl(process.env.PLATFORM_DATABASE_URL)
+  const [connection] = await prisma.$queryRaw<Array<{ database: string }>>`
+    SELECT current_database() AS database
+  `
+  if (connection?.database !== 'platform_test_automation') {
+    throw new Error(`TRUNCATE bloqueado: la conexión efectiva apunta a "${connection?.database || '(desconocida)'}".`)
+  }
   // Query all tables in our schemas
   const tables = await prisma.$queryRaw<Array<{ table_schema: string, table_name: string }>>`
     SELECT table_schema, table_name
