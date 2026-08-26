@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { Mercado } from '../components/inventory-shared/mercados'
+import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -73,7 +74,10 @@ export function useProductos(filters?: { categoria?: string; estado?: string; bu
   const qs = params.toString()
   return useQuery({
     queryKey: [...productosKeys.list(), filters],
-    queryFn: () => api.get<Producto[]>(`/productos${qs ? `?${qs}` : ''}`),
+    queryFn: async () => {
+      const productos = await api.get<Producto[]>(`/productos${qs ? `?${qs}` : ''}`)
+      return sortProductsByNaturalPresentation(productos, (producto) => producto.nombreCompleto)
+    },
     placeholderData: (prev) => prev,
   })
 }

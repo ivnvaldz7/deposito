@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { aleBetApi } from '../lib/api'
+import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 export const stockKeys = {
   all: ['ale-bet', 'stock'] as const,
@@ -10,7 +11,13 @@ export const stockKeys = {
 export function useStockOverview() {
   return useQuery({
     queryKey: stockKeys.overview(),
-    queryFn: () => aleBetApi.stock.get(),
+    queryFn: async () => {
+      const overview = await aleBetApi.stock.get()
+      return {
+        ...overview,
+        productos: sortProductsByNaturalPresentation(overview.productos, (producto) => producto.nombre),
+      }
+    },
   })
 }
 

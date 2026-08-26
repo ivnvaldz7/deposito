@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import FrascosPage from '../FrascosPage'
-import { createFrascoList } from './fixtures/deposito-mock-factories'
+import { createFrasco, createFrascoList } from './fixtures/deposito-mock-factories'
 import { createMockUser } from '@/test-utils'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -52,6 +52,19 @@ describe('FrascosPage', () => {
     })
     expect(screen.getAllByText('DORADO 250 ML').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('240')).toBeInTheDocument()
+  })
+  it('orders compatible volume presentations numerically', async () => {
+    vi.mocked(api.get).mockResolvedValue([
+      createFrasco({ id: 'frasco-1l', articulo: 'DORADO 1 L' }),
+      createFrasco({ id: 'frasco-500ml', articulo: 'DORADO 500 ML' }),
+    ])
+    render(<MemoryRouter><FrascosPage /></MemoryRouter>)
+    await screen.findByRole('heading', { name: 'Frascos' })
+    const rows = await screen.findAllByRole('row')
+    expect(rows.slice(1).map((row) => row.querySelector('td')?.textContent)).toEqual([
+      'DORADO 500 ML',
+      'DORADO 1 L',
+    ])
   })
 
   it('shows not found for a selected catalog product absent from inventory', async () => {

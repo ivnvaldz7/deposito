@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { aleBetApi, getHistorialLotes } from '../lib/api'
+import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 export const productosKeys = {
   all: ['ale-bet', 'productos'] as const,
@@ -10,14 +11,20 @@ export const productosKeys = {
 export function useProductos() {
   return useQuery({
     queryKey: productosKeys.list(),
-    queryFn: () => aleBetApi.productos.list(),
+    queryFn: async () => {
+      const productos = await aleBetApi.productos.list()
+      return sortProductsByNaturalPresentation(productos, (producto) => producto.nombre)
+    },
   })
 }
 
 export function useProductosSearch(q: string) {
   return useQuery({
     queryKey: [...productosKeys.all, 'search', q] as const,
-    queryFn: () => aleBetApi.productos.search(q),
+    queryFn: async () => {
+      const productos = await aleBetApi.productos.search(q)
+      return sortProductsByNaturalPresentation(productos, (producto) => producto.nombre)
+    },
     enabled: q.trim().length > 0,
     placeholderData: (prev) => prev,
   })

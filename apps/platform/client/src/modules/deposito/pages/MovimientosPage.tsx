@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { useMovimientos } from '../queries'
 import { api } from '../lib/api'
 import type { Producto } from '../components/ProductoSelector'
+import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 import { ArrowDown, ArrowUp, Search, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
 import {
   Table,
@@ -131,7 +132,7 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
     }
     try {
       const data = await api.get<Producto[]>(`/productos?buscar=${encodeURIComponent(q)}`)
-      setSuggestions(data.slice(0, 8))
+      setSuggestions(sortProductsByNaturalPresentation(data, (producto) => producto.nombreCompleto).slice(0, 8))
       setShowSuggestions(data.length > 0)
       setHighlightIdx(-1)
     } catch {

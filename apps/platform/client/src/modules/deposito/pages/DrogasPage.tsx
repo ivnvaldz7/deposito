@@ -7,6 +7,7 @@ import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useProductFocus } from '../hooks/use-product-focus'
+import { compareProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ function groupDrogas(records: DrogaRecord[], getDisplayName: (record: DrogaRecor
         return new Date(a.vencimiento).getTime() - new Date(b.vencimiento).getTime()
       }),
     }))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+    .sort((a, b) => compareProductsByNaturalPresentation(a.nombre, b.nombre))
 }
 
 function normalizeProducto(value: string): string {

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Fuse from 'fuse.js'
 import { api } from '../lib/api'
 import type { Mercado } from './inventory-shared/mercados'
+import { compareProductsByNaturalPresentation, sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +55,10 @@ export function ProductoSelector({
     api
       .get<Producto[]>(`/productos?categoria=${categoria}&estado=ACTIVO`)
       .then((data) => {
-        fuseRef.current = new Fuse(data, { keys: ['nombreCompleto'], threshold: 0.4 })
+        fuseRef.current = new Fuse(
+          sortProductsByNaturalPresentation(data, (producto) => producto.nombreCompleto),
+          { keys: ['nombreCompleto'], threshold: 0.4 },
+        )
       })
       .catch(() => {/* silencioso */})
   }, [categoria])
@@ -69,7 +73,11 @@ export function ProductoSelector({
       setHighlightIndex(-1)
       return
     }
-    const res = fuseRef.current.search(q).map((r) => r.item).slice(0, 10)
+    const res = fuseRef.current
+      .search(q)
+      .map((r) => r.item)
+      .sort((a, b) => compareProductsByNaturalPresentation(a.nombreCompleto, b.nombreCompleto))
+      .slice(0, 10)
     setResults(res)
     setOpen(res.length > 0)
     setHighlightIndex(-1)

@@ -6,7 +6,7 @@ import { aleBetApi } from '../../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { createMockUser } from '@/test-utils'
 import ProductosPage from '../ProductosPage'
-import { createLote, createProductoList } from './fixtures/ale-bet-mock-factories'
+import { createLote, createProducto, createProductoList } from './fixtures/ale-bet-mock-factories'
 import { readFileSync } from 'node:fs'
 
 vi.mock('../../lib/api', () => ({
@@ -77,6 +77,24 @@ describe('ProductosPage', () => {
     expect(table.getAllByText('50').length).toBeGreaterThan(0)
   })
 
+  it('orders catalog presentations naturally after the API response', async () => {
+    vi.mocked(aleBetApi.productos.list).mockResolvedValue([
+      createProducto({ id: 'p-500', nombre: 'ENERGIZANTE 500 ML' }),
+      createProducto({ id: 'p-100', nombre: 'ENERGIZANTE 100 ML' }),
+      createProducto({ id: 'p-250-vacas', nombre: 'ENERGIZANTE 250 ML VACAS' }),
+      createProducto({ id: 'p-25', nombre: 'ENERGIZANTE 25 ML' }),
+      createProducto({ id: 'p-250', nombre: 'ENERGIZANTE 250 ML' }),
+    ])
+    renderPage()
+    const rows = await screen.findAllByRole('row')
+    expect(rows.slice(1).map((row) => within(row).getAllByRole('cell')[0]!.textContent)).toEqual([
+      'ENERGIZANTE 25 ML',
+      'ENERGIZANTE 100 ML',
+      'ENERGIZANTE 250 ML',
+      'ENERGIZANTE 250 ML VACAS',
+      'ENERGIZANTE 500 ML',
+    ])
+  })
   it('usuario sin grant: no ve acciones de administración de productos ni de gestión de stock', async () => {
     mockRol('vendedor')
     vi.mocked(aleBetApi.productos.list).mockResolvedValue(createProductoList())
