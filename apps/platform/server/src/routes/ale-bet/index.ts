@@ -9,6 +9,7 @@ import historialRoutes from './historial'
 import transportistasRoutes from './transportistas'
 import remitosRoutes from './remitos'
 import facturacionRoutes from './facturacion'
+import automationRoutes from './automation'
 
 export function createAleBetRoutes(): Router {
   const router = Router()
@@ -23,6 +24,7 @@ export function createAleBetRoutes(): Router {
   router.use('/transportistas', transportistasRoutes)
   router.use('/pedidos', remitosRoutes)
   router.use('/facturacion', facturacionRoutes)
+  router.use('/automation', automationRoutes)
 
   return router
 }

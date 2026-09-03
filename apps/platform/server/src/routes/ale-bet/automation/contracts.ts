@@ -1,0 +1,37 @@
+export type QuantityMode = 'BOXES' | 'UNITS' | 'MIXED' | 'AMBIGUOUS'
+
+export type ProductAlternative = { productId: string; nombre: string; confidence: number }
+export type CustomerAlternative = { customerId: string; nombre: string; confidence: number }
+
+export type ParsedQuantity = {
+  originalExpression: string
+  mode: QuantityMode
+  explicitBoxes: number | null
+  explicitUnits: number | null
+  totalUnits: number | null
+  normalizedBoxes: number | null
+  normalizedLooseUnits: number | null
+}
+
+export type ParsedOrderLine = {
+  originalText: string
+  productCandidate: ProductAlternative | null
+  alternatives: ProductAlternative[]
+  confidence: number
+  quantity: ParsedQuantity
+  requiresReview: boolean
+  warnings: string[]
+}
+
+export type ParsedOrder = {
+  originalText: string
+  customerCandidate: CustomerAlternative | null
+  customerAlternatives: CustomerAlternative[]
+  customerConfidence: number
+  lines: ParsedOrderLine[]
+  requiresReview: boolean
+  warnings: string[]
+}
+
+export type MatchProduct = { id: string; nombre: string; sku: string; unidadesPorCaja: number }
+export type MatchCustomer = { id: string; nombre: string }

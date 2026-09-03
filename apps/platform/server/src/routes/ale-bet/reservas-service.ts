@@ -1,6 +1,7 @@
 import { Prisma, TipoMovimiento } from '@platform/db'
 import { calcularUnidades, descomponerUnidades } from './constants'
 import { evaluateLotLifecycle } from './product-stock-admin-service'
+import { orderEligibleLots } from './inventory-service'
 
 type TransactionClient = Prisma.TransactionClient
 
@@ -8,6 +9,10 @@ type ReservationInput = Array<{ id: string; productoId: string; cantidad: number
 
 type LockedLot = {
   id: string
+  activo: boolean
+  fechaVencimiento: Date | null
+  fechaProduccion: Date | null
+  createdAt: Date
   cantidad: number
   cajas: number
   sueltos: number
@@ -19,7 +24,7 @@ export class StockConflictError extends Error {}
 
 async function lockLots(tx: TransactionClient, productoId: string): Promise<LockedLot[]> {
   return tx.$queryRaw<LockedLot[]>(Prisma.sql`
-    SELECT lote.id, saldo.cantidad, lote.cajas, lote.sueltos, producto."unidadesPorCaja",
+    SELECT lote.id, lote.activo, lote."fechaVencimiento", lote."fechaProduccion", lote."createdAt", saldo.cantidad, lote.cajas, lote.sueltos, producto."unidadesPorCaja",
       COALESCE((
         SELECT SUM(reserva.cantidad)::integer
         FROM "ale_bet"."ReservaStock" AS reserva
@@ -30,7 +35,6 @@ async function lockLots(tx: TransactionClient, productoId: string): Promise<Lock
     JOIN "ale_bet"."SaldoStock" AS saldo ON saldo."loteId" = lote.id AND saldo."productoId" = lote."productoId"
     JOIN "ale_bet"."UbicacionStock" AS ubicacion ON ubicacion.id = saldo."ubicacionId" AND ubicacion.codigo = 'DEPOSITO'
     WHERE lote."productoId" = ${productoId} AND lote.activo = true
-    ORDER BY lote."fechaVencimiento" ASC, lote.id ASC
     FOR UPDATE OF lote, saldo
   `)
 }
@@ -59,7 +63,21 @@ export async function reserveFefo(tx: TransactionClient, pedidoId: string, items
 
   for (const productoId of [...byProduct.keys()].sort((left, right) => left.localeCompare(right))) {
     const productItems = byProduct.get(productoId) ?? []
-    const lots = await lockLots(tx, productoId)
+    const lockedLots = await lockLots(tx, productoId)
+    // Keep FEFO reservation eligibility exactly aligned with preview/allocation.
+    const lockedById = new Map(lockedLots.map((lot) => [lot.id, lot]))
+    const eligibleLots = orderEligibleLots(lockedLots, new Date()).map((lot) => lockedById.get(lot.id)).filter((lot): lot is LockedLot => Boolean(lot))
+    // This statement intentionally executes *after* the lot/balance locks. A
+    // concurrent approver that waited for those locks must observe reservations
+    // committed by the first approver, not the earlier statement snapshot.
+    const reservationStore = tx.reservaStock as typeof tx.reservaStock & { groupBy?: typeof tx.reservaStock.groupBy }
+    const reservations = reservationStore.groupBy ? await reservationStore.groupBy({
+      by: ['loteId'],
+      where: { loteId: { in: eligibleLots.map((lot) => lot.id) }, estado: 'ACTIVA' },
+      _sum: { cantidad: true },
+    }) : []
+    const reservedByLot = new Map(reservations.map((reservation) => [reservation.loteId, reservation._sum.cantidad ?? 0]))
+    const lots = eligibleLots.map((lot) => ({ ...lot, reservado: reservedByLot.get(lot.id) ?? lot.reservado }))
     const required = productItems.reduce((sum, item) => sum + item.cantidad, 0)
     const available = lots.reduce((sum, lot) => (
       sum + Math.max(0, lot.cantidad - lot.reservado)

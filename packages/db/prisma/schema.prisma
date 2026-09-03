@@ -139,6 +139,7 @@ model Producto {
   lotes       Lote[]
   itemsPedido ItemPedido[]
   saldos      SaldoStock[]
+  projectionOutbox StockProjectionOutbox[]
 
   @@schema("ale_bet")
 }
@@ -202,6 +203,7 @@ model Pedido {
   reservas   ReservaStock[]
   auditorias PedidoAuditoria[]
   remitos    Remito[]
+  interpretationDraft OrderInterpretationDraft?
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
@@ -311,6 +313,42 @@ model PedidoAuditoria {
   @@schema("ale_bet")
 }
 
+model OrderInterpretationDraft {
+  id               String                         @id @default(cuid())
+  originalText     String
+  proposedSnapshot Json
+  editedSnapshot   Json?
+  estado           EstadoOrderInterpretationDraft @default(DRAFT)
+  version          Int                            @default(1)
+  createdBy        String
+  confirmedBy      String?
+  pedidoId         String?                        @unique
+  pedido           Pedido?                        @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  @@index([estado, createdAt])
+  @@schema("ale_bet")
+}
+
+model StockProjectionOutbox {
+  id          String                      @id @default(cuid())
+  productId   String
+  producto    Producto                    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  causeType   String
+  causeId     String
+  estado      EstadoStockProjectionOutbox @default(PENDING)
+  attempts    Int                         @default(0)
+  nextRetryAt DateTime?
+  lastError   String?
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+
+  @@unique([productId, causeType, causeId])
+  @@index([estado, nextRetryAt])
+  @@index([causeType, causeId])
+  @@schema("ale_bet")
+}
 model Transportista {
   id        String   @id @default(cuid())
   nombre    String
@@ -359,6 +397,22 @@ enum EstadoPedido {
   @@schema("ale_bet")
 }
 
+enum EstadoOrderInterpretationDraft {
+  DRAFT
+  READY
+  CONFIRMED
+  CANCELLED
+
+  @@schema("ale_bet")
+}
+
+enum EstadoStockProjectionOutbox {
+  PENDING
+  SYNCED
+  ERROR
+
+  @@schema("ale_bet")
+}
 enum EstadoCliente {
   PENDIENTE_CLIENTE
   VALIDADO

@@ -40,7 +40,7 @@ describe('reserveFefo', () => {
     const reservaCreate = vi.fn().mockResolvedValue({ id: 'reservation-1' })
     const tx = {
       ubicacionStock: { findUnique: vi.fn().mockResolvedValue({ id: 'deposito-id' }) },
-      $queryRaw: vi.fn().mockResolvedValue([{ id: 'lot-1', cantidad: 5, reservado: 0 }]),
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'lot-1', activo: true, fechaVencimiento: null, fechaProduccion: null, createdAt: new Date('2026-01-01'), cantidad: 5, reservado: 0 }]),
       reservaStock: { create: reservaCreate },
     }
 

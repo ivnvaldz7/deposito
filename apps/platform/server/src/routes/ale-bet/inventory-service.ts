@@ -146,7 +146,17 @@ export async function getOrderAvailability(
   let shortfall = 0
   let overall: AvailabilityStatus = 'DISPONIBLE'
 
-  for (const item of items.slice().sort((left, right) => left.id.localeCompare(right.id))) {
+  // A pedido can historically contain repeated products. Availability must
+  // consume the shared lot pool once per product, never once per repeated line.
+  const consolidatedItems = [...items.reduce((grouped, item) => {
+    const current = grouped.get(item.productoId)
+    if (current) current.cantidad += item.cantidad
+    else grouped.set(item.productoId, { ...item })
+    return grouped
+  }, new Map<string, { id: string; productoId: string; cantidad: number }>()).values()]
+    .sort((left, right) => left.productoId.localeCompare(right.productoId))
+
+  for (const item of consolidatedItems) {
     const asEligible = (codigo: StockLocationCode): EligibleLot[] => balances
       .filter((balance) => balance.productoId === item.productoId && balance.ubicacion.codigo === codigo)
       .map((balance) => ({
