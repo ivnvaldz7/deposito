@@ -26,6 +26,7 @@ export type ParsedOrderLine = {
 export type ParsedOrder = {
   originalText: string
   customerCandidate: CustomerAlternative | null
+  customerCandidateText?: string
   customerAlternatives: CustomerAlternative[]
   customerConfidence: number
   lines: ParsedOrderLine[]
@@ -33,5 +34,5 @@ export type ParsedOrder = {
   warnings: string[]
 }
 
-export type MatchProduct = { id: string; nombre: string; sku: string; unidadesPorCaja: number }
-export type MatchCustomer = { id: string; nombre: string }
+export type MatchProduct = { id: string; nombre: string; sku: string; unidadesPorCaja: number; aliases: string[] }
+export type MatchCustomer = { id: string; nombre: string; aliases: string[] }

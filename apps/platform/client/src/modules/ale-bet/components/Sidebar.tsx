@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  LayoutDashboard, ClipboardList, Package, Box, Plus, Truck, Users, History
+  LayoutDashboard, ClipboardList, Package, Box, Plus, Truck, Users, History, Zap
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppSidebarLayout, SidebarNavItem } from '@/components/layout/AppSidebar'
@@ -22,6 +22,7 @@ function formatRol(rol: string | undefined): string {
 
 const NAV_ITEMS: NavItemDef[] = [
   { path: '/ale-bet/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/ale-bet/automation', label: 'Automation', icon: Zap },
   { path: '/ale-bet/pedidos', label: 'Pedidos', icon: ClipboardList },
   { path: '/ale-bet/productos', label: 'Productos', icon: Package },
   { path: '/ale-bet/stock', label: 'Stock', icon: Box },
@@ -39,6 +40,7 @@ function visibleItems(user: PlatformUser | null): NavItemDef[] {
   return NAV_ITEMS.filter((item) => {
     switch (item.path) {
       case '/ale-bet/dashboard': return can(user, 'ale-bet', 'dashboard.read')
+      case '/ale-bet/automation': return can(user, 'ale-bet', 'pedidos.approve')
       case '/ale-bet/stock': return can(user, 'ale-bet', 'stock.read')
       case '/ale-bet/pedidos': return can(user, 'ale-bet', 'pedidos.read')
       case '/ale-bet/clientes': return can(user, 'ale-bet', 'clientes.read')

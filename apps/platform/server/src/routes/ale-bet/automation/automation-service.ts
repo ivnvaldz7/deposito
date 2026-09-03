@@ -3,14 +3,14 @@ import { Prisma, platformDb as prisma } from '@platform/db'
 import { descomponerUnidades } from '../constants'
 import { allocateAvailability, orderEligibleLots } from '../inventory-service'
 import { reserveFefo, StockConflictError } from '../reservas-service'
-import type { ParsedOrder, ParsedOrderLine } from './contracts'
-import { interpretOrder } from './interpreter'
+import type { MatchProduct, MatchCustomer, ParsedOrder, ParsedOrderLine } from './contracts'
+import { interpretOrder, normalizeForMatch } from './interpreter'
 
 export class AutomationConflictError extends Error {}
 export class AutomationNotFoundError extends Error {}
 
-type DraftLineInput = { productId: string; cajas?: number; unidades?: number; mode?: 'BOXES' | 'UNITS' | 'MIXED' }
-type DraftEditInput = { clienteId: string; lines: DraftLineInput[] }
+type DraftLineInput = { productId: string; cajas?: number; unidades?: number; mode?: 'BOXES' | 'UNITS' | 'MIXED'; rememberAlias?: boolean }
+type DraftEditInput = { clienteId: string; rememberClientAlias?: boolean; lines: DraftLineInput[] }
 
 function json(value: unknown): Prisma.InputJsonValue { return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue }
 function parsed(value: Prisma.JsonValue): ParsedOrder { return JSON.parse(JSON.stringify(value)) as ParsedOrder }
@@ -27,11 +27,21 @@ function assertQuantity(value: number | undefined, field: string): number {
 }
 
 export async function interpretAndPersistDraft(originalText: string, actorId: string) {
-  const [products, customers] = await Promise.all([
+  const [products, customers, productAliases, clientAliases] = await Promise.all([
     prisma.producto.findMany({ where: { activo: true }, select: { id: true, nombre: true, sku: true, unidadesPorCaja: true } }),
     prisma.cliente.findMany({ where: { activo: true }, select: { id: true, nombre: true } }),
+    prisma.productAlias.findMany(),
+    prisma.clientAlias.findMany()
   ])
-  const proposal = interpretOrder(originalText, products, customers)
+  const mappedProducts: MatchProduct[] = products.map((p: any) => ({
+    ...p,
+    aliases: productAliases.filter((a: any) => a.productId === p.id).map((a: any) => a.alias)
+  }))
+  const mappedCustomers: MatchCustomer[] = customers.map((c: any) => ({
+    ...c,
+    aliases: clientAliases.filter((a: any) => a.clientId === c.id).map((a: any) => a.alias)
+  }))
+  const proposal = interpretOrder(originalText, mappedProducts, mappedCustomers)
   return prisma.orderInterpretationDraft.create({
     data: { originalText, proposedSnapshot: json(proposal), estado: proposal.requiresReview ? 'DRAFT' : 'READY', createdBy: actorId },
   })
@@ -55,7 +65,7 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
     if (!customer) throw new AutomationConflictError('El cliente no existe o está inactivo')
     if (products.length !== new Set(input.lines.map((line) => line.productId)).size) throw new AutomationConflictError('Uno o más productos no existen o están inactivos')
     const source = effectiveSnapshot(draft)
-    const lines: ParsedOrderLine[] = input.lines.map((line, index) => {
+    const lines: ParsedOrderLine[] = await Promise.all(input.lines.map(async (line, index) => {
       const product = products.find((entry) => entry.id === line.productId)
       if (!product) throw new AutomationConflictError('Producto inválido')
       const cajas = assertQuantity(line.cajas, 'cajas')
@@ -64,13 +74,38 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
       if (totalUnits <= 0) throw new AutomationConflictError('Cada línea debe solicitar al menos una unidad')
       const normalized = descomponerUnidades(totalUnits, product.unidadesPorCaja)
       const mode = line.mode ?? (cajas > 0 && unidades > 0 ? 'MIXED' : cajas > 0 ? 'BOXES' : 'UNITS')
+      const { extractQuantityAndProduct } = await import('./interpreter')
+      const parsedLine = extractQuantityAndProduct(source.lines[index]?.originalText ?? '')
+      
+      if (line.rememberAlias && parsedLine.productText) {
+        const aliasNormalized = normalizeForMatch(parsedLine.productText)
+        const existing = await tx.productAlias.findUnique({ where: { aliasNormalized } })
+        if (!existing) {
+          await tx.productAlias.create({ data: { alias: parsedLine.productText, aliasNormalized, productId: product.id } })
+        } else if (existing.productId !== product.id) {
+          throw new AutomationConflictError(`El alias "${parsedLine.productText}" ya pertenece a otro producto.`)
+        }
+      }
+
       return {
         originalText: source.lines[index]?.originalText ?? `${product.nombre}: ${totalUnits}`,
         productCandidate: { productId: product.id, nombre: product.nombre, confidence: 1 },
         alternatives: [], confidence: 1, requiresReview: false, warnings: [],
         quantity: { originalExpression: `${cajas} cajas + ${unidades} unidades`, mode, explicitBoxes: cajas || null, explicitUnits: unidades || null, totalUnits, normalizedBoxes: normalized.cajas, normalizedLooseUnits: normalized.sueltos },
       }
-    })
+    }))
+    
+    // Save client alias
+    if (input.rememberClientAlias && source.customerCandidateText) {
+      const aliasNormalized = normalizeForMatch(source.customerCandidateText)
+      const existing = await tx.clientAlias.findUnique({ where: { aliasNormalized } })
+      if (!existing) {
+        await tx.clientAlias.create({ data: { alias: source.customerCandidateText, aliasNormalized, clientId: input.clienteId } })
+      } else if (existing.clientId !== input.clienteId) {
+        throw new AutomationConflictError(`El alias "${source.customerCandidateText}" ya pertenece a otro cliente.`)
+      }
+    }
+
     const edited: ParsedOrder = { originalText: draft.originalText, customerCandidate: { customerId: customer.id, nombre: customer.nombre, confidence: 1 }, customerAlternatives: [], customerConfidence: 1, lines, requiresReview: false, warnings: [] }
     return tx.orderInterpretationDraft.update({ where: { id }, data: { editedSnapshot: json(edited), estado: 'READY', version: { increment: 1 } } })
   })

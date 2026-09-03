@@ -140,7 +140,21 @@ model Producto {
   itemsPedido ItemPedido[]
   saldos      SaldoStock[]
   projectionOutbox StockProjectionOutbox[]
+  aliases          ProductAlias[]
 
+  @@schema("ale_bet")
+}
+
+model ProductAlias {
+  id              String   @id @default(cuid())
+  alias           String
+  aliasNormalized String   @unique
+  productId       String
+  producto        Producto @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([aliasNormalized])
   @@schema("ale_bet")
 }
 
@@ -179,7 +193,21 @@ model Cliente {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
   pedidos       Pedido[]
+  aliases       ClientAlias[]
 
+  @@schema("ale_bet")
+}
+
+model ClientAlias {
+  id              String   @id @default(cuid())
+  alias           String
+  aliasNormalized String   @unique
+  clientId        String
+  cliente         Cliente  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([aliasNormalized])
   @@schema("ale_bet")
 }
 

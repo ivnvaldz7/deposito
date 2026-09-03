@@ -12,7 +12,8 @@ const createSchema = z.object({ originalText: z.string().trim().min(1).max(20_00
 const editSchema = z.object({
   expectedVersion: z.number().int().positive(),
   clienteId: z.string().min(1),
-  lines: z.array(z.object({ productId: z.string().min(1), cajas: z.number().int().nonnegative().optional(), unidades: z.number().int().nonnegative().optional(), mode: z.enum(['BOXES', 'UNITS', 'MIXED']).optional() })).min(1),
+  rememberClientAlias: z.boolean().optional(),
+  lines: z.array(z.object({ productId: z.string().min(1), cajas: z.number().int().nonnegative().optional(), unidades: z.number().int().nonnegative().optional(), mode: z.enum(['BOXES', 'UNITS', 'MIXED']).optional(), rememberAlias: z.boolean().optional() })).min(1),
 })
 const confirmSchema = z.object({ expectedVersion: z.number().int().positive() })
 

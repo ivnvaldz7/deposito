@@ -436,6 +436,18 @@ export const aleBetApi = {
       apiClient.post<Pedido>(`${BASE}/pedidos/${id}/despachar`, data, undefined, mutationOptions(options)),
   },
 
+  // Automation
+  automation: {
+    createDraft: (data: { originalText: string }) => 
+      apiClient.post<any>(`${BASE}/automation/drafts`, data),
+    getDraft: (id: string) => 
+      apiClient.get<any>(`${BASE}/automation/drafts/${id}`),
+    updateDraft: (id: string, data: any) => 
+      apiClient.put<any>(`${BASE}/automation/drafts/${id}`, data),
+    confirmDraft: (id: string, data: { expectedVersion: number }, options?: MutationOptions) => 
+      apiClient.post<any>(`${BASE}/automation/drafts/${id}/confirm`, data, undefined, mutationOptions(options))
+  },
+
   // Transportistas
   transportistas: {
     list: () => apiClient.get<Transportista[]>(`${BASE}/transportistas`),

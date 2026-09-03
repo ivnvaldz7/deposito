@@ -13,6 +13,7 @@ const StockPage = lazy(() => import('./pages/StockPage'))
 const HistorialPage = lazy(() => import('./pages/HistorialPage'))
 const TransportistasPage = lazy(() => import('./pages/TransportistasPage'))
 const VentasPage = lazy(() => import('./pages/VentasPage'))
+const AutomationPage = lazy(() => import('./pages/automation/AutomationPage'))
 
 function LoadingFallback() {
   return (
@@ -35,6 +36,7 @@ export default function AleBetModule() {
               <Route path="pedidos" element={<PermissionRoute app="ale-bet" permission="pedidos.read"><PedidosPage /></PermissionRoute>} />
               <Route path="pedidos/nuevo" element={<PermissionRoute app="ale-bet" permission="pedidos.create"><NuevoPedidoPage /></PermissionRoute>} />
               <Route path="pedidos/:id" element={<PermissionRoute app="ale-bet" permission="pedidos.read"><PedidoDetailPage /></PermissionRoute>} />
+              <Route path="automation" element={<PermissionRoute app="ale-bet" permission="pedidos.approve"><AutomationPage /></PermissionRoute>} />
               <Route path="productos" element={<ProductosPage />} />
               <Route path="clientes" element={<PermissionRoute app="ale-bet" permission="clientes.read"><ClientesPage /></PermissionRoute>} />
               <Route path="stock" element={<StockPage />} />
