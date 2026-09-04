@@ -4,11 +4,51 @@ import { toast } from '@/lib/toast'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
-import { useCreateDraft, useUpdateDraft, useConfirmDraft, useDraft } from '../../queries/use-automation'
+import { useAutomationAliases, useConfirmDraft, useCreateDraft, useDeleteAutomationAlias, useDraft, useUpdateDraft } from '../../queries/use-automation'
 import { useClientes, useProductosSearch, useProductos } from '../../queries'
 import { AutomationQuantityEditor } from '../../components/AutomationQuantityEditor'
 import type { Cliente } from '../../lib/api'
 
+
+interface ConfirmDialogProps {
+  open: boolean
+  titulo: string
+  mensaje: React.ReactNode
+  accion: string
+  loading: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function ConfirmDialog({ open, titulo, mensaje, accion, loading, onCancel, onConfirm }: ConfirmDialogProps) {
+  if (!open) return null
+  return (
+    <div
+      data-testid="confirm-dialog"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop-in bg-black/50"
+      onClick={onCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={titulo}
+        className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5 animate-dialog-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-[16px] font-bold text-on-surface">{titulo}</h2>
+        <div className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">{mensaje}</div>
+        <div className="mt-5 flex justify-end gap-3">
+          <Button variant="outline" onClick={onCancel} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={onConfirm} loading={loading}>
+            {accion}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
 function newIdempotencyKey(): string {
   return globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
@@ -21,11 +61,17 @@ export default function AutomationPage() {
   const [showOriginal, setShowOriginal] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isInterpreting, setIsInterpreting] = useState(false)
+  const [deleteAliasPrompt, setDeleteAliasPrompt] = useState<{type: 'product' | 'client', id: string, alias: string} | null>(null)
+  const [confirmOrderPrompt, setConfirmOrderPrompt] = useState(false)
+  const [confirmError, setConfirmError] = useState<string | null>(null)
   
   const idempotencyKeyRef = useRef<{ version: number; key: string } | null>(null)
 
+  const [showAliases, setShowAliases] = useState(false)
+  const { data: aliases } = useAutomationAliases()
   const createDraft = useCreateDraft()
   const updateDraft = useUpdateDraft()
+  const deleteAlias = useDeleteAutomationAlias()
   const confirmDraft = useConfirmDraft()
   
   const { data: draftData, refetch: refetchDraft } = useDraft(draftId)
@@ -45,6 +91,19 @@ export default function AutomationPage() {
       toast.error(e instanceof Error ? e.message : 'Error al interpretar')
     } finally {
       setIsInterpreting(false)
+    }
+  }
+
+  const handleDeleteAlias = async () => {
+    if (!deleteAliasPrompt) return
+    const { type, id } = deleteAliasPrompt
+    try {
+      await deleteAlias.mutateAsync({ type, id })
+      toast.success('Equivalencia eliminada')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo eliminar la equivalencia')
+    } finally {
+      setDeleteAliasPrompt(null)
     }
   }
 
@@ -77,7 +136,7 @@ export default function AutomationPage() {
           </div>
           <h2 className="mb-2 text-2xl font-bold text-on-surface">Pedido confirmado</h2>
           <p className="font-body text-on-surface-variant mb-6">
-            Stock reservado correctamente.
+            Stock actualizado correctamente.
           </p>
           {draftData.syncStatus === 'PENDING' && (
             <p className="font-body text-xs text-on-surface-variant mb-4">Actualización externa: Pendiente</p>
@@ -104,6 +163,7 @@ export default function AutomationPage() {
     const handleEditCustomer = async (c: Cliente) => {
       setEditingCliente(false)
       setIsProcessing(true)
+      setConfirmError(null)
       try {
         await updateDraft.mutateAsync({
           id: draft.id,
@@ -170,7 +230,10 @@ export default function AutomationPage() {
       }
     }
 
-    const handleConfirm = async () => {
+    
+
+
+  const handleConfirm = async () => {
       setIsProcessing(true)
       try {
         if (!idempotencyKeyRef.current || idempotencyKeyRef.current.version !== draft.version) {
@@ -184,22 +247,22 @@ export default function AutomationPage() {
       } catch (e) {
         if (e instanceof Error) {
           if (e.message.includes('Stock insuficiente')) {
-            toast.error('El stock cambió desde la última revisión.')
+            setConfirmError('El stock cambió desde la última revisión.')
             refetchDraft()
           } else if (e.message.includes('versión')) {
-            toast.error('El pedido fue actualizado. Revisamos los datos nuevamente.')
+            setConfirmError('El pedido fue actualizado. Revisamos los datos nuevamente.')
             refetchDraft()
           } else if (e.message.includes('READY antes de confirmar')) {
-            toast.error('Este pedido ya fue confirmado o procesado.')
+            setConfirmError('Este pedido ya fue confirmado o procesado.')
             refetchDraft()
           } else if (e.message.includes('idempotencia')) {
-            toast.error('Hubo un conflicto procesando la solicitud, por favor revisá si ya se procesó.')
+            setConfirmError('Hubo un conflicto procesando la solicitud, por favor revisá si ya se procesó.')
             refetchDraft()
           } else {
-            toast.error(e.message)
+            setConfirmError(e.message)
           }
         } else {
-          toast.error('Error al confirmar')
+          setConfirmError('Error al confirmar')
         }
       } finally {
         setIsProcessing(false)
@@ -350,7 +413,7 @@ export default function AutomationPage() {
                           <div>{product.nombre}</div>
                         )}
                       </div>
-                      {isWarning && <Badge variant="error">⚠ Revisar producto</Badge>}
+                      {isWarning && <span className="text-[13px] text-[#A06869] flex items-center gap-1">⚠ Revisar producto</span>}
                     </div>
 
                     {line.warnings && line.warnings.length > 0 && (
@@ -369,8 +432,13 @@ export default function AutomationPage() {
                           onChange={(c, s) => handleChangeQuantity(index, c, s)}
                         />
                         {avail && (
-                          <div className={cn("mt-3 text-[13px] font-medium", avail.status === 'INSUFICIENTE' ? "font-bold text-error" : "text-on-surface-variant")}>
-                            Disponible: {avail.availableUnits} unidades {avail.status === 'INSUFICIENTE' && ' - Stock insuficiente'}
+                          
+                          <div className={cn("mt-3 text-[13px]", avail.status === 'INSUFICIENTE' ? "text-error" : "text-[#5A7A5A]")}>
+                            {avail.status === 'INSUFICIENTE' ? (
+                              <span>⚠ Sin stock ({avail.availableUnits} disponibles)</span>
+                            ) : (
+                              <span>✓ Disponible: {avail.availableUnits} unidades</span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -385,7 +453,7 @@ export default function AutomationPage() {
             <div className="rounded-xl border border-white/10 bg-surface-container-high p-4">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-outline">Acciones</h2>
               <Button 
-                onClick={handleConfirm} 
+                onClick={() => setConfirmOrderPrompt(true)} 
                 disabled={!canConfirm}
                 className="w-full mb-3"
               >
@@ -409,7 +477,49 @@ export default function AutomationPage() {
                 </div>
               )}
             </div>
-          </div>
+          
+      <ConfirmDialog
+        open={confirmOrderPrompt}
+        titulo={confirmError ? "No se pudo confirmar el pedido" : "Confirmar pedido"}
+        mensaje={
+          confirmError ? (
+            confirmError
+          ) : (
+            
+            isProcessing ? (
+              <div className="flex items-center gap-3"><div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>Procesando pedido...</div>
+            ) : (
+              <div className="space-y-3">
+                <p>¿Confirmar pedido y descontar stock físico?</p>
+                <div className="bg-surface-container p-3 rounded border border-white/5 text-sm">
+                  <p className="font-semibold mb-1">{draftData?.snapshot?.customerCandidate?.cliente?.razonSocial}</p>
+                  <p>{draftData?.snapshot?.lines?.length ?? 0} productos</p>
+                  <p>{draftData?.snapshot?.lines?.reduce((acc: number, l: any) => acc + (l.quantity?.totalUnits ?? 0), 0) ?? 0} unidades</p>
+                </div>
+              </div>
+            )
+          )
+        }
+        accion={confirmError ? "Reintentar" : "Confirmar"}
+        loading={isProcessing}
+        onCancel={() => {
+          setConfirmOrderPrompt(false)
+          setConfirmError(null)
+        }}
+        onConfirm={handleConfirm}
+      />
+      
+      <ConfirmDialog
+        open={!!deleteAliasPrompt}
+        titulo="Eliminar equivalencia"
+        mensaje={deleteAliasPrompt ? `¿Eliminar "${deleteAliasPrompt.alias}"? Esta acción no elimina el producto ni el cliente.` : ''}
+        accion="Eliminar"
+        loading={deleteAlias.isPending}
+        onCancel={() => setDeleteAliasPrompt(null)}
+        onConfirm={handleDeleteAlias}
+      />
+
+</div>
         </div>
       </div>
     )
@@ -421,6 +531,38 @@ export default function AutomationPage() {
         <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Procesar pedido</h1>
         <p className="font-body text-[13px] text-on-surface-variant">Pegá uno o varios mensajes copiados desde WhatsApp.</p>
       </header>
+
+      {aliases && (aliases.productAliases?.length > 0 || aliases.clientAliases?.length > 0) && (
+        <div className="mb-8 space-y-4">
+          <Button variant="outline" onClick={() => setShowAliases(!showAliases)}>
+            {showAliases ? 'Ocultar equivalencias aprendidas' : 'Mostrar equivalencias aprendidas'}
+          </Button>
+          {showAliases && (
+            <div className="space-y-4">
+              {aliases.productAliases?.map((alias: any) => (
+                <div key={alias.id} className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-surface-container-high">
+                  <div className="text-sm">
+                    <span className="font-bold text-on-surface">{alias.alias}</span> <span className="text-outline">→</span> {alias.producto?.nombre}
+                  </div>
+                  <Button variant="outline" onClick={() => setDeleteAliasPrompt({ type: 'product', id: alias.id, alias: alias.alias })}>
+                    Eliminar
+                  </Button>
+                </div>
+              ))}
+              {aliases.clientAliases?.map((alias: any) => (
+                <div key={alias.id} className="flex items-center justify-between p-3 rounded-lg border border-white/10 bg-surface-container-high">
+                  <div className="text-sm">
+                    <span className="font-bold text-on-surface">{alias.alias}</span> <span className="text-outline">→</span> {alias.cliente?.razonSocial}
+                  </div>
+                  <Button variant="outline" onClick={() => setDeleteAliasPrompt({ type: 'client', id: alias.id, alias: alias.alias })}>
+                    Eliminar
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="space-y-4">
         <textarea
@@ -442,6 +584,16 @@ export default function AutomationPage() {
           </div>
         </div>
       </div>
+      
+      <ConfirmDialog
+        open={!!deleteAliasPrompt}
+        titulo="Eliminar equivalencia"
+        mensaje={deleteAliasPrompt ? `¿Eliminar "${deleteAliasPrompt.alias}"? Esta acción no elimina el producto ni el cliente.` : ''}
+        accion="Eliminar"
+        loading={deleteAlias.isPending}
+        onCancel={() => setDeleteAliasPrompt(null)}
+        onConfirm={handleDeleteAlias}
+      />
     </div>
   )
 }

@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
-export type TipoMovimiento = 'ingreso_acta' | 'egreso_orden' | 'ajuste_manual'
+export type TipoMovimiento =
+  | 'ingreso_acta'
+  | 'egreso_orden'
+  | 'ajuste_manual'
+  | 'stock_inicial'
+  | (string & {})
 
 export interface UltimoMovimiento {
   id: string

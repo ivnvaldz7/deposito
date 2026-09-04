@@ -9,7 +9,10 @@
   "scripts": {
     "build": "turbo run build",
     "build:prod": "npm --workspace @platform/db run build && npm --workspace @platform/core run build && npm --workspace @platform/server run build && npm --workspace @platform/client run build:static",
-    "dev": "turbo run dev --filter=./apps/platform/* --filter=./packages/*",
+    "dev": "node scripts/dev-uat.mjs",
+    "dev:clean": "node scripts/dev-clean.mjs",
+    "dev:status": "node scripts/dev-status.mjs",
+    "dev:turbo": "turbo run dev --filter=./apps/platform/* --filter=./packages/*",
     "lint": "turbo run lint",
     "start:prod": "npm --workspace @platform/server run start",
     "db:migrate": "npm --workspace @platform/server run db:migrate",

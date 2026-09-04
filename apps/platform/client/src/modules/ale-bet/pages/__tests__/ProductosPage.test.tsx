@@ -1,6 +1,7 @@
 import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor, within, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { aleBetApi } from '../../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
@@ -86,6 +87,7 @@ describe('ProductosPage', () => {
       createProducto({ id: 'p-250', nombre: 'ENERGIZANTE 250 ML' }),
     ])
     renderPage()
+
     const rows = await screen.findAllByRole('row')
     expect(rows.slice(1).map((row) => within(row).getAllByRole('cell')[0]!.textContent)).toEqual([
       'ENERGIZANTE 25 ML',
@@ -95,6 +97,7 @@ describe('ProductosPage', () => {
       'ENERGIZANTE 500 ML',
     ])
   })
+
   it('usuario sin grant: no ve acciones de administración de productos ni de gestión de stock', async () => {
     mockRol('vendedor')
     vi.mocked(aleBetApi.productos.list).mockResolvedValue(createProductoList())
@@ -124,7 +127,7 @@ describe('ProductosPage', () => {
           fechaProduccion: null,
           fechaVencimiento: null,
           activo: true,
-          unidadesPorCaja: 50,
+          
           stockTotal: 100,
           stockDeposito: 100,
           stockAcondicionado: 0
@@ -134,7 +137,7 @@ describe('ProductosPage', () => {
         { id: 'u-dep', codigo: 'DEPOSITO', nombre: 'Depósito Central' },
         { id: 'u-aco', codigo: 'ACONDICIONADO', nombre: 'Acondicionado' }
       ]
-    })
+    } as any)
     
     renderPage()
     await waitFor(() => {
@@ -196,6 +199,32 @@ describe('ProductosPage', () => {
     
     expect(screen.queryByText(/SKU/i)).not.toBeInTheDocument()
     expect(screen.queryByPlaceholderText(/SKU/i)).not.toBeInTheDocument()
+  })
+
+  it('mantiene los inputs numéricos vacíos durante la edición y normaliza el submit', async () => {
+    vi.mocked(aleBetApi.productos.list).mockResolvedValue(createProductoList())
+    vi.mocked(aleBetApi.productos.create).mockResolvedValue(createProductoList()[0])
+    const user = userEvent.setup()
+    renderPage()
+
+    await screen.findByText('Productos')
+    await user.click(screen.getByRole('button', { name: '+ Nuevo producto' }))
+    const inputs = screen.getAllByRole('spinbutton')
+    const stockMinimo = inputs[0]
+    const unidadesPorCaja = inputs[1]
+
+    expect(stockMinimo).toHaveValue(null)
+    await user.type(stockMinimo, '200')
+    expect(stockMinimo).toHaveValue(200)
+    await user.clear(stockMinimo)
+    await user.type(stockMinimo, '0')
+    expect(stockMinimo).toHaveValue(0)
+    await user.type(unidadesPorCaja, '12')
+    await user.click(screen.getByRole('button', { name: 'Crear' }))
+
+    await waitFor(() => expect(aleBetApi.productos.create).toHaveBeenCalledWith({
+      nombre: '', sku: '', stockMinimo: 0, unidadesPorCaja: 12,
+    }))
   })
 
   it('no renderiza SKU al abrir el modal de Editar producto', async () => {

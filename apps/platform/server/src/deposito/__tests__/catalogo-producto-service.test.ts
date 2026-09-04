@@ -44,6 +44,9 @@ describe('catalogo product rules', () => {
   it('requires enabled markets only for labels and boxes', () => {
     expect(() => validateCatalogoInput({ categoria: 'etiqueta', codigo: 'ET-1', mercadosHabilitados: [] })).toThrow('mercado')
     expect(() => validateCatalogoInput({ categoria: 'frasco', codigo: 'FR-1', mercadosHabilitados: ['argentina'] })).toThrow('mercado')
+    expect(() => validateCatalogoInput({ categoria: 'estuche', codigo: 'IGES001', presentacion: 1, mercadosHabilitados: [] })).toThrow('exactamente un mercado')
+    expect(() => validateCatalogoInput({ categoria: 'estuche', codigo: 'IGES001', presentacion: 1, mercadosHabilitados: ['argentina', 'colombia'] })).toThrow('exactamente un mercado')
+    expect(() => validateCatalogoInput({ categoria: 'estuche', codigo: 'IGES001', presentacion: 1, mercadosHabilitados: ['colombia'] })).not.toThrow()
   })
 
   it('rejects activation and reactivation without a code only for etiqueta/estuche', () => {
@@ -190,6 +193,32 @@ describe('catalogo product rules', () => {
     await expect(service.update('activo-1', { nombreCompleto: 'ETIQUETA ACTIVA 2' }, 'enc-1'))
       .resolves.toMatchObject({ codigo: 'IGET-001' })
     expect(updates[0]).not.toHaveProperty('codigo')
+  })
+
+  it('persists stockMinimo independently from presentation', async () => {
+    const updates: Array<Record<string, unknown>> = []
+    const producto = {
+      id: 'frasco-1', estado: 'ACTIVO', activo: true, origen: 'MIGRACION',
+      categoria: 'frasco' as const, codigo: null, presentacion: 100,
+      stockMinimo: null, mercadosHabilitados: [], nombreBase: 'FRASCO',
+      nombreCompleto: 'FRASCO', volumen: null, unidad: 'unid/caja', variante: null,
+    }
+    const tx = {
+      depositoProducto: {
+        findUnique: async () => producto,
+        update: async ({ data }: { data: Record<string, unknown> }) => {
+          updates.push(data)
+          return { ...producto, ...data }
+        },
+      },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    await expect(service.update('frasco-1', { stockMinimo: 5 }, 'enc-1')).resolves.toMatchObject({ stockMinimo: 5, presentacion: 100 })
+    expect(updates[0]).toMatchObject({ stockMinimo: 5 })
+    expect(updates[0]).not.toHaveProperty('presentacion')
   })
 
   it('enforces the IGET/IGES prefix on the one-time INACTIVO code assignment', async () => {

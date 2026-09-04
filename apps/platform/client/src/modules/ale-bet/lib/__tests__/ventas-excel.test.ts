@@ -40,7 +40,7 @@ describe('ventas-excel', () => {
     id: 'c-1',
     nombre: 'DEMO Agropecuaria',
     cuit: '20-12345678-9',
-  }
+  } as any
 
   const reporteMensual: ReporteVentas = {
     modo: 'mensual',
@@ -82,7 +82,7 @@ describe('ventas-excel', () => {
       }
     ],
     meses: [
-      { month: 8, pedidosDespachados: 1, productosDistintos: 1, unidadesTotales: 10 }
+      { month: 8, pedidosDespachados: 1, productosDistintos: 1, unidadesTotales: 10 } as any
     ],
   }
 

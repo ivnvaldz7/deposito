@@ -76,11 +76,13 @@ function MetricCard({
 
 function PedidoRow({ pedido, onOpen }: { pedido: DashboardPedidoReciente; onOpen: (pedidoId: string) => void }) {
   const adminVendor = isAdminVendor(pedido.vendedorNombre)
-  const variant = getEstadoBadgeVariant(pedido.estado)
+  const esAutomation = pedido.origen === 'AUTOMATION'
+  const estadoDocumental = esAutomation ? 'Pendiente de remito' : pedido.estado.replace('_', ' ')
+  const variant = esAutomation ? 'default' : getEstadoBadgeVariant(pedido.estado)
 
   return (
     <div
-      className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 lg:grid lg:grid-cols-[1.8fr_1fr_1fr_100px_100px] lg:items-center lg:gap-4 hover:bg-white/5 cursor-pointer transition-colors"
+      className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 lg:grid lg:grid-cols-[1.8fr_1fr_1fr_130px_100px] lg:items-center lg:gap-4 hover:bg-white/5 cursor-pointer transition-colors"
       onClick={() => onOpen(pedido.id)}
       role="button"
       tabIndex={0}
@@ -94,7 +96,7 @@ function PedidoRow({ pedido, onOpen }: { pedido: DashboardPedidoReciente; onOpen
           <p className="mt-1 font-body text-[12px] lg:text-[10px] text-outline">{pedido.numero} · {pedido.cantidadItems} items</p>
         </div>
         <div className="lg:hidden shrink-0 ml-2">
-          <Badge variant={variant} className="justify-center">{pedido.estado.replace('_', ' ')}</Badge>
+          <Badge variant={variant} className="justify-center">{estadoDocumental}</Badge>
         </div>
       </div>
       <div className="flex items-center justify-between lg:justify-start gap-2">
@@ -112,7 +114,7 @@ function PedidoRow({ pedido, onOpen }: { pedido: DashboardPedidoReciente; onOpen
       </div>
       <div className="hidden lg:block font-body text-[11px] text-outline">{formatDashboardDate(pedido.createdAt)}</div>
       <div className="hidden lg:flex justify-center">
-        <Badge variant={variant} className="w-[88px] justify-center">{pedido.estado.replace('_', ' ')}</Badge>
+        <Badge variant={variant} className="w-[120px] justify-center">{estadoDocumental}</Badge>
       </div>
       <div className="hidden lg:flex justify-center">
         {pedido.estado === 'EN_ARMADO' ? (
@@ -183,8 +185,7 @@ export default function DashboardPage() {
         ) : (
           <>
             <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={canReadProductos ? () => navigate('/ale-bet/productos', { state: { stockCritico: true } }) : undefined} />
-            <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={canReadPedidos ? () => navigate('/ale-bet/pedidos', { state: { pedidosHoy: true } }) : undefined} />
-            <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={canReadPedidos ? () => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } }) : undefined} />
+            <MetricCard label="Pendientes de remito" value={data.pendientesRemito} subtitle="Automation confirmado" valueClassName="text-on-surface" onClick={canReadPedidos ? () => navigate('/ale-bet/pedidos') : undefined} />
             <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={canReadStock ? () => navigate('/ale-bet/stock') : undefined} />
           </>
         )}
@@ -201,7 +202,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-surface-container-high rounded-xl overflow-hidden">
-          <div className="hidden lg:grid grid-cols-[1.8fr_1fr_1fr_100px_100px] gap-4 border-b border-white/10 px-5 py-3 font-body text-[10px] uppercase tracking-[0.8px] text-outline">
+          <div className="hidden lg:grid grid-cols-[1.8fr_1fr_1fr_130px_100px] gap-4 border-b border-white/10 px-5 py-3 font-body text-[10px] uppercase tracking-[0.8px] text-outline">
             <div>Cliente</div>
             <div>Vendedor</div>
             <div>Fecha</div>

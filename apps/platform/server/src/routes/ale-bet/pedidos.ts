@@ -44,8 +44,14 @@ function actorRole(user: JwtPayload): string | undefined {
   return getAppAccess(user, 'ale-bet')?.rol
 }
 
-function assertOwnerOrAdmin(pedido: { vendedorId: string }, user: JwtPayload): void {
+function assertOwnerOrAdmin(pedido: { vendedorId: string | null }, user: JwtPayload): void {
   if (actorRole(user) !== 'admin' && pedido.vendedorId !== user.sub) throw new ForbiddenError('Solo el vendedor propietario puede operar el pedido')
+}
+
+function assertManualArmadorWorkflow(pedido: { origen: 'MANUAL' | 'AUTOMATION' }): void {
+  if (pedido.origen === 'AUTOMATION') {
+    throw new ConflictError('Los pedidos Automation se confirman con stock efectivo y no participan del flujo Armador')
+  }
 }
 
 function assertAssignedArmadorOrSupervisor(pedido: { armadorId: string | null }, user: JwtPayload): void {
@@ -161,9 +167,22 @@ router.get('/', requirePermission('ale-bet', 'pedidos.read'), async (req, res) =
   const user = req.user as JwtPayload
   const role = actorRole(user)
   const requestedState = typeof req.query.estado === 'string' ? req.query.estado : undefined
+  const requestedTray = typeof req.query.bandeja === 'string' ? req.query.bandeja : undefined
   const where: Prisma.PedidoWhereInput = {}
-  if (requestedState && ['BORRADOR', 'APROBADO', 'EN_ARMADO', 'PREPARADO', 'DESPACHADO', 'CANCELADO'].includes(requestedState)) where.estado = requestedState as OrderState
-  if (role === 'vendedor') where.vendedorId = user.sub
+
+  // Facturación trabaja documentos, no el workflow histórico de preparación.
+  // Un remito VIGENTE saca al pedido de la bandeja; al invalidarlo, `none`
+  // vuelve a ser verdadero y el pedido reaparece sin mutar stock ni Pedido.
+  const billingTray = role === 'facturacion' || requestedTray === 'FACTURACION'
+  if (billingTray) {
+    where.origen = 'AUTOMATION'
+    where.estado = { not: 'CANCELADO' }
+    where.remitos = { none: { estado: 'VIGENTE' } }
+  } else {
+    if (requestedState && ['BORRADOR', 'APROBADO', 'EN_ARMADO', 'PREPARADO', 'DESPACHADO', 'CANCELADO'].includes(requestedState)) where.estado = requestedState as OrderState
+    if (role === 'vendedor') where.vendedorId = user.sub
+    if (role === 'armador') where.origen = 'MANUAL'
+  }
   const pedidos = await prisma.pedido.findMany({ where, include: { cliente: true, items: { include: { producto: true } }, remitos: { where: { estado: 'VIGENTE' } } }, orderBy: { createdAt: 'desc' } })
   res.json(pedidos)
 })
@@ -173,6 +192,7 @@ router.get('/:id', requirePermission('ale-bet', 'pedidos.read'), async (req, res
   if (!pedido) { res.status(404).json({ error: 'Pedido no encontrado' }); return }
   const user = req.user as JwtPayload
   if (actorRole(user) === 'vendedor' && pedido.vendedorId !== user.sub) { res.status(403).json({ error: 'No puede consultar este pedido' }); return }
+  if (actorRole(user) === 'armador' && pedido.origen === 'AUTOMATION') { res.status(403).json({ error: 'Los pedidos Automation no están disponibles para Armador' }); return }
   res.json(pedido)
 })
 
@@ -259,7 +279,7 @@ router.put('/:id/tomar', requirePermission('ale-bet', 'pedidos.take'), async (re
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.tomar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertManualArmadorWorkflow(pedido); assertVersion(pedido, parsed.data.expectedVersion)
       if (!canTransitionOrder(state(pedido.estado), 'EN_ARMADO')) throw new ConflictError('Solo se puede tomar un pedido APROBADO')
       const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'EN_ARMADO', armadorId: user.sub, version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
       await audit(tx, updated.id, user.sub, 'PEDIDO_TOMADO', { estado: pedido.estado }, { estado: updated.estado })
@@ -277,6 +297,7 @@ router.put('/:id/items/:itemId/completar', requirePermission('ale-bet', 'pedidos
   try {
     const result = await prisma.$transaction(async (tx): Promise<{ body: Prisma.JsonValue | unknown; replayed: boolean }> => {
       const locked = await lockOrder(tx, String(req.params.id))
+      assertManualArmadorWorkflow(locked)
       if (locked.estado !== 'EN_ARMADO') throw new ConflictError('Solo se pueden completar items de un pedido EN_ARMADO')
       assertAssignedArmadorOrSupervisor(locked, user)
       const item = locked.items.find((entry) => entry.id === String(req.params.itemId)); if (!item) throw new NotFoundError('Item no encontrado')
@@ -303,6 +324,7 @@ router.put('/:id/preparar', requirePermission('ale-bet', 'pedidos.prepare'), asy
   try {
     const result = await prisma.$transaction(async (tx): Promise<{ body: Prisma.JsonValue | unknown; replayed: boolean }> => {
       const locked = await lockOrder(tx, String(req.params.id))
+      assertManualArmadorWorkflow(locked)
       assertAssignedArmadorOrSupervisor(locked, user)
       if (locked.estado === 'PREPARADO') {
         const acquisition = await acquireAuthorizedIdempotency(tx, user, 'ale-bet.pedido.preparar', locked.id, req.method, parsed.data, req.rawHeaders)
@@ -364,7 +386,7 @@ router.put('/:id/confirmar-cancelacion', requirePermission('ale-bet', 'pedidos.c
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.confirmar-cancelacion', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertAssignedArmadorOrSupervisor(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertManualArmadorWorkflow(pedido); assertAssignedArmadorOrSupervisor(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
       if (pedido.estado !== 'EN_ARMADO' || !pedido.cancelacionSolicitadaAt) throw new ConflictError('No hay una solicitud de cancelación EN_ARMADO pendiente')
       await releaseActiveReservations(tx, pedido.id)
       const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'CANCELADO', canceladoAt: new Date(), motivoCancelacion: parsed.data.motivo, version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
@@ -383,7 +405,7 @@ router.post('/:id/despachar', requirePermission('ale-bet', 'pedidos.dispatch'), 
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.despachar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertAssignedArmadorOrSupervisor(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertManualArmadorWorkflow(pedido); assertAssignedArmadorOrSupervisor(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
       const remito = await tx.remito.findFirst({ where: { pedidoId: pedido.id, estado: 'VIGENTE' } })
       if (!canConfirmDispatch(state(pedido.estado), Boolean(remito))) throw new ConflictError('Despacho requiere pedido PREPARADO y remito vigente')
       await consumeActiveReservations(tx, pedido.id, user.sub)

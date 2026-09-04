@@ -1,43 +1,68 @@
-import { Router, Request, Response } from 'express'
+import { Request, Response, Router } from 'express'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requirePermission } from '../../middlewares/require-permission'
+import { aggregateDrugCatalog } from '../services/droga-inventory-service'
 
 const router = Router()
 
 router.get('/', authenticate, requirePermission('deposito', 'drogas.read'), async (req: Request, res: Response): Promise<void> => {
-  const nombreFilter = typeof req.query['nombre'] === 'string' ? req.query['nombre'] : undefined
-
+  const nombre = typeof req.query['nombre'] === 'string' ? req.query['nombre'].trim() : ''
+  const orderByExpiry = req.query['orden'] === 'proximo-vencimiento'
   try {
-    const drogas = await prisma.inventarioDroga.findMany({
-      where: nombreFilter ? { nombre: nombreFilter } : undefined,
-      orderBy: [{ nombre: 'asc' }, { vencimiento: 'asc' }],
+    const products = await prisma.depositoProducto.findMany({
+      where: {
+        categoria: 'droga',
+        estado: 'ACTIVO',
+        ...(nombre ? { nombreCompleto: { contains: nombre, mode: 'insensitive' } } : {}),
+      },
+      select: {
+        id: true,
+        nombreCompleto: true,
+        stockMinimo: true,
+        inventarioDrogas: {
+          select: { id: true, lote: true, vencimiento: true, cantidad: true, createdAt: true },
+          orderBy: [{ vencimiento: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
+        },
+      },
+      orderBy: { nombreCompleto: 'asc' },
     })
-    res.json(drogas)
+    const result = aggregateDrugCatalog(products)
+    if (orderByExpiry) {
+      result.sort((left, right) => {
+        const leftDate = left.proximoVencimiento?.getTime() ?? Number.POSITIVE_INFINITY
+        const rightDate = right.proximoVencimiento?.getTime() ?? Number.POSITIVE_INFINITY
+        return leftDate - rightDate || left.nombre.localeCompare(right.nombre)
+      })
+    }
+    res.json(result)
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
   }
 })
 
-// ─── GET /api/drogas/por-vencer?dias=30 ───────────────────────────────────────
-
 router.get('/por-vencer', authenticate, requirePermission('deposito', 'drogas.read.por_vencer'), async (req: Request, res: Response): Promise<void> => {
-  const dias = typeof req.query['dias'] === 'string' ? parseInt(req.query['dias'], 10) : 30
-  const validDias = isNaN(dias) || dias <= 0 ? 30 : Math.min(dias, 365)
-
-  const limitDate = new Date()
-  limitDate.setDate(limitDate.getDate() + validDias)
-  limitDate.setUTCHours(23, 59, 59, 999)
-
+  const parsedDays = typeof req.query['dias'] === 'string' ? Number.parseInt(req.query['dias'], 10) : 30
+  const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 30
+  const limit = new Date()
+  limit.setUTCDate(limit.getUTCDate() + days)
+  limit.setUTCHours(23, 59, 59, 999)
   try {
-    const drogas = await prisma.inventarioDroga.findMany({
-      where: {
-        vencimiento: { lte: limitDate },
-        cantidad: { gt: 0 },
+    const products = await prisma.depositoProducto.findMany({
+      where: { categoria: 'droga', estado: 'ACTIVO' },
+      select: {
+        id: true,
+        nombreCompleto: true,
+        stockMinimo: true,
+        inventarioDrogas: {
+          where: { cantidad: { gt: 0 }, vencimiento: { lte: limit } },
+          select: { id: true, lote: true, vencimiento: true, cantidad: true, createdAt: true },
+          orderBy: [{ vencimiento: 'asc' }, { id: 'asc' }],
+        },
       },
-      orderBy: { vencimiento: 'asc' },
+      orderBy: { nombreCompleto: 'asc' },
     })
-    res.json(drogas)
+    res.json(aggregateDrugCatalog(products).filter((product) => product.lotes.length > 0))
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
   }

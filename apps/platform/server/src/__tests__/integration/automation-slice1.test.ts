@@ -3,10 +3,11 @@ import express from 'express'
 import jwt from 'jsonwebtoken'
 import request from 'supertest'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { platformDb as prisma } from '@platform/db'
+import { Prisma, platformDb as prisma } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
 import { createAleBetRoutes } from '../../routes/ale-bet'
 import { truncateDb } from '../utils/db-cleaner'
+import type { ParsedOrder } from '../../routes/ale-bet/automation/contracts'
 
 const app = express()
 app.use(express.json())
@@ -18,16 +19,20 @@ app.use((req, _res, next) => {
 app.use('/api/ale-bet', createAleBetRoutes())
 
 function adminToken(): string {
-  return jwt.sign({ sub: 'automation-admin', apps: { 'ale-bet': { rol: 'admin', activo: true } } }, process.env.PLATFORM_JWT_SECRET ?? 'test-secret')
+  return jwt.sign({ sub: 'automation-admin', email: 'automation-admin@test.local', apps: { 'ale-bet': { rol: 'admin', activo: true } } }, process.env.PLATFORM_JWT_SECRET ?? 'test-secret')
+}
+
+function token(role: 'armador' | 'facturacion', subject = role): string {
+  return jwt.sign({ sub: subject, apps: { 'ale-bet': { rol: role, activo: true } } }, process.env.PLATFORM_JWT_SECRET ?? 'test-secret')
 }
 
 describe('AUTOMATION-01 Slice 1', () => {
   beforeAll(async () => { await prisma.$queryRaw`SELECT 1` })
   beforeEach(async () => { await truncateDb(prisma) })
 
-  async function seed(quantity = 65) {
+  async function seed(quantity = 120) {
     const suffix = crypto.randomUUID()
-    const customer = await prisma.cliente.create({ data: { nombre: `Veterinaria ${suffix}` } })
+    const customer = await prisma.cliente.create({ data: { nombre: `Veterinaria ${suffix}`, cuit: '30-12345678-9', condicionIva: 'RI', direccion: 'Ruta 2 km 50' } })
     const product = await prisma.producto.create({ data: { nombre: 'Olivitasan 500 ML', sku: `OLIVITASAN-500-${suffix}`, unidadesPorCaja: 20 } })
     const deposito = await prisma.ubicacionStock.create({ data: { codigo: 'DEPOSITO', nombre: 'Depósito' } })
     const expired = await prisma.lote.create({ data: { numero: `EXP-${suffix}`, productoId: product.id, cajas: 5, sueltos: 0, fechaVencimiento: new Date(Date.now() - 86_400_000) } })
@@ -39,17 +44,204 @@ describe('AUTOMATION-01 Slice 1', () => {
     return { customer, product, valid, expired }
   }
 
-  it('persists the draft and confirms once: APROBADO, active reservation, unchanged physical and PENDING outbox', async () => {
+  async function seedCetri(quantity = 120) {
+    const suffix = crypto.randomUUID()
+    const customer = await prisma.cliente.create({ data: { nombre: `Veterinaria CETRI ${suffix}`, cuit: '30-12345678-9', condicionIva: 'RI', direccion: 'Ruta 2 km 50' } })
+    const product = await prisma.producto.create({ data: { nombre: 'CETRI-AMON 1 L', sku: `CETRI-1L-${suffix}`, unidadesPorCaja: 12 } })
+    const deposito = await prisma.ubicacionStock.create({ data: { codigo: 'DEPOSITO', nombre: 'Depósito' } })
+    const lote = await prisma.lote.create({ data: { numero: `CETRI-${suffix}`, productoId: product.id, cajas: quantity / 12, sueltos: quantity % 12, fechaVencimiento: new Date(Date.now() + 86_400_000) } })
+    await prisma.saldoStock.create({ data: { productoId: product.id, loteId: lote.id, ubicacionId: deposito.id, cantidad: quantity } })
+    return { customer, product, lote, deposito }
+  }
+
+  async function confirmAutomationUnits(input: { auth: string; customerId: string; productId: string; productName: string; units: number }) {
+    const draft = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', input.auth)
+      .send({ originalText: `${input.units} ${input.productName}` }).expect(201)
+    const customer = await request(app).put(`/api/ale-bet/automation/drafts/${draft.body.id}`).set('Authorization', input.auth)
+      .send({ expectedVersion: draft.body.version, clienteId: input.customerId }).expect(200)
+    const lineId = draft.body.proposedSnapshot.lines[0].lineId as string
+    const edited = await request(app).put(`/api/ale-bet/automation/drafts/${draft.body.id}`).set('Authorization', input.auth)
+      .send({ expectedVersion: customer.body.version, line: { lineId, productId: input.productId, unidades: input.units } }).expect(200)
+    return request(app).post(`/api/ale-bet/automation/drafts/${draft.body.id}/confirm`).set('Authorization', input.auth)
+      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: edited.body.version }).expect(200)
+  }
+
+  function json(value: ParsedOrder): Prisma.InputJsonValue {
+    return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue
+  }
+
+  async function createPartialDraft() {
+    const suffix = crypto.randomUUID()
+    const customer = await prisma.cliente.create({ data: { nombre: `EL FEDERAL ${suffix}`, cuit: '30-12345678-9', condicionIva: 'RI', direccion: 'Ruta 2 km 50' } })
+    const [productA, productB, productC] = await Promise.all([
+      prisma.producto.create({ data: { nombre: `Producto A ${suffix}`, sku: `PARTIAL-A-${suffix}`, unidadesPorCaja: 10 } }),
+      prisma.producto.create({ data: { nombre: `Producto B ${suffix}`, sku: `PARTIAL-B-${suffix}`, unidadesPorCaja: 10 } }),
+      prisma.producto.create({ data: { nombre: `Producto C ${suffix}`, sku: `PARTIAL-C-${suffix}`, unidadesPorCaja: 10 } }),
+    ])
+    const snapshot: ParsedOrder = {
+      originalText: 'FEDERAL 3\n5 producto A\n6 producto B\n7 producto C',
+      customerCandidate: null,
+      customerCandidateText: 'FEDERAL 3',
+      customerAlternatives: [{ customerId: customer.id, nombre: customer.nombre, confidence: 0.7 }],
+      customerConfidence: 0.7,
+      warnings: ['CUSTOMER_UNRESOLVED'],
+      requiresReview: true,
+      lines: [
+        { lineId: 'line-a', originalText: '5 producto A', productCandidate: null, alternatives: [{ productId: productA.id, nombre: productA.nombre, confidence: 0.7 }], confidence: 0.7, quantity: { originalExpression: '5 producto A', mode: 'UNITS', explicitBoxes: null, explicitUnits: 5, totalUnits: null, normalizedBoxes: null, normalizedLooseUnits: null }, requiresReview: true, warnings: ['PRODUCT_UNRESOLVED'] },
+        { lineId: 'line-b', originalText: '6 producto B', productCandidate: null, alternatives: [{ productId: productB.id, nombre: productB.nombre, confidence: 0.7 }], confidence: 0.7, quantity: { originalExpression: '6 producto B', mode: 'UNITS', explicitBoxes: null, explicitUnits: 6, totalUnits: null, normalizedBoxes: null, normalizedLooseUnits: null }, requiresReview: true, warnings: ['PRODUCT_UNRESOLVED'] },
+        { lineId: 'line-c', originalText: '7 producto C', productCandidate: { productId: productC.id, nombre: productC.nombre, confidence: 1 }, alternatives: [], confidence: 1, quantity: { originalExpression: '7 producto C', mode: 'UNITS', explicitBoxes: null, explicitUnits: 7, totalUnits: 7, normalizedBoxes: 0, normalizedLooseUnits: 7 }, requiresReview: false, warnings: [] },
+      ],
+    }
+    const draft = await prisma.orderInterpretationDraft.create({ data: { originalText: snapshot.originalText, proposedSnapshot: json(snapshot), estado: 'DRAFT', createdBy: 'automation-admin' } })
+    return { auth: `Bearer ${adminToken()}`, customer, productA, productB, productC, draft }
+  }
+
+  async function getEffective(id: string, auth: string) {
+    const response = await request(app).get(`/api/ale-bet/automation/drafts/${id}`).set('Authorization', auth).expect(200)
+    return response.body
+  }
+
+  async function seedB12Catalog() {
+    const suffix = crypto.randomUUID()
+    const customer = await prisma.cliente.create({ data: { nombre: `Cliente B12 ${suffix}`, cuit: '30-12345678-9', condicionIva: 'RI', direccion: 'Ruta 2 km 50' } })
+    const product100 = await prisma.producto.create({ data: { nombre: 'COMPLEJO B B12 B15 100 ML', sku: `B12-100-${suffix}`, unidadesPorCaja: 10 } })
+    const product250 = await prisma.producto.create({ data: { nombre: 'COMPLEJO B B12 B15 250 ML', sku: `B12-250-${suffix}`, unidadesPorCaja: 10 } })
+    return { auth: `Bearer ${adminToken()}`, customer, product100, product250 }
+  }
+
+  it('A: corregir cliente conserva el producto unresolved', async () => {
+    const fixture = await createPartialDraft()
+    await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, clienteId: fixture.customer.id }).expect(200)
+    const current = await getEffective(fixture.draft.id, fixture.auth)
+    expect(current.effectiveSnapshot.customerCandidate.customerId).toBe(fixture.customer.id)
+    expect(current.effectiveSnapshot.lines[0]).toMatchObject({ lineId: 'line-a', productCandidate: null, requiresReview: true, warnings: ['PRODUCT_UNRESOLVED'] })
+  })
+
+  it('B: corregir producto no auto-selecciona la primera alternativa de cliente', async () => {
+    const fixture = await createPartialDraft()
+    await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, line: { lineId: 'line-a', productId: fixture.productA.id, unidades: 5 } }).expect(200)
+    const current = await getEffective(fixture.draft.id, fixture.auth)
+    expect(current.effectiveSnapshot.customerCandidate).toBeNull()
+    expect(current.effectiveSnapshot.customerAlternatives).toEqual([{ customerId: fixture.customer.id, nombre: fixture.customer.nombre, confidence: 0.7 }])
+    expect(current.effectiveSnapshot.warnings).toContain('CUSTOMER_UNRESOLVED')
+  })
+
+  it('C: corregir el primer producto conserva el segundo unresolved', async () => {
+    const fixture = await createPartialDraft()
+    await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, line: { lineId: 'line-a', productId: fixture.productA.id, unidades: 5 } }).expect(200)
+    const current = await getEffective(fixture.draft.id, fixture.auth)
+    expect(current.effectiveSnapshot.lines[1]).toMatchObject({ lineId: 'line-b', productCandidate: null, requiresReview: true, warnings: ['PRODUCT_UNRESOLVED'] })
+  })
+
+  it('D: corregir el segundo producto conserva el primero unresolved', async () => {
+    const fixture = await createPartialDraft()
+    await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, line: { lineId: 'line-b', productId: fixture.productB.id, unidades: 6 } }).expect(200)
+    const current = await getEffective(fixture.draft.id, fixture.auth)
+    expect(current.effectiveSnapshot.lines[0]).toMatchObject({ lineId: 'line-a', productCandidate: null, requiresReview: true, warnings: ['PRODUCT_UNRESOLVED'] })
+  })
+
+  it('E: corregir un unresolved no modifica la línea ya resuelta', async () => {
+    const fixture = await createPartialDraft()
+    const before = (await getEffective(fixture.draft.id, fixture.auth)).effectiveSnapshot.lines[2]
+    await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, line: { lineId: 'line-a', productId: fixture.productA.id, unidades: 5 } }).expect(200)
+    const after = (await getEffective(fixture.draft.id, fixture.auth)).effectiveSnapshot.lines[2]
+    expect(after).toEqual(before)
+  })
+
+  it('F: editar cantidad conserva cliente y las demás líneas idénticas', async () => {
+    const fixture = await createPartialDraft()
+    const before = (await getEffective(fixture.draft.id, fixture.auth)).effectiveSnapshot
+    await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, line: { lineId: 'line-c', cajas: 1, unidades: 2, mode: 'MIXED' } }).expect(200)
+    const after = (await getEffective(fixture.draft.id, fixture.auth)).effectiveSnapshot
+    expect(after.customerCandidate).toEqual(before.customerCandidate)
+    expect(after.customerCandidateText).toBe(before.customerCandidateText)
+    expect(after.customerAlternatives).toEqual(before.customerAlternatives)
+    expect(after.lines[0]).toEqual(before.lines[0])
+    expect(after.lines[1]).toEqual(before.lines[1])
+    expect(after.lines[2].quantity).toMatchObject({ totalUnits: 12, normalizedBoxes: 1, normalizedLooseUnits: 2 })
+  })
+
+  it('G: dos PUT consecutivos usan la versión y el snapshot efectivo posterior', async () => {
+    const fixture = await createPartialDraft()
+    const customerEdit = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, clienteId: fixture.customer.id }).expect(200)
+    const lineEdit = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: customerEdit.body.version, line: { lineId: 'line-a', productId: fixture.productA.id, unidades: 5 } }).expect(200)
+    const current = await getEffective(fixture.draft.id, fixture.auth)
+    expect(lineEdit.body.version).toBe(customerEdit.body.version + 1)
+    expect(current.effectiveSnapshot.customerCandidate.customerId).toBe(fixture.customer.id)
+    expect(current.effectiveSnapshot.lines[0].productCandidate.productId).toBe(fixture.productA.id)
+    expect(current.effectiveSnapshot.lines[1].productCandidate).toBeNull()
+  })
+
+  it('H: rememberAlias se limita a la línea corregida', async () => {
+    const fixture = await createPartialDraft()
+    await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: 1, line: { lineId: 'line-a', productId: fixture.productA.id, unidades: 5, rememberAlias: true } }).expect(200)
+    expect(await prisma.productAlias.count({ where: { productId: fixture.productA.id } })).toBe(1)
+    expect(await prisma.productAlias.count({ where: { productId: fixture.productB.id } })).toBe(0)
+    expect(await prisma.clientAlias.count()).toBe(0)
+    const current = await getEffective(fixture.draft.id, fixture.auth)
+    expect(current.effectiveSnapshot.lines[1].productCandidate).toBeNull()
+  })
+
+  it('rechaza guardar un alias con presentación incompatible y acepta la presentación correcta', async () => {
+    const fixture = await seedB12Catalog()
+    const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', fixture.auth)
+      .send({ originalText: `Cliente: ${fixture.customer.nombre}\n240 b12b15 250ml` }).expect(201)
+    const current = await getEffective(created.body.id, fixture.auth)
+    const line = current.effectiveSnapshot.lines[0]
+    const rejected = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: current.draft.version, line: { lineId: line.lineId, productId: fixture.product100.id, unidades: 240, rememberAlias: true } }).expect(409)
+    expect(rejected.body.error).toBe(`La presentación 250 ML no coincide con el producto seleccionado: ${fixture.product100.nombre}.`)
+    expect(await prisma.productAlias.count({ where: { aliasNormalized: 'B12B15 250 ML' } })).toBe(0)
+    const accepted = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: current.draft.version, line: { lineId: line.lineId, productId: fixture.product250.id, unidades: 240, rememberAlias: true } }).expect(200)
+    expect(accepted.body.version).toBe(current.draft.version + 1)
+    expect(await prisma.productAlias.findUniqueOrThrow({ where: { aliasNormalized: 'B12B15 250 ML' } })).toMatchObject({ alias: 'b12b15 250ml', productId: fixture.product250.id })
+  })
+
+  it('ignora un alias histórico inconsistente al interpretar y conserva la presentación correcta', async () => {
+    const fixture = await seedB12Catalog()
+    await prisma.productAlias.create({ data: { alias: 'b12b15 250ml', aliasNormalized: 'B12B15 250 ML', productId: fixture.product100.id } })
+    const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', fixture.auth)
+      .send({ originalText: '240 b12b15 250ml' }).expect(201)
+    expect(created.body.proposedSnapshot.lines[0].productCandidate.productId).toBe(fixture.product250.id)
+    expect(created.body.proposedSnapshot.lines[0].productCandidate.productId).not.toBe(fixture.product100.id)
+  })
+
+  it('lista y elimina equivalencias sin eliminar los productos ni clientes asociados', async () => {
+    const fixture = await seedB12Catalog()
+    const productAlias = await prisma.productAlias.create({ data: { alias: 'b12 b15 100ml', aliasNormalized: 'B12 B15 100 ML', productId: fixture.product100.id } })
+    const clientAlias = await prisma.clientAlias.create({ data: { alias: 'cliente b12', aliasNormalized: 'CLIENTE B12', clientId: fixture.customer.id } })
+    const listed = await request(app).get('/api/ale-bet/automation/aliases').set('Authorization', fixture.auth).expect(200)
+    expect(listed.body.productAliases).toContainEqual(expect.objectContaining({ id: productAlias.id, producto: { id: fixture.product100.id, nombre: fixture.product100.nombre } }))
+    expect(listed.body.clientAliases).toContainEqual(expect.objectContaining({ id: clientAlias.id, cliente: { id: fixture.customer.id, nombre: fixture.customer.nombre } }))
+    await request(app).delete(`/api/ale-bet/automation/product-aliases/${productAlias.id}`).set('Authorization', fixture.auth).expect(204)
+    await request(app).delete(`/api/ale-bet/automation/client-aliases/${clientAlias.id}`).set('Authorization', fixture.auth).expect(204)
+    await expect(prisma.producto.findUniqueOrThrow({ where: { id: fixture.product100.id } })).resolves.toMatchObject({ id: fixture.product100.id })
+    await expect(prisma.cliente.findUniqueOrThrow({ where: { id: fixture.customer.id } })).resolves.toMatchObject({ id: fixture.customer.id })
+  })
+
+  it('confirms Automation as one stock-effective operation and remitos stay documentary', async () => {
     const fixture = await seed()
     const auth = `Bearer ${adminToken()}`
     const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', auth)
-      .send({ originalText: '20 Olivitasan 500\nagregá 15 más de Olivitasan 500' }).expect(201)
-    expect(created.body.originalText).toContain('agregá 15')
-    const edited = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', auth)
-      .send({ expectedVersion: 1, clienteId: fixture.customer.id, lines: [
-        { productId: fixture.product.id, unidades: 20 },
-        { productId: fixture.product.id, unidades: 15 },
-      ] }).expect(200)
+      .send({ originalText: '8 Olivitasan 500\nagregá 4 más de Olivitasan 500' }).expect(201)
+    expect(created.body.originalText).toContain('agregá 4')
+    let edited = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', auth)
+      .send({ expectedVersion: 1, clienteId: fixture.customer.id }).expect(200)
+    const sourceLines = created.body.proposedSnapshot.lines as Array<{ lineId: string }>
+    for (const [index, units] of [8, 4].entries()) {
+      edited = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', auth)
+        .send({ expectedVersion: edited.body.version, line: { lineId: sourceLines[index]!.lineId, productId: fixture.product.id, unidades: units } }).expect(200)
+    }
     const key = crypto.randomUUID()
     const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${created.body.id}/confirm`).set('Authorization', auth).set('Idempotency-Key', key)
       .send({ expectedVersion: edited.body.version }).expect(200)
@@ -60,17 +252,81 @@ describe('AUTOMATION-01 Slice 1', () => {
     await request(app).post(`/api/ale-bet/automation/drafts/${created.body.id}/confirm`).set('Authorization', auth).set('Idempotency-Key', key)
       .send({ expectedVersion: edited.body.version + 1 }).expect(409)
     const pedido = await prisma.pedido.findUniqueOrThrow({ where: { id: confirmed.body.pedido.id }, include: { items: true, reservas: true } })
-    expect(pedido.estado).toBe('APROBADO')
+    expect(pedido).toMatchObject({ estado: 'APROBADO', origen: 'AUTOMATION', vendedorId: null })
     expect(pedido.items).toHaveLength(1)
-    expect(pedido.items[0]?.cantidad).toBe(35)
+    expect(pedido.items[0]?.cantidad).toBe(12)
     expect(pedido.reservas).toHaveLength(1)
-    expect(pedido.reservas[0]).toMatchObject({ estado: 'ACTIVA', cantidad: 35, loteId: fixture.valid.id })
-    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })).cantidad).toBe(65)
+    expect(pedido.reservas[0]).toMatchObject({ estado: 'CONSUMIDA', cantidad: 12, loteId: fixture.valid.id })
+    const balance = await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })
+    expect(balance.cantidad).toBe(108)
+    expect(await prisma.reservaStock.count({ where: { pedidoId: pedido.id, estado: 'ACTIVA' } })).toBe(0)
+    expect(await prisma.movimientoStock.findMany({ where: { pedidoId: pedido.id } })).toEqual([expect.objectContaining({ tipo: 'SALIDA_PEDIDO', cantidad: -12, loteId: fixture.valid.id })])
     expect(await prisma.pedidoAuditoria.count({ where: { pedidoId: pedido.id } })).toBe(2)
     expect(await prisma.stockProjectionOutbox.findMany({ where: { causeId: pedido.id } })).toEqual([expect.objectContaining({ productId: fixture.product.id, estado: 'PENDING' })])
     expect(await prisma.orderInterpretationDraft.findUniqueOrThrow({ where: { id: created.body.id } })).toMatchObject({ estado: 'CONFIRMED', pedidoId: pedido.id, confirmedBy: 'automation-admin' })
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })).cantidad).toBe(108)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+
+    // Armador never receives or operates Automation orders; a manual APROBADO
+    // order still enters the historical queue and can be taken.
+    expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', `Bearer ${token('armador')}`).expect(200)).body).not.toContainEqual(expect.objectContaining({ id: pedido.id }))
+    await request(app).put(`/api/ale-bet/pedidos/${pedido.id}/tomar`).set('Authorization', `Bearer ${token('armador')}`)
+      .send({ expectedVersion: pedido.version }).expect(409)
+    const manual = await prisma.pedido.create({ data: { numero: `MANUAL-${crypto.randomUUID()}`, clienteId: fixture.customer.id, vendedorId: 'seller-1', estado: 'APROBADO', items: { create: { productoId: fixture.product.id, cantidad: 1 } } } })
+    await request(app).put(`/api/ale-bet/pedidos/${manual.id}/tomar`).set('Authorization', `Bearer ${token('armador')}`)
+      .send({ expectedVersion: manual.version }).expect(200)
+
+    // Facturación can list, view and manage the document, but none of those
+    // operations may create another physical stock movement.
+    const billing = `Bearer ${token('facturacion')}`
+    const pendingTray = await request(app).get('/api/ale-bet/pedidos?bandeja=FACTURACION').set('Authorization', auth).expect(200)
+    expect(pendingTray.body).toContainEqual(expect.objectContaining({ id: pedido.id, origen: 'AUTOMATION' }))
+    expect(pendingTray.body).not.toContainEqual(expect.objectContaining({ id: manual.id }))
+    expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', billing).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id, origen: 'AUTOMATION' }))
+    const billingDetail = await request(app).get(`/api/ale-bet/pedidos/${pedido.id}`).set('Authorization', billing).expect(200)
+    expect(billingDetail.body).toMatchObject({ cliente: { cuit: '30-12345678-9', direccion: 'Ruta 2 km 50' }, items: [expect.objectContaining({ cantidad: 12 })] })
+    const issued = await request(app).post(`/api/ale-bet/pedidos/${pedido.id}/remitos`).set('Authorization', billing)
+      .send({ expectedVersion: pedido.version, transporteOcasional: { nombre: 'Flete Automation', direccion: 'Ruta 2 km 50' } }).expect(201)
+    expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', billing).expect(200)).body).not.toContainEqual(expect.objectContaining({ id: pedido.id }))
+    expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', auth).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id }))
+    expect((await request(app).get('/api/ale-bet/historial').set('Authorization', auth).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id }))
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })).cantidad).toBe(108)
+    await request(app).put(`/api/ale-bet/pedidos/${pedido.id}/remitos/${issued.body.id}/anular`).set('Authorization', billing)
+      .send({ motivo: 'Documento emitido por error' }).expect(200)
+    expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', billing).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id, origen: 'AUTOMATION' }))
+    const afterVoid = await prisma.pedido.findUniqueOrThrow({ where: { id: pedido.id } })
+    await request(app).post(`/api/ale-bet/pedidos/${pedido.id}/remitos`).set('Authorization', billing)
+      .send({ expectedVersion: afterVoid.version, transporteOcasional: { nombre: 'Flete Automation', direccion: 'Ruta 2 km 50' } }).expect(201)
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })).cantidad).toBe(108)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
     await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', auth)
-      .send({ expectedVersion: edited.body.version, clienteId: fixture.customer.id, lines: [{ productId: fixture.product.id, unidades: 35 }] }).expect(409)
+      .send({ expectedVersion: edited.body.version, clienteId: fixture.customer.id }).expect(409)
+  })
+
+  it('keeps CETRI physical and available stock coherent across Automation, Productos and Stock', async () => {
+    const fixture = await seedCetri()
+    const auth = `Bearer ${adminToken()}`
+
+    for (const expectedPhysical of [108, 96, 84]) {
+      await confirmAutomationUnits({ auth, customerId: fixture.customer.id, productId: fixture.product.id, productName: fixture.product.nombre, units: 12 })
+      const saldo = await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })
+      expect(saldo.cantidad).toBe(expectedPhysical)
+      expect(await prisma.reservaStock.count({ where: { pedido: { origen: 'AUTOMATION' }, estado: 'ACTIVA' } })).toBe(0)
+
+      const productos = await request(app).get('/api/ale-bet/productos').set('Authorization', auth).expect(200)
+      expect(productos.body.find((product: { id: string }) => product.id === fixture.product.id)).toMatchObject({ fisico: expectedPhysical, disponible: expectedPhysical })
+      const stock = await request(app).get('/api/ale-bet/stock').set('Authorization', auth).expect(200)
+      expect(stock.body.productos.find((product: { id: string }) => product.id === fixture.product.id)).toMatchObject({ stock: expectedPhysical, stockDisponiblePedido: expectedPhysical })
+
+      const preview = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', auth)
+        .send({ originalText: `1 ${fixture.product.nombre}` }).expect(201)
+      const previewCustomer = await request(app).put(`/api/ale-bet/automation/drafts/${preview.body.id}`).set('Authorization', auth)
+        .send({ expectedVersion: preview.body.version, clienteId: fixture.customer.id }).expect(200)
+      await request(app).put(`/api/ale-bet/automation/drafts/${preview.body.id}`).set('Authorization', auth)
+        .send({ expectedVersion: previewCustomer.body.version, line: { lineId: preview.body.proposedSnapshot.lines[0].lineId, productId: fixture.product.id, unidades: 1 } }).expect(200)
+      const draft = await request(app).get(`/api/ale-bet/automation/drafts/${preview.body.id}`).set('Authorization', auth).expect(200)
+      expect(draft.body.availability).toContainEqual(expect.objectContaining({ productId: fixture.product.id, availableUnits: expectedPhysical }))
+    }
   })
 
   it('serializes concurrent drafts against the last availability', async () => {
@@ -79,11 +335,14 @@ describe('AUTOMATION-01 Slice 1', () => {
     const ids: Array<{ id: string; version: number }> = []
     for (const units of [20, 20]) {
       const draft = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', auth).send({ originalText: `${units} Olivitasan 500` })
-      const edited = await request(app).put(`/api/ale-bet/automation/drafts/${draft.body.id}`).set('Authorization', auth).send({ expectedVersion: 1, clienteId: fixture.customer.id, lines: [{ productId: fixture.product.id, unidades: units }] })
+      const withCustomer = await request(app).put(`/api/ale-bet/automation/drafts/${draft.body.id}`).set('Authorization', auth).send({ expectedVersion: 1, clienteId: fixture.customer.id })
+      const edited = await request(app).put(`/api/ale-bet/automation/drafts/${draft.body.id}`).set('Authorization', auth).send({ expectedVersion: withCustomer.body.version, line: { lineId: draft.body.proposedSnapshot.lines[0].lineId, productId: fixture.product.id, unidades: units } })
       ids.push({ id: draft.body.id, version: edited.body.version })
     }
     const responses = await Promise.all(ids.map((draft) => request(app).post(`/api/ale-bet/automation/drafts/${draft.id}/confirm`).set('Authorization', auth).set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: draft.version })))
     expect(responses.map((response) => response.status).sort()).toEqual([200, 409])
-    expect(await prisma.reservaStock.aggregate({ where: { estado: 'ACTIVA', loteId: fixture.valid.id }, _sum: { cantidad: true } })).toMatchObject({ _sum: { cantidad: 20 } })
+    expect(await prisma.reservaStock.count({ where: { estado: 'ACTIVA', loteId: fixture.valid.id } })).toBe(0)
+    expect((await prisma.saldoStock.findFirstOrThrow({ where: { loteId: fixture.valid.id } })).cantidad).toBe(0)
+    expect(await prisma.movimientoStock.count({ where: { loteId: fixture.valid.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
   })
 })

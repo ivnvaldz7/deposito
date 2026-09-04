@@ -51,8 +51,9 @@ describe('DashboardPage (Ale-Bet)', () => {
     })
     expect(screen.getByText('3')).toBeInTheDocument()
     expect(screen.getByText('8')).toBeInTheDocument()
-    expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.getByText('45')).toBeInTheDocument()
+    expect(screen.getByText('Pendientes de remito')).toBeInTheDocument()
+    expect(screen.queryByText('En armado')).not.toBeInTheDocument()
     expect(screen.getByText('Pedidos recientes')).toBeInTheDocument()
   })
 
@@ -66,5 +67,18 @@ describe('DashboardPage (Ale-Bet)', () => {
 
     await waitFor(() => expect(screen.getByText('Stock crítico')).toBeInTheDocument())
     expect(screen.queryByText('PENDIENTES DE TOMAR')).not.toBeInTheDocument()
+  })
+
+  it('labels a pending Automation row by its documentary state, never by Armador workflow state', async () => {
+    vi.mocked(aleBetApi.dashboard).mockResolvedValue(createDashboardOverview({
+      pedidosRecientes: [{
+        id: 'automation-1', numero: 'P-AUTO', estado: 'APROBADO', origen: 'AUTOMATION', clienteNombre: 'Cliente Automation', vendedorNombre: 'Automation', armadorNombre: null, cantidadItems: 1, createdAt: new Date().toISOString(),
+      }],
+    }))
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+    await screen.findByText('Cliente Automation')
+    expect(screen.getAllByText('Pendiente de remito')).toHaveLength(2)
+    expect(screen.queryByText('APROBADO')).not.toBeInTheDocument()
+    expect(screen.queryByText('Pendiente de armado')).not.toBeInTheDocument()
   })
 })

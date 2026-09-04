@@ -180,7 +180,7 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
   )
 }
 
-function AjusteModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionNombre, cantidadActual, onClose }: any) {
+function AjusteModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionNombre, cantidadActual, onClose }: { productoId: string; loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; onClose: () => void }) {
   const [cantidadFinal, setCantidadFinal] = useState<string>('')
   const [step, setStep] = useState<'form' | 'confirm'>('form')
   const [errorLocal, setErrorLocal] = useState<string | null>(null)
@@ -287,7 +287,7 @@ function AjusteModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionNom
   )
 }
 
-function TransferirModal({ productoId, loteId, loteNumero, origen, cantidadActual, onClose }: any) {
+function TransferirModal({ productoId, loteId, loteNumero, origen, cantidadActual, onClose }: { productoId: string; loteId: string; loteNumero: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; cantidadActual: number; onClose: () => void }) {
   const destino = origen === 'DEPOSITO' ? 'ACONDICIONADO' : 'DEPOSITO'
   const [cantidad, setCantidad] = useState<string>('')
   const [errorLocal, setErrorLocal] = useState<string | null>(null)
@@ -307,7 +307,7 @@ function TransferirModal({ productoId, loteId, loteNumero, origen, cantidadActua
         destino,
         cantidad: val,
         idempotencyKey: crypto.randomUUID()
-      } as any) // Cast as any because useTransferirStock expects exactly DEPOSITO | ACONDICIONADO, TS should infer it but just in case
+      })
       toast.success('Stock actualizado correctamente')
       onClose()
     } catch (err) {
@@ -368,7 +368,7 @@ function TransferirModal({ productoId, loteId, loteNumero, origen, cantidadActua
   )
 }
 
-function CreateLoteModal({ productoId, onClose }: any) {
+function CreateLoteModal({ productoId, onClose }: { productoId: string; onClose: () => void }) {
   const [numero, setNumero] = useState('')
   const [fechaProduccionStr, setFechaProduccionStr] = useState('')
   const [errorLocal, setErrorLocal] = useState<string | null>(null)

@@ -11,7 +11,10 @@ vi.mock('../lib/api', () => ({
       createDraft: vi.fn(),
       getDraft: vi.fn(),
       updateDraft: vi.fn(),
-      confirmDraft: vi.fn()
+      confirmDraft: vi.fn(),
+      getAliases: vi.fn(),
+      deleteProductAlias: vi.fn(),
+      deleteClientAlias: vi.fn(),
     },
     clientes: {
       list: vi.fn()
@@ -41,6 +44,7 @@ describe('AutomationPage', () => {
       { id: 'p1', nombre: 'Olivitasan 500 ML', unidadesPorCaja: 20 },
       { id: 'p2', nombre: 'Amantina', unidadesPorCaja: 1 }
     ])
+    ;(aleBetApi.automation.getAliases as any).mockResolvedValue({ productAliases: [], clientAliases: [] })
   })
 
   it('renders input area and can submit', async () => {
@@ -173,6 +177,7 @@ describe('AutomationPage', () => {
           requiresReview: false,
           warnings: [],
           lines: [{
+            lineId: 'line-cetri',
             originalText: '12 cetri',
             productCandidate: { productId: 'p1', nombre: 'Olivitasan 500 ML', confidence: 1 },
             warnings: [],
@@ -188,6 +193,7 @@ describe('AutomationPage', () => {
           requiresReview: false,
           warnings: [],
           lines: [{
+            lineId: 'line-cetri',
             originalText: '12 cetri',
             productCandidate: { productId: 'p1', nombre: 'Olivitasan 500 ML', confidence: 1 },
             warnings: [],
@@ -209,8 +215,7 @@ describe('AutomationPage', () => {
       'draft-edit',
       {
         expectedVersion: 1,
-        clienteId: 'c1',
-        lines: [{ productId: 'p1', cajas: 1, unidades: 12, mode: 'UNITS' }]
+        line: { lineId: 'line-cetri', cajas: 1, unidades: 12, mode: 'UNITS' }
       }
     ))
     await waitFor(() => expect(aleBetApi.automation.getDraft).toHaveBeenCalledTimes(2))

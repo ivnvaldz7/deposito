@@ -5,7 +5,7 @@ import { productosKeys } from './use-productos'
 
 export const pedidosKeys = {
   all: ['ale-bet', 'pedidos'] as const,
-  list: (filters?: { estado?: PedidoEstado; vendedorId?: string }) => [...pedidosKeys.all, 'list', filters] as const,
+  list: (filters?: { estado?: PedidoEstado; vendedorId?: string; bandeja?: 'FACTURACION' }) => [...pedidosKeys.all, 'list', filters] as const,
   detail: (id: string) => [...pedidosKeys.all, 'detail', id] as const,
   disponibilidad: (id: string) => [...pedidosKeys.detail(id), 'disponibilidad-stock'] as const,
 }
@@ -23,7 +23,7 @@ function invalidateProductos(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: productosKeys.all })
 }
 
-export function usePedidos(filters?: { estado?: PedidoEstado; vendedorId?: string }) {
+export function usePedidos(filters?: { estado?: PedidoEstado; vendedorId?: string; bandeja?: 'FACTURACION' }) {
   return useQuery({
     queryKey: pedidosKeys.list(filters),
     queryFn: () => aleBetApi.pedidos.list(filters),

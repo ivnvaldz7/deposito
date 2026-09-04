@@ -51,30 +51,7 @@ describe('LoginPage', () => {
         <LoginPage />
       </MemoryRouter>,
     )
-    expect(screen.getByText('Plataforma')).toBeInTheDocument()
-  })
-
-  it('renders a login button with Google text', () => {
-    render(
-      <MemoryRouter>
-        <LoginPage />
-      </MemoryRouter>,
-    )
-    const button = screen.getByRole('button', { name: /google/i })
-    expect(button).toBeInTheDocument()
-  })
-
-  it('redirects to /api/auth/google on Google button click', () => {
-    render(
-      <MemoryRouter>
-        <LoginPage />
-      </MemoryRouter>,
-    )
-
-    const button = screen.getByRole('button', { name: /google/i })
-    fireEvent.click(button)
-
-    expect(window.location.href).toContain('/api/auth/google')
+    expect(screen.getByAltText('Ale-Bet')).toBeInTheDocument()
   })
 
   it('shows error message when error=unauthorized is in URL', () => {
@@ -141,6 +118,20 @@ describe('LoginPage', () => {
     )
     const submitButton = screen.getByRole('button', { name: /^Iniciar sesión$/i })
     expect(submitButton).toBeInTheDocument()
+  })
+
+  it('does not render Google login, dev buttons, or redundant text', () => {
+    render(
+      <MemoryRouter>
+        <LoginPage />
+      </MemoryRouter>,
+    )
+    expect(screen.queryByText(/Iniciar sesión con Google/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Admin/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Inicio rápido/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/DEV/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Ale-Bet Plataforma/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Iniciá sesión para continuar/i)).not.toBeInTheDocument()
   })
 
   it('submits form and calls API on valid submission', async () => {
@@ -283,31 +274,8 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    const container = screen.getByText('Plataforma').closest('div')
+    const container = screen.getByAltText('Ale-Bet').closest('div')
     expect(container?.parentElement?.innerHTML).not.toContain('bg-obsidian')
-  })
-
-  it('shows dev-login buttons when IS_DEV is true', async () => {
-    vi.stubGlobal('import', { meta: { env: { DEV: true, VITE_API_URL: '' } } })
-
-    // Re-import with IS_DEV=true — we test this by checking the rendered output
-    // Since IS_DEV is evaluated at module level, we need to re-render
-    // For this test, we just check that DEV_USERS emails are present in a fresh render
-    render(
-      <MemoryRouter>
-        <LoginPage />
-      </MemoryRouter>,
-    )
-
-    // The dev-login buttons are still rendered when IS_DEV is true
-    // (the module-level IS_DEV is set at import time, which is true in test env)
-    const adminButton = screen.queryByText('Admin')
-    // In test environment, import.meta.env.DEV might be different
-    // We just check the structural presence — if dev buttons aren't rendered,
-    // the test environment may have IS_DEV = false
-    if (adminButton) {
-      expect(adminButton.tagName).toBe('BUTTON')
-    }
   })
 
   it('navigates to /app-selector when user has multiple active apps', async () => {

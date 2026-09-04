@@ -1,3 +1,4 @@
+import crypto from 'node:crypto'
 import { descomponerUnidades } from '../constants'
 import type { CustomerAlternative, MatchCustomer, MatchProduct, ParsedOrder, ParsedOrderLine, ParsedQuantity, ProductAlternative, QuantityMode } from './contracts'
 
@@ -5,14 +6,30 @@ export function normalizeForMatch(value: string): string {
   return value
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
-    .replace(/(\d+)\s*ML\b/g, '$1 ML')
-    .replace(/[.,;:()[\]{}!¿?"']/g, ' ')
+    .replace(/(\d+)\s*(ML|LT|L)\b/g, (_match, amount: string, unit: string) => `${amount} ${unit === 'LT' ? 'L' : unit}`)
+    .replace(/[.,;:()[\]{}!¿?"'\-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 }
 
+function lineId(originalText: string, sourceIndex: number): string {
+  const digest = crypto.createHash('sha256').update(`${sourceIndex}\u0000${originalText}`).digest('hex').slice(0, 16)
+  return `line-${digest}`
+}
+
 function tokens(value: string): string[] { return normalizeForMatch(value).split(' ').filter(Boolean) }
-function hasStrongMismatch(input: string, candidate: string): boolean {
+const strongTokens = ['B12', 'B15', 'B25', 'PLUS']
+
+function presentationTokens(value: string): string[] {
+  return [...normalizeForMatch(value).matchAll(/\b(\d+)\s+(ML|L)\b/g)].map((match) => `${match[1]} ${match[2]}`)
+}
+
+export function presentationMismatch(input: string, candidate: string): string | null {
+  const candidatePresentations = new Set(presentationTokens(candidate))
+  return presentationTokens(input).find((presentation) => !candidatePresentations.has(presentation)) ?? null
+}
+
+export function hasStrongMismatch(input: string, candidate: string): boolean {
   const inputStr = normalizeForMatch(input)
   const candidateStr = normalizeForMatch(candidate)
   const inputTokens = new Set(tokens(inputStr))
@@ -21,14 +38,41 @@ function hasStrongMismatch(input: string, candidate: string): boolean {
   const candidateNumbers = [...candidateTokens].filter((token) => /^\d+$/.test(token))
   if (inputNumbers.some((number) => !candidateNumbers.includes(number))) return true
   
-  const strongTokens = ['B12', 'B15', 'B25', 'PLUS', '1L', '1 L']
-  for (const token of strongTokens) {
+  for (const token of [...strongTokens, '1 L']) {
     const hasInInput = inputStr.includes(token)
     const hasInCandidate = candidateStr.includes(token)
     if (hasInInput !== hasInCandidate) return true
   }
 
   return false
+}
+
+// Expande tokens fusionados de identidad fuerte, ej. "B12B15" → ["B12","B15"], "B12B25" → ["B12","B25"].
+// Esto permite comparar la notación compacta habitual de los vendedores contra los nombres canónicos del catálogo.
+function expandFusedTokens(tokenList: string[]): string[] {
+  return tokenList.flatMap((token) => {
+    const expanded = token.replace(/\b(B12)(B15|B25)\b/g, '$1 $2').split(' ').filter(Boolean)
+    return expanded.length > 1 ? expanded : [token]
+  })
+}
+
+function strongIdentityScore(input: string, candidate: string): number {
+  const inputStr = normalizeForMatch(input)
+  const candidateStr = normalizeForMatch(candidate)
+  const inputStrong = strongTokens.filter((token) => inputStr.includes(token))
+  if (inputStrong.length === 0 || inputStrong.some((token) => !candidateStr.includes(token))) return 0
+  const inputPresentations = presentationTokens(inputStr)
+  // Si el input no tiene sufijo ML explícito pero tiene un número desnudo que coincide
+  // exactamente con el número de presentación del candidato, se considera match implícito.
+  // Ejemplo: "b12b15 250" vs "COMPLEJO B B12 B15 250 ML" → 250 es la presentación implícita.
+  if (inputPresentations.length === 0) {
+    const inputNums = tokens(inputStr).filter((t) => /^\d+$/.test(t))
+    const candidatePresentationNums = new Set(presentationTokens(candidateStr).map((p) => p.split(' ')[0]))
+    if (inputNums.length > 0 && inputNums.every((n) => candidatePresentationNums.has(n))) return 0.94
+    return 0.8
+  }
+  const candidatePresentations = new Set(presentationTokens(candidateStr))
+  return inputPresentations.every((presentation) => candidatePresentations.has(presentation)) ? 0.94 : 0
 }
 
 function scoreMatch(input: string, candidate: string): number {
@@ -44,7 +88,11 @@ function scoreMatch(input: string, candidate: string): number {
   const candidateWithoutMl = normalizedCandidate.replace(/\bML\b/g, '').replace(/\s+/g, ' ').trim()
   if (inputWithoutMl === candidateWithoutMl) return 0.99
   
-  const wanted = tokens(inputWithoutMl).filter((token) => !['DE', 'MAS', 'AGREGA', 'AGREGAR'].includes(token))
+  // Expandir tokens fusionados (ej. B12B15 → B12 B15) antes de la comparación de subconjunto
+  // para que la notación compacta del vendedor matchee con el nombre canónico del catálogo.
+  const wanted = expandFusedTokens(
+    tokens(inputWithoutMl).filter((token) => !['DE', 'MAS', 'AGREGA', 'AGREGAR'].includes(token))
+  )
   const actual = new Set(tokens(candidateWithoutMl))
   if (wanted.length > 0 && wanted.every((token) => actual.has(token))) return 0.93
   return 0
@@ -110,9 +158,11 @@ function matchProduct(productText: string, products: MatchProduct[]): { candidat
   const hits = products.flatMap((product) => {
     let score = 0
     if (phrase === normalizeForMatch(product.nombre)) score = 1
-    else if (product.aliases?.some(alias => phrase === normalizeForMatch(alias))) score = 0.98
     else if (hasStrongMismatch(phrase, product.nombre)) score = 0
-    else score = Math.max(scoreMatch(phrase, product.nombre), scoreMatch(phrase, product.sku))
+    // Alias data is operator-entered. A historic alias never overrides a
+    // presentation or other strong identifier from the canonical product.
+    else if (product.aliases?.some(alias => phrase === normalizeForMatch(alias))) score = 0.98
+    else score = Math.max(scoreMatch(phrase, product.nombre), scoreMatch(phrase, product.sku), strongIdentityScore(phrase, product.nombre))
     return score > 0 ? [{ productId: product.id, nombre: product.nombre, confidence: score }] : []
   }).sort((left, right) => right.confidence - left.confidence || left.nombre.localeCompare(right.nombre))
   const certain = hits[0] && (hits.length === 1 || hits[0].confidence > hits[1].confidence) && hits[0].confidence >= 0.93
@@ -190,7 +240,7 @@ export function interpretOrder(originalText: string, products: MatchProduct[], c
     const warnings: string[] = []
     if (!match.candidate) warnings.push('PRODUCT_UNRESOLVED')
     if (quantity.mode === 'AMBIGUOUS') warnings.push('QUANTITY_AMBIGUOUS')
-    return [{ originalText: line, productCandidate: match.candidate, alternatives: match.alternatives, confidence: match.candidate?.confidence ?? 0, quantity, requiresReview: warnings.length > 0, warnings }]
+    return [{ lineId: lineId(line, index), originalText: line, productCandidate: match.candidate, alternatives: match.alternatives, confidence: match.candidate?.confidence ?? 0, quantity, requiresReview: warnings.length > 0, warnings }]
   })
   const warnings = customerMatch.warning ? [customerMatch.warning] : []
   if (!customerMatch.candidate) warnings.push('CUSTOMER_UNRESOLVED')

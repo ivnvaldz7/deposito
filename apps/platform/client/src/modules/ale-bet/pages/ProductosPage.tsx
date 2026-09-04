@@ -11,6 +11,22 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { canGestionarStock } from '../lib/estados'
 import { can } from '@/lib/permissions'
 
+type ProductForm = {
+  nombre: string
+  sku: string
+  stockMinimo: string
+  unidadesPorCaja: string
+}
+
+const EMPTY_PRODUCT_FORM: ProductForm = { nombre: '', sku: '', stockMinimo: '', unidadesPorCaja: '' }
+
+function parseNonNegativeInteger(value: string): number | null {
+  const trimmed = value.trim()
+  if (trimmed === '' || !/^\d+$/.test(trimmed)) return null
+  const parsed = Number(trimmed)
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null
+}
+
 function LotesInline({ producto }: { producto: Producto }) {
   if (!producto.lotes || producto.lotes.length === 0) {
     return <div className="py-6 text-center font-body text-[12px] text-on-surface-variant">No hay lotes activos.</div>
@@ -65,7 +81,8 @@ export default function ProductosPage() {
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Producto | null>(null)
-  const [form, setForm] = useState({ nombre: '', sku: '', stockMinimo: 100, unidadesPorCaja: 0 })
+  const [form, setForm] = useState<ProductForm>(EMPTY_PRODUCT_FORM)
+  const [formError, setFormError] = useState<string | null>(null)
   const [stockProducto, setStockProducto] = useState<Producto | null>(null)
   const [showHistorialModal, setShowHistorialModal] = useState(false)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
@@ -76,23 +93,37 @@ export default function ProductosPage() {
 
   function openCreate() {
     setEditing(null)
-    setForm({ nombre: '', sku: '', stockMinimo: 100, unidadesPorCaja: 0 })
+    setForm(EMPTY_PRODUCT_FORM)
+    setFormError(null)
     setShowModal(true)
   }
 
   function openEdit(p: Producto, e: React.MouseEvent) {
     e.stopPropagation()
     setEditing(p)
-    setForm({ nombre: p.nombre, sku: p.sku, stockMinimo: p.stockMinimo, unidadesPorCaja: p.unidadesPorCaja })
+    setForm({ nombre: p.nombre, sku: p.sku, stockMinimo: p.stockMinimo == null ? '' : String(p.stockMinimo), unidadesPorCaja: String(p.unidadesPorCaja) })
+    setFormError(null)
     setShowModal(true)
   }
 
   async function handleSave() {
+    const stockMinimo = form.stockMinimo.trim() === '' ? null : parseNonNegativeInteger(form.stockMinimo)
+    if (stockMinimo === null && form.stockMinimo.trim() !== '') {
+      setFormError('El stock mínimo debe ser un entero no negativo.')
+      return
+    }
+    const unidadesPorCaja = parseNonNegativeInteger(form.unidadesPorCaja)
+    if (!editing && (unidadesPorCaja === null || unidadesPorCaja < 1)) {
+      setFormError('Las unidades por caja deben ser un entero positivo.')
+      return
+    }
+
+    setFormError(null)
     try {
       if (editing) {
-        await updateMutation.mutateAsync({ id: editing.id, nombre: form.nombre, stockMinimo: form.stockMinimo })
+        await updateMutation.mutateAsync({ id: editing.id, nombre: form.nombre, stockMinimo })
       } else {
-        await createMutation.mutateAsync(form)
+        await createMutation.mutateAsync({ nombre: form.nombre, sku: form.sku, stockMinimo: stockMinimo ?? undefined, unidadesPorCaja: unidadesPorCaja! })
       }
       setShowModal(false)
     } catch (e) {
@@ -267,16 +298,17 @@ export default function ProductosPage() {
 
               <div>
                 <label className="font-body text-[11px] text-outline">Stock mínimo</label>
-                <input type="number" min={0} value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: Number(e.target.value) })}
+                <input type="number" min={0} value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: e.target.value })}
                   className="input-field mt-1" />
               </div>
               {!editing && (
                 <div>
                   <label className="font-body text-[11px] text-outline">Unidades por caja</label>
-                  <input type="number" min={1} value={form.unidadesPorCaja || ''} onChange={(e) => setForm({ ...form, unidadesPorCaja: Number(e.target.value) })}
+                  <input type="number" min={1} value={form.unidadesPorCaja} onChange={(e) => setForm({ ...form, unidadesPorCaja: e.target.value })}
                     className="input-field mt-1" required />
                 </div>
               )}
+              {formError && <p className="font-body text-xs text-error">{formError}</p>}
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setShowModal(false)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cancelar</button>
                 <button onClick={handleSave} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">

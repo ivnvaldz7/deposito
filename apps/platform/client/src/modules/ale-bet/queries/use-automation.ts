@@ -3,6 +3,7 @@ import { aleBetApi } from '../lib/api'
 
 export const automationKeys = {
   all: ['automation'] as const,
+  aliases: () => [...automationKeys.all, 'aliases'] as const,
   drafts: () => [...automationKeys.all, 'drafts'] as const,
   draft: (id: string) => [...automationKeys.drafts(), id] as const,
 }
@@ -39,5 +40,21 @@ export function useConfirmDraft() {
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pedidos'] })
     },
+  })
+}
+
+export function useAutomationAliases() {
+  return useQuery({
+    queryKey: automationKeys.aliases(),
+    queryFn: () => aleBetApi.automation.getAliases(),
+  })
+}
+
+export function useDeleteAutomationAlias() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ type, id }: { type: 'product' | 'client'; id: string }) =>
+      type === 'product' ? aleBetApi.automation.deleteProductAlias(id) : aleBetApi.automation.deleteClientAlias(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: automationKeys.aliases() }),
   })
 }

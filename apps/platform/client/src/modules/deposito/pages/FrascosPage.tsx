@@ -6,11 +6,10 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { can } from '@/lib/permissions'
 import { ApiError } from '../lib/api'
 import { useFrascos, useCreateFrasco, useUpdateFrasco, useDeleteFrasco } from '../queries/use-frascos'
 import { toast } from '../lib/toast'
-import { fetchCatalogoProductos } from '../lib/catalogo-productos'
+import { fetchCatalogoProductos, type CatalogoProducto } from '../lib/catalogo-productos'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { sortByArticulo } from '../lib/sort-utils'
@@ -32,6 +31,9 @@ import {
 } from '../components/ui/Dialog'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
+import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
+import { StockChip } from '../components/inventory-shared/stock-chip'
+import { getStockStatus } from '../lib/stock-status'
 
 interface Frasco {
   id: string
@@ -41,6 +43,7 @@ interface Frasco {
   cantidadCajas: number
   total: number
   updatedAt: string
+  stockMinimo?: number | null
 }
 
 function sortFrascos(list: Frasco[]): Frasco[] {
@@ -50,8 +53,6 @@ function sortFrascos(list: Frasco[]): Frasco[] {
 function normalizeProducto(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
-
-const STOCK_BAJO_THRESHOLD = 5
 
 const agregarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
@@ -76,7 +77,7 @@ function AgregarFrascoModal({ open, onOpenChange }: { open: boolean; onOpenChang
     setServerError(null)
     try {
       const frasco = await createMutation.mutateAsync({ articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
-      if (frasco.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${frasco.articulo}" quedó con stock bajo (${frasco.cantidadCajas} cajas).`)
+      if (getStockStatus(frasco.cantidadCajas, frasco.stockMinimo) === 'bajo') toast.warning(`"${frasco.articulo}" quedó con stock bajo (${frasco.cantidadCajas} cajas).`)
       else toast.success(`Frasco "${frasco.articulo}" agregado.`)
       reset(); onOpenChange(false)
     } catch (err) { setServerError(err instanceof ApiError ? err.message : 'Error al guardar') }
@@ -140,7 +141,7 @@ function EditarFrascoModal({ frasco, onClose }: { frasco: Frasco; onClose: () =>
     setServerError(null)
     try {
       const updated = await updateMutation.mutateAsync({ id: frasco.id, articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
-      if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
+      if (getStockStatus(updated.cantidadCajas, frasco.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
       else toast.info(`Frasco "${updated.articulo}" actualizado.`)
       onClose()
     } catch (err) { setServerError(err instanceof ApiError ? err.message : 'Error al guardar') }
@@ -172,12 +173,19 @@ function CajasCell({ frasco }: { frasco: Frasco }) {
   const updateMutation = useUpdateFrasco()
   return (
     <InlineNumberEditor value={frasco.cantidadCajas} label="Cajas" onSave={async (nextValue) => {
-      const updated = await updateMutation.mutateAsync({ id: frasco.id, cantidadCajas: nextValue })
-      if (updated.cantidadCajas < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
-      else toast.info(`Stock de cajas para "${updated.articulo}" actualizado.`)
+      try {
+        const updated = await updateMutation.mutateAsync({ id: frasco.id, cantidadCajas: nextValue })
+        if (getStockStatus(updated.cantidadCajas, frasco.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
+        else toast.info(`Stock de cajas para "${updated.articulo}" actualizado.`)
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : 'Error al guardar')
+        throw err
+      }
     }} />
   )
 }
+
+import { can } from '@/lib/permissions'
 
 export default function FrascosPage() {
   const user = useAuthStore((s) => s.user)
@@ -185,12 +193,15 @@ export default function FrascosPage() {
   const [searchParams] = useSearchParams()
   const { data: frascos = [], isLoading, error } = useFrascos()
   const deleteMutation = useDeleteFrasco()
+  const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
   const [editingFrasco, setEditingFrasco] = useState<Frasco | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
+  const [catalogProducts, setCatalogProducts] = useState<CatalogoProducto[]>([])
   const [agregarOpen, setAgregarOpen] = useState(false)
+  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
-    fetchCatalogoProductos('frasco').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
+    fetchCatalogoProductos('frasco').then((productos) => { setCatalogProducts(productos); setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
   const getDisplayName = useCallback((frasco: Frasco): string => frasco.productoId ? (catalogMap[frasco.productoId] ?? frasco.articulo) : frasco.articulo, [catalogMap])
@@ -207,10 +218,16 @@ export default function FrascosPage() {
           || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
       : undefined
     if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
-    if (!productoFiltro || selected) return sortedFrascos
+    
+    let baseList = sortedFrascos
+    if (stockBajoFiltro) {
+      baseList = baseList.filter(f => getStockStatus(f.cantidadCajas, f.stockMinimo) === 'bajo')
+    }
+
+    if (!productoFiltro || selected) return baseList
     const target = normalizeProducto(productoFiltro)
-    return sortedFrascos.filter((f) => normalizeProducto(getDisplayName(f)) === target)
-  }, [sortedFrascos, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
+    return baseList.filter((f) => normalizeProducto(getDisplayName(f)) === target)
+  }, [sortedFrascos, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
 
   async function handleDelete(id: string) {
     try {
@@ -224,17 +241,23 @@ export default function FrascosPage() {
   if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar los frascos'} />
 
   const totalCajas = frascos.reduce((s, f) => s + f.cantidadCajas, 0)
-  const stockBajoCount = frascos.filter((f) => f.cantidadCajas < STOCK_BAJO_THRESHOLD).length
+  const stockBajoCount = frascos.filter((f) => getStockStatus(f.cantidadCajas, f.stockMinimo) === 'bajo').length
 
   return (
     <div className="space-y-5">
       <InventoryPageHeader title="Frascos" description="Inventario de cajas, unidades y alertas de stock." stats={[
         { label: 'artículos', value: frascos.length },
-        { label: 'cajas', value: totalCajas.toLocaleString() },
-        { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
-      ]} primaryAction={canManage ? { label: 'Agregar frasco', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} />
+        { 
+          label: stockBajoFiltro ? 'stock bajo (activo)' : 'stock bajo', 
+          value: stockBajoCount, 
+          warning: stockBajoCount > 0 || stockBajoFiltro,
+          active: stockBajoFiltro,
+          onClick: () => setStockBajoFiltro((prev) => !prev)
+        },
+      ]} primaryAction={canManage ? { label: 'Agregar frasco', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} secondaryActions={canManage ? [{ label: 'Carga inicial', onClick: () => setAperturaOpen(true) }] : undefined} />
 
       {canManage && <AgregarFrascoModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
+      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="frasco" items={catalogProducts.length > 0 ? catalogProducts.map((p) => ({ id: p.id, productoId: p.id, label: p.nombreCompleto, unidadesPorCaja: p.presentacion ?? 1 })) : frascos.map((item) => ({ id: item.id, productoId: item.productoId ?? item.id, label: getDisplayName(item), unidadesPorCaja: item.unidadesPorCaja }))} />}
       {editingFrasco && <EditarFrascoModal frasco={editingFrasco} onClose={() => setEditingFrasco(null)} />}
 
       {filteredFrascos.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />
@@ -242,13 +265,14 @@ export default function FrascosPage() {
         <>
           <InventoryDataSurface label="Inventario de frascos"><div className="hidden md:block">
             <Table>
-              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-32 text-right">Unid/Caja</TableHead><TableHead className="w-32 text-right">Cajas</TableHead><TableHead className="w-36 text-right">Total uds</TableHead>{canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-32 text-right">Unid/Caja</TableHead><TableHead className="w-32 text-right">Cajas</TableHead><TableHead className="w-36">Estado</TableHead><TableHead className="w-36 text-right">Total uds</TableHead>{canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
               <TableBody>
                 {filteredFrascos.map((frasco) => (
                   <TableRow key={frasco.id} {...focus.targetProps(frasco.id)} className={focus.isFocused(frasco.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(frasco)}</TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface-variant tabular-nums text-sm">{frasco.unidadesPorCaja}</span></TableCell>
                     <TableCell className="text-right">{canManage ? <div className="flex justify-end"><CajasCell frasco={frasco} /></div> : <span className="font-body text-on-surface tabular-nums">{frasco.cantidadCajas}</span>}</TableCell>
+                    <TableCell><StockChip cantidad={frasco.cantidadCajas} stockMinimo={frasco.stockMinimo} /></TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface font-medium tabular-nums">{frasco.total.toLocaleString()}</span></TableCell>
                     {canManage && (
                       <TableCell className="text-right">
@@ -269,6 +293,7 @@ export default function FrascosPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(frasco)}</p>
                   <p className="font-body text-on-surface-variant text-xs mt-0.5 tabular-nums">{frasco.unidadesPorCaja} uds/caja · {frasco.cantidadCajas} cajas · <span className="text-on-surface font-medium">{frasco.total.toLocaleString()} total</span></p>
+                  <div className="mt-1"><StockChip cantidad={frasco.cantidadCajas} stockMinimo={frasco.stockMinimo} /></div>
                 </div>
                 {canManage && (
                   <div className="flex items-center gap-3 shrink-0">

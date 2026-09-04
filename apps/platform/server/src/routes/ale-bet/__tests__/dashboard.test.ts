@@ -148,21 +148,17 @@ describe('Ale-Bet Dashboard', () => {
           nombre: 'Producto A',
           stockMinimo: 10,
           unidadesPorCaja: 15,
-          lotes: [{ cajas: 2, sueltos: 5 }], // stock = 35, not critical
+          lotes: [{ saldos: [{ cantidad: 35, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }], // stock = 35, not critical
         },
         {
           id: 'prod-2',
           nombre: 'Producto B',
           stockMinimo: 100,
           unidadesPorCaja: 15,
-          lotes: [{ cajas: 1, sueltos: 0 }], // stock = 15, critical!
+          lotes: [{ saldos: [{ cantidad: 15, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }], // stock = 15, critical!
         },
       ])
-      mockDb.pedido.count
-        .mockResolvedValueOnce(3) // pedidosHoy
-        .mockResolvedValueOnce(1) // pendientesTomar (APROBADO)
-        .mockResolvedValueOnce(4) // preparados (PREPARADO)
-        .mockResolvedValueOnce(2) // enArmado (EN_ARMADO)
+      mockDb.pedido.count.mockResolvedValueOnce(3) // pending Automation documents
       mockDb.pedido.findMany.mockResolvedValue([
         {
           id: 'ped-1',
@@ -187,7 +183,8 @@ describe('Ale-Bet Dashboard', () => {
 
       expect(res.body.stockCritico).toBe(1) // Only prod-2 is critical
       expect(res.body.pedidosHoy).toBe(3)
-      expect(res.body.enArmado).toBe(2)
+      expect(res.body.pendientesRemito).toBe(3)
+      expect(res.body.enArmado).toBe(0)
       expect(res.body.totalProductos).toBe(2)
       expect(res.body.pedidosRecientes).toHaveLength(1)
       expect(res.body.pedidosRecientes[0].vendedorNombre).toBe('Vendedor A')
@@ -195,9 +192,82 @@ describe('Ale-Bet Dashboard', () => {
       expect(res.body.pedidosRecientes[0].cantidadItems).toBe(2)
     })
 
+    it('uses total physical stock and treats equality as critical', async () => {
+      mockDb.producto.findMany.mockResolvedValue([
+        { id: 'p-80', stockMinimo: 100, lotes: [{ saldos: [{ cantidad: 80, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }] },
+        { id: 'p-100', stockMinimo: 100, lotes: [{ saldos: [{ cantidad: 100, ubicacion: { codigo: 'ACONDICIONADO' } }], reservas: [] }] },
+        { id: 'p-101', stockMinimo: 100, lotes: [{ saldos: [{ cantidad: 101, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }] },
+      ])
+      mockDb.pedido.count.mockResolvedValue(0)
+      mockDb.pedido.findMany.mockResolvedValue([])
+      mockDb.platformUser.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const res = await request(app).get('/api/ale-bet/dashboard').set('Authorization', `Bearer ${signToken()}`).expect(200)
+
+      expect(res.body.stockCritico).toBe(2)
+    })
+
+    it('counts critical stock from total physical quantity, ignores null minimums, and never checks a location alone', async () => {
+      mockDb.producto.findMany.mockResolvedValue([
+        // 259 total (259 + 0), minimum 60 -> normal.
+        { id: 'p-amino', stockMinimo: 60, lotes: [{ saldos: [
+          { cantidad: 259, ubicacion: { codigo: 'DEPOSITO' } },
+          { cantidad: 0, ubicacion: { codigo: 'ACONDICIONADO' } },
+        ], reservas: [] }] },
+        // 70 total (50 + 20), minimum 100 -> critical.
+        { id: 'p-low', stockMinimo: 100, lotes: [{ saldos: [
+          { cantidad: 50, ubicacion: { codigo: 'DEPOSITO' } },
+          { cantidad: 20, ubicacion: { codigo: 'ACONDICIONADO' } },
+        ], reservas: [] }] },
+        // Null means not configured, even with zero physical stock.
+        { id: 'p-unconfigured', stockMinimo: null, lotes: [{ saldos: [], reservas: [] }] },
+        // A zero deposit does not make the product critical when the total is 200.
+        { id: 'p-acondicionado', stockMinimo: 60, lotes: [{ saldos: [
+          { cantidad: 0, ubicacion: { codigo: 'DEPOSITO' } },
+          { cantidad: 200, ubicacion: { codigo: 'ACONDICIONADO' } },
+        ], reservas: [] }] },
+      ])
+      mockDb.pedido.count.mockResolvedValue(0)
+      mockDb.pedido.findMany.mockResolvedValue([])
+      mockDb.platformUser.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const res = await request(app).get('/api/ale-bet/dashboard').set('Authorization', `Bearer ${signToken()}`).expect(200)
+
+      expect(res.body.stockCritico).toBe(1)
+      expect(res.body.totalProductos).toBe(4)
+    })
+
+    it('returns 39 critical products out of 43 when four products are above their minimum', async () => {
+      const criticalProducts = Array.from({ length: 39 }, (_, index) => ({
+        id: `critical-${index}`,
+        stockMinimo: 100,
+        lotes: [{ saldos: [{ cantidad: 0, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }],
+      }))
+      const normalProducts = [
+        { id: 'normal-deposito-a', stockMinimo: 50, lotes: [{ saldos: [{ cantidad: 82, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }] },
+        { id: 'normal-deposito-b', stockMinimo: 200, lotes: [{ saldos: [{ cantidad: 1368, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }] },
+        { id: 'normal-deposito-c', stockMinimo: 100, lotes: [{ saldos: [{ cantidad: 1215, ubicacion: { codigo: 'DEPOSITO' } }], reservas: [] }] },
+        { id: 'normal-amino', stockMinimo: 60, lotes: [{ saldos: [
+          { cantidad: 259, ubicacion: { codigo: 'DEPOSITO' } },
+          { cantidad: 0, ubicacion: { codigo: 'ACONDICIONADO' } },
+        ], reservas: [] }] },
+      ]
+      mockDb.producto.findMany.mockResolvedValue([...criticalProducts, ...normalProducts])
+      mockDb.pedido.count.mockResolvedValue(0)
+      mockDb.pedido.findMany.mockResolvedValue([])
+      mockDb.platformUser.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const res = await request(app).get('/api/ale-bet/dashboard').set('Authorization', `Bearer ${signToken()}`).expect(200)
+
+      expect(res.body).toMatchObject({ stockCritico: 39, totalProductos: 43 })
+    })
+
     it('returns zeros and empty arrays when no data exists', async () => {
       mockDb.producto.findMany.mockResolvedValue([])
-      mockDb.pedido.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0).mockResolvedValueOnce(0).mockResolvedValueOnce(0)
+      mockDb.pedido.count.mockResolvedValueOnce(0)
       mockDb.pedido.findMany.mockResolvedValue([])
       mockDb.platformUser.findMany.mockResolvedValue([])
 
@@ -209,6 +279,7 @@ describe('Ale-Bet Dashboard', () => {
 
       expect(res.body.stockCritico).toBe(0)
       expect(res.body.pedidosHoy).toBe(0)
+      expect(res.body.pendientesRemito).toBe(0)
       expect(res.body.enArmado).toBe(0)
       expect(res.body.totalProductos).toBe(0)
       expect(res.body.pedidosRecientes).toEqual([])

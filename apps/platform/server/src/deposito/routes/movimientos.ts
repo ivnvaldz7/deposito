@@ -31,7 +31,12 @@ router.get('/', authenticate, requirePermission('deposito', 'movimientos.read'),
   }
 
   if (producto && typeof producto === 'string' && producto.trim()) {
-    where.productoNombre = { contains: producto.trim(), mode: 'insensitive' }
+    const val = producto.trim()
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val)) {
+      where.productoId = val
+    } else {
+      where.productoNombre = { contains: val, mode: 'insensitive' }
+    }
   }
 
   const createdAtFilter: Prisma.DateTimeFilter<"Movimiento"> = {}

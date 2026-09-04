@@ -7,6 +7,7 @@ import { Search, Clock, Eye, FilePlus, History, FlaskConical, Package, Tag, Box,
 import { useAuthStore } from '@/stores/auth-store'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
 import { api } from '../../lib/api'
+import { compareProductsByNaturalPresentation, sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
@@ -35,6 +36,8 @@ interface Frasco {
   nombreCompleto: string
   categoria: 'frasco'
 }
+
+type CatalogProduct = Droga | Estuche | Etiqueta | Frasco
 
 // ─── Metrics query parser ─────────────────────────────────────────────────────
 
@@ -139,12 +142,12 @@ export function CommandPalette() {
   const user = useAuthStore((s) => s.user)
   const token = useAuthStore((s) => s.token)
   const [query, setQuery] = useState('')
-  const [products, setProducts] = useState<(Droga | Estuche | Etiqueta | Frasco)[]>([])
+  const [products, setProducts] = useState<CatalogProduct[]>([])
   const [metricResult, setMetricResult] = useState<MetricQueryResult | null>(null)
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false)
 
-  const fuseRef = useRef<Fuse<any>>(
-    new Fuse<any>([], { keys: ['nombreCompleto'], threshold: 0.4 })
+  const fuseRef = useRef<Fuse<CatalogProduct>>(
+    new Fuse<CatalogProduct>([], { keys: ['nombreCompleto'], threshold: 0.4 })
   )
 
   useEffect(() => {
@@ -156,7 +159,10 @@ export function CommandPalette() {
       api.get<Frasco[]>('/productos?categoria=frasco'),
     ])
       .then(([drogas, estuches, etiquetas, frascos]) => {
-        const all = [...drogas, ...estuches, ...etiquetas, ...frascos]
+        const all = sortProductsByNaturalPresentation(
+          [...drogas, ...estuches, ...etiquetas, ...frascos],
+          (producto) => producto.nombreCompleto,
+        )
         setProducts(all)
         fuseRef.current = new Fuse(all, { keys: ['nombreCompleto'], threshold: 0.4 })
       })
@@ -190,7 +196,10 @@ export function CommandPalette() {
 
   const productActions = useMemo((): Action[] => {
     if (!query.trim()) return []
-    const fused = fuseRef.current.search(query).slice(0, 8)
+    const fused = fuseRef.current
+      .search(query)
+      .sort((a, b) => compareProductsByNaturalPresentation(a.item.nombreCompleto, b.item.nombreCompleto))
+      .slice(0, 8)
     return fused.map((r) => {
       const p = r.item
       let icon = <FlaskConical size={14} strokeWidth={1.5} />

@@ -11,9 +11,19 @@ const router = Router()
 const createSchema = z.object({ originalText: z.string().trim().min(1).max(20_000) })
 const editSchema = z.object({
   expectedVersion: z.number().int().positive(),
-  clienteId: z.string().min(1),
+  clienteId: z.string().min(1).optional(),
   rememberClientAlias: z.boolean().optional(),
-  lines: z.array(z.object({ productId: z.string().min(1), cajas: z.number().int().nonnegative().optional(), unidades: z.number().int().nonnegative().optional(), mode: z.enum(['BOXES', 'UNITS', 'MIXED']).optional(), rememberAlias: z.boolean().optional() })).min(1),
+  line: z.object({
+    lineId: z.string().min(1),
+    productId: z.string().min(1).optional(),
+    cajas: z.number().int().nonnegative().optional(),
+    unidades: z.number().int().nonnegative().optional(),
+    mode: z.enum(['BOXES', 'UNITS', 'MIXED']).optional(),
+    rememberAlias: z.boolean().optional(),
+  }).optional(),
+}).superRefine((value, context) => {
+  const edits = Number(Boolean(value.clienteId)) + Number(Boolean(value.line))
+  if (edits !== 1) context.addIssue({ code: z.ZodIssueCode.custom, message: 'La edición debe cambiar exactamente un cliente o una línea' })
 })
 const confirmSchema = z.object({ expectedVersion: z.number().int().positive() })
 
@@ -32,6 +42,31 @@ function errorResponse(error: unknown, res: { status: (code: number) => { json: 
   }
   throw error
 }
+
+router.get('/aliases', requirePermission('ale-bet', 'pedidos.read'), async (req, res) => {
+  if (!requireOperator(req, res)) return
+  const [productAliases, clientAliases] = await Promise.all([
+    prisma.productAlias.findMany({ orderBy: { aliasNormalized: 'asc' }, include: { producto: { select: { id: true, nombre: true } } } }),
+    prisma.clientAlias.findMany({ orderBy: { aliasNormalized: 'asc' }, include: { cliente: { select: { id: true, nombre: true } } } }),
+  ])
+  res.json({ productAliases, clientAliases })
+})
+
+router.delete('/product-aliases/:id', requirePermission('ale-bet', 'pedidos.approve'), async (req, res) => {
+  if (!requireOperator(req, res)) return
+  const alias = await prisma.productAlias.findUnique({ where: { id: String(req.params.id) } })
+  if (!alias) { res.status(404).json({ error: 'Equivalencia de producto no encontrada' }); return }
+  await prisma.productAlias.delete({ where: { id: alias.id } })
+  res.status(204).end()
+})
+
+router.delete('/client-aliases/:id', requirePermission('ale-bet', 'pedidos.approve'), async (req, res) => {
+  if (!requireOperator(req, res)) return
+  const alias = await prisma.clientAlias.findUnique({ where: { id: String(req.params.id) } })
+  if (!alias) { res.status(404).json({ error: 'Equivalencia de cliente no encontrada' }); return }
+  await prisma.clientAlias.delete({ where: { id: alias.id } })
+  res.status(204).end()
+})
 
 router.post('/drafts', requirePermission('ale-bet', 'pedidos.approve'), async (req, res) => {
   if (!requireOperator(req, res)) return

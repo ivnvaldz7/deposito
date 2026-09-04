@@ -31,6 +31,7 @@ interface DrogaMock {
   lote: string | null
   vencimiento: Date | null
   cantidad: number
+  producto?: { stockMinimo: number | null }
 }
 
 interface EstucheMock {
@@ -38,6 +39,7 @@ interface EstucheMock {
   articulo: string
   mercado: string
   cantidad: number
+  producto?: { stockMinimo: number | null }
 }
 
 interface EtiquetaMock {
@@ -45,6 +47,7 @@ interface EtiquetaMock {
   articulo: string
   mercado: string
   cantidad: number
+  producto?: { stockMinimo: number | null }
 }
 
 interface FrascoMock {
@@ -53,6 +56,7 @@ interface FrascoMock {
   cantidadCajas: number
   unidadesPorCaja: number
   total: number
+  producto?: { stockMinimo: number | null }
 }
 
 interface MovimientoMock {
@@ -253,11 +257,11 @@ describe('Dashboard', () => {
       expect(res.body.drogasSinStock).toBe(1)
     })
 
-    it('stock bajo detecta droga con cantidad < 10', async () => {
+    it('stock bajo usa el mínimo de catálogo, incluye igualdad y excluye sin configurar', async () => {
       prismaMock.state.drogas.push(
-        { id: 'd-1', nombre: 'BAJO STOCK', lote: null, vencimiento: null, cantidad: 3 },
-        { id: 'd-2', nombre: 'STOCK OK', lote: null, vencimiento: null, cantidad: 50 },
-        { id: 'd-3', nombre: 'SIN STOCK', lote: null, vencimiento: null, cantidad: 0 },
+        { id: 'd-1', nombre: 'BAJO STOCK', lote: null, vencimiento: null, cantidad: 3, producto: { stockMinimo: 3 } },
+        { id: 'd-2', nombre: 'STOCK OK', lote: null, vencimiento: null, cantidad: 4, producto: { stockMinimo: 3 } },
+        { id: 'd-3', nombre: 'SIN CONFIGURAR', lote: null, vencimiento: null, cantidad: 0, producto: { stockMinimo: null } },
       )
 
       const res = await request(app)
@@ -267,6 +271,25 @@ describe('Dashboard', () => {
       expect(res.status).toBe(200)
       expect(res.body.stockBajo).toHaveLength(1)
       expect(res.body.stockBajo[0].nombre).toBe('BAJO STOCK')
+    })
+
+    it('aplica el mínimo real también a estuches, etiquetas y frascos en cajas', async () => {
+      prismaMock.state.estuches.push(
+        { id: 'e-1', articulo: 'ESTUCHE IGUAL', mercado: 'argentina', cantidad: 100, producto: { stockMinimo: 100 } },
+        { id: 'e-2', articulo: 'ESTUCHE NORMAL', mercado: 'argentina', cantidad: 120, producto: { stockMinimo: 100 } },
+      )
+      prismaMock.state.etiquetas.push({ id: 't-1', articulo: 'ETIQUETA', mercado: 'argentina', cantidad: 100, producto: { stockMinimo: 100 } })
+      prismaMock.state.frascos.push(
+        { id: 'f-1', articulo: 'FRASCO NORMAL', cantidadCajas: 6, unidadesPorCaja: 100, total: 600, producto: { stockMinimo: 5 } },
+        { id: 'f-2', articulo: 'FRASCO BAJO', cantidadCajas: 5, unidadesPorCaja: 100, total: 500, producto: { stockMinimo: 5 } },
+      )
+
+      const res = await request(app).get('/api/dashboard/stats').set('x-test-role', 'observador')
+
+      expect(res.status).toBe(200)
+      expect(res.body.stockBajoEstuches.map((item: { id: string }) => item.id)).toEqual(['e-1'])
+      expect(res.body.stockBajoEtiquetas.map((item: { id: string }) => item.id)).toEqual(['t-1'])
+      expect(res.body.stockBajoFrascos.map((item: { id: string }) => item.id)).toEqual(['f-2'])
     })
 
     it('próximos a vencer devuelve items con vencimiento en ≤ 30 días', async () => {

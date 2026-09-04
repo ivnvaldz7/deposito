@@ -494,7 +494,7 @@ describe('VentasPage', () => {
       expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:mock-url')
 
       // The download filename must encode cliente + year + month.
-      const anchorEl = (document.createElement as ReturnType<typeof vi.spyOn>).mock.results
+      const anchorEl = (document.createElement as unknown as ReturnType<typeof vi.spyOn>).mock.results
         .find((r) => (r.value as HTMLElement).tagName === 'A')?.value as HTMLAnchorElement | undefined
       if (anchorEl) {
         expect(anchorEl.download).toMatch(new RegExp(`${now.getFullYear()}`))
@@ -562,7 +562,7 @@ describe('VentasPage', () => {
 
     it('on success: calls generarExcelVentas and shows toast', async () => {
       ventasMock.mockResolvedValue(createReporteVentasMensual())
-      excelMock.mockImplementation(() => {})
+      excelMock.mockImplementation(() => Promise.resolve())
 
       const { toast } = await import('@/lib/toast')
 

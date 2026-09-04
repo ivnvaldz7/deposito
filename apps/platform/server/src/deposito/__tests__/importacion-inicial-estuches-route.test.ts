@@ -30,8 +30,7 @@ vi.mock('../services/importacion-inicial-estuches-service', () => ({
 import router from '../routes/importacion-inicial-estuches'
 
 const validPayload = {
-  effectiveDate: '2026-08-11',
-  rows: [{ sourceRow: 1, nombreBase: 'Estuche', nombreCompleto: 'Estuche A', presentacion: 1, mercado: 'argentina', cantidad: 3 }],
+  rows: [{ sourceRow: 1, nombreBase: 'Estuche', nombreCompleto: 'Estuche A', presentacion: 1, mercado: 'argentina' }],
 }
 
 describe('POST /api/deposito/importaciones/estuches-inicial', () => {
@@ -39,7 +38,7 @@ describe('POST /api/deposito/importaciones/estuches-inicial', () => {
 
   beforeEach(() => {
     importMock.mockReset()
-    importMock.mockResolvedValue({ replay: false, result: { batchId: 'batch-1', checksum: 'checksum', items: [] } })
+    importMock.mockResolvedValue({ replay: false, result: { items: [] } })
   })
 
   it('returns 401 without authentication and 403 for a non-encargado', async () => {
@@ -50,26 +49,34 @@ describe('POST /api/deposito/importaciones/estuches-inicial', () => {
     expect(importMock).not.toHaveBeenCalled()
   })
 
-  it('requires an idempotency key and validates JSON payloads before the service', async () => {
-    const missingKey = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').send(validPayload)
-    const invalid = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').set('Idempotency-Key', 'key').send({ ...validPayload, rows: [] })
-    expect(missingKey.status).toBe(400)
-    expect(missingKey.body.message).toBe('Idempotency-Key es obligatorio')
+  it('rejects empty catalogs and obsolete stock fields before the service', async () => {
+    const invalid = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').send({ rows: [] })
+    const withQuantity = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').send({ rows: [{ ...validPayload.rows[0], cantidad: 3 }] })
     expect(invalid.status).toBe(400)
+    expect(withQuantity.status).toBe(400)
     expect(importMock).not.toHaveBeenCalled()
   })
 
   it('returns the JSON response contract as 201 then 200 for replay', async () => {
-    importMock.mockResolvedValueOnce({ replay: false, result: { batchId: 'batch-1', checksum: 'checksum', items: [{ codigo: 'IGES001' }] } })
-      .mockResolvedValueOnce({ replay: true, result: { batchId: 'batch-1', checksum: 'checksum', items: [{ codigo: 'IGES001' }] } })
-    const first = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').set('Idempotency-Key', 'key').send(validPayload)
-    const replay = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').set('Idempotency-Key', 'key').send(validPayload)
+    importMock.mockResolvedValueOnce({ replay: false, result: { items: [{ codigo: 'IGES001' }] } })
+      .mockResolvedValueOnce({ replay: true, result: { items: [{ codigo: 'IGES001' }] } })
+    const first = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').send(validPayload)
+    const replay = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').send(validPayload)
     expect(first.status).toBe(201)
     expect(first.headers['content-type']).toMatch(/^application\/json/)
-    expect(first.body).toEqual({ batchId: 'batch-1', checksum: 'checksum', items: [{ codigo: 'IGES001' }] })
+    expect(first.body).toEqual({ items: [{ codigo: 'IGES001' }] })
     expect(replay.status).toBe(200)
     expect(replay.body).toEqual(first.body)
-    expect(importMock).toHaveBeenNthCalledWith(1, validPayload, 'enc-1', 'key')
+    expect(importMock).toHaveBeenNthCalledWith(1, validPayload)
+  })
+
+  it('accepts etiqueta explicitly and rejects arbitrary categories', async () => {
+    const etiqueta = { rows: [{ ...validPayload.rows[0], categoria: 'etiqueta' }] }
+    const accepted = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').send(etiqueta)
+    const rejected = await request(app).post('/api/deposito/importaciones/estuches-inicial').set('x-test-role', 'encargado').send({ rows: [{ ...validPayload.rows[0], categoria: 'frasco' }] })
+    expect(accepted.status).toBe(201)
+    expect(importMock).toHaveBeenCalledWith(etiqueta)
+    expect(rejected.status).toBe(400)
   })
 
   it('maps service conflict errors to 409', async () => {

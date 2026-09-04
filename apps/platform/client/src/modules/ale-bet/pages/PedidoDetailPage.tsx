@@ -385,7 +385,7 @@ function LineaDetalle({
             </p>
             {isListo && <Badge variant="success" className="h-5 px-1.5 text-[10px] animate-check-pop">✓ PREPARADO</Badge>}
             {isEspera && <Badge className="bg-[#A06869] text-white h-5 px-2 text-[10px] uppercase whitespace-nowrap shrink-0 animate-check-pop">ESPERA PRODUCCIÓN</Badge>}
-            {!isListo && !isEspera && completable && <Badge variant="outline" className="h-5 px-1.5 text-[10px] text-primary border-primary/50">PREPARAR</Badge>}
+            {!isListo && !isEspera && completable && <Badge className="bg-transparent border border-primary/50 text-primary h-5 px-1.5 text-[10px]">PREPARAR</Badge>}
           </div>
 
         </div>
@@ -659,6 +659,7 @@ export default function PedidoDetailPage() {
   const qc = useQueryClient()
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const esFacturacion = rol === 'facturacion'
   const userId = user?.sub ?? ''
   const esRemitos = can(user, 'ale-bet', 'remitos.create')
 
@@ -1247,7 +1248,7 @@ export default function PedidoDetailPage() {
                     <span>Vendedor: {pedido.vendedorNombre}</span>
                   </>
                 )}
-                {pedido.armadorNombre && (
+                {!esFacturacion && pedido.armadorNombre && (
                   <>
                     <span className="hidden md:inline text-outline/40">•</span>
                     <span>Armador: {pedido.armadorNombre}</span>

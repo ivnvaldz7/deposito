@@ -128,17 +128,17 @@ model IdempotencyRecord {
 // ─── Ale-Bet schema ──────────────────────────────────────────────────────────
 
 model Producto {
-  id          String      @id @default(cuid())
-  nombre      String
-  sku         String      @unique
-  stockMinimo Int?
-  unidadesPorCaja Int
-  activo      Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  lotes       Lote[]
-  itemsPedido ItemPedido[]
-  saldos      SaldoStock[]
+  id               String                  @id @default(cuid())
+  nombre           String
+  sku              String                  @unique
+  stockMinimo      Int?
+  unidadesPorCaja  Int
+  activo           Boolean                 @default(true)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  lotes            Lote[]
+  itemsPedido      ItemPedido[]
+  saldos           SaldoStock[]
   projectionOutbox StockProjectionOutbox[]
   aliases          ProductAlias[]
 
@@ -159,16 +159,16 @@ model ProductAlias {
 }
 
 model Lote {
-  id               String    @id @default(cuid())
+  id               String         @id @default(cuid())
   numero           String
   productoId       String
-  producto         Producto  @relation(fields: [productoId], references: [id])
-  cajas            Int       @default(0)
-  sueltos          Int       @default(0)
+  producto         Producto       @relation(fields: [productoId], references: [id])
+  cajas            Int            @default(0)
+  sueltos          Int            @default(0)
   fechaProduccion  DateTime?
   fechaVencimiento DateTime?
-  activo           Boolean   @default(true)
-  createdAt        DateTime  @default(now())
+  activo           Boolean        @default(true)
+  createdAt        DateTime       @default(now())
   reservas         ReservaStock[]
   saldos           SaldoStock[]
 
@@ -178,22 +178,22 @@ model Lote {
 }
 
 model Cliente {
-  id            String       @id @default(cuid())
-  nombre        String       @unique
-  contacto      String?
-  referencia    String?
-  direccion     String?
-  localidad     String?
-  provincia     String?
-  cuit          String?
-  condicionIva  String?
+  id             String        @id @default(cuid())
+  nombre         String        @unique
+  contacto       String?
+  referencia     String?
+  direccion      String?
+  localidad      String?
+  provincia      String?
+  cuit           String?
+  condicionIva   String?
   condicionVenta String?
-  estado        EstadoCliente @default(VALIDADO)
-  activo        Boolean      @default(true)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  pedidos       Pedido[]
-  aliases       ClientAlias[]
+  estado         EstadoCliente @default(VALIDADO)
+  activo         Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  pedidos        Pedido[]
+  aliases        ClientAlias[]
 
   @@schema("ale_bet")
 }
@@ -212,83 +212,84 @@ model ClientAlias {
 }
 
 model Pedido {
-  id         String       @id @default(cuid())
-  numero     String       @unique
-  clienteId  String
-  cliente    Cliente      @relation(fields: [clienteId], references: [id])
-  vendedorId String
-  armadorId  String?
-  estado     EstadoPedido @default(BORRADOR)
-  version    Int          @default(1)
-  cancelacionSolicitadaAt DateTime?
+  id                       String                    @id @default(cuid())
+  numero                   String                    @unique
+  clienteId                String
+  cliente                  Cliente                   @relation(fields: [clienteId], references: [id])
+  vendedorId               String?
+  armadorId                String?
+  origen                   OrigenPedido              @default(MANUAL)
+  estado                   EstadoPedido              @default(BORRADOR)
+  version                  Int                       @default(1)
+  cancelacionSolicitadaAt  DateTime?
   cancelacionSolicitadaPor String?
-  motivoCancelacion String?
-  aprobadoAt DateTime?
-  preparadoAt DateTime?
-  despachadoAt DateTime?
-  canceladoAt DateTime?
-  items      ItemPedido[]
-  reservas   ReservaStock[]
-  auditorias PedidoAuditoria[]
-  remitos    Remito[]
-  interpretationDraft OrderInterpretationDraft?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  motivoCancelacion        String?
+  aprobadoAt               DateTime?
+  preparadoAt              DateTime?
+  despachadoAt             DateTime?
+  canceladoAt              DateTime?
+  items                    ItemPedido[]
+  reservas                 ReservaStock[]
+  auditorias               PedidoAuditoria[]
+  remitos                  Remito[]
+  interpretationDraft      OrderInterpretationDraft?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
 
   @@schema("ale_bet")
 }
 
 model ItemPedido {
-  id         String   @id @default(cuid())
+  id         String         @id @default(cuid())
   pedidoId   String
-  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  pedido     Pedido         @relation(fields: [pedidoId], references: [id])
   productoId String
-  producto   Producto @relation(fields: [productoId], references: [id])
+  producto   Producto       @relation(fields: [productoId], references: [id])
   cantidad   Int
-  completado Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  completado Boolean        @default(false)
+  createdAt  DateTime       @default(now())
   reservas   ReservaStock[]
 
   @@schema("ale_bet")
 }
 
 model MovimientoStock {
-  id         String         @id @default(cuid())
-  productoId String
-  cantidad   Int
-  tipo       TipoMovimiento
-  referencia String?
-  usuarioId  String
-  pedidoId   String?
-  loteId     String?
-  reservaId  String?
+  id                 String          @id @default(cuid())
+  productoId         String
+  cantidad           Int
+  tipo               TipoMovimiento
+  referencia         String?
+  usuarioId          String
+  pedidoId           String?
+  loteId             String?
+  reservaId          String?
   origenUbicacionId  String?
   destinoUbicacionId String?
   idempotencyKey     String?         @unique
   origenUbicacion    UbicacionStock? @relation("MovimientoOrigenUbicacion", fields: [origenUbicacionId], references: [id])
   destinoUbicacion   UbicacionStock? @relation("MovimientoDestinoUbicacion", fields: [destinoUbicacionId], references: [id])
-  createdAt  DateTime       @default(now())
+  createdAt          DateTime        @default(now())
 
   @@schema("ale_bet")
 }
 
 model ReservaStock {
-  id            String        @id @default(cuid())
-  pedidoId      String
-  pedido        Pedido        @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  id           String         @id @default(cuid())
+  pedidoId     String
+  pedido       Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
   // Released reservations remain as allocation evidence after an APROBADO edit.
   // The live item may be replaced, so retain the reservation and detach its link.
-  itemPedidoId  String?
-  itemPedido    ItemPedido?   @relation(fields: [itemPedidoId], references: [id], onDelete: SetNull)
-  loteId        String
-  lote          Lote          @relation(fields: [loteId], references: [id], onDelete: Restrict)
-  ubicacionId   String
-  ubicacion     UbicacionStock @relation(fields: [ubicacionId], references: [id], onDelete: Restrict)
-  cantidad      Int
-  estado        EstadoReserva @default(ACTIVA)
-  createdAt     DateTime      @default(now())
-  releasedAt    DateTime?
-  consumedAt    DateTime?
+  itemPedidoId String?
+  itemPedido   ItemPedido?    @relation(fields: [itemPedidoId], references: [id], onDelete: SetNull)
+  loteId       String
+  lote         Lote           @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  ubicacionId  String
+  ubicacion    UbicacionStock @relation(fields: [ubicacionId], references: [id], onDelete: Restrict)
+  cantidad     Int
+  estado       EstadoReserva  @default(ACTIVA)
+  createdAt    DateTime       @default(now())
+  releasedAt   DateTime?
+  consumedAt   DateTime?
 
   @@unique([itemPedidoId, loteId, ubicacionId])
   @@index([loteId, estado])
@@ -297,15 +298,15 @@ model ReservaStock {
 }
 
 model UbicacionStock {
-  id                   String           @id @default(cuid())
-  codigo               String           @unique
-  nombre               String
-  activo               Boolean          @default(true)
-  createdAt            DateTime         @default(now())
-  saldos               SaldoStock[]
-  reservas             ReservaStock[]
-  movimientosOrigen    MovimientoStock[] @relation("MovimientoOrigenUbicacion")
-  movimientosDestino   MovimientoStock[] @relation("MovimientoDestinoUbicacion")
+  id                 String            @id @default(cuid())
+  codigo             String            @unique
+  nombre             String
+  activo             Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  saldos             SaldoStock[]
+  reservas           ReservaStock[]
+  movimientosOrigen  MovimientoStock[] @relation("MovimientoOrigenUbicacion")
+  movimientosDestino MovimientoStock[] @relation("MovimientoDestinoUbicacion")
 
   @@schema("ale_bet")
 }
@@ -377,6 +378,7 @@ model StockProjectionOutbox {
   @@index([causeType, causeId])
   @@schema("ale_bet")
 }
+
 model Transportista {
   id        String   @id @default(cuid())
   nombre    String
@@ -391,24 +393,24 @@ model Transportista {
 }
 
 model Remito {
-  id                   String       @id @default(cuid())
-  pedidoId             String
-  pedido               Pedido       @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
-  numero               String       @unique
-  fecha                DateTime     @default(now())
-  transportistaId      String?
-  transportista        Transportista? @relation(fields: [transportistaId], references: [id])
-  transporteNombre     String
-  transporteDireccion  String
-  clienteSnapshot      Json
-  transporteSnapshot   Json
-  itemsSnapshot        Json
-  estado               EstadoRemito @default(VIGENTE)
-  invalidadoAt         DateTime?
-  invalidadoPor        String?
-  motivoInvalidacion   String?
-  createdBy            String
-  createdAt            DateTime     @default(now())
+  id                  String         @id @default(cuid())
+  pedidoId            String
+  pedido              Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  numero              String         @unique
+  fecha               DateTime       @default(now())
+  transportistaId     String?
+  transportista       Transportista? @relation(fields: [transportistaId], references: [id])
+  transporteNombre    String
+  transporteDireccion String
+  clienteSnapshot     Json
+  transporteSnapshot  Json
+  itemsSnapshot       Json
+  estado              EstadoRemito   @default(VIGENTE)
+  invalidadoAt        DateTime?
+  invalidadoPor       String?
+  motivoInvalidacion  String?
+  createdBy           String
+  createdAt           DateTime       @default(now())
 
   @@index([pedidoId, estado])
   @@schema("ale_bet")
@@ -421,6 +423,13 @@ enum EstadoPedido {
   PREPARADO
   DESPACHADO
   CANCELADO
+
+  @@schema("ale_bet")
+}
+
+enum OrigenPedido {
+  MANUAL
+  AUTOMATION
 
   @@schema("ale_bet")
 }
@@ -441,6 +450,7 @@ enum EstadoStockProjectionOutbox {
 
   @@schema("ale_bet")
 }
+
 enum EstadoCliente {
   PENDIENTE_CLIENTE
   VALIDADO
@@ -476,31 +486,27 @@ enum TipoMovimiento {
 // ─── Deposito schema ────────────────────────────────────────────────────────
 // Depósito - Schema v1 (Fase 1: Drogas + Actas + Movimientos)
 
-
-
-
 // ============================================================
 // USERS
 // ============================================================
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  name         String
-  role         Role     @default(observador)
-  platformUserId String? @unique @map("platform_user_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  name           String
+  role           Role     @default(observador)
+  platformUserId String?  @unique @map("platform_user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  actas                  Acta[]
-  movimientos            Movimiento[]
-  insumoPendientes       InsumoPendiente[]
-  ordenesComoSolicitante OrdenProduccion[] @relation("OrdenesComoSolicitante")
-  ordenesComoAprobador   OrdenProduccion[] @relation("OrdenesComoAprobador")
-  auditoriasCatalogo     AuditoriaCatalogoProducto[]
+  actas                         Acta[]
+  movimientos                   Movimiento[]
+  insumoPendientes              InsumoPendiente[]
+  ordenesComoSolicitante        OrdenProduccion[]                @relation("OrdenesComoSolicitante")
+  ordenesComoAprobador          OrdenProduccion[]                @relation("OrdenesComoAprobador")
+  auditoriasCatalogo            AuditoriaCatalogoProducto[]
   importacionesInicialesEstuche ImportacionInicialEstucheBatch[]
 
   @@map("users")
-
   @@schema("deposito")
 }
 
@@ -528,7 +534,6 @@ model Acta {
   items ActaItem[]
 
   @@map("actas")
-
   @@schema("deposito")
 }
 
@@ -544,28 +549,27 @@ enum EstadoActa {
 // ACTA ITEMS
 // ============================================================
 model ActaItem {
-  id                  String    @id @default(uuid())
-  actaId              String    @map("acta_id")
-  productoId          String?   @map("producto_id")
-  categoria           Categoria
-  productoNombre      String    @map("producto_nombre")
-  lote                String
-  vencimiento         DateTime? @db.Date @map("vencimiento")
-  temperaturaTransporte String? @map("temperatura_transporte")
-  condicionEmbalaje   CondicionEmbalaje? @map("condicion_embalaje")
-  observacionesCalidad String? @map("observaciones_calidad")
-  aprobadoCalidad     Boolean   @default(false) @map("aprobado_calidad")
-  cantidadIngresada   Float       @map("cantidad_ingresada")
-  cantidadDistribuida Float       @default(0) @map("cantidad_distribuida")
-  mercado             Mercado?  // solo para categoría estuche/etiqueta
-  createdAt           DateTime  @default(now()) @map("created_at")
+  id                    String             @id @default(uuid())
+  actaId                String             @map("acta_id")
+  productoId            String?            @map("producto_id")
+  categoria             Categoria
+  productoNombre        String             @map("producto_nombre")
+  lote                  String
+  vencimiento           DateTime?          @map("vencimiento") @db.Date
+  temperaturaTransporte String?            @map("temperatura_transporte")
+  condicionEmbalaje     CondicionEmbalaje? @map("condicion_embalaje")
+  observacionesCalidad  String?            @map("observaciones_calidad")
+  aprobadoCalidad       Boolean            @default(false) @map("aprobado_calidad")
+  cantidadIngresada     Float              @map("cantidad_ingresada")
+  cantidadDistribuida   Float              @default(0) @map("cantidad_distribuida")
+  mercado               Mercado? // solo para categoría estuche/etiqueta
+  createdAt             DateTime           @default(now()) @map("created_at")
 
-  acta     Acta      @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  acta     Acta              @relation(fields: [actaId], references: [id], onDelete: Cascade)
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@index([productoId])
   @@map("acta_items")
-
   @@schema("deposito")
 }
 
@@ -656,19 +660,18 @@ model InventarioDroga {
   productoId  String?   @map("producto_id")
   nombre      String
   lote        String?
-  vencimiento DateTime? @db.Date @map("vencimiento")
-  cantidad    Float       @default(0)
+  vencimiento DateTime? @map("vencimiento") @db.Date
+  cantidad    Float     @default(0)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@unique([nombre, lote])
+  @@unique([productoId, lote])
   @@index([productoId])
   @@index([productoId, lote])
-  @@unique([productoId, lote])
   @@map("inventario_drogas")
-
   @@schema("deposito")
 }
 
@@ -683,15 +686,14 @@ model InventarioEstuche {
   cantidad   Int      @default(0)
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  producto DepositoProducto? @relation(fields: [productoId], references: [id])
+  producto               DepositoProducto?              @relation(fields: [productoId], references: [id])
   importacionInicialItem ImportacionInicialEstucheItem?
 
   @@unique([articulo, mercado])
+  @@unique([productoId, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
-  @@unique([productoId, mercado])
   @@map("inventario_estuches")
-
   @@schema("deposito")
 }
 
@@ -709,11 +711,10 @@ model InventarioEtiqueta {
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@unique([articulo, mercado])
+  @@unique([productoId, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
-  @@unique([productoId, mercado])
   @@map("inventario_etiquetas")
-
   @@schema("deposito")
 }
 
@@ -731,10 +732,9 @@ model InventarioFrasco {
 
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
-  @@index([productoId])
   @@unique([productoId])
+  @@index([productoId])
   @@map("inventario_frascos")
-
   @@schema("deposito")
 }
 
@@ -742,28 +742,27 @@ model InventarioFrasco {
 // MOVIMIENTOS (auditoría)
 // ============================================================
 model Movimiento {
-  id             String         @id @default(uuid())
-  tipo           DepositoTipoMovimiento
-  categoria      Categoria
-  productoNombre String         @map("producto_nombre")
-  lote           String?
-  cantidad       Float // positivo = ingreso, negativo = egreso
-  referenciaId   String?        @map("referencia_id")
-  referenciaTipo RefTipo?       @map("referencia_tipo")
-  productoId     String?        @map("producto_id")
-  fechaEfectiva  DateTime?     @db.Date @map("fecha_efectiva")
-  importacionInicialEstucheItemId String? @unique @map("importacion_inicial_estuche_item_id")
-  justificacion  String?
-  createdBy      String         @map("created_by")
-  createdAt      DateTime       @default(now()) @map("created_at")
+  id                              String                 @id @default(uuid())
+  tipo                            DepositoTipoMovimiento
+  categoria                       Categoria
+  productoNombre                  String                 @map("producto_nombre")
+  lote                            String?
+  cantidad                        Float // positivo = ingreso, negativo = egreso
+  referenciaId                    String?                @map("referencia_id")
+  referenciaTipo                  RefTipo?               @map("referencia_tipo")
+  productoId                      String?                @map("producto_id")
+  fechaEfectiva                   DateTime?              @map("fecha_efectiva") @db.Date
+  importacionInicialEstucheItemId String?                @unique @map("importacion_inicial_estuche_item_id")
+  justificacion                   String?
+  createdBy                       String                 @map("created_by")
+  createdAt                       DateTime               @default(now()) @map("created_at")
 
-  user User @relation(fields: [createdBy], references: [id])
-  producto DepositoProducto? @relation(fields: [productoId], references: [id])
+  user                          User                           @relation(fields: [createdBy], references: [id])
+  producto                      DepositoProducto?              @relation(fields: [productoId], references: [id])
   importacionInicialEstucheItem ImportacionInicialEstucheItem? @relation(fields: [importacionInicialEstucheItemId], references: [id])
 
-  @@map("movimientos")
   @@index([productoId])
-
+  @@map("movimientos")
   @@schema("deposito")
 }
 
@@ -793,9 +792,9 @@ model InsumoPendiente {
   cantidad             Int
   destino              String
   estado               EstadoPendiente @default(en_esterilizacion)
-  fechaEnvio           DateTime        @db.Date @map("fecha_envio")
-  fechaRetornoEstimada DateTime?       @db.Date @map("fecha_retorno_estimada")
-  fechaRecibido        DateTime?       @db.Date @map("fecha_recibido")
+  fechaEnvio           DateTime        @map("fecha_envio") @db.Date
+  fechaRetornoEstimada DateTime?       @map("fecha_retorno_estimada") @db.Date
+  fechaRecibido        DateTime?       @map("fecha_recibido") @db.Date
   notas                String?
   createdBy            String          @map("created_by")
   createdAt            DateTime        @default(now()) @map("created_at")
@@ -804,7 +803,6 @@ model InsumoPendiente {
   user User @relation(fields: [createdBy], references: [id])
 
   @@map("insumos_pendientes")
-
   @@schema("deposito")
 }
 
@@ -833,13 +831,12 @@ model OrdenProduccion {
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  solicitante User      @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
-  aprobador   User?     @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
+  solicitante User              @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
+  aprobador   User?             @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
   producto    DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@index([productoId])
   @@map("ordenes_produccion")
-
   @@schema("deposito")
 }
 
@@ -864,37 +861,36 @@ enum EstadoOrden {
 // CATÁLOGO DE PRODUCTOS
 // ============================================================
 model DepositoProducto {
-  id             String    @id @default(uuid())
-  nombreBase     String    @map("nombre_base")
-  volumen        Decimal?  @db.Decimal(10, 3)
-  unidad         String?
-  variante       String?
-  categoria      Categoria
-  nombreCompleto String    @map("nombre_completo")
-  activo         Boolean   @default(true)
-  estado         EstadoProductoCatalogo? @map("estado")
-  codigo         String?   @unique
-  origen         OrigenProductoCatalogo @default(MIGRACION)
-  presentacion   Int?
-  stockMinimo    Int?      @map("stock_minimo")
-  mercadosHabilitados Mercado[] @default([]) @map("mercados_habilitados")
-  mercado              Mercado?
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                  String                  @id @default(uuid())
+  nombreBase          String                  @map("nombre_base")
+  volumen             Decimal?                @db.Decimal(10, 3)
+  unidad              String?
+  variante            String?
+  categoria           Categoria
+  nombreCompleto      String                  @map("nombre_completo")
+  activo              Boolean                 @default(true)
+  estado              EstadoProductoCatalogo? @map("estado")
+  codigo              String?                 @unique
+  origen              OrigenProductoCatalogo  @default(MIGRACION)
+  presentacion        Int?
+  stockMinimo         Int?                    @map("stock_minimo")
+  mercadosHabilitados Mercado[]               @default([]) @map("mercados_habilitados")
+  mercado             Mercado?
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
 
-  inventarioDrogas    InventarioDroga[]
-  inventarioEstuches  InventarioEstuche[]
-  inventarioEtiquetas InventarioEtiqueta[]
-  inventarioFrascos   InventarioFrasco[]
-  actaItems           ActaItem[]
-  ordenes             OrdenProduccion[]
-  auditoriasCatalogo   AuditoriaCatalogoProducto[]
-  movimientos          Movimiento[]
+  inventarioDrogas              InventarioDroga[]
+  inventarioEstuches            InventarioEstuche[]
+  inventarioEtiquetas           InventarioEtiqueta[]
+  inventarioFrascos             InventarioFrasco[]
+  actaItems                     ActaItem[]
+  ordenes                       OrdenProduccion[]
+  auditoriasCatalogo            AuditoriaCatalogoProducto[]
+  movimientos                   Movimiento[]
   importacionesInicialesEstuche ImportacionInicialEstucheItem[]
 
   @@unique([nombreCompleto, categoria, mercado])
   @@map("productos")
-
   @@schema("deposito")
 }
 
@@ -927,13 +923,13 @@ model ImportacionInicialEstucheBatch {
   idempotencyKey String   @unique @map("idempotency_key")
   checksum       String   @unique
   actorId        String   @map("actor_id")
-  effectiveDate  DateTime @db.Date @map("effective_date")
+  effectiveDate  DateTime @map("effective_date") @db.Date
   result         Json?
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  actor User @relation(fields: [actorId], references: [id])
-  items ImportacionInicialEstucheItem[]
+  actor           User                                      @relation(fields: [actorId], references: [id])
+  items           ImportacionInicialEstucheItem[]
   idempotencyKeys ImportacionInicialEstucheIdempotencyKey[]
 
   @@map("importaciones_iniciales_estuche")
@@ -954,19 +950,19 @@ model ImportacionInicialEstucheIdempotencyKey {
 }
 
 model ImportacionInicialEstucheItem {
-  id           String   @id @default(uuid())
-  batchId      String   @map("batch_id")
-  productoId   String   @unique @map("producto_id")
-  inventarioEstucheId String @unique @map("inventario_estuche_id")
-  mercado      Mercado
-  codigo       String
-  sourceRow    Int      @map("source_row")
-  cantidad     Int
-  createdAt    DateTime @default(now()) @map("created_at")
+  id                  String   @id @default(uuid())
+  batchId             String   @map("batch_id")
+  productoId          String   @unique @map("producto_id")
+  inventarioEstucheId String   @unique @map("inventario_estuche_id")
+  mercado             Mercado
+  codigo              String
+  sourceRow           Int      @map("source_row")
+  cantidad            Int
+  createdAt           DateTime @default(now()) @map("created_at")
 
-  batch ImportacionInicialEstucheBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
-  producto DepositoProducto @relation(fields: [productoId], references: [id], onDelete: Restrict)
-  inventario InventarioEstuche @relation(fields: [inventarioEstucheId], references: [id], onDelete: Restrict)
+  batch      ImportacionInicialEstucheBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  producto   DepositoProducto               @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  inventario InventarioEstuche              @relation(fields: [inventarioEstucheId], references: [id], onDelete: Restrict)
   movimiento Movimiento?
 
   @@unique([batchId, sourceRow])

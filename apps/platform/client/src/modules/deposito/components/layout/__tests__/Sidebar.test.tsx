@@ -1,20 +1,55 @@
 import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { Sidebar } from '../Sidebar'
 
-vi.mock('@/stores/auth-store', () => ({ useAuthStore: (selector: (s: object) => unknown) => selector({ user: { name: 'Ana', apps: { deposito: { rol: 'encargado' } } }, logout: vi.fn() }) }))
-vi.mock('../../../stores/sidebar-store', () => ({ useSidebarStore: (selector: (s: object) => unknown) => selector({ collapsed: false }) }))
+vi.mock('@/stores/auth-store', () => ({ 
+  useAuthStore: (selector: (s: any) => any) => selector({ 
+    user: { name: 'Ana', apps: { deposito: { rol: 'encargado', activo: true } } }, 
+    logout: vi.fn() 
+  }) 
+}))
+
+vi.mock('@/lib/permissions', () => ({
+  can: () => true
+}))
+
 vi.mock('@/lib/api-client', () => ({ apiClient: { post: vi.fn() } }))
 
-describe('Depósito Sidebar', () => {
-  it('is a fixed desktop overlay and exposes one compact action block without repeating identity', () => {
+describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
+  it('renders fixed stable desktop structure without hover-expand animations', () => {
     render(<MemoryRouter><Sidebar /></MemoryRouter>)
+    
     const sidebar = screen.getByRole('complementary')
-    expect(sidebar).toHaveClass('fixed')
+    // Es FIJO, sin width dinámico ni hover
+    expect(sidebar).toHaveClass('fixed', 'w-[280px]')
+    expect(sidebar).not.toHaveClass('w-0', 'transition-all', 'duration-300')
+
+    // Contiene el nombre de app y usuario en el header
+    expect(screen.getByText('Depósito')).toBeInTheDocument()
     expect(screen.getAllByText('Ana')).toHaveLength(1)
+    expect(screen.getByText('Encargado')).toBeInTheDocument()
+
+    // Acciones del footer presentes
     expect(screen.getByRole('button', { name: 'Cambiar módulo' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Cerrar sesión' })).toBeInTheDocument()
+  })
+
+  it('marks current route as active', () => {
+    render(
+      <MemoryRouter initialEntries={['/deposito/productos']}>
+        <Routes>
+          <Route path="*" element={<Sidebar />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    // The Active Link should have "bg-surface-variant/30 text-on-surface font-semibold"
+    const productosLink = screen.getByRole('link', { name: /Productos/i })
+    expect(productosLink).toHaveClass('font-semibold')
+    
+    const dashboardLink = screen.getByRole('link', { name: /Dashboard/i })
+    expect(dashboardLink).not.toHaveClass('font-semibold')
   })
 
   it('does not render Usuarios link in the sidebar', () => {

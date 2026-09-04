@@ -23,6 +23,7 @@ router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'
 
   const [productos, movimientos] = await Promise.all([
     prisma.producto.findMany({
+      where: { activo: true },
       include: {
         lotes: {
           where: includeArchived ? undefined : { activo: true },

@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { Mercado } from '../components/inventory-shared/mercados'
+import { dashboardKeys } from './use-dashboard'
+import { drogasKeys } from './use-drogas'
+import { estuchesKeys } from './use-estuches'
+import { etiquetasKeys } from './use-etiquetas'
+import { frascosKeys } from './use-frascos'
 import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -20,10 +25,12 @@ export interface Producto {
   presentacion: number | null
   estado: EstadoProducto
   mercadosHabilitados: Mercado[]
+  mercado: Mercado | null
   activo: boolean
   origen: 'MANUAL' | 'IMPORTACION' | 'MIGRACION'
   createdAt: string
   updatedAt: string
+  stockMinimo: number | null
 }
 
 export interface ProductoFormData {
@@ -33,6 +40,7 @@ export interface ProductoFormData {
   categoria: CategoriaProducto
   presentacion?: number | null
   mercadosHabilitados?: Mercado[]
+  stockMinimo?: number | null
 }
 
 export interface ImportDryRunResult {
@@ -97,7 +105,14 @@ export function useUpdateProducto() {
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & Partial<ProductoFormData>) =>
       api.patch<Producto>(`/productos/${id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: productosKeys.all })
+      void qc.invalidateQueries({ queryKey: dashboardKeys.all })
+      void qc.invalidateQueries({ queryKey: drogasKeys.all })
+      void qc.invalidateQueries({ queryKey: estuchesKeys.all })
+      void qc.invalidateQueries({ queryKey: etiquetasKeys.all })
+      void qc.invalidateQueries({ queryKey: frascosKeys.all })
+    },
   })
 }
 

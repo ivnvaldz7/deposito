@@ -1,0 +1,1015 @@
+{
+  "mode": "dry-run",
+  "fingerprint": "41d46be981c370f6d47fd95fc718545dcb98252185d549b4b519a496ca478fc2",
+  "safe": true,
+  "blockers": [],
+  "canonical": [
+    {
+      "id": "cmsrty86s0000dkojp0pgl3df",
+      "nombre": "AMANTINA 250 ML",
+      "sku": "LOG-A618F94928C19359",
+      "unidadesPorCaja": 15,
+      "lots": [
+        {
+          "id": "cmsrty8710001dkoji4tp43pr",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty8750002dkojnxw6rfvz",
+      "nombre": "AMANTINA 500 ML",
+      "sku": "LOG-7FA6FC4E2CA52E96",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty8780003dkoj7df14mo3",
+          "cajas": 0,
+          "sueltos": 0
+        },
+        {
+          "id": "cmsrty87a0004dkojmrmmnd59",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0,
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87b0005dkoji4ecnhfr",
+      "nombre": "AMANTINA PREMIUM 100 ML",
+      "sku": "LOG-776844167310A788",
+      "unidadesPorCaja": 30,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87c0006dkojwyi4ky38",
+      "nombre": "AMANTINA PREMIUM 250 ML",
+      "sku": "LOG-FA4315A1C5C45F08",
+      "unidadesPorCaja": 24,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87d0007dkojydd2zu7e",
+      "nombre": "AMANTINA PREMIUM 500 ML",
+      "sku": "LOG-6FB04B1E5FEF3FEF",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty87e0008dkoj82tow3mt",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87f0009dkojujdq96fe",
+      "nombre": "AMINOÁCIDOS 20 ML",
+      "sku": "LOG-582343246D628D85",
+      "unidadesPorCaja": 15,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87g000adkojs07fq7xj",
+      "nombre": "AMINOÁCIDOS 50 ML AVES",
+      "sku": "LOG-2EEEEC7B9F611AF6",
+      "unidadesPorCaja": 40,
+      "lots": [
+        {
+          "id": "cmsrty87h000bdkojbmgt4g1z",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87j000cdkojppjxmesu",
+      "nombre": "AMINOÁCIDOS 50 ML MASCOTA",
+      "sku": "LOG-10D28E61AA1B9F69",
+      "unidadesPorCaja": 40,
+      "lots": [
+        {
+          "id": "cmsrty87k000ddkoju68qjeuh",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87l000edkojsedkdhjq",
+      "nombre": "AMINOÁCIDOS 1 L",
+      "sku": "LOG-AE01D316D2D64635",
+      "unidadesPorCaja": 12,
+      "lots": [
+        {
+          "id": "cmsrty87m000fdkoj0aizw7gy",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87o000gdkojsk7mxqfa",
+      "nombre": "AMINOÁCIDOS 1 L AVES",
+      "sku": "LOG-9860110B82774981",
+      "unidadesPorCaja": 12,
+      "lots": [
+        {
+          "id": "cmsrty87p000hdkoj9ucl88on",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87q000idkoj1o8ikyj9",
+      "nombre": "AMINOÁCIDOS 5 L",
+      "sku": "LOG-DA8AE39D7555E08D",
+      "unidadesPorCaja": 4,
+      "lots": [
+        {
+          "id": "cmsrty87r000jdkoj2urhwpxb",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87s000kdkojzcu5qo79",
+      "nombre": "ANTITÉRMICO 1 L",
+      "sku": "LOG-C29594764C6AC122",
+      "unidadesPorCaja": 12,
+      "lots": [
+        {
+          "id": "cmsrty87t000ldkoj3kylb4z2",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87u000mdkojejpecqu1",
+      "nombre": "CALCITROVIT 500 ML",
+      "sku": "LOG-0F573E6306A0A4AC",
+      "unidadesPorCaja": 20,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87v000ndkojjdfay68b",
+      "nombre": "CETRI-AMON 1 L",
+      "sku": "LOG-F05E61097434E78F",
+      "unidadesPorCaja": 12,
+      "lots": [
+        {
+          "id": "cmsrty87w000odkojgaebn9ap",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87x000pdkojb2mkdr6r",
+      "nombre": "CETRI-AMON 5 L",
+      "sku": "LOG-DA6C292332DFAFD4",
+      "unidadesPorCaja": 4,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty87y000qdkojvzbxm5jz",
+      "nombre": "COMPLEJO B B12 B15 20 ML",
+      "sku": "LOG-9244EE54281CB382",
+      "unidadesPorCaja": 12,
+      "lots": [
+        {
+          "id": "cmsrty87z000rdkojewm0gpfv",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty880000sdkoj8tzb9cwk",
+      "nombre": "COMPLEJO B B12 B15 100 ML",
+      "sku": "LOG-91ADCFAA62751A02",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty881000tdkojopb2xy8w",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty882000udkojw3lgs2x4",
+      "nombre": "COMPLEJO B B12 B15 250 ML",
+      "sku": "LOG-FDA54C6A35491836",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty883000vdkojyo2j24nk",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty885000wdkojenpj4en7",
+      "nombre": "COMPLEJO B HIERRO CERDOS 25 ML",
+      "sku": "LOG-88A1AC67454FABFC",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty886000xdkojzmmy18i8",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty886000ydkojdv659w8z",
+      "nombre": "COMPLEJO B HIERRO CERDOS 100 ML",
+      "sku": "LOG-C6104CE935EA7543",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty887000zdkojnev04wqt",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty8880010dkojw4gvgh3p",
+      "nombre": "COMPLEJO B HIERRO EQUINOS 25 ML",
+      "sku": "LOG-940DED1CFB644E1C",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty8890011dkojvxmk5lh8",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88a0012dkojs6y3tdep",
+      "nombre": "COMPLEJO B HIERRO EQUINOS 100 ML",
+      "sku": "LOG-8ED7048653ED0AA6",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty88b0013dkojblzvvobc",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88c0014dkojvd6r5786",
+      "nombre": "ENERGIZANTE 25 ML",
+      "sku": "LOG-62B85306681FAFC5",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty88d0015dkojauswdrxf",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88e0016dkojciot0u9q",
+      "nombre": "ENERGIZANTE 100 ML",
+      "sku": "LOG-F3FBA937549BB2BC",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty88f0017dkoj8x231wgi",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88g0018dkojedarn2u3",
+      "nombre": "ENERGIZANTE 250 ML",
+      "sku": "LOG-E07A848866BEBE01",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty88h0019dkoj4ndsx4lj",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88i001adkojcbqfhku4",
+      "nombre": "ENERGIZANTE 250 ML VACAS",
+      "sku": "LOG-D7940EF93CB09EEA",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty88j001bdkoj0sunc9e9",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88l001cdkojngg8qbyj",
+      "nombre": "ENERGIZANTE 500 ML",
+      "sku": "LOG-D1A2128CB735815A",
+      "unidadesPorCaja": 20,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88m001ddkojz78kkhe5",
+      "nombre": "IVERSAN 500 ML",
+      "sku": "LOG-F04DD074D9C86166",
+      "unidadesPorCaja": 20,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88n001edkoj83qtg734",
+      "nombre": "JERINGA ATP 35 GR",
+      "sku": "LOG-CF8DB0C90F1253EC",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty88o001fdkojzhwow7nl",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88p001gdkojfyl4e7rp",
+      "nombre": "OLIVITASAN 25 ML",
+      "sku": "LOG-83B964D17D160DF3",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty88q001hdkojntgtb2wx",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88r001idkojrcp2jkt1",
+      "nombre": "OLIVITASAN 100 ML",
+      "sku": "LOG-380933F9665B6DAA",
+      "unidadesPorCaja": 40,
+      "lots": [
+        {
+          "id": "cmsrty88s001jdkojvyz5q88v",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88s001kdkojol8qy6ci",
+      "nombre": "OLIVITASAN 300 ML",
+      "sku": "LOG-87537B03F5287598",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty88t001ldkojynmxwklf",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88u001mdkojfhwcdf16",
+      "nombre": "OLIVITASAN 500 ML",
+      "sku": "LOG-A14ADEBEBB6D418E",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty88v001ndkojzjz02shg",
+          "cajas": 0,
+          "sueltos": 0
+        },
+        {
+          "id": "cmsrty88w001odkoj1bf04fau",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0,
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88x001pdkojmtjdka3l",
+      "nombre": "OLIVITASAN PLUS 50 ML",
+      "sku": "LOG-6A5B5A1581EA90E9",
+      "unidadesPorCaja": 40,
+      "lots": [
+        {
+          "id": "cmsrty88y001qdkoj1zaacckx",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty88z001rdkojumw5yrr3",
+      "nombre": "OLIVITASAN PLUS 250 ML",
+      "sku": "LOG-1644DA0E506B8995",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty891001sdkojk0nqp6fq",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty892001tdkojxellnedo",
+      "nombre": "OLIVITASAN PLUS 500 ML",
+      "sku": "LOG-4E8C2B0DD4F86F9A",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmsrty892001udkojp8xrd1pz",
+          "cajas": 0,
+          "sueltos": 0
+        },
+        {
+          "id": "cmsrty894001vdkojh91wcwi7",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0,
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty894001wdkoj3deujs0y",
+      "nombre": "SUPERCOMPLEJO B 1 L AVES",
+      "sku": "LOG-2029B7F0486806D2",
+      "unidadesPorCaja": 12,
+      "lots": [
+        {
+          "id": "cmsrty895001xdkojz85bcdut",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty896001ydkojnr0iq9zs",
+      "nombre": "SUPERCOMPLEJO B 1 L EQUINOS",
+      "sku": "LOG-30ECC7461539AD35",
+      "unidadesPorCaja": 12,
+      "lots": [],
+      "balances": [],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty897001zdkojwarqcbn4",
+      "nombre": "TILCOSAN 100 ML",
+      "sku": "LOG-1BC08F293C6C9060",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty8970020dkoj3x0wrx1v",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty8980021dkojtittdhw4",
+      "nombre": "TILCOSAN 250 ML",
+      "sku": "LOG-495CBEAB11D280B1",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty8990022dkojs611k593",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty89a0023dkojnrqzr10l",
+      "nombre": "VITAMINA B1 100 ML",
+      "sku": "LOG-4A6BCA14BF9F08B5",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty89b0024dkoj4vg3j352",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty89c0025dkojg6y0lkw7",
+      "nombre": "VITAMINA B12 50 ML",
+      "sku": "LOG-6E4E7B3C8A9CE644",
+      "unidadesPorCaja": 30,
+      "lots": [
+        {
+          "id": "cmsrty89d0026dkoji376ysp1",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    },
+    {
+      "id": "cmsrty89i0027dkojfa3zgmu3",
+      "nombre": "VITAMINA B12 100 ML",
+      "sku": "LOG-7F27294C820A1F76",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmsrty89k0028dkoj89zzhxb7",
+          "cajas": 0,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        0
+      ],
+      "reservations": 0,
+      "movements": 0,
+      "items": 0
+    }
+  ],
+  "deletableDemo": [
+    {
+      "id": "cmser1fzs0000ecojpdj23bzt",
+      "nombre": "DEMO Amantina A",
+      "sku": "DEMO-AMA-A",
+      "unidadesPorCaja": 20,
+      "lots": [
+        {
+          "id": "cmser1g0b0003ecojljqmnplm",
+          "cajas": 25,
+          "sueltos": 0
+        },
+        {
+          "id": "cmser1g010001ecojgd2vv2t8",
+          "cajas": 14,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        500,
+        280
+      ],
+      "reservations": 1,
+      "movements": 4,
+      "items": 3
+    },
+    {
+      "id": "cmser1g0d0005ecojhqvrgfva",
+      "nombre": "DEMO Amantina B",
+      "sku": "DEMO-AMA-B",
+      "unidadesPorCaja": 12,
+      "lots": [
+        {
+          "id": "cmser1g0e0006ecojlun23hxm",
+          "cajas": 15,
+          "sueltos": 0
+        },
+        {
+          "id": "cmser1g0i0008ecojdowjkzz6",
+          "cajas": 25,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        180,
+        300
+      ],
+      "reservations": 0,
+      "movements": 2,
+      "items": 0
+    },
+    {
+      "id": "cmser1g0k000aecojob19p8nm",
+      "nombre": "DEMO Aminoácidos C",
+      "sku": "DEMO-AMI-C",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmser1g0l000becoj47123r9k",
+          "cajas": 15,
+          "sueltos": 0
+        },
+        {
+          "id": "cmser1g0n000decojbx2in6d4",
+          "cajas": 25,
+          "sueltos": 0
+        }
+      ],
+      "balances": [
+        360,
+        600
+      ],
+      "reservations": 0,
+      "movements": 2,
+      "items": 0
+    },
+    {
+      "id": "cmser1g0q000fecojxjepxzfk",
+      "nombre": "DEMO Olivitasan D",
+      "sku": "DEMO-OLI-D",
+      "unidadesPorCaja": 30,
+      "lots": [
+        {
+          "id": "cmser1g0r000gecoj4ei40ht1",
+          "cajas": 11,
+          "sueltos": 3
+        },
+        {
+          "id": "cmser1g0u000iecojwtkn3asq",
+          "cajas": 19,
+          "sueltos": 23
+        }
+      ],
+      "balances": [
+        333,
+        593
+      ],
+      "reservations": 6,
+      "movements": 6,
+      "items": 11
+    },
+    {
+      "id": "cmser1g0w000kecojotcgxfo1",
+      "nombre": "DEMO Energizante E",
+      "sku": "DEMO-ENE-E",
+      "unidadesPorCaja": 4,
+      "lots": [
+        {
+          "id": "cmser1g0z000lecoji9050srd",
+          "cajas": 0,
+          "sueltos": 1
+        }
+      ],
+      "balances": [
+        1
+      ],
+      "reservations": 1,
+      "movements": 2,
+      "items": 3
+    },
+    {
+      "id": "cmser1g12000necojafssyfm5",
+      "nombre": "DEMO Complejo F",
+      "sku": "DEMO-COM-F",
+      "unidadesPorCaja": 40,
+      "lots": [
+        {
+          "id": "cmser1g13000oecojt2onjfp2",
+          "cajas": 0,
+          "sueltos": 2
+        }
+      ],
+      "balances": [
+        2
+      ],
+      "reservations": 1,
+      "movements": 2,
+      "items": 3
+    },
+    {
+      "id": "cmser1g16000qecoj1huiyv2q",
+      "nombre": "DEMO Producto G",
+      "sku": "DEMO-PRO-G",
+      "unidadesPorCaja": 15,
+      "lots": [
+        {
+          "id": "cmser1g18000recoj1sfbw0fr",
+          "cajas": 1,
+          "sueltos": 2
+        }
+      ],
+      "balances": [
+        17
+      ],
+      "reservations": 0,
+      "movements": 1,
+      "items": 0
+    },
+    {
+      "id": "cmser1g1j000xecojbuhckapl",
+      "nombre": "DEMO Producto J",
+      "sku": "DEMO-PRO-J",
+      "unidadesPorCaja": 24,
+      "lots": [
+        {
+          "id": "cmser1g1k000yecojy17uxvvf",
+          "cajas": 2,
+          "sueltos": 23
+        },
+        {
+          "id": "cmser1g1n0010ecoj852d1332",
+          "cajas": 4,
+          "sueltos": 12
+        }
+      ],
+      "balances": [
+        71,
+        108
+      ],
+      "reservations": 0,
+      "movements": 2,
+      "items": 0
+    },
+    {
+      "id": "cmser1g1p0012ecoja74xyomy",
+      "nombre": "DEMO Producto K",
+      "sku": "DEMO-PRO-K",
+      "unidadesPorCaja": 4,
+      "lots": [
+        {
+          "id": "cmser1g1r0013ecoj2ya2bfcq",
+          "cajas": 2,
+          "sueltos": 3
+        },
+        {
+          "id": "cmser1g1u0015ecoj8inl5pcz",
+          "cajas": 4,
+          "sueltos": 2
+        }
+      ],
+      "balances": [
+        11,
+        18
+      ],
+      "reservations": 0,
+      "movements": 2,
+      "items": 0
+    },
+    {
+      "id": "cmser1g1w0017ecoj228gx7v6",
+      "nombre": "DEMO Producto L",
+      "sku": "DEMO-PRO-L",
+      "unidadesPorCaja": 30,
+      "lots": [
+        {
+          "id": "cmser1g1x0018ecojb786oy59",
+          "cajas": 2,
+          "sueltos": 29
+        },
+        {
+          "id": "cmser1g1z001aecojly667652",
+          "cajas": 4,
+          "sueltos": 15
+        }
+      ],
+      "balances": [
+        89,
+        135
+      ],
+      "reservations": 0,
+      "movements": 2,
+      "items": 0
+    }
+  ],
+  "retainedDemo": [],
+  "mixedOrderIds": []
+}

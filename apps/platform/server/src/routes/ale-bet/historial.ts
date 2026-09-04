@@ -121,7 +121,7 @@ async function loadHistorialPedidos(where: Prisma.PedidoWhereInput): Promise<His
   const userIds = new Set<string>()
 
   for (const pedido of pedidos) {
-    userIds.add(pedido.vendedorId)
+    if (pedido.vendedorId) userIds.add(pedido.vendedorId)
     if (pedido.armadorId) {
       userIds.add(pedido.armadorId)
     }
@@ -135,7 +135,7 @@ async function loadHistorialPedidos(where: Prisma.PedidoWhereInput): Promise<His
     estado: pedido.estado as EstadoPedido,
     createdAt: pedido.createdAt,
     clienteNombre: pedido.cliente.nombre,
-    vendedorNombre: userMap.get(pedido.vendedorId) ?? 'Sin vendedor',
+    vendedorNombre: pedido.origen === 'AUTOMATION' ? 'Automation' : userMap.get(pedido.vendedorId ?? '') ?? 'Sin vendedor',
     armadorNombre: pedido.armadorId ? (userMap.get(pedido.armadorId) ?? 'Sin armador') : null,
     items: pedido.items.map((item) => ({
       productoNombre: item.producto.nombre,

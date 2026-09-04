@@ -51,6 +51,7 @@ const formSchema = z.object({
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
   presentacion: z.string().optional().or(z.literal('')),
   mercadosHabilitados: z.array(mercadoSchema).optional(),
+  stockMinimo: z.string().refine((value) => value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0), 'Debe ser entero no negativo').optional(),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -66,6 +67,7 @@ function normalizeFormData(values: FormValues): ProductoFormData {
     nombreCompleto: values.nombreBase.trim().toUpperCase(),
     categoria: values.categoria,
     codigo: values.codigo?.trim().toUpperCase() || undefined,
+    stockMinimo: values.stockMinimo === '' || values.stockMinimo === undefined ? null : Number(values.stockMinimo),
   }
 
   if (requiresPresentacion) {
@@ -116,7 +118,7 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   const { register, handleSubmit, control, setValue, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { nombreBase: '', codigo: '', categoria: 'droga', presentacion: '', mercadosHabilitados: [] },
+    defaultValues: { nombreBase: '', codigo: '', categoria: 'droga', presentacion: '', mercadosHabilitados: [], stockMinimo: '' },
   })
 
   const categoria = useWatch({ control, name: 'categoria' })
@@ -190,6 +192,7 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <input id="create-nombre" {...register('nombreBase')} type="text" placeholder="Ej: AMANTINA" className="input-field" autoFocus />
             {errors.nombreBase && <p className="field-error">{errors.nombreBase.message}</p>}
           </div>
+          <div className="space-y-1"><label htmlFor="create-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : ''}</label><input id="create-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
 
           {/* C. Presentación (conditional) */}
           {requiresPresentacion && (
@@ -280,6 +283,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
       categoria: producto.categoria,
       presentacion: producto.presentacion?.toString() ?? '',
       mercadosHabilitados: producto.mercadosHabilitados ?? [],
+      stockMinimo: producto.stockMinimo == null ? '' : String(producto.stockMinimo),
     },
   })
 
@@ -316,6 +320,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
       if (canEditCategoria) payload.categoria = values.categoria
       if (requiresPresentacion) payload.presentacion = values.presentacion ? Number(values.presentacion) : null
       if (canEditMercados && requiresMercados) payload.mercadosHabilitados = values.mercadosHabilitados ?? []
+      payload.stockMinimo = values.stockMinimo === '' ? null : Number(values.stockMinimo)
 
       await updateMutation.mutateAsync({ id: producto.id, ...payload })
       toast.success('Producto actualizado.')
@@ -369,6 +374,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
               <input id="edit-presentacion" {...register('presentacion')} type="number" min="1" className="input-field" />
             </div>
           )}
+          <div className="space-y-1"><label htmlFor="edit-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : ''}</label><input id="edit-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
 
           {/* D. Mercados (conditional) */}
           {requiresMercados && (
@@ -842,7 +848,7 @@ function ImportDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
 export default function ProductosPage() {
   const { user } = useAuthStore()
   const { can } = usePermission()
-  const isEncargado = can('deposito', 'productos_catalogo.manage')
+  const canManage = can('deposito', 'productos_catalogo.manage')
 
   const [searchQuery, setSearchQuery] = useState('')
   const [showCreate, setShowCreate] = useState(false)
@@ -1003,7 +1009,7 @@ export default function ProductosPage() {
             <option value="INACTIVO">Inactivo</option>
           </select>
 
-          {isEncargado && (
+          {canManage && (
             <>
               <button type="button" onClick={() => setShowImport(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                 <Upload size={14} />
@@ -1041,9 +1047,10 @@ export default function ProductosPage() {
                   <TableHead>Nombre</TableHead>
                   <TableHead>Código</TableHead>
                   <TableHead>Categoría</TableHead>
-                  <TableHead>Presentación</TableHead>
+          <TableHead>Presentación</TableHead>
+                  <TableHead>Stock mínimo</TableHead>
                   <TableHead>Mercados</TableHead>
-                  {isEncargado && <TableHead className="text-right">Acciones</TableHead>}
+                  {canManage && <TableHead className="text-right">Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1054,17 +1061,18 @@ export default function ProductosPage() {
                       <span className="font-body text-sm font-medium">{p.nombreBase}</span>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {p.codigo ?? <span className="italic text-on-surface-variant">Código pendiente</span>}
+                      {p.categoria === 'droga' ? <span title="El código se registra con cada ingreso/lote" className="italic text-on-surface-variant">Por ingreso</span> : (p.codigo ?? <span className="italic text-on-surface-variant">Código pendiente</span>)}
                     </TableCell>
                     <TableCell>
                       <span className="font-body text-sm">{CATEGORIA_LABELS[p.categoria]}</span>
                     </TableCell>
                     <TableCell>
                       {p.presentacion != null
-                        ? <span className="text-sm">{p.presentacion}</span>
+                        ? <span className="text-sm">{p.presentacion}{p.categoria === 'frasco' ? ' ml' : ''}</span>
                         : <span className="italic text-on-surface-variant">—</span>
                       }
                     </TableCell>
+                    <TableCell className="text-sm">{p.stockMinimo == null ? <span className="rounded-full bg-surface-variant px-2 py-1 text-on-surface-variant">Sin configurar</span> : <span>{p.stockMinimo}{p.categoria === 'frasco' ? ' cajas' : ''}</span>}</TableCell>
                     <TableCell>
                       {p.mercadosHabilitados.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -1076,7 +1084,7 @@ export default function ProductosPage() {
                         <span className="italic text-on-surface-variant">—</span>
                       )}
                     </TableCell>
-                    {isEncargado && (
+                    {canManage && (
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
                           {/* State actions */}

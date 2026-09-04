@@ -3,6 +3,7 @@ import { apiClient, type ApiRequestOptions } from '@/lib/api-client'
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type PedidoEstado = 'BORRADOR' | 'APROBADO' | 'EN_ARMADO' | 'PREPARADO' | 'DESPACHADO' | 'CANCELADO'
+export type PedidoOrigen = 'MANUAL' | 'AUTOMATION'
 export type EstadoCliente = 'PENDIENTE_CLIENTE' | 'VALIDADO'
 export type EstadoRemito = 'VIGENTE' | 'INVALIDADO'
 export type EstadoReserva = 'ACTIVA' | 'LIBERADA' | 'CONSUMIDA'
@@ -11,7 +12,7 @@ export interface Producto {
   id: string
   nombre: string
   sku: string
-  stockMinimo: number
+  stockMinimo: number | null
   unidadesPorCaja: number
   activo: boolean
   stock: number
@@ -70,6 +71,20 @@ export interface Cliente {
   updatedAt: string
 }
 
+export interface AutomationAlias {
+  id: string
+  alias: string
+  aliasNormalized: string
+  createdAt: string
+  producto?: { id: string; nombre: string }
+  cliente?: { id: string; nombre: string }
+}
+
+export interface AutomationAliases {
+  productAliases: AutomationAlias[]
+  clientAliases: AutomationAlias[]
+}
+
 export interface ReservaStock {
   id: string
   pedidoId: string
@@ -107,8 +122,9 @@ export interface Pedido {
   id: string
   numero: string
   clienteId: string
-  vendedorId: string
+  vendedorId: string | null
   armadorId: string | null
+  origen: PedidoOrigen
   estado: PedidoEstado
   version: number
   cancelacionSolicitadaAt: string | null
@@ -173,9 +189,16 @@ export interface MovimientoStock {
   id: string
   productoId: string
   cantidad: number
-  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'AJUSTE' | 'TRANSFERENCIA_INTERNA'
+  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'AJUSTE' | 'SALDO_APERTURA' | 'TRANSFERENCIA_INTERNA'
   referencia: string | null
   usuarioId: string
+  loteId?: string | null
+  origenUbicacionId?: string | null
+  destinoUbicacionId?: string | null
+  origenUbicacion?: { codigo: string; nombre: string } | null
+  destinoUbicacion?: { codigo: string; nombre: string } | null
+  motivo?: string | null
+  fechaEfectiva?: string | null
   createdAt: string
 }
 
@@ -201,6 +224,7 @@ export interface DashboardPedidoReciente {
   numero: string
   /** Server still returns legacy states here; keep tolerant. */
   estado: string
+  origen?: PedidoOrigen
   clienteNombre: string
   vendedorNombre: string
   armadorNombre: string | null
@@ -211,6 +235,7 @@ export interface DashboardPedidoReciente {
 export interface DashboardOverview {
   stockCritico: number
   pedidosHoy: number
+  pendientesRemito: number
   enArmado: number
   pendientesTomar: number
   preparados: number
@@ -375,7 +400,7 @@ export const aleBetApi = {
     search: (q: string) => apiClient.get<ProductoSearchResult[]>(`${BASE}/productos/search?q=${encodeURIComponent(q)}`),
     create: (data: { nombre: string; sku: string; stockMinimo?: number; unidadesPorCaja: number }) =>
       apiClient.post<Producto>(`${BASE}/productos`, data),
-    update: (id: string, data: { nombre?: string; stockMinimo?: number; activo?: boolean; unidadesPorCaja?: number }) =>
+    update: (id: string, data: { nombre?: string; stockMinimo?: number | null; activo?: boolean; unidadesPorCaja?: number }) =>
       apiClient.put<Producto>(`${BASE}/productos/${id}`, data),
     delete: (id: string) => apiClient.del<void>(`${BASE}/productos/${id}`),
     lotes: {
@@ -407,10 +432,11 @@ export const aleBetApi = {
 
   // Pedidos
   pedidos: {
-    list: (params?: { estado?: PedidoEstado; vendedorId?: string }) => {
+    list: (params?: { estado?: PedidoEstado; vendedorId?: string; bandeja?: 'FACTURACION' }) => {
       const searchParams = new URLSearchParams()
       if (params?.estado) searchParams.set('estado', params.estado)
       if (params?.vendedorId) searchParams.set('vendedorId', params.vendedorId)
+      if (params?.bandeja) searchParams.set('bandeja', params.bandeja)
       const qs = searchParams.toString()
       return apiClient.get<Pedido[]>(`${BASE}/pedidos${qs ? `?${qs}` : ''}`)
     },
@@ -445,7 +471,10 @@ export const aleBetApi = {
     updateDraft: (id: string, data: any) => 
       apiClient.put<any>(`${BASE}/automation/drafts/${id}`, data),
     confirmDraft: (id: string, data: { expectedVersion: number }, options?: MutationOptions) => 
-      apiClient.post<any>(`${BASE}/automation/drafts/${id}/confirm`, data, undefined, mutationOptions(options))
+      apiClient.post<any>(`${BASE}/automation/drafts/${id}/confirm`, data, undefined, mutationOptions(options)),
+    getAliases: () => apiClient.get<AutomationAliases>(`${BASE}/automation/aliases`),
+    deleteProductAlias: (id: string) => apiClient.del<void>(`${BASE}/automation/product-aliases/${id}`),
+    deleteClientAlias: (id: string) => apiClient.del<void>(`${BASE}/automation/client-aliases/${id}`),
   },
 
   // Transportistas
@@ -472,6 +501,8 @@ export const aleBetApi = {
     movimientos: () => apiClient.get<MovimientoStock[]>(`${BASE}/stock/movimientos`),
     transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number }, options?: MutationOptions) =>
       apiClient.post<{ movimientoId: string }>(`${BASE}/stock/transferencias`, data, undefined, mutationOptions(options)),
+    apertura: (productoId: string, loteId: string, data: { ubicacionId: string; cantidadFinal: number; fechaEfectiva?: string }, options?: MutationOptions) =>
+      apiClient.patch<{ movimientoId: string; tipo: 'SALDO_APERTURA'; anterior: number; nuevo: number; delta: number }>(`${BASE}/productos/${productoId}/stock/lotes/${loteId}/apertura`, data, undefined, mutationOptions(options)),
   },
 
   // Historial (legacy)
@@ -509,4 +540,3 @@ export const aleBetApi = {
 export async function getHistorialLotes(productoId: string): Promise<LoteHistorial[]> {
   return apiClient.get<LoteHistorial[]>(`${BASE}/productos/${productoId}/lotes/historial`)
 }
-

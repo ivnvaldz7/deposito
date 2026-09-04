@@ -18,7 +18,8 @@ describe('InlineNumberEditor', () => {
     expect(onSave).toHaveBeenCalledWith(34)
     expect(input).toBeDisabled()
     resolveSave?.()
-    await waitFor(() => expect(input).not.toBeDisabled())
+    await waitFor(() => expect(screen.queryByRole('spinbutton', { name: 'Cajas' })).not.toBeInTheDocument())
+    expect(screen.getByText('20')).toBeInTheDocument()
   })
 
   it('cancels with Escape without saving', async () => {
@@ -31,6 +32,22 @@ describe('InlineNumberEditor', () => {
 
     expect(screen.queryByRole('spinbutton', { name: 'cantidad' })).not.toBeInTheDocument()
     expect(onSave).not.toHaveBeenCalled()
+  })
+
+  it('permite borrar el valor y escribir sin anteponer el cero original', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined)
+    const user = userEvent.setup()
+    render(<InlineNumberEditor value={0} label="cantidad" onSave={onSave} />)
+
+    await user.click(screen.getByRole('button', { name: 'Editar cantidad' }))
+    const input = screen.getByRole('spinbutton', { name: 'cantidad' })
+    await user.clear(input)
+    expect(input).toHaveValue(null)
+    await user.type(input, '200')
+    expect(input).toHaveValue(200)
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    expect(onSave).toHaveBeenCalledWith(200)
   })
 
   it('exposes accessible 36px edit, save and cancel hit targets', async () => {

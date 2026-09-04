@@ -6,11 +6,10 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { can } from '@/lib/permissions'
 import { ApiError } from '../lib/api'
 import { useEstuches, useCreateEstuche, useUpdateEstuche, useDeleteEstuche } from '../queries/use-estuches'
 import { toast } from '../lib/toast'
-import { fetchCatalogoProductos } from '../lib/catalogo-productos'
+import { fetchCatalogoProductos, type CatalogoProducto } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
 import { MercadoChip } from '../components/inventory-shared/mercado-chip'
@@ -18,6 +17,7 @@ import { MercadoFilter } from '../components/inventory-shared/mercado-filter'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { MERCADOS, type Mercado } from '../components/inventory-shared/mercados'
 import { StockChip } from '../components/inventory-shared/stock-chip'
+import { getStockStatus } from '../lib/stock-status'
 import {
   Table,
   TableHeader,
@@ -35,6 +35,7 @@ import {
 } from '../components/ui/Dialog'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
+import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
 
 import type { Estuche } from '../queries/use-estuches'
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -50,8 +51,6 @@ function normalizeProducto(value: string): string {
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const STOCK_BAJO_THRESHOLD = 50
 
 // ─── Agregar estuche modal ────────────────────────────────────────────────────
 
@@ -99,7 +98,7 @@ function AgregarEstucheModal({
       const estuche = await createMutation.mutateAsync({
         articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad),
       })
-      if (estuche.cantidad < STOCK_BAJO_THRESHOLD) {
+      if (getStockStatus(estuche.cantidad, estuche.stockMinimo) === 'bajo') {
         toast.warning(`"${estuche.articulo}" quedó con stock bajo (${estuche.cantidad}).`)
       } else {
         toast.success(`Estuche "${estuche.articulo}" agregado.`)
@@ -255,7 +254,7 @@ function EditarEstucheModal({
         mercado: data.mercado,
         cantidad: Number(data.cantidad),
       })
-      if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
+      if (getStockStatus(updated.cantidad, estuche.stockMinimo) === 'bajo') {
         toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
       } else {
         toast.info(`Estuche "${updated.articulo}" actualizado.`)
@@ -332,11 +331,16 @@ function CantidadCell({ estuche }: { estuche: Estuche }) {
       value={estuche.cantidad}
       label="cantidad"
       onSave={async (nextValue) => {
-        const updated = await updateMutation.mutateAsync({ id: estuche.id, cantidad: nextValue })
-        if (updated.cantidad < STOCK_BAJO_THRESHOLD) {
-          toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
-        } else {
-          toast.info(`Stock de "${updated.articulo}" actualizado.`)
+        try {
+          const updated = await updateMutation.mutateAsync({ id: estuche.id, cantidad: nextValue })
+          if (getStockStatus(updated.cantidad, estuche.stockMinimo) === 'bajo') {
+            toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+          } else {
+            toast.info(`Stock de "${updated.articulo}" actualizado.`)
+          }
+        } catch (err) {
+          toast.error(err instanceof ApiError ? err.message : 'Error al guardar')
+          throw err
         }
       }}
     />
@@ -344,6 +348,8 @@ function CantidadCell({ estuche }: { estuche: Estuche }) {
 }
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
+
+import { can } from '@/lib/permissions'
 
 export default function EstuchesPage() {
   const user = useAuthStore((s) => s.user)
@@ -355,13 +361,17 @@ export default function EstuchesPage() {
   const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>(
     (searchParams.get('mercado') as Mercado | 'todos') ?? 'todos'
   )
+  const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
   const [editingEstuche, setEditingEstuche] = useState<Estuche | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
+  const [catalogProducts, setCatalogProducts] = useState<CatalogoProducto[]>([])
   const [agregarOpen, setAgregarOpen] = useState(false)
+  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
     fetchCatalogoProductos('estuche')
       .then((productos) => {
+        setCatalogProducts(productos)
         setCatalogMap(
           Object.fromEntries(productos.map((producto) => [producto.id, producto.nombreCompleto]))
         )
@@ -401,15 +411,19 @@ export default function EstuchesPage() {
           || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
       : undefined
     if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
-    const byMercado =
+    let byMercado =
       selected || mercadoFiltro === 'todos'
         ? sortedEstuches
         : sortedEstuches.filter((e) => e.mercado === mercadoFiltro)
 
+    if (stockBajoFiltro) {
+      byMercado = byMercado.filter(e => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo')
+    }
+
     if (!productoFiltro || selected) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((estuche) => normalizeProducto(getDisplayName(estuche)) === target)
-  }, [sortedEstuches, mercadoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
+  }, [sortedEstuches, mercadoFiltro, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
 
   async function handleDelete(id: string) {
     try {
@@ -429,7 +443,7 @@ export default function EstuchesPage() {
     return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar los estuches'} />
   }
 
-  const stockBajoCount = estuches.filter((e) => e.cantidad < STOCK_BAJO_THRESHOLD).length
+  const stockBajoCount = estuches.filter((e) => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo').length
   const countsByMercado = MERCADOS.reduce<Record<Mercado, number>>((acc, mercado) => {
     acc[mercado.value] = allEstuches.filter((e) => e.mercado === mercado.value).length
     return acc
@@ -441,8 +455,12 @@ export default function EstuchesPage() {
         title="Estuches" description="Inventario por mercado y alertas de stock."
         stats={[
           { label: 'artículos', value: estuches.length },
-          { label: 'mercados', value: MERCADOS.filter((mercado) => countsByMercado[mercado.value] > 0).length },
-          { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
+          { 
+            label: stockBajoFiltro ? 'stock bajo (activo)' : 'stock bajo', 
+            value: stockBajoCount, 
+            warning: stockBajoCount > 0 || stockBajoFiltro,
+            onClick: () => setStockBajoFiltro((prev) => !prev)
+          },
         ]}
         primaryAction={
           canManage
@@ -453,6 +471,7 @@ export default function EstuchesPage() {
               }
             : undefined
         }
+        secondaryActions={canManage ? [{ label: 'Carga inicial', onClick: () => setAperturaOpen(true) }] : undefined}
       >
         <MercadoFilter
           mercadoActivo={mercadoFiltro}
@@ -468,6 +487,7 @@ export default function EstuchesPage() {
           onOpenChange={setAgregarOpen}
         />
       ) : null}
+      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="estuche" items={catalogProducts.length > 0 ? catalogProducts.flatMap((p) => (p.mercadosHabilitados ?? (p.mercado ? [p.mercado] : [])).map((mercado) => ({ id: `${p.id}:${mercado}`, productoId: p.id, label: p.nombreCompleto, mercado }))) : allEstuches.map((item) => ({ id: item.id, productoId: item.productoId ?? item.id, label: getDisplayName(item), mercado: item.mercado }))} />}
 
       {editingEstuche && (
         <EditarEstucheModal
@@ -506,7 +526,7 @@ export default function EstuchesPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <StockChip cantidad={estuche.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
+                      <StockChip cantidad={estuche.cantidad} stockMinimo={estuche.stockMinimo} />
                     </TableCell>
                     {canManage && (
                       <TableCell className="text-right">
@@ -536,7 +556,7 @@ export default function EstuchesPage() {
                     <span className="font-body text-on-surface-variant text-xs tabular-nums">
                       {estuche.cantidad} uds
                     </span>
-                    <StockChip cantidad={estuche.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
+                    <StockChip cantidad={estuche.cantidad} stockMinimo={estuche.stockMinimo} />
                   </div>
                 </div>
                 {canManage && (

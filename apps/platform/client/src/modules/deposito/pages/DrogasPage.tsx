@@ -1,12 +1,18 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { CalendarClock, Search, Pill, FlaskConical } from 'lucide-react'
+import {
+  Search, Pill, FlaskConical, Syringe
+} from 'lucide-react'
 import { ApiError } from '../lib/api'
 import { useDrogas, type DrogaRecord } from '../queries/use-drogas'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
-import { StatusBadge } from '@/components/ui/StatusBadge'
 import { useProductFocus } from '../hooks/use-product-focus'
+import { DrugStatus, getDrugLotStatus, getDrugStatusDescription } from '../lib/drug-status'
+import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
+import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
+import { StockChip } from '../components/inventory-shared/stock-chip'
 import { compareProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -18,14 +24,6 @@ interface DrogaGroup {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-const STOCK_BAJO_THRESHOLD = 10
-const VENCE_PRONTO_DIAS = 30
-const VENCE_MEDIO_DIAS = 60
-
-function diasHastaVencimiento(vencimiento: string): number {
-  return Math.floor((new Date(vencimiento).getTime() - Date.now()) / 86_400_000)
-}
 
 function groupDrogas(records: DrogaRecord[], getDisplayName: (record: DrogaRecord) => string): DrogaGroup[] {
   const map = new Map<string, DrogaRecord[]>()
@@ -53,43 +51,52 @@ function normalizeProducto(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
 
-function getStatusVariant(cantidad: number): 'optimal' | 'low' | 'critical' {
-  if (cantidad < 5) return 'critical'
-  if (cantidad < STOCK_BAJO_THRESHOLD) return 'low'
-  return 'optimal'
-}
+// ─── Status Badge ─────────────────────────────────────────────────────────────
 
-// ─── Vencimiento chip ─────────────────────────────────────────────────────────
-
-function VencimientoChip({ vencimiento }: { vencimiento: string | null }) {
-  if (!vencimiento) return null
-  const dias = diasHastaVencimiento(vencimiento)
-  const fecha = new Date(vencimiento).toLocaleDateString('es-AR', {
-    day: '2-digit', month: '2-digit', year: '2-digit',
-  })
-
-  let variant: 'optimal' | 'warning' | 'error' = 'optimal'
-  if (dias < 0 || dias <= VENCE_PRONTO_DIAS) {
-    variant = 'error'
-  } else if (dias <= VENCE_MEDIO_DIAS) {
-    variant = 'warning'
+function DrugStatusBadge({ status }: { status: DrugStatus }) {
+  const styles = {
+    optimo: 'bg-primary-container/10 text-primary',
+    en_seguimiento: 'bg-primary-container/5 text-primary/70',
+    reanalizar_pronto: 'bg-yellow-500/10 text-yellow-600',
+    reanalisis_proximo: 'bg-yellow-500/20 text-yellow-700',
+    reanalisis_requerido: 'bg-amber-500/10 text-amber-600',
+    vencido: 'bg-error-container/10 text-error',
+    sin_informacion: 'bg-surface-variant/50 text-on-surface-variant'
+  }
+  
+  const labels = {
+    optimo: 'Óptimo',
+    en_seguimiento: 'En seguimiento',
+    reanalizar_pronto: 'Reanalizar pronto',
+    reanalisis_proximo: 'Reanálisis próximo',
+    reanalisis_requerido: 'Reanálisis requerido',
+    vencido: 'Vencido',
+    sin_informacion: 'Sin información',
   }
 
   return (
-    <span
-      className={`inline-flex items-center gap-1 font-body text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${
-        variant === 'error'
-          ? 'bg-error-container/10 text-error'
-          : variant === 'warning'
-          ? 'bg-tertiary-container/10 text-tertiary'
-          : 'bg-primary-container/10 text-primary'
-      }`}
-      title={dias < 0 ? 'VENCIDO' : `Vence en ${dias} días`}
-    >
-      <CalendarClock size={10} strokeWidth={1.5} />
-      {fecha}
+    <span className={`inline-flex items-center gap-1.5 font-body text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${styles[status]}`}>
+      <span className="w-1.5 h-1.5 rounded-full bg-current" />
+      {labels[status]}
     </span>
   )
+}
+
+function formatDate(isoDate: string | null | undefined): string {
+  if (!isoDate) return '-'
+  return new Date(isoDate).toLocaleDateString('es-AR', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  })
+}
+
+function getDaysRemaining(isoDate: string | null | undefined): string {
+  if (!isoDate) return '-'
+  const target = new Date(isoDate)
+  target.setHours(23, 59, 59, 999)
+  const diff = Math.ceil((target.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  if (diff < 0) return 'Superada'
+  if (diff === 0) return 'Hoy'
+  return `Faltan ${diff} días`
 }
 
 // ─── Drug category icons ─────────────────────────────────────────────────────
@@ -109,6 +116,10 @@ export default function DrogasPage() {
   const { data: records = [], isLoading, error } = useDrogas()
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [searchQuery, setSearchQuery] = useState('')
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
+  const user = useAuthStore((s) => s.user)
+  const canManage = can(user, 'deposito', 'ingresos.create')
+  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
     fetchCatalogoProductos('droga')
@@ -132,6 +143,7 @@ export default function DrogasPage() {
   const productoIdFiltro = searchParams.get('productoId')
   const hasFocusSignal = Boolean(searchParams.get('focus'))
   const focus = useProductFocus(records.map((record) => ({ id: record.id, productoId: record.productoId, name: record.productoId ? (catalogMap[record.productoId] ?? record.nombre) : record.nombre })))
+  
   const filteredGroups = useMemo(() => {
     const selectedRecord = hasFocusSignal
       ? records.find((record) =>
@@ -160,6 +172,10 @@ export default function DrogasPage() {
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar el inventario'} />
 
+  const toggleRow = (id: string) => {
+    setExpandedRowId((prev) => (prev === id ? null : id))
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -172,7 +188,7 @@ export default function DrogasPage() {
             {groups.length} activas
           </span>
         </div>
-        <div className="relative group">
+        <div className="flex items-center gap-3"><button type="button" className="btn-secondary" onClick={() => setAperturaOpen(true)} disabled={!canManage}>Carga inicial</button><div className="relative group">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" />
           <input
             type="text"
@@ -181,8 +197,9 @@ export default function DrogasPage() {
             placeholder="Buscar por nombre o lote..."
             className="w-64 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
           />
-        </div>
+        </div></div>
       </header>
+      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="droga" items={Object.entries(catalogMap).map(([id, label]) => ({ id, label }))} />}
 
       {filteredGroups.length === 0 ? (
         searchQuery ? (
@@ -211,35 +228,85 @@ export default function DrogasPage() {
               {filteredGroups.map((group, gi) =>
                 group.lotes.map((lote, li) => {
                   const idx = gi + li
+                  const rowId = lote.id ? `lote:${lote.id}` : `droga:${lote.productoId || group.nombre}`
+                  const isExpanded = expandedRowId === rowId
+                  // We simulate reanalisis as null because the backend doesn't provide it yet
+                  // but we pass updatedAt as ingreso.
+                  const status = getDrugLotStatus({
+                    lote: lote.lote,
+                    vencimiento: lote.vencimiento,
+                    ingreso: lote.updatedAt,
+                    reanalisis: null,
+                  })
+                  
                   return (
-                    <div
-                      key={lote.id}
-                      {...focus.targetProps(lote.id)}
-                      style={{ animationDelay: `${idx * 0.03}s` }}
-                      className={`grid grid-cols-12 gap-4 px-4 py-3 items-center transition-all duration-200 hover:bg-surface-variant/30 animate-fade-up focus:outline-none ${focus.isFocused(lote.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50' : ''} ${
-                        idx > 0 ? 'border-t border-outline-variant/20' : ''
-                      }`}
-                    >
-                      <div className="col-span-4 flex items-center gap-2 min-w-0">
-                        <DrugIcon nombre={group.nombre} />
-                        <span className="font-body text-sm font-medium text-on-surface truncate">
-                          {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
-                        </span>
+                    <div key={rowId} className="flex flex-col border-b border-outline-variant/20 last:border-b-0">
+                      <div
+                        {...focus.targetProps(rowId)}
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={isExpanded}
+                        onClick={() => toggleRow(rowId)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            toggleRow(rowId)
+                          }
+                        }}
+                        style={{ animationDelay: `${idx * 0.03}s` }}
+                        className={`grid grid-cols-12 gap-4 px-4 py-3 items-center transition-all duration-200 hover:bg-surface-variant/30 animate-fade-up focus:outline-none cursor-pointer ${
+                          focus.isFocused(rowId) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50' : ''
+                        } ${isExpanded ? 'bg-surface-variant/20' : ''}`}
+                      >
+                        <div className="col-span-4 flex items-center gap-2 min-w-0">
+                          <DrugIcon nombre={group.nombre} />
+                          <span className="font-body text-sm font-medium text-on-surface truncate">
+                            {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
+                          </span>
+                        </div>
+                        <div className="col-span-3 text-sm text-on-surface">
+                          {lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>}
+                        </div>
+                        <div className="col-span-2 text-right text-sm text-on-surface font-medium tabular-nums">
+                          {lote.cantidad}
+                        </div>
+                        <div className="col-span-3 flex items-center justify-center">
+                          <div className="flex items-center gap-2">
+                            <StockChip cantidad={lote.cantidad} stockMinimo={lote.stockMinimo} />
+                            <DrugStatusBadge status={status} />
+                          </div>
+                        </div>
                       </div>
-                      <div className="col-span-3 text-sm text-on-surface">
-                        {lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>}
-                      </div>
-                      <div className="col-span-2 text-right text-sm text-on-surface font-medium tabular-nums">
-                        {lote.cantidad}
-                      </div>
-                      <div className="col-span-3 flex items-center justify-center gap-2">
-                        <StatusBadge
-                          variant={getStatusVariant(lote.cantidad)}
-                          label={getStatusVariant(lote.cantidad) === 'optimal' ? 'Optimo' : getStatusVariant(lote.cantidad) === 'low' ? 'Bajo' : 'Crítico'}
-                          showDot={getStatusVariant(lote.cantidad) !== 'critical'}
-                        />
-                        <VencimientoChip vencimiento={lote.vencimiento} />
-                      </div>
+                      
+                      {isExpanded && (
+                        <div className="bg-surface-container-high border-t border-outline-variant/20 p-4 font-body text-sm text-on-surface transition-all animate-fade-in">
+                          <div className="grid grid-cols-4 gap-6">
+                            <div>
+                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Fecha de ingreso</p>
+                              <p className="font-medium tabular-nums">{formatDate(lote.updatedAt)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Reanálisis</p>
+                              <p className="font-medium tabular-nums">-</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Vencimiento</p>
+                              <p className="font-medium tabular-nums">{formatDate(lote.vencimiento)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Próximo control</p>
+                              <p className="font-medium tabular-nums">{status === 'sin_informacion' || status === 'vencido' ? '-' : getDaysRemaining(null)}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mt-4 pt-4 border-t border-white/5 flex items-start gap-2">
+                            <div className="mt-0.5"><DrugStatusBadge status={status} /></div>
+                            <p className="text-on-surface-variant text-sm flex-1 leading-tight pt-0.5">
+                              {getDrugStatusDescription(status)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )
                 })
@@ -252,30 +319,82 @@ export default function DrogasPage() {
             {filteredGroups.map((group, gi) =>
               group.lotes.map((lote, li) => {
                 const idx = gi + li
+                const rowId = lote.id ? `lote:${lote.id}` : `droga:${lote.productoId || group.nombre}`
+                const isExpanded = expandedRowId === rowId
+                const status = getDrugLotStatus({
+                  lote: lote.lote,
+                  vencimiento: lote.vencimiento,
+                  ingreso: lote.updatedAt,
+                  reanalisis: null,
+                })
+
                 return (
                   <div
-                    key={lote.id}
-                    {...focus.targetProps(lote.id)}
+                    key={rowId}
+                    {...focus.targetProps(rowId)}
                     style={{ animationDelay: `${idx * 0.03}s` }}
-                    className={`bg-surface-container-high rounded-lg px-4 py-3 border border-white/10 flex items-center gap-3 animate-fade-up focus:outline-none ${focus.isFocused(lote.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}
+                    className={`bg-surface-container-high rounded-lg overflow-hidden border border-white/10 flex flex-col animate-fade-up focus:outline-none ${focus.isFocused(rowId) ? 'ring-2 ring-primary/60' : ''}`}
                   >
-                    <DrugIcon nombre={group.nombre} />
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                      <span className="font-body text-sm font-medium text-on-surface truncate">
-                        {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={isExpanded}
+                      onClick={() => toggleRow(rowId)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          toggleRow(rowId)
+                        }
+                      }}
+                      className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-surface-variant/20 transition-colors"
+                    >
+                      <DrugIcon nombre={group.nombre} />
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span className="font-body text-sm font-medium text-on-surface truncate">
+                          {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
+                        </span>
+                        <span className="text-xs text-on-surface-variant shrink-0">
+                          {lote.lote ?? '-'}
+                        </span>
+                      </div>
+                      <span className="text-sm font-bold text-on-surface tabular-nums shrink-0">
+                        {lote.cantidad}
                       </span>
-                      <span className="text-xs text-on-surface-variant shrink-0">
-                        {lote.lote ?? '—'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <StockChip cantidad={lote.cantidad} stockMinimo={lote.stockMinimo} />
+                        <DrugStatusBadge status={status} />
+                      </div>
                     </div>
-                    <span className="text-sm font-bold text-on-surface tabular-nums shrink-0">
-                      {lote.cantidad}
-                    </span>
-                    <StatusBadge
-                      variant={getStatusVariant(lote.cantidad)}
-                      label={getStatusVariant(lote.cantidad) === 'optimal' ? 'Optimo' : getStatusVariant(lote.cantidad) === 'low' ? 'Bajo' : 'Crítico'}
-                      showDot={getStatusVariant(lote.cantidad) !== 'critical'}
-                    />
+                    
+                    {isExpanded && (
+                      <div className="bg-surface-container-highest border-t border-white/5 p-4 font-body text-sm transition-all">
+                        <div className="grid grid-cols-2 gap-y-4 gap-x-2">
+                          <div>
+                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Ingreso</p>
+                            <p className="font-medium tabular-nums">{formatDate(lote.updatedAt)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Vencimiento</p>
+                            <p className="font-medium tabular-nums">{formatDate(lote.vencimiento)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Reanálisis</p>
+                            <p className="font-medium tabular-nums">-</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Próximo control</p>
+                            <p className="font-medium tabular-nums">-</p>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-2">
+                          <div><DrugStatusBadge status={status} /></div>
+                          <p className="text-on-surface-variant text-sm">
+                            {getDrugStatusDescription(status)}
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })

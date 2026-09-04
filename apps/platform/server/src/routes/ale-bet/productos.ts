@@ -19,16 +19,39 @@ function parseOptionalDate(value: string | null | undefined): Date | null {
   return date
 }
 
+type MovimientoReferencia = {
+  motivo: string | null
+  fechaEfectiva: string | null
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function parseMovimientoReferencia(value: string | null): MovimientoReferencia {
+  if (!value) return { motivo: null, fechaEfectiva: null }
+  try {
+    const parsed: unknown = JSON.parse(value)
+    if (!isRecord(parsed)) return { motivo: null, fechaEfectiva: null }
+    return {
+      motivo: typeof parsed.motivo === 'string' ? parsed.motivo : null,
+      fechaEfectiva: typeof parsed.fechaEfectiva === 'string' ? parsed.fechaEfectiva : null,
+    }
+  } catch {
+    return { motivo: null, fechaEfectiva: null }
+  }
+}
+
 const productoSchema = z.object({
   nombre: z.string().min(2).max(120),
   sku: z.string().min(2).max(40),
-  stockMinimo: z.number().int().min(0).optional(),
+  stockMinimo: z.number().int().min(0).nullable().optional(),
   unidadesPorCaja: z.number().int().positive(),
 })
 
 const updateProductoSchema = z.object({
   nombre: z.string().min(2).max(120).optional(),
-  stockMinimo: z.number().int().min(0).optional(),
+  stockMinimo: z.number().int().min(0).nullable().optional(),
   activo: z.boolean().optional(),
   unidadesPorCaja: z.number().int().positive().optional(),
 })
@@ -48,13 +71,12 @@ function isUniqueConstraintError(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002'
 }
 
-async function getProductStock(productId: string, unidadesPorCaja: number): Promise<number> {
-  const lotes = await prisma.lote.findMany({
-    where: { productoId: productId, activo: true },
-    select: { cajas: true, sueltos: true },
+async function getProductStock(productId: string): Promise<number> {
+  const aggregate = await prisma.saldoStock.aggregate({
+    where: { productoId: productId },
+    _sum: { cantidad: true },
   })
-
-  return lotes.reduce((total, lote) => total + calcularUnidades(lote.cajas, lote.sueltos, unidadesPorCaja), 0)
+  return aggregate._sum.cantidad ?? 0
 }
 
 router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.read'), async (_req, res) => {
@@ -139,7 +161,7 @@ router.post('/', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.
 
   const producto = await prisma.producto.create({ data: parsed.data })
 
-  res.status(201).json({ ...producto, stock: 0, stockBajo: true })
+  res.status(201).json({ ...producto, stock: 0, stockBajo: producto.stockMinimo !== null })
 })
 
 router.put('/:id', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
@@ -164,9 +186,9 @@ router.put('/:id', requireApp('ale-bet'), requirePermission('ale-bet', 'producto
     data: parsed.data,
   })
 
-  const stock = await getProductStock(producto.id, producto.unidadesPorCaja)
+  const stock = await getProductStock(producto.id)
 
-  res.json({ ...producto, stock, stockBajo: stock < producto.stockMinimo })
+  res.json({ ...producto, stock, stockBajo: producto.stockMinimo !== null && stock <= producto.stockMinimo })
 })
 
 router.delete('/:id', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
@@ -392,6 +414,10 @@ router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale
     ? await prisma.movimientoStock.findMany({
         where: { loteId: { in: loteIds } },
         orderBy: { createdAt: 'desc' },
+        include: {
+          origenUbicacion: { select: { codigo: true, nombre: true } },
+          destinoUbicacion: { select: { codigo: true, nombre: true } },
+        },
       })
     : []
 
@@ -407,7 +433,10 @@ router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale
     const stockDeposito = lote.saldos.filter((s) => s.ubicacion.codigo === 'DEPOSITO').reduce((sum, s) => sum + s.cantidad, 0)
     const stockAcondicionado = lote.saldos.filter((s) => s.ubicacion.codigo === 'ACONDICIONADO').reduce((sum, s) => sum + s.cantidad, 0)
     const stockTotal = lote.saldos.reduce((sum, s) => sum + s.cantidad, 0)
-    const loteMovimientos = (movimientosByLote.get(lote.id) ?? []).slice(0, 10)
+    const loteMovimientos = (movimientosByLote.get(lote.id) ?? []).slice(0, 10).map((movimiento) => ({
+      ...movimiento,
+      ...parseMovimientoReferencia(movimiento.referencia),
+    }))
 
     return {
       id: lote.id,
@@ -493,6 +522,32 @@ router.patch('/:id/stock/lotes/:loteId/ajuste', requireApp('ale-bet'), requirePe
       res.status(409).json({ error: error.message })
       return
     }
+    throw error
+  }
+})
+
+router.patch('/:id/stock/lotes/:loteId/apertura', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.adjust'), async (req, res) => {
+  const schema = z.object({ ubicacionId: z.string().min(1), cantidadFinal: z.number().int().positive(), fechaEfectiva: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
+  const user = req.user as JwtPayload
+  const key = getSingleIdempotencyKey(req.rawHeaders)
+  if (!key) { res.status(400).json({ error: 'Idempotency-Key requerido' }); return }
+  const body = { productoId: String(req.params.id), loteId: String(req.params.loteId), ...parsed.data, fechaEfectiva: parsed.data.fechaEfectiva ?? new Date().toISOString().slice(0, 10) }
+  const scope = 'ale-bet.producto.stock-apertura'
+  const fingerprint = calculateFingerprint('PATCH', scope, body.loteId, body)
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const acquired = await acquireIdempotencyRecord(tx, user.sub, scope, key, fingerprint)
+      if (acquired.type === 'REPLAY') return acquired.body
+      const adjustment = await adjustManagedStock(tx, { ...body, actorId: user.sub, motivo: 'Saldo de apertura', tipoMovimiento: TipoMovimiento.SALDO_APERTURA, idempotencyKey: key })
+      const response = { loteId: body.loteId, ubicacionId: body.ubicacionId, anterior: adjustment.anterior, nuevo: adjustment.nuevo, delta: adjustment.delta, movimientoId: adjustment.movimiento?.id ?? null, tipo: 'SALDO_APERTURA', motivo: 'Saldo de apertura', fechaEfectiva: body.fechaEfectiva }
+      await completeIdempotencyRecord(tx, acquired.id, 201, toPersistableResponseBody(response))
+      return response
+    })
+    res.status(201).json(result)
+  } catch (error) {
+    if (error instanceof ProductStockAdminConflict) { res.status(409).json({ error: error.message }); return }
     throw error
   }
 })

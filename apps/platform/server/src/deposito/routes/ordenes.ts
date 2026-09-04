@@ -5,9 +5,11 @@ import { extractDbConstraintViolation, isKnownInventoryConflict } from '../../ut
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requirePermission } from '../../middlewares/require-permission'
-import { sseManager, STOCK_BAJO_THRESHOLD, STOCK_BAJO_FRASCOS_THRESHOLD } from '../lib/sse-manager'
+import { sseManager } from '../lib/sse-manager'
+import { isStockBajo } from '../lib/stock-status'
 import { eventBus } from '@platform/core'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
+import { resolveUniqueFrascoCandidate } from './shared/frasco-inventory-resolution'
 import {
   getSingleIdempotencyKey,
   calculateFingerprint,
@@ -58,17 +60,23 @@ function normalizeForMatch(str: string): string {
   return resolveCanonicalProductName(str)
 }
 
-// Helper: verifica si el stock bajó del threshold después de un egreso
 function isSolicitante(req: Request): boolean {
   return req.user?.apps.deposito?.rol === 'solicitante'
 }
 
+// Helper: verifica si el stock bajó del threshold después de un egreso
 async function checkStockBajo(
   categoria: string,
   productoNombre: string,
-  mercado: Mercado | null
+  mercado: Mercado | null,
+  productoId: string | null,
 ): Promise<number | null> {
   try {
+    const stockMinimo = productoId
+      ? (await prisma.depositoProducto.findUnique({ where: { id: productoId }, select: { stockMinimo: true } }))?.stockMinimo
+      : null
+    if (stockMinimo == null) return null
+
     if (categoria === 'droga') {
       // Sumar total de todos los lotes del producto
       const agg = await prisma.inventarioDroga.aggregate({
@@ -76,20 +84,22 @@ async function checkStockBajo(
         _sum: { cantidad: true },
       })
       const total = agg._sum.cantidad ?? 0
-      if (total < STOCK_BAJO_THRESHOLD) return total
+      if (isStockBajo(total, stockMinimo)) return total
     } else if (categoria === 'estuche' && mercado) {
       const e = await prisma.inventarioEstuche.findUnique({
         where: { articulo_mercado: { articulo: productoNombre, mercado } },
       })
-      if (e && e.cantidad < STOCK_BAJO_THRESHOLD) return e.cantidad
+      if (e && isStockBajo(e.cantidad, stockMinimo)) return e.cantidad
     } else if (categoria === 'etiqueta' && mercado) {
       const e = await prisma.inventarioEtiqueta.findUnique({
         where: { articulo_mercado: { articulo: productoNombre, mercado } },
       })
-      if (e && e.cantidad < STOCK_BAJO_THRESHOLD) return e.cantidad
+      if (e && isStockBajo(e.cantidad, stockMinimo)) return e.cantidad
     } else if (categoria === 'frasco') {
-      const f = await prisma.inventarioFrasco.findUnique({ where: { articulo: productoNombre } })
-      if (f && f.cantidadCajas < STOCK_BAJO_FRASCOS_THRESHOLD) return f.cantidadCajas
+      const f = productoId
+        ? await prisma.inventarioFrasco.findUnique({ where: { productoId } })
+        : resolveUniqueFrascoCandidate(productoNombre, await prisma.inventarioFrasco.findMany())
+      if (f && isStockBajo(f.cantidadCajas, stockMinimo)) return f.cantidadCajas
     }
   } catch { /* no crítico */ }
   return null
@@ -461,7 +471,7 @@ router.post(
           if (!targetId) {
             const buscar = normalizeForMatch(productoNombre)
             const candidatos = await tx.inventarioFrasco.findMany({ select: { id: true, articulo: true, unidadesPorCaja: true } })
-            const match = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)
+            const match = resolveUniqueFrascoCandidate(buscar, candidatos)
             if (match) {
               targetId = match.id
               uniPorCaja = match.unidadesPorCaja
@@ -557,7 +567,7 @@ router.post(
         timestamp: ts,
       })
 
-      const nuevoStock = await checkStockBajo(updated.categoria, updated.productoNombre, updated.mercado)
+      const nuevoStock = await checkStockBajo(updated.categoria, updated.productoNombre, updated.mercado, updated.productoId)
       if (nuevoStock !== null) {
         sseManager.broadcastGlobal({
           tipo: 'stock_bajo',

@@ -143,6 +143,44 @@ describe('PedidoCard — semantic state styles (UI-01)', () => {
     expect(within(card).getByText('Cliente A')).toBeInTheDocument()
   })
 
+  it('AUTOMATION APROBADO is confirmed/documentary, never pending Armador or missing seller', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'APROBADO', origen: 'AUTOMATION', vendedorId: null, vendedorNombre: undefined, remitos: [] }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(within(card).getByText('Automation · Confirmado')).toBeInTheDocument()
+    expect(within(card).getByText('Pendiente de remito')).toBeInTheDocument()
+    expect(within(card).queryByText('Pendiente de armado')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Vendedor sin asignar')).not.toBeInTheDocument()
+    expect(within(card).queryByText('Aprobado')).not.toBeInTheDocument()
+  })
+
+  it('Facturación uses the pending-remito tray without legacy filters or Nuevo pedido', async () => {
+    mockRol('facturacion')
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'APROBADO', origen: 'AUTOMATION', vendedorId: null, remitos: [] }),
+    ])
+    renderPedidos()
+    await screen.findByTestId('pedido-card-pedido-1')
+    expect(aleBetApi.pedidos.list).toHaveBeenCalledWith({ bandeja: 'FACTURACION' })
+    expect(screen.getByText('Pendientes de remito')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+ Nuevo pedido' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Borrador' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aprobado' })).not.toBeInTheDocument()
+  })
+
+  it('Armador only sees manual workflow orders', async () => {
+    mockRol('armador')
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ id: 'manual', estado: 'APROBADO', origen: 'MANUAL' }),
+      createPedido({ id: 'automation', estado: 'APROBADO', origen: 'AUTOMATION', vendedorId: null }),
+    ])
+    renderPedidos()
+    expect(await screen.findByTestId('pedido-card-manual')).toBeInTheDocument()
+    expect(screen.queryByTestId('pedido-card-automation')).not.toBeInTheDocument()
+  })
+
   it('EN_ARMADO: card has data-estado EN_ARMADO, badge visible, operative label visible', async () => {
     vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
       createPedido({ estado: 'EN_ARMADO' }),

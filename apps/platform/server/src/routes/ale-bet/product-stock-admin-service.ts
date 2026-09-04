@@ -9,6 +9,8 @@ export class ProductStockAdminConflict extends Error {
 
 type Tx = Prisma.TransactionClient
 
+const OPENING_LOCATION_CODES = ['DEPOSITO', 'ACONDICIONADO'] as const
+
 export async function createManagedLot(
   tx: Tx,
   input: { productoId: string; numero: string; fechaProduccion?: Date | null; fechaVencimiento?: Date | null },
@@ -37,7 +39,9 @@ export async function adjustManagedStock(
     cantidadFinal: number
     actorId: string
     motivo?: string
+    fechaEfectiva?: string
     idempotencyKey: string
+    tipoMovimiento?: TipoMovimiento
   },
 ) {
   if (!Number.isInteger(input.cantidadFinal) || input.cantidadFinal < 0) {
@@ -45,16 +49,19 @@ export async function adjustManagedStock(
   }
 
   const lot = await tx.lote.findFirst({
-    where: { id: input.loteId, productoId: input.productoId },
+    where: { id: input.loteId, productoId: input.productoId, producto: { activo: true } },
     select: { id: true, productoId: true },
   })
   if (!lot) throw new ProductStockAdminConflict('Lote no encontrado para el producto')
 
   const location = await tx.ubicacionStock.findUnique({
     where: { id: input.ubicacionId },
-    select: { id: true, activo: true },
+    select: { id: true, activo: true, codigo: true },
   })
   if (!location || !location.activo) throw new ProductStockAdminConflict('Ubicación no encontrada o inactiva')
+  if (!OPENING_LOCATION_CODES.some((code) => code === location.codigo)) {
+    throw new ProductStockAdminConflict('La ubicación no es válida para stock de producto terminado')
+  }
 
   await tx.$queryRaw(Prisma.sql`
     SELECT id FROM "ale_bet"."Lote" WHERE id = ${input.loteId} AND "productoId" = ${input.productoId} FOR UPDATE
@@ -70,6 +77,9 @@ export async function adjustManagedStock(
     select: { id: true, cantidad: true },
   })
   const anterior = current?.cantidad ?? 0
+  if (input.tipoMovimiento === TipoMovimiento.SALDO_APERTURA && current) {
+    throw new ProductStockAdminConflict('El saldo de apertura ya fue cargado para esta ubicación')
+  }
   const delta = input.cantidadFinal - anterior
 
   const reserved = await tx.reservaStock.aggregate({
@@ -92,17 +102,18 @@ export async function adjustManagedStock(
   if (delta === 0) return { saldo, movimiento: null, anterior, nuevo: input.cantidadFinal, delta }
 
   const referencia = JSON.stringify({
-    operacion: 'AJUSTE_PRODUCTO',
+    operacion: input.tipoMovimiento === TipoMovimiento.SALDO_APERTURA ? 'SALDO_APERTURA' : 'AJUSTE_PRODUCTO',
     anterior,
     nuevo: input.cantidadFinal,
     motivo: input.motivo ?? null,
+    fechaEfectiva: input.fechaEfectiva ?? null,
   })
   const movimiento = await tx.movimientoStock.create({
     data: {
       productoId: input.productoId,
       loteId: input.loteId,
       cantidad: delta,
-      tipo: TipoMovimiento.AJUSTE,
+      tipo: input.tipoMovimiento ?? TipoMovimiento.AJUSTE,
       referencia,
       usuarioId: input.actorId,
       origenUbicacionId: input.ubicacionId,

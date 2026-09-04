@@ -8,6 +8,7 @@ import { sseManager } from '../lib/sse-manager'
 import { eventBus } from '@platform/core'
 import { generarLote } from '../lib/lote-generator'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
+import { resolveUniqueFrascoCandidate } from './shared/frasco-inventory-resolution'
 
 const router = Router()
 
@@ -87,6 +88,7 @@ router.get('/', authenticate, requirePermission('deposito', 'actas.read'), async
         items: {
           select: {
             lote: true,
+            categoria: true,
             productoNombre: true,
             cantidadIngresada: true,
             cantidadDistribuida: true,
@@ -423,7 +425,7 @@ router.post(
           if (!frasco) {
             const buscar = normalizeForMatch(item.productoNombre)
             const candidatos = await tx.inventarioFrasco.findMany()
-            frasco = candidatos.find((f) => normalizeForMatch(f.articulo) === buscar) ?? null
+            frasco = resolveUniqueFrascoCandidate(buscar, candidatos)
             console.log(`Buscando: ${buscar} en frasco — encontrado: ${frasco ? 'si' : 'no'}`)
           }
           if (!frasco) {
@@ -530,7 +532,8 @@ router.post(
     } catch (err) {
       console.error(err)
       const msg = err instanceof Error ? err.message : 'Error interno del servidor'
-      res.status(400).json({ message: msg })
+      const status = msg.startsWith('HTTP_409:') ? 409 : 400
+      res.status(status).json({ message: msg.replace(/^HTTP_\d{3}:\s*/, '') })
     }
   }
 )

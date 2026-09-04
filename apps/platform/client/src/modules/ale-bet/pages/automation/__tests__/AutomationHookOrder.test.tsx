@@ -15,6 +15,8 @@ vi.mock('../../../queries/use-automation', () => ({
   useCreateDraft: () => ({ mutateAsync: mockCreateDraft }),
   useUpdateDraft: () => ({ mutateAsync: mockUpdateDraft }),
   useConfirmDraft: () => ({ mutateAsync: mockConfirmDraft }),
+  useAutomationAliases: () => ({ data: { productAliases: [], clientAliases: [] } }),
+  useDeleteAutomationAlias: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useDraft: () => ({
     data: mockedDraftId ? mockedDraftData : null,
     refetch: vi.fn()

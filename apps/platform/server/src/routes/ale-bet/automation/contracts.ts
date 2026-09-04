@@ -14,6 +14,8 @@ export type ParsedQuantity = {
 }
 
 export type ParsedOrderLine = {
+  /** Stable identity within a draft. It survives partial corrections. */
+  lineId?: string
   originalText: string
   productCandidate: ProductAlternative | null
   alternatives: ProductAlternative[]

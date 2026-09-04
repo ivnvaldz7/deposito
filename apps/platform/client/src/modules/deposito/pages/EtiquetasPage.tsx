@@ -6,11 +6,10 @@ import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { can } from '@/lib/permissions'
 import { ApiError } from '../lib/api'
 import { useEtiquetas, useCreateEtiqueta, useUpdateEtiqueta, useDeleteEtiqueta } from '../queries/use-etiquetas'
 import { toast } from '../lib/toast'
-import { fetchCatalogoProductos } from '../lib/catalogo-productos'
+import { fetchCatalogoProductos, type CatalogoProducto } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
 import { MercadoChip } from '../components/inventory-shared/mercado-chip'
@@ -18,6 +17,7 @@ import { MercadoFilter } from '../components/inventory-shared/mercado-filter'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { MERCADOS, type Mercado } from '../components/inventory-shared/mercados'
 import { StockChip } from '../components/inventory-shared/stock-chip'
+import { getStockStatus } from '../lib/stock-status'
 import {
   Table,
   TableHeader,
@@ -35,6 +35,7 @@ import {
 } from '../components/ui/Dialog'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
+import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
 
 import type { Etiqueta } from '../queries/use-etiquetas'
 function sortEtiquetas(list: Etiqueta[]): Etiqueta[] {
@@ -46,8 +47,6 @@ function sortEtiquetas(list: Etiqueta[]): Etiqueta[] {
 function normalizeProducto(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
-
-const STOCK_BAJO_THRESHOLD = 50
 
 const agregarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
@@ -93,7 +92,7 @@ function AgregarEtiquetaModal({
       const etiqueta = await createMutation.mutateAsync({
         articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad),
       })
-      if (etiqueta.cantidad < STOCK_BAJO_THRESHOLD) {
+      if (getStockStatus(etiqueta.cantidad, etiqueta.stockMinimo) === 'bajo') {
         toast.warning(`"${etiqueta.articulo}" quedó con stock bajo (${etiqueta.cantidad}).`)
       } else {
         toast.success(`Etiqueta "${etiqueta.articulo}" agregada.`)
@@ -180,7 +179,7 @@ function EditarEtiquetaModal({ etiqueta, onClose }: { etiqueta: Etiqueta; onClos
     setServerError(null)
     try {
       const updated = await updateMutation.mutateAsync({ id: etiqueta.id, articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) })
-      if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+      if (getStockStatus(updated.cantidad, etiqueta.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
       else toast.info(`Etiqueta "${updated.articulo}" actualizada.`)
       onClose()
     } catch (err) { setServerError(err instanceof ApiError ? err.message : 'Error al guardar') }
@@ -229,13 +228,20 @@ function CantidadCell({ etiqueta }: { etiqueta: Etiqueta }) {
     <InlineNumberEditor
       value={etiqueta.cantidad} label="cantidad"
       onSave={async (nextValue) => {
-        const updated = await updateMutation.mutateAsync({ id: etiqueta.id, cantidad: nextValue })
-        if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
-        else toast.info(`Stock de "${updated.articulo}" actualizado.`)
+        try {
+          const updated = await updateMutation.mutateAsync({ id: etiqueta.id, cantidad: nextValue })
+          if (getStockStatus(updated.cantidad, etiqueta.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+          else toast.info(`Stock de "${updated.articulo}" actualizado.`)
+        } catch (err) {
+          toast.error(err instanceof ApiError ? err.message : 'Error al guardar')
+          throw err
+        }
       }}
     />
   )
 }
+
+import { can } from '@/lib/permissions'
 
 export default function EtiquetasPage() {
   const user = useAuthStore((s) => s.user)
@@ -244,12 +250,15 @@ export default function EtiquetasPage() {
   const { data: allEtiquetas = [], isLoading, error } = useEtiquetas()
   const deleteMutation = useDeleteEtiqueta()
   const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos')
+  const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
   const [editingEtiqueta, setEditingEtiqueta] = useState<Etiqueta | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
+  const [catalogProducts, setCatalogProducts] = useState<CatalogoProducto[]>([])
   const [agregarOpen, setAgregarOpen] = useState(false)
+  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
-    fetchCatalogoProductos('etiqueta').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
+    fetchCatalogoProductos('etiqueta').then((productos) => { setCatalogProducts(productos); setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
   const getDisplayName = useCallback((etiqueta: Etiqueta): string => etiqueta.productoId ? (catalogMap[etiqueta.productoId] ?? etiqueta.articulo) : etiqueta.articulo, [catalogMap])
@@ -278,11 +287,14 @@ export default function EtiquetasPage() {
           || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
       : undefined
     if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
-    const byMercado = selected || mercadoFiltro === 'todos' ? sortedEtiquetas : sortedEtiquetas.filter((e) => e.mercado === mercadoFiltro)
+    let byMercado = selected || mercadoFiltro === 'todos' ? sortedEtiquetas : sortedEtiquetas.filter((e) => e.mercado === mercadoFiltro)
+    if (stockBajoFiltro) {
+      byMercado = byMercado.filter(e => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo')
+    }
     if (!productoFiltro || selected) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((e) => normalizeProducto(getDisplayName(e)) === target)
-  }, [sortedEtiquetas, mercadoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
+  }, [sortedEtiquetas, mercadoFiltro, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
 
   async function handleDelete(id: string) {
     try {
@@ -295,19 +307,24 @@ export default function EtiquetasPage() {
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar las etiquetas'} />
 
-  const stockBajoCount = etiquetas.filter((e) => e.cantidad < STOCK_BAJO_THRESHOLD).length
+  const stockBajoCount = etiquetas.filter((e) => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo').length
   const countsByMercado = MERCADOS.reduce<Record<Mercado, number>>((acc, m) => { acc[m.value] = allEtiquetas.filter((e) => e.mercado === m.value).length; return acc }, {} as Record<Mercado, number>)
 
   return (
     <div className="space-y-5">
       <InventoryPageHeader title="Etiquetas" description="Inventario por mercado y alertas de stock." stats={[
         { label: 'artículos', value: etiquetas.length },
-        { label: 'mercados', value: MERCADOS.filter((m) => countsByMercado[m.value] > 0).length },
-        { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
-      ]} primaryAction={canManage ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
+        { 
+          label: stockBajoFiltro ? 'stock bajo (activo)' : 'stock bajo', 
+          value: stockBajoCount, 
+          warning: stockBajoCount > 0 || stockBajoFiltro,
+          onClick: () => setStockBajoFiltro((prev) => !prev)
+        },
+      ]} primaryAction={canManage ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} secondaryActions={canManage ? [{ label: 'Carga inicial', onClick: () => setAperturaOpen(true) }] : undefined}>
         <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={handleMercadoChange} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
       </InventoryPageHeader>
       {canManage && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
+      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="etiqueta" items={catalogProducts.length > 0 ? catalogProducts.flatMap((p) => (p.mercadosHabilitados ?? (p.mercado ? [p.mercado] : [])).map((mercado) => ({ id: `${p.id}:${mercado}`, productoId: p.id, label: p.nombreCompleto, mercado }))) : allEtiquetas.map((item) => ({ id: item.id, productoId: item.productoId ?? item.id, label: getDisplayName(item), mercado: item.mercado }))} />}
       {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onClose={() => setEditingEtiqueta(null)} />}
       {etiquetas.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       : (
@@ -321,7 +338,7 @@ export default function EtiquetasPage() {
                     <TableCell className="font-body text-on-surface">{getDisplayName(e)}</TableCell>
                     <TableCell><MercadoChip mercado={e.mercado} /></TableCell>
                     <TableCell>{canManage ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
-                    <TableCell><StockChip cantidad={e.cantidad} threshold={STOCK_BAJO_THRESHOLD} /></TableCell>
+                    <TableCell><StockChip cantidad={e.cantidad} stockMinimo={e.stockMinimo} /></TableCell>
                     {canManage && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -342,7 +359,7 @@ export default function EtiquetasPage() {
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(e)}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <MercadoChip mercado={e.mercado} /><span className="font-body text-on-surface-variant text-xs tabular-nums">{e.cantidad} uds</span>
-                    <StockChip cantidad={e.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
+                    <StockChip cantidad={e.cantidad} stockMinimo={e.stockMinimo} />
                   </div>
                 </div>
                 {canManage && (

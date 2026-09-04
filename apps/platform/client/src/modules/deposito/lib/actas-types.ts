@@ -30,6 +30,7 @@ export interface ActaItem {
 
 export interface ActaItemSummary {
   lote: string
+  categoria: Categoria
   productoNombre: string
   cantidadIngresada: number
   cantidadDistribuida: number

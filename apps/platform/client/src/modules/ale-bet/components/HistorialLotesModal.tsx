@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
-import { type Producto } from '../lib/api'
+import { type MovimientoStock, type Producto } from '../lib/api'
 import { useLotesHistorial } from '../queries/use-productos'
 import { useAuthStore } from '@/stores/auth-store'
 import { can } from '@/lib/permissions'
@@ -8,6 +8,16 @@ import { can } from '@/lib/permissions'
 interface HistorialLotesModalProps {
   productos: Producto[]
   onClose: () => void
+}
+
+function formatLocation(movimiento: MovimientoStock): string {
+  const location = movimiento.origenUbicacion ?? movimiento.destinoUbicacion
+  if (location) return location.codigo === 'DEPOSITO' ? 'DEPÓSITO' : location.codigo === 'ACONDICIONADO' ? 'ACONDICIONADO' : location.nombre
+  return movimiento.origenUbicacionId ?? movimiento.destinoUbicacionId ?? '-'
+}
+
+function formatMovementType(tipo: MovimientoStock['tipo']): string {
+  return tipo === 'SALDO_APERTURA' ? 'SALDO DE APERTURA' : tipo
 }
 
 export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalProps) {
@@ -30,6 +40,7 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
     }
     return true
   })
+  const selectedProducto = productos.find((producto) => producto.id === selectedProductoId)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -66,7 +77,10 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
             </label>
             <select
               value={estadoFilter}
-              onChange={(e) => setEstadoFilter(e.target.value as any)}
+              onChange={(e) => {
+                const value = e.target.value
+                if (value === 'TODOS' || value === 'ACTIVOS' || value === 'ARCHIVADOS') setEstadoFilter(value)
+              }}
               className="w-full rounded-lg border border-white/10 bg-surface-container-high px-3 py-2 font-body text-[13px] text-on-surface focus:border-primary focus:outline-none"
             >
               <option value="TODOS">Todos</option>
@@ -110,6 +124,7 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
             </div>
           ) : (
             <div className="space-y-6">
+              <p className="font-body text-[13px] text-on-surface-variant">Producto: <span className="font-semibold text-on-surface">{selectedProducto?.nombre ?? selectedProductoId}</span></p>
               {filteredLotes.map((lote) => (
                 <div key={lote.id} className="rounded-xl border border-white/10 bg-surface-container-high overflow-hidden">
                   <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 bg-surface-container-highest/20 p-4">
@@ -153,7 +168,10 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
                           <tr className="border-b border-white/5 text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
                             <th className="py-2">Fecha</th>
                             <th className="py-2">Tipo</th>
-                            <th className="py-2">Referencia</th>
+                            <th className="py-2">Ubicación</th>
+                            <th className="py-2">Usuario</th>
+                            <th className="py-2">Motivo</th>
+                            <th className="py-2">Fecha efectiva</th>
                             <th className="py-2 text-right">Cantidad</th>
                           </tr>
                         </thead>
@@ -161,8 +179,11 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
                           {lote.movimientos.map((m) => (
                             <tr key={m.id} className="border-b border-white/5 last:border-0">
                               <td className="py-2 text-on-surface">{new Date(m.createdAt).toLocaleString()}</td>
-                              <td className="py-2 text-on-surface">{m.tipo}</td>
-                              <td className="py-2 text-on-surface-variant">{m.referencia || '-'}</td>
+                              <td className="py-2 text-on-surface">{formatMovementType(m.tipo)}</td>
+                              <td className="py-2 text-on-surface-variant">{formatLocation(m)}</td>
+                              <td className="py-2 text-on-surface-variant">{m.usuarioId}</td>
+                              <td className="py-2 text-on-surface-variant">{m.motivo ?? m.referencia ?? '-'}</td>
+                              <td className="py-2 text-on-surface-variant">{m.fechaEfectiva ?? '-'}</td>
                               <td className={`py-2 text-right font-semibold ${m.cantidad > 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 {m.cantidad > 0 ? '+' : ''}{m.cantidad}
                               </td>

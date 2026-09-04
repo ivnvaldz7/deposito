@@ -1,4 +1,5 @@
 import request from 'supertest'
+import type { NextFunction, Request, Response } from 'express'
 import ExcelJS from 'exceljs'
 import * as XLSX from 'xlsx'
 import { Prisma } from '@platform/db'
@@ -44,6 +45,7 @@ interface Producto {
   categoria: 'droga' | 'estuche' | 'etiqueta' | 'frasco'
   nombreCompleto: string
   activo: boolean
+  stockMinimo?: number | null
 }
 
 const MOCK_PRODUCTOS: Producto[] = [
@@ -174,6 +176,21 @@ vi.mock('../middleware/auth', () => ({
   },
 }))
 
+vi.mock('../../middlewares/require-permission', () => ({
+  requirePermission: (_app: string, permission: string) => (req: Request, res: Response, next: NextFunction) => {
+    const role = req.depositoUser?.role
+    const canManage = role === 'encargado'
+    const isManagePermission = permission === 'productos_catalogo.manage'
+
+    if (!role || (isManagePermission && !canManage)) {
+      res.status(403).json({ error: 'Permiso insuficiente' })
+      return
+    }
+
+    next()
+  },
+}))
+
 import productosRouter from '../routes/productos'
 
 describe('Catálogo de productos', () => {
@@ -195,6 +212,25 @@ describe('Catálogo de productos', () => {
     expect(res.status).toBe(200)
     expect(res.body.length).toBeGreaterThan(0)
     expect(res.body.every((producto: any) => producto.categoria === 'frasco')).toBe(true)
+  })
+
+  it('GET /api/productos conserva stockMinimo null en las cuatro categorías', async () => {
+    const categorias = ['droga', 'estuche', 'etiqueta', 'frasco'] as const
+    mocks.state.productos = categorias.map((categoria, index) => ({
+      ...MOCK_PRODUCTOS.find((producto) => producto.categoria === categoria)!,
+      id: `sin-minimo-${index}`,
+      stockMinimo: null,
+    }))
+
+    for (const categoria of categorias) {
+      const res = await request(app)
+        .get(`/api/productos?categoria=${categoria}`)
+        .set('x-test-role', 'encargado')
+
+      expect(res.status).toBe(200)
+      expect(res.body).toHaveLength(1)
+      expect(res.body[0]).toMatchObject({ categoria, stockMinimo: null })
+    }
   })
 
   it('POST /api/productos sin código rechaza para etiqueta', async () => {

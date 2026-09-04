@@ -12,6 +12,33 @@ export function InlineNumberEditor({ value, label, onSave }: InlineNumberEditorP
   const [draft, setDraft] = useState(String(value))
   const [saving, setSaving] = useState(false)
 
+  const handleSave = () => {
+    const parsed = Number(draft)
+    if (draft.trim() === '' || isNaN(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+      setDraft(String(value))
+      setEditing(false)
+      return
+    }
+    
+    setSaving(true)
+    onSave(parsed)
+      .then(() => {
+        setEditing(false)
+      })
+      .catch(() => {
+        setDraft(String(value))
+        setEditing(false)
+      })
+      .finally(() => {
+        setSaving(false)
+      })
+  }
+
+  const handleCancel = () => {
+    setDraft(String(value))
+    setEditing(false)
+  }
+
   if (!editing) {
     return (
       <div className="inline-flex items-center gap-1 group">
@@ -36,40 +63,40 @@ export function InlineNumberEditor({ value, label, onSave }: InlineNumberEditorP
         min="0"
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        className="w-16 font-body text-sm text-on-surface bg-surface-high rounded px-1.5 py-0.5 tabular-nums text-center"
+        className="w-16 font-body text-sm text-on-surface bg-surface-high rounded px-1.5 py-1 tabular-nums text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         autoFocus
         onKeyDown={(e) => {
           if (e.key === 'Enter') {
-            setSaving(true)
-            onSave(Number(draft)).finally(() => setSaving(false))
+            e.preventDefault()
+            handleSave()
           }
-          if (e.key === 'Escape') setEditing(false)
+          if (e.key === 'Escape') {
+            e.preventDefault()
+            handleCancel()
+          }
         }}
         disabled={saving}
         aria-label={label}
       />
       <button
         type="button"
-        onClick={() => {
-          setSaving(true)
-          onSave(Number(draft)).finally(() => setSaving(false))
-        }}
+        onClick={handleSave}
         disabled={saving}
         className="inline-flex size-9 items-center justify-center rounded-lg text-accent transition-colors hover:bg-surface-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
         title="Guardar"
         aria-label="Guardar"
       >
-        <Check size={14} strokeWidth={1.5} />
+        <Check size={18} strokeWidth={1.5} />
       </button>
       <button
         type="button"
-        onClick={() => setEditing(false)}
+        onClick={handleCancel}
         disabled={saving}
         className="inline-flex size-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-40"
         title="Cancelar"
         aria-label="Cancelar"
       >
-        <X size={14} strokeWidth={1.5} />
+        <X size={18} strokeWidth={1.5} />
       </button>
     </div>
   )

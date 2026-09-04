@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { aleBetApi, getHistorialLotes } from '../lib/api'
+import { dashboardKeys } from './use-dashboard'
+import { stockKeys } from './use-stock'
 import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 export const productosKeys = {
@@ -35,16 +37,24 @@ export function useCreateProducto() {
   return useMutation({
     mutationFn: (data: { nombre: string; sku: string; stockMinimo?: number; unidadesPorCaja: number }) =>
       aleBetApi.productos.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productosKeys.all })
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
   })
 }
 
 export function useUpdateProducto() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; nombre?: string; stockMinimo?: number; unidadesPorCaja?: number; activo?: boolean }) =>
+    mutationFn: ({ id, ...data }: { id: string; nombre?: string; stockMinimo?: number | null; unidadesPorCaja?: number; activo?: boolean }) =>
       aleBetApi.productos.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productosKeys.all })
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
   })
 }
 
@@ -52,7 +62,11 @@ export function useDeleteProducto() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => aleBetApi.productos.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: productosKeys.all })
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
   })
 }
 
@@ -97,7 +111,10 @@ export function useCreateAdminLote() {
   return useMutation({
     mutationFn: ({ productoId, ...data }: { productoId: string; numero: string; fechaProduccion?: string | null; fechaVencimiento?: string | null }) =>
       aleBetApi.productos.stock.lotes.create(productoId, data),
-    onSuccess: (_, variables) => qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] }),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+    },
   })
 }
 
@@ -109,6 +126,22 @@ export function useAjusteAdminStock() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
       qc.invalidateQueries({ queryKey: productosKeys.list() }) // Invalidate product list to update overall stock
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
+  })
+}
+
+export function useAperturaAdminStock() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productoId, loteId, ubicacionId, cantidadFinal, fechaEfectiva, idempotencyKey }: { productoId: string; loteId: string; ubicacionId: string; cantidadFinal: number; fechaEfectiva?: string; idempotencyKey: string }) =>
+      aleBetApi.stock.apertura(productoId, loteId, { ubicacionId, cantidadFinal, fechaEfectiva }, { idempotencyKey }),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
+      qc.invalidateQueries({ queryKey: productosKeys.list() })
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
     },
   })
 }
@@ -123,6 +156,8 @@ export function useTransferirStock() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
       qc.invalidateQueries({ queryKey: productosKeys.list() })
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
     },
   })
 }

@@ -17,10 +17,27 @@ function formatMercado(mercado: string): string {
   return mercado.split('_').join(' ')
 }
 
-const TIPO_CONFIG: Record<TipoMovimiento, { label: string; variant: 'primary' | 'error' | 'info' }> = {
+type TipoConfig = {
+  label: string
+  variant: 'primary' | 'error' | 'info' | 'default'
+}
+
+const TIPO_CONFIG: Record<string, TipoConfig> = {
   ingreso_acta: { label: 'Ingreso', variant: 'primary' },
   egreso_orden: { label: 'Egreso', variant: 'error' },
   ajuste_manual: { label: 'Ajuste', variant: 'info' },
+  stock_inicial: { label: 'Stock inicial', variant: 'primary' },
+}
+
+export function resolveTipoConfig(tipo: TipoMovimiento): TipoConfig {
+  const configured = TIPO_CONFIG[tipo]
+  if (configured) return configured
+
+  const readable = tipo.trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').toLocaleLowerCase('es-AR')
+  return {
+    label: readable ? readable.charAt(0).toLocaleUpperCase('es-AR') + readable.slice(1) : 'Tipo desconocido',
+    variant: 'default',
+  }
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────────
@@ -50,11 +67,12 @@ function MetricCard({
 }
 
 function TipoChip({ tipo }: { tipo: TipoMovimiento }) {
-  const c = TIPO_CONFIG[tipo]
+  const c = resolveTipoConfig(tipo)
   const colorMap = {
     primary: 'bg-primary-container/20 text-primary',
     error: 'bg-error-container/20 text-error',
     info: 'bg-tertiary-container/20 text-tertiary',
+    default: 'bg-surface-container-highest text-on-surface-variant',
   }
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${colorMap[c.variant]}`}>
@@ -210,8 +228,8 @@ export default function DashboardPage() {
                   productName={droga.nombre}
                   category="Droga"
                   currentStock={droga.cantidad}
-                  unit="uds"
-                  stockTone={droga.cantidad < 5 ? 'error' : 'tertiary'}
+                  unit="kg"
+                  stockTone="error"
                 />
               ))}
               {/* Estuches bajo stock */}
@@ -282,7 +300,7 @@ export default function DashboardPage() {
                       <td className="p-3 text-right font-bold group-hover:-translate-y-[1px] transition-transform"
                         style={{ color: mov.cantidad >= 0 ? 'var(--color-primary)' : 'var(--color-error)' }}
                       >
-                        {mov.cantidad >= 0 ? '+' : ''}{mov.cantidad}
+                        {mov.cantidad >= 0 ? '+' : ''}{mov.cantidad} {mov.categoria === 'droga' ? 'kg' : 'uds'}
                       </td>
                     </tr>
                   ))

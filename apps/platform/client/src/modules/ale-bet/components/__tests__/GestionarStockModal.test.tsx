@@ -28,7 +28,7 @@ function renderComponent() {
   return render(
     <QueryClientProvider client={queryClient}>
       <GestionarStockModal
-        producto={{ id: 'p1', nombre: 'Test Prod', sku: 'SKU1', stockMinimo: 0, activo: true, unidadesPorCaja: 1 }}
+        producto={{ id: 'p1', nombre: 'Test Prod', sku: 'SKU1', stockMinimo: 0, activo: true, unidadesPorCaja: 1 } as any}
         onClose={vi.fn()}
       />
     </QueryClientProvider>
@@ -43,10 +43,10 @@ describe('GestionarStockModal', () => {
         { id: 'l1', numero: 'L01', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 100, stockDeposito: 80, stockAcondicionado: 20 }
       ],
       ubicaciones: [
-        { id: 'u1', codigo: 'DEPOSITO' },
-        { id: 'u2', codigo: 'ACONDICIONADO' }
-      ]
-    })
+        { id: 'u1', codigo: 'DEPOSITO', nombre: 'Depósito' },
+        { id: 'u2', codigo: 'ACONDICIONADO', nombre: 'Acondicionado' }
+      ] as any[]
+    } as any)
   })
 
   it('flujo de creacion de lote: usa MM/AAAA y autocalcula vencimiento +24 meses', async () => {

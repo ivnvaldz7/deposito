@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { interpretOrder } from '../interpreter'
+import { hasStrongMismatch, interpretOrder } from '../interpreter'
 
 const customer = [{ id: 'c1', nombre: 'Veterinaria Norte', aliases: [] }, { id: 'el-federal', nombre: 'EL FEDERAL', aliases: ['FEDERAL', 'FEDERAL 3'] }]
 function product(unidadesPorCaja: number) { return [{ id: 'p1', nombre: 'Olivitasan 500 ML', sku: 'OLIVITASAN-500', unidadesPorCaja, aliases: ['OLIVITA 500'] }] }
@@ -56,6 +56,33 @@ describe('automation deterministic interpreter', () => {
 
     const parsed3 = interpretOrder('olivitasan plus 500ml', catalog, customer)
     expect(parsed3.lines[0].productCandidate?.productId).toBe('p-plus')
+  })
+
+  it('mantiene la presentación al resolver B12B15 y deja ambiguo el texto sin presentación', () => {
+    const catalog = [
+      { id: 'b12-100', nombre: 'COMPLEJO B B12 B15 100 ML', sku: 'B12-100', unidadesPorCaja: 5, aliases: [] },
+      { id: 'b12-250', nombre: 'COMPLEJO B B12 B15 250 ML', sku: 'B12-250', unidadesPorCaja: 5, aliases: [] },
+    ]
+    const ambiguous = interpretOrder('1 b12b15', catalog, customer).lines[0]
+    expect(ambiguous).toMatchObject({ productCandidate: null, requiresReview: true })
+    expect(ambiguous.alternatives.map((alternative) => alternative.productId)).toEqual(['b12-100', 'b12-250'])
+    expect(interpretOrder('1 b12b15 100ml', catalog, customer).lines[0]?.productCandidate?.productId).toBe('b12-100')
+    expect(interpretOrder('1 b12b15 250ml', catalog, customer).lines[0]?.productCandidate?.productId).toBe('b12-250')
+  })
+
+  it('ignora un alias histórico cuya presentación contradice el producto', () => {
+    const catalog = [
+      { id: 'b12-100', nombre: 'COMPLEJO B B12 B15 100 ML', sku: 'B12-100', unidadesPorCaja: 5, aliases: ['b12b15 250ml'] },
+      { id: 'b12-250', nombre: 'COMPLEJO B B12 B15 250 ML', sku: 'B12-250', unidadesPorCaja: 5, aliases: [] },
+    ]
+    const line = interpretOrder('1 b12b15 250ml', catalog, customer).lines[0]
+    expect(line?.productCandidate?.productId).toBe('b12-250')
+    expect(line?.productCandidate?.productId).not.toBe('b12-100')
+  })
+
+  it('acepta un alias genérico que no contradice identificadores fuertes del producto', () => {
+    expect(hasStrongMismatch('CETRI', 'CETRI-AMON 1 L')).toBe(false)
+    expect(hasStrongMismatch('B12B25 250 ML', 'COMPLEJO B B12 B15 100 ML')).toBe(true)
   })
 
   it('primera línea customerCandidateText unresolved no genera product line', () => {

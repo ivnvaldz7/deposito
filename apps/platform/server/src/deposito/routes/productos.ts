@@ -79,6 +79,7 @@ const commonCatalogSchema = z.object({
   volumen: z.number().positive().nullable().optional(),
   unidad: optionalText,
   variante: optionalText,
+  stockMinimo: z.number().int().min(0).nullable().optional(),
 })
 const baseSchema = z.discriminatedUnion('categoria', [
   commonCatalogSchema.extend({
@@ -120,6 +121,7 @@ const editSchema = z.object({
   volumen: z.number().positive().nullable().optional(),
   unidad: optionalText,
   variante: optionalText,
+  stockMinimo: z.number().int().min(0).nullable().optional(),
 }).refine((value) => Object.keys(value).length > 0, 'Al menos un campo es requerido')
 const importPayloadSchema = z.object({ archivoBase64: z.string().min(1), nombreArchivo: z.string().min(1).max(200) })
 
@@ -394,6 +396,7 @@ router.patch('/:id', authenticate, requirePermission('deposito', 'productos_cata
     ...(parsed.data.volumen !== undefined ? { volumen: parsed.data.volumen == null ? null : new Prisma.Decimal(parsed.data.volumen) } : {}),
     ...(parsed.data.unidad !== undefined ? { unidad: parsed.data.unidad } : {}),
     ...(parsed.data.variante !== undefined ? { variante: parsed.data.variante } : {}),
+    ...(parsed.data.stockMinimo !== undefined ? { stockMinimo: parsed.data.stockMinimo } : {}),
   }
   try { res.json(await service.update(String(req.params.id), input, req.depositoUser!.id)) } catch (error) { sendError(res, error) }
 })

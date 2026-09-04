@@ -16,9 +16,6 @@ interface SSEClient {
   res: Response
 }
 
-export const STOCK_BAJO_THRESHOLD = 10
-export const STOCK_BAJO_FRASCOS_THRESHOLD = 5
-
 class SSEManager {
   private clients: Map<string, SSEClient> = new Map()
 

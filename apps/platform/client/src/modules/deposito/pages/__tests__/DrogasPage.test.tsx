@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { renderWithQueryClient as render } from '@/test-utils'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
@@ -24,6 +24,7 @@ vi.mock('../../lib/catalogo-productos', () => ({
 }))
 
 vi.mock('@/stores/auth-store', () => ({ useAuthStore: vi.fn() }))
+vi.mock('@/lib/permissions', () => ({ can: vi.fn().mockReturnValue(true) }))
 
 describe('DrogasPage', () => {
   beforeEach(() => {
@@ -56,6 +57,7 @@ describe('DrogasPage', () => {
     expect(screen.getAllByText(/paracetamol/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/Ibuprofeno/i)[0]).toBeInTheDocument()
   })
+
   it('shows an explicit empty state for a selected catalog product absent from inventory', async () => {
     vi.mocked(api.get).mockImplementation(async url => {
       if (url.startsWith('/drogas')) return createDrogaRecords()
@@ -76,6 +78,87 @@ describe('DrogasPage', () => {
       expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
     })
     expect(screen.queryByTitle(/Eliminar/i)).not.toBeInTheDocument()
-    expect(screen.queryByTitle(/Editar lote/i)).not.toBeInTheDocument()
+  })
+
+  it('inicialmente ninguna fila expandida, click fila A expande solo A, click B expande B y cierra A, click B cierra todas (incluso con filas Sin Lote)', async () => {
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url.startsWith('/drogas')) {
+        return [
+          { id: '', productoId: 'prod-citrico', nombre: 'ÁCIDO CÍTRICO', lote: null, vencimiento: null, cantidad: 0, updatedAt: '2026-07-17T10:00:00.000Z' },
+          { id: '', productoId: 'prod-oleico', nombre: 'ÁCIDO OLEICO', lote: null, vencimiento: null, cantidad: 0, updatedAt: '2026-07-17T10:00:00.000Z' },
+        ]
+      }
+      return []
+    })
+    render(<MemoryRouter><DrogasPage /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
+    })
+
+    const rows = screen.getAllByRole('button', { expanded: false })
+    expect(rows.length).toBeGreaterThanOrEqual(2)
+    const rowA = rows[0]
+    const rowB = rows[1]
+
+    // 1. inicialmente ninguna fila expandida
+    expect(rowA).toHaveAttribute('aria-expanded', 'false')
+    expect(rowB).toHaveAttribute('aria-expanded', 'false')
+
+    // 2. click fila A → solo A expandida
+    fireEvent.click(rowA)
+    expect(rowA).toHaveAttribute('aria-expanded', 'true')
+    expect(rowB).toHaveAttribute('aria-expanded', 'false')
+    
+    // Verificamos que el DOM real solo tiene un panel de detalle expandido por vista (2 en total)
+    expect(screen.getAllByText(/Fecha de ingreso|Ingreso/).length).toBe(2)
+
+    // 3. click fila B → A cerrada, B expandida
+    fireEvent.click(rowB)
+    expect(rowA).toHaveAttribute('aria-expanded', 'false')
+    expect(rowB).toHaveAttribute('aria-expanded', 'true')
+    
+    expect(screen.getAllByText(/Fecha de ingreso|Ingreso/).length).toBe(2)
+
+    // 4. click B otra vez → ninguna expandida
+    fireEvent.click(rowB)
+    expect(rowA).toHaveAttribute('aria-expanded', 'false')
+    expect(rowB).toHaveAttribute('aria-expanded', 'false')
+    
+    expect(screen.queryByText(/Fecha de ingreso|Ingreso/)).not.toBeInTheDocument()
+  })
+
+  it('shows Carga inicial button which opens the modal with catalog products', async () => {
+    vi.mocked(api.get).mockImplementation(async url => {
+      if (url.startsWith('/drogas')) return []
+      return []
+    })
+    
+    // Mock the catalog to return some products
+    const fetchCatalogo = vi.mocked(await import('../../lib/catalogo-productos')).fetchCatalogoProductos
+    fetchCatalogo.mockResolvedValue([
+      { id: 'prod-1', nombreCompleto: 'Droga Catalogada 1', categoria: 'droga' }
+    ])
+    
+    render(<MemoryRouter><DrogasPage /></MemoryRouter>)
+    
+    // Wait for button to be enabled (catalog loaded)
+    const button = await screen.findByRole('button', { name: 'Carga inicial' })
+    expect(button).toBeInTheDocument()
+    expect(button).toBeEnabled() // canManage is true by default in mock
+    
+    // Open modal
+    fireEvent.click(button)
+    
+    // Wait for modal to open
+    const modalTitle = await screen.findByRole('heading', { name: 'Carga inicial' })
+    expect(modalTitle).toBeInTheDocument()
+    
+    // Verify catalog items are in the inventario select
+    const inventarioSelect = screen.getByLabelText('Producto')
+    expect(inventarioSelect).toBeInTheDocument()
+    
+    const option = await screen.findByRole('option', { name: 'Droga Catalogada 1' })
+    expect(option).toBeInTheDocument()
+    expect(option).toHaveAttribute('value', 'prod-1')
   })
 })

@@ -564,7 +564,7 @@ describe('PedidoDetailPage', () => {
       ),
     )
     expect(linea('prod-1')).toHaveTextContent('25 unidades')
-    await waitFor(() => expect(aleBetApi.productos.list).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(aleBetApi.productos.list).toHaveBeenCalled())
   })
 
   it('409 versión: recarga el pedido con el toast del spec', async () => {

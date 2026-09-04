@@ -2,15 +2,26 @@ import crypto from 'node:crypto'
 import { Prisma, platformDb as prisma } from '@platform/db'
 import { descomponerUnidades } from '../constants'
 import { allocateAvailability, orderEligibleLots } from '../inventory-service'
-import { reserveFefo, StockConflictError } from '../reservas-service'
+import { consumeActiveReservations, reserveFefo, StockConflictError } from '../reservas-service'
 import type { MatchProduct, MatchCustomer, ParsedOrder, ParsedOrderLine } from './contracts'
-import { interpretOrder, normalizeForMatch } from './interpreter'
+import { hasStrongMismatch, interpretOrder, normalizeForMatch, presentationMismatch } from './interpreter'
 
 export class AutomationConflictError extends Error {}
 export class AutomationNotFoundError extends Error {}
 
-type DraftLineInput = { productId: string; cajas?: number; unidades?: number; mode?: 'BOXES' | 'UNITS' | 'MIXED'; rememberAlias?: boolean }
-type DraftEditInput = { clienteId: string; rememberClientAlias?: boolean; lines: DraftLineInput[] }
+type DraftLineEdit = {
+  lineId: string
+  productId?: string
+  cajas?: number
+  unidades?: number
+  mode?: 'BOXES' | 'UNITS' | 'MIXED'
+  rememberAlias?: boolean
+}
+// Kept only for an internal, untracked diagnostic caller. HTTP accepts the
+// semantic `line` edit exclusively, so a client can never submit a destructive
+// replacement snapshot.
+type LegacyDraftLineInput = { productId: string; cajas?: number; unidades?: number; mode?: 'BOXES' | 'UNITS' | 'MIXED'; rememberAlias?: boolean }
+type DraftEditInput = { clienteId?: string; rememberClientAlias?: boolean; line?: DraftLineEdit; lines?: LegacyDraftLineInput[] }
 
 function json(value: unknown): Prisma.InputJsonValue { return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue }
 function parsed(value: Prisma.JsonValue): ParsedOrder { return JSON.parse(JSON.stringify(value)) as ParsedOrder }
@@ -35,7 +46,14 @@ export async function interpretAndPersistDraft(originalText: string, actorId: st
   ])
   const mappedProducts: MatchProduct[] = products.map((p: any) => ({
     ...p,
-    aliases: productAliases.filter((a: any) => a.productId === p.id).map((a: any) => a.alias)
+    aliases: productAliases.flatMap((alias: any) => {
+      if (alias.productId !== p.id) return []
+      if (hasStrongMismatch(alias.alias, p.nombre)) {
+        console.warn(`[automation] Ignorando ProductAlias inconsistente ${alias.id} para producto ${p.id}`)
+        return []
+      }
+      return [alias.alias]
+    })
   }))
   const mappedCustomers: MatchCustomer[] = customers.map((c: any) => ({
     ...c,
@@ -48,7 +66,23 @@ export async function interpretAndPersistDraft(originalText: string, actorId: st
 }
 
 function effectiveSnapshot(draft: { proposedSnapshot: Prisma.JsonValue; editedSnapshot: Prisma.JsonValue | null }): ParsedOrder {
-  return parsed(draft.editedSnapshot ?? draft.proposedSnapshot)
+  const snapshot = parsed(draft.editedSnapshot ?? draft.proposedSnapshot)
+  return {
+    ...snapshot,
+    lines: snapshot.lines.map((line, index) => ({
+      ...line,
+      // Existing drafts predate lineId. The original text plus its source
+      // position remains stable because partial edits never remove/reorder lines.
+      lineId: line.lineId ?? `line-${crypto.createHash('sha256').update(`${index}\u0000${line.originalText}`).digest('hex').slice(0, 16)}`,
+    })),
+  }
+}
+
+function refreshReviewState(snapshot: ParsedOrder): ParsedOrder {
+  return {
+    ...snapshot,
+    requiresReview: snapshot.warnings.length > 0 || snapshot.lines.some((line) => line.requiresReview || line.warnings.length > 0 || !line.productCandidate),
+  }
 }
 
 export async function applyDraftEdit(id: string, expectedVersion: number, input: DraftEditInput) {
@@ -58,26 +92,54 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
     if (!draft) throw new AutomationNotFoundError('Borrador de interpretación no encontrado')
     if (draft.estado === 'CONFIRMED' || draft.estado === 'CANCELLED') throw new AutomationConflictError('El borrador ya no puede editarse')
     if (draft.version !== expectedVersion) throw new AutomationConflictError('La versión del borrador cambió; actualizá antes de reintentar')
-    const [customer, products] = await Promise.all([
-      tx.cliente.findFirst({ where: { id: input.clienteId, activo: true } }),
-      tx.producto.findMany({ where: { id: { in: input.lines.map((line) => line.productId) }, activo: true } }),
-    ])
-    if (!customer) throw new AutomationConflictError('El cliente no existe o está inactivo')
-    if (products.length !== new Set(input.lines.map((line) => line.productId)).size) throw new AutomationConflictError('Uno o más productos no existen o están inactivos')
     const source = effectiveSnapshot(draft)
-    const lines: ParsedOrderLine[] = await Promise.all(input.lines.map(async (line, index) => {
-      const product = products.find((entry) => entry.id === line.productId)
-      if (!product) throw new AutomationConflictError('Producto inválido')
-      const cajas = assertQuantity(line.cajas, 'cajas')
-      const unidades = assertQuantity(line.unidades, 'unidades')
+    let edited = parsed(json(source) as Prisma.JsonValue)
+
+    if (input.clienteId) {
+      const customer = await tx.cliente.findFirst({ where: { id: input.clienteId, activo: true } })
+      if (!customer) throw new AutomationConflictError('El cliente no existe o está inactivo')
+      if (input.rememberClientAlias && source.customerCandidateText) {
+        const aliasNormalized = normalizeForMatch(source.customerCandidateText)
+        const existing = await tx.clientAlias.findUnique({ where: { aliasNormalized } })
+        if (!existing) {
+          await tx.clientAlias.create({ data: { alias: source.customerCandidateText, aliasNormalized, clientId: input.clienteId } })
+        } else if (existing.clientId !== input.clienteId) {
+          throw new AutomationConflictError(`El alias "${source.customerCandidateText}" ya pertenece a otro cliente.`)
+        }
+      }
+      edited = {
+        ...edited,
+        customerCandidate: { customerId: customer.id, nombre: customer.nombre, confidence: 1 },
+        customerAlternatives: [],
+        customerConfidence: 1,
+        warnings: edited.warnings.filter((warning) => warning !== 'CUSTOMER_UNRESOLVED'),
+      }
+    }
+
+    if (input.line) {
+      const lineIndex = edited.lines.findIndex((line) => line.lineId === input.line?.lineId)
+      if (lineIndex < 0) throw new AutomationConflictError('La línea a editar ya no existe; actualizá antes de reintentar')
+      const currentLine = edited.lines[lineIndex]!
+      const productId = input.line.productId ?? currentLine.productCandidate?.productId
+      if (!productId) throw new AutomationConflictError('Seleccioná un producto para esta línea')
+      const product = await tx.producto.findFirst({ where: { id: productId, activo: true } })
+      if (!product) throw new AutomationConflictError('El producto no existe o está inactivo')
+      const cajas = assertQuantity(input.line.cajas ?? currentLine.quantity.explicitBoxes ?? 0, 'cajas')
+      const unidades = assertQuantity(input.line.unidades ?? currentLine.quantity.explicitUnits ?? 0, 'unidades')
       const totalUnits = cajas * product.unidadesPorCaja + unidades
       if (totalUnits <= 0) throw new AutomationConflictError('Cada línea debe solicitar al menos una unidad')
       const normalized = descomponerUnidades(totalUnits, product.unidadesPorCaja)
-      const mode = line.mode ?? (cajas > 0 && unidades > 0 ? 'MIXED' : cajas > 0 ? 'BOXES' : 'UNITS')
+      const mode = input.line.mode ?? currentLine.quantity.mode ?? (cajas > 0 && unidades > 0 ? 'MIXED' : cajas > 0 ? 'BOXES' : 'UNITS')
       const { extractQuantityAndProduct } = await import('./interpreter')
-      const parsedLine = extractQuantityAndProduct(source.lines[index]?.originalText ?? '')
-      
-      if (line.rememberAlias && parsedLine.productText) {
+      const parsedLine = extractQuantityAndProduct(currentLine.originalText)
+      if (input.line.rememberAlias && parsedLine.productText) {
+        const conflictingPresentation = presentationMismatch(parsedLine.productText, product.nombre)
+        if (conflictingPresentation) {
+          throw new AutomationConflictError(`La presentación ${conflictingPresentation} no coincide con el producto seleccionado: ${product.nombre}.`)
+        }
+        if (hasStrongMismatch(parsedLine.productText, product.nombre)) {
+          throw new AutomationConflictError(`Los identificadores del alias no coinciden con el producto seleccionado: ${product.nombre}.`)
+        }
         const aliasNormalized = normalizeForMatch(parsedLine.productText)
         const existing = await tx.productAlias.findUnique({ where: { aliasNormalized } })
         if (!existing) {
@@ -86,28 +148,29 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
           throw new AutomationConflictError(`El alias "${parsedLine.productText}" ya pertenece a otro producto.`)
         }
       }
-
-      return {
-        originalText: source.lines[index]?.originalText ?? `${product.nombre}: ${totalUnits}`,
+      const lines: ParsedOrderLine[] = [...edited.lines]
+      lines[lineIndex] = {
+        ...currentLine,
         productCandidate: { productId: product.id, nombre: product.nombre, confidence: 1 },
-        alternatives: [], confidence: 1, requiresReview: false, warnings: [],
-        quantity: { originalExpression: `${cajas} cajas + ${unidades} unidades`, mode, explicitBoxes: cajas || null, explicitUnits: unidades || null, totalUnits, normalizedBoxes: normalized.cajas, normalizedLooseUnits: normalized.sueltos },
+        alternatives: [],
+        confidence: 1,
+        requiresReview: false,
+        warnings: [],
+        quantity: {
+          originalExpression: currentLine.quantity.originalExpression,
+          mode,
+          explicitBoxes: cajas || null,
+          explicitUnits: unidades || null,
+          totalUnits,
+          normalizedBoxes: normalized.cajas,
+          normalizedLooseUnits: normalized.sueltos,
+        },
       }
-    }))
-    
-    // Save client alias
-    if (input.rememberClientAlias && source.customerCandidateText) {
-      const aliasNormalized = normalizeForMatch(source.customerCandidateText)
-      const existing = await tx.clientAlias.findUnique({ where: { aliasNormalized } })
-      if (!existing) {
-        await tx.clientAlias.create({ data: { alias: source.customerCandidateText, aliasNormalized, clientId: input.clienteId } })
-      } else if (existing.clientId !== input.clienteId) {
-        throw new AutomationConflictError(`El alias "${source.customerCandidateText}" ya pertenece a otro cliente.`)
-      }
+      edited = { ...edited, lines }
     }
 
-    const edited: ParsedOrder = { originalText: draft.originalText, customerCandidate: { customerId: customer.id, nombre: customer.nombre, confidence: 1 }, customerAlternatives: [], customerConfidence: 1, lines, requiresReview: false, warnings: [] }
-    return tx.orderInterpretationDraft.update({ where: { id }, data: { editedSnapshot: json(edited), estado: 'READY', version: { increment: 1 } } })
+    const finalized = refreshReviewState(edited)
+    return tx.orderInterpretationDraft.update({ where: { id }, data: { editedSnapshot: json(finalized), estado: finalized.requiresReview ? 'DRAFT' : 'READY', version: { increment: 1 } } })
   })
 }
 
@@ -159,13 +222,17 @@ export async function confirmDraftInTransaction(tx: Prisma.TransactionClient, in
   ])
   if (!customer) throw new AutomationConflictError('El cliente no existe, está inactivo o pendiente de validación')
   if (products.length !== items.length) throw new AutomationConflictError('Uno o más productos no existen o están inactivos')
-  const pedido = await tx.pedido.create({ data: { numero: orderNumber(), clienteId: customer.id, vendedorId: input.actorId, estado: 'BORRADOR', items: { create: items.map((item) => ({ producto: { connect: { id: item.productId } }, cantidad: item.cantidad })) } }, include: { cliente: true, items: { include: { producto: true } } } })
+  const pedido = await tx.pedido.create({ data: { numero: orderNumber(), clienteId: customer.id, origen: 'AUTOMATION', estado: 'BORRADOR', items: { create: items.map((item) => ({ producto: { connect: { id: item.productId } }, cantidad: item.cantidad })) } }, include: { cliente: true, items: { include: { producto: true } } } })
   await audit(tx, pedido.id, input.actorId, 'BORRADOR_CREADO_AUTOMATION', { draftId: draft.id, items })
   const { getOrderAvailability, transferInternal } = await import('../inventory-service')
   const availability = await getOrderAvailability(tx, pedido)
   if (availability.status === 'INSUFICIENTE') throw new StockConflictError('Stock insuficiente para aprobar el pedido')
   for (const transfer of availability.transferencias) await transferInternal(tx, { ...transfer, actorId: input.actorId, idempotencyKey: `automation:${draft.id}:${transfer.loteId}` })
   await reserveFefo(tx, pedido.id, pedido.items)
+  // Reuse the established FEFO reservation path for locks/allocation, then
+  // consume it before commit. Automation therefore has no active reservation
+  // or deferred Armador stock operation after confirmation.
+  await consumeActiveReservations(tx, pedido.id, input.actorId)
   const approved = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'APROBADO', aprobadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
   await audit(tx, approved.id, input.actorId, 'PEDIDO_APROBADO_AUTOMATION', { draftId: draft.id, estado: approved.estado })
   await tx.orderInterpretationDraft.update({ where: { id: draft.id }, data: { estado: 'CONFIRMED', confirmedBy: input.actorId, pedidoId: approved.id, version: { increment: 1 } } })

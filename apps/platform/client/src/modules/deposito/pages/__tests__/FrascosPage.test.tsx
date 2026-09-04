@@ -4,6 +4,7 @@ import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
+import { apiClient } from '@/lib/api-client'
 import FrascosPage from '../FrascosPage'
 import { createFrasco, createFrascoList } from './fixtures/deposito-mock-factories'
 import { createMockUser } from '@/test-utils'
@@ -18,6 +19,10 @@ vi.mock('../../lib/api', () => ({
 
 vi.mock('../../lib/toast', () => ({
   toast: { info: vi.fn(), error: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}))
+
+vi.mock('@/lib/api-client', () => ({
+  apiClient: { post: vi.fn() },
 }))
 
 vi.mock('../../lib/catalogo-productos', () => ({
@@ -53,12 +58,14 @@ describe('FrascosPage', () => {
     expect(screen.getAllByText('DORADO 250 ML').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('240')).toBeInTheDocument()
   })
+
   it('orders compatible volume presentations numerically', async () => {
     vi.mocked(api.get).mockResolvedValue([
       createFrasco({ id: 'frasco-1l', articulo: 'DORADO 1 L' }),
       createFrasco({ id: 'frasco-500ml', articulo: 'DORADO 500 ML' }),
     ])
     render(<MemoryRouter><FrascosPage /></MemoryRouter>)
+
     await screen.findByRole('heading', { name: 'Frascos' })
     const rows = await screen.findAllByRole('row')
     expect(rows.slice(1).map((row) => row.querySelector('td')?.textContent)).toEqual([
@@ -100,5 +107,41 @@ describe('FrascosPage', () => {
     await screen.findByRole('heading', { name: 'Frascos' })
     await user.click(screen.getAllByRole('button', { name: 'Eliminar DORADO 250 ML' })[0])
     await waitFor(() => expect(api.del).toHaveBeenCalledWith('/frascos/frasco-1'))
+  })
+
+  it('updates table automatically without reload after Carga inicial', async () => {
+    vi.mocked(api.get).mockResolvedValue([{ id: 'frasco-zero', articulo: 'NUEVO FRASCO', unidadesPorCaja: 50, cantidadCajas: 0, total: 0, updatedAt: '2023-01-01' }])
+    
+    vi.mocked(apiClient.post).mockResolvedValue({})
+    const user = userEvent.setup()
+    render(<MemoryRouter><FrascosPage /></MemoryRouter>)
+    
+    await screen.findByRole('heading', { name: 'Frascos' })
+    const initialTotals = screen.getAllByText('0')
+    expect(initialTotals.length).toBeGreaterThan(0)
+    
+    // Open modal
+    await user.click(screen.getByRole('button', { name: 'Carga inicial' }))
+    expect(screen.getByRole('heading', { name: 'Carga inicial' })).toBeInTheDocument()
+    
+    // Fill modal
+    const select = screen.getByRole('combobox')
+    await user.selectOptions(select, 'frasco-zero')
+    const cantidadInput = screen.getByLabelText('Cantidad de cajas')
+    expect(cantidadInput).toHaveValue(null)
+    await user.type(cantidadInput, '10')
+    expect(cantidadInput).toHaveValue(10)
+    
+    // Mock the subsequent get to return updated value BEFORE submitting
+    vi.mocked(api.get).mockResolvedValue([{ id: 'frasco-zero', articulo: 'NUEVO FRASCO', unidadesPorCaja: 50, cantidadCajas: 10, total: 500, updatedAt: '2023-01-01' }])
+    
+    await user.click(screen.getByRole('button', { name: 'Guardar saldo de apertura' }))
+    
+    // Wait for modal to close and table to refresh
+    await waitFor(() => expect(screen.queryByRole('heading', { name: 'Carga inicial' })).not.toBeInTheDocument())
+    
+    // Expect query invalidation caused a refetch, showing the new total
+    expect(await screen.findByText('500')).toBeInTheDocument()
+    expect(screen.getAllByText('10').length).toBeGreaterThanOrEqual(1)
   })
 })

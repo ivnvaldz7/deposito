@@ -38,7 +38,7 @@ router.put('/:id', requirePermission('ale-bet', 'clientes.update'), async (req, 
   res.json(await prisma.cliente.update({ where: { id: String(req.params.id) }, data: parsed.data }))
 })
 router.post('/import', requirePermission('ale-bet', 'clientes.import'), async (req, res) => {
-  const parsed = z.object({ clientes: z.array(clienteSchema).min(1).max(500) }).safeParse(req.body)
+  const parsed = z.object({ clientes: z.array(baseClienteSchema).min(1).max(500) }).safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
   const result = await prisma.cliente.createMany({ data: parsed.data.clientes.map((cliente) => ({ ...cliente, estado: 'VALIDADO' })), skipDuplicates: true })
   res.status(201).json({ imported: result.count, total: parsed.data.clientes.length })

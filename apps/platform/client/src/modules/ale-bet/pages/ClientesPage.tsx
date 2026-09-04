@@ -128,7 +128,7 @@ function ClienteFormModal({
               VALIDAR CLIENTE
             </Button>
           )}
-          <Button variant={pendiente && puedeEditar ? "outline" : "default"} onClick={() => onGuardar(false)} loading={guardando}>
+          <Button variant={pendiente && puedeEditar ? "outline" : "primary"} onClick={() => onGuardar(false)} loading={guardando}>
             {esNuevo ? 'Crear cliente' : 'Guardar'}
           </Button>
         </div>

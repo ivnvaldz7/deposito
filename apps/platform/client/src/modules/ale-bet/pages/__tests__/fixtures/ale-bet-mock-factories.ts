@@ -6,13 +6,15 @@ export function createDashboardOverview(overrides: Record<string, unknown> = {})
   return {
     stockCritico: 3,
     pedidosHoy: 8,
+    pendientesRemito: 8,
     enArmado: 2,
-    totalProductos: 45,
+    totalProductos: 45, pendientesTomar: 0, preparados: 0, esperandoProduccion: 0,
     pedidosRecientes: [
       {
         id: 'pedido-1',
         numero: 'P-001',
         estado: 'EN_ARMADO' as const,
+        origen: 'MANUAL' as const,
         clienteNombre: 'Cliente A',
         vendedorNombre: 'Vendedor 1',
         armadorNombre: null,
@@ -40,7 +42,7 @@ export function createProducto(overrides: Record<string, unknown> = {}) {
     stockTotal: 500,
     stockDeposito: 500,
     stockAcondicionado: 0,
-    lotes: [],
+    lotes: [] as any[],
     ...overrides,
   }
 }
@@ -169,6 +171,7 @@ export function createPedido(overrides: Record<string, unknown> = {}) {
     clienteId: 'cliente-1',
     vendedorId: 'vendedor-1',
     armadorId: null,
+    origen: 'MANUAL' as const,
     estado: 'BORRADOR' as const,
     version: 1,
     cancelacionSolicitadaAt: null,

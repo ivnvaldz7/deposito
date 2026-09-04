@@ -5,6 +5,8 @@ interface InventoryPageHeaderStat {
   value: number | string
   warning?: boolean
   icon?: ReactNode
+  onClick?: () => void
+  active?: boolean
 }
 
 interface InventoryPageHeaderAction {
@@ -43,13 +45,26 @@ export function InventoryPageHeader({
           </button>
         )}
       </div>
-      <section aria-label="Resumen" className="grid gap-3 sm:grid-cols-3">
+      <section aria-label="Resumen" className="grid gap-3 sm:grid-cols-2">
         {stats.map((stat) => (
-          <article key={stat.label} className="min-h-28 rounded-xl border border-outline-variant/20 bg-surface-container-low p-5">
+          <article
+            key={stat.label}
+            className={`min-h-28 rounded-xl border p-5 transition-colors ${
+              stat.active
+                ? 'bg-primary-container/20 border-primary/50 ring-1 ring-primary/50'
+                : 'border-outline-variant/20 bg-surface-container-low'
+            } ${
+              stat.onClick ? 'cursor-pointer hover:bg-surface-bright focus:outline-none focus:ring-2 focus:ring-primary' : ''
+            }`}
+            onClick={stat.onClick}
+            role={stat.onClick ? "button" : undefined}
+            tabIndex={stat.onClick ? 0 : undefined}
+            onKeyDown={stat.onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stat.onClick?.(); } } : undefined}
+          >
             <div className="flex items-start justify-between">
-              <p className="text-sm text-on-surface-variant">{stat.label}</p>{stat.icon}
+              <p className="text-sm text-on-surface-variant">{stat.label.toUpperCase()}</p>{stat.icon}
             </div>
-            <p className={`mt-4 text-3xl font-bold tabular-nums ${stat.warning ? 'text-error' : 'text-on-surface'}`}>{stat.value}</p>
+            <p className={`mt-4 text-3xl font-bold tabular-nums ${stat.warning && !stat.active ? 'text-error' : 'text-on-surface'}`}>{stat.value}</p>
           </article>
         ))}
       </section>
@@ -66,4 +81,5 @@ export function InventoryPageHeader({
     </div>
   )
 }
+
 

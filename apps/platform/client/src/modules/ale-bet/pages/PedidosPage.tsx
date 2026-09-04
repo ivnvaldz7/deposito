@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils'
 import {
   ESTADO_META,
   esArmadorAsignado,
+  esPedidoAutomation,
   pedidoClientePendiente,
 } from '../lib/estados'
 import { usePedidos } from '../queries'
@@ -53,10 +54,12 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
   const clientePendiente = pedidoClientePendiente(pedido)
   const cancelacionSolicitada = Boolean(pedido.cancelacionSolicitadaAt)
   const esCancelado = pedido.estado === 'CANCELADO'
+  const isAuto = esPedidoAutomation(pedido)
 
   let senalOperativa = ''
   if (cancelacionSolicitada) senalOperativa = 'Cancelación solicitada'
   else if (clientePendiente) senalOperativa = 'Pendiente de validación'
+  else if (isAuto) senalOperativa = remitoVigente ? 'Remito emitido' : 'Pendiente de remito'
   else if (pedido.estado === 'APROBADO') senalOperativa = 'Pendiente de armado'
   else if (pedido.estado === 'EN_ARMADO') senalOperativa = 'En preparación'
   else if (pedido.estado === 'PREPARADO' && !remitoVigente) senalOperativa = 'Esperando remito'
@@ -95,15 +98,21 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
           <p className="truncate text-[18px] font-bold text-on-surface">
             {pedido.cliente.nombre}
           </p>
-          <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">
-            {pedido.vendedorNombre ? `Vendedor ${pedido.vendedorNombre}` : 'Vendedor sin asignar'}
-          </p>
+          {isAuto ? (
+            <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">Automation · Confirmado</p>
+          ) : (
+            <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">
+              {pedido.vendedorNombre ? `Vendedor ${pedido.vendedorNombre}` : 'Vendedor sin asignar'}
+            </p>
+          )}
         </div>
-        <div className="shrink-0 pt-0.5">
-          <Badge variant={meta.variant} className="shadow-sm">
-            {meta.label}
-          </Badge>
-        </div>
+        {!isAuto && (
+          <div className="shrink-0 pt-0.5">
+            <Badge variant={meta.variant} className="shadow-sm">
+              {meta.label}
+            </Badge>
+          </div>
+        )}
       </header>
 
       <div className="mt-1 flex items-center justify-between gap-2">
@@ -111,7 +120,7 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
           {senalOperativa && (
             <p
               className="truncate font-body text-[13px] font-semibold"
-              style={{ color: card.accent }}
+              style={isAuto ? { color: 'var(--text-on-surface-variant, #A0A0A0)' } : { color: card.accent }}
             >
               {senalOperativa}
             </p>
@@ -132,8 +141,9 @@ export default function PedidosPage() {
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
   const userId = user?.sub ?? ''
+  const esFacturacion = rol === 'facturacion'
   const esOperativo = can(user, 'ale-bet', 'pedidos.prepare') || can(user, 'ale-bet', 'pedidos.take')
-  const puedeCrear = can(user, 'ale-bet', 'pedidos.create')
+  const puedeCrear = !esFacturacion && can(user, 'ale-bet', 'pedidos.create')
 
   const armadorFiltros = [
     { valor: '', etiqueta: 'Todos' },
@@ -145,7 +155,7 @@ export default function PedidosPage() {
   const [estadoFilter, setEstadoFilter] = useState<PedidoEstado | ''>((location.state as any)?.estadoFilter ?? '')
   const [soloHoy, setSoloHoy] = useState((location.state as any)?.pedidosHoy ?? false)
 
-  const { data: pedidos = [], isLoading, error } = usePedidos()
+  const { data: pedidos = [], isLoading, error } = usePedidos(esFacturacion ? { bandeja: 'FACTURACION' } : undefined)
 
   useEffect(() => {
     const id = (location.state as { openPedidoId?: string } | null)?.openPedidoId
@@ -156,7 +166,7 @@ export default function PedidosPage() {
     let result = pedidos
     
     if (rol === 'armador') {
-      result = result.filter(p => p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO')
+      result = result.filter(p => p.origen === 'MANUAL' && (p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO'))
     }
 
     if (estadoFilter) result = result.filter((p) => p.estado === estadoFilter)
@@ -182,7 +192,7 @@ export default function PedidosPage() {
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0">
         <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Pedidos</h1>
-        <p className="font-body text-[13px] text-on-surface-variant">Bandeja operativa de pedidos</p>
+        <p className="font-body text-[13px] text-on-surface-variant">{esFacturacion ? 'Pendientes de remito' : 'Bandeja operativa de pedidos'}</p>
       </div>
       {puedeCrear && (
         <button
@@ -223,7 +233,7 @@ export default function PedidosPage() {
     <div className="space-y-6">
       {header}
 
-      <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" aria-label="Filtrar por estado">
+      {!esFacturacion && <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" aria-label="Filtrar por estado">
         {(rol === 'armador' ? armadorFiltros : FILTROS).map((f) => {
           const activo = estadoFilter === f.valor
           return (
@@ -256,11 +266,11 @@ export default function PedidosPage() {
         >
           Solo hoy
         </button>
-      </div>
+      </div>}
 
       {ordenados.length === 0 ? (
         <p className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">
-          {pedidos.length === 0 ? 'No hay pedidos.' : 'No hay pedidos en este estado.'}
+          {pedidos.length === 0 ? (esFacturacion ? 'No hay pedidos pendientes de remito.' : 'No hay pedidos.') : 'No hay pedidos en este estado.'}
         </p>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

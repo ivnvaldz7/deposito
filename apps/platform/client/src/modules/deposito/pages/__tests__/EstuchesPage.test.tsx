@@ -70,7 +70,7 @@ describe('EstuchesPage', () => {
     )
 
     await screen.findByRole('heading', { name: 'Estuches' })
-    await user.click(screen.getByRole('button', { name: 'Colombia (1)' }))
+    await user.click(screen.getByRole('button', { name: 'Colombia' }))
 
     expect(screen.queryByText('AMANTINA PREMIUM 250 ML')).not.toBeInTheDocument()
     expect(screen.getAllByText('AMANTINA PREMIUM 500 ML').length).toBeGreaterThanOrEqual(1)

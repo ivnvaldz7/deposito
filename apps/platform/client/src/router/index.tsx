@@ -5,7 +5,6 @@ import { useAppStore } from '@/stores/app-store'
 import { ProtectedRoute } from '@/components/guards/ProtectedRoute'
 import { AdminRoute } from '@/components/guards/AdminRoute'
 import LoginPage from '@/modules/auth/LoginPage'
-import GoogleCallbackHandler from '@/modules/auth/GoogleCallbackHandler'
 import NoAccessPage from '@/modules/auth/NoAccessPage'
 import DesignPreviewPage from '@/modules/design-preview/DesignPreviewPage'
 
@@ -57,7 +56,6 @@ export function AppRouter() {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/auth/google/callback" element={<GoogleCallbackHandler />} />
       <Route path="/no-access" element={<NoAccessPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/design-preview" element={<DesignPreviewPage />} />

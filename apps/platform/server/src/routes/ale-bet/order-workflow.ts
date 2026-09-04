@@ -42,6 +42,6 @@ export function canVendorCancelDirectly(state: OrderState): boolean {
   return state === 'BORRADOR' || state === 'APROBADO'
 }
 
-export function canReadRemitoPdf(role: string | undefined, ownerId: string, actorId: string): boolean {
+export function canReadRemitoPdf(role: string | undefined, ownerId: string | null, actorId: string): boolean {
   return role !== 'vendedor' || ownerId === actorId
 }

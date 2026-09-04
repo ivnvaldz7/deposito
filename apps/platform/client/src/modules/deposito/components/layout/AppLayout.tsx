@@ -6,17 +6,21 @@ import { CommandPalette } from '../command-palette/CommandPalette'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
 import { useSSE } from '../../hooks/use-sse'
 
-const HIDE_TOPBAR_PATHS = ['/ingresos', '/ingresos/nueva', '/productos']
-
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const togglePalette = useCommandPaletteStore((s) => s.togglePalette)
+
   useSSE()
-  const hideTopbar = HIDE_TOPBAR_PATHS.some((p) => pathname.endsWith(p))
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'K' && e.shiftKey && !(e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement)) {
+      const target = e.target as HTMLElement
+      const isInput = target instanceof HTMLInputElement ||
+                      target instanceof HTMLTextAreaElement ||
+                      target instanceof HTMLSelectElement ||
+                      target.isContentEditable
+
+      if (e.key === 'K' && e.shiftKey && !isInput) {
         e.preventDefault()
         togglePalette()
       }
@@ -25,11 +29,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [togglePalette])
 
+  const showGlobalActions = pathname === '/deposito/dashboard' || pathname === '/deposito/dashboard/'
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className="flex flex-col flex-1 min-w-0 transition-all duration-300 ease-in-out">
-        {!hideTopbar && <Topbar />}
+      <div className="flex flex-col flex-1 min-w-0 md:ml-[280px]">
+        {showGlobalActions && <Topbar />}
         <main className="flex-1 p-margin-desktop overflow-y-auto animate-fadeIn">
           {children}
         </main>

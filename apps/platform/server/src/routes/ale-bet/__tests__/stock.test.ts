@@ -253,6 +253,41 @@ describe('Ale-Bet Stock', () => {
       expect(res.body.productos[0].stockBajo).toBe(true)
     })
 
+    it('uses the product total across locations and does not flag an unconfigured minimum', async () => {
+      mockDb.producto.findMany.mockResolvedValue([
+        {
+          id: 'p-acondicionado',
+          nombre: 'Producto A',
+          sku: 'SKU-A',
+          stockMinimo: 60,
+          unidadesPorCaja: 12,
+          activo: true,
+          lotes: [{ saldos: [
+            { cantidad: 0, ubicacion: { codigo: 'DEPOSITO' } },
+            { cantidad: 200, ubicacion: { codigo: 'ACONDICIONADO' } },
+          ], reservas: [] }],
+        },
+        {
+          id: 'p-unconfigured',
+          nombre: 'Producto B',
+          sku: 'SKU-B',
+          stockMinimo: null,
+          unidadesPorCaja: 12,
+          activo: true,
+          lotes: [{ saldos: [], reservas: [] }],
+        },
+      ])
+      mockDb.movimientoStock.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const res = await request(app).get('/api/ale-bet/stock').set('Authorization', `Bearer ${signToken()}`).expect(200)
+
+      expect(res.body.productos).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'p-acondicionado', stockTotal: 200, stockDeposito: 0, stockAcondicionado: 200, stockBajo: false }),
+        expect.objectContaining({ id: 'p-unconfigured', stockTotal: 0, stockBajo: false }),
+      ]))
+    })
+
     it('aggregates real balances by lot and location, including zero-balance lots', async () => {
       const date = new Date()
       mockDb.producto.findMany.mockResolvedValue([

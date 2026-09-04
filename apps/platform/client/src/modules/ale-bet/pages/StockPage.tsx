@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useStockOverview } from '../queries'
 import { type Producto, type Lote } from '../lib/api'
 import { matchesFunctionalProductSearch } from '../lib/logistics-display'
+import { SaldoAperturaStockModal } from '../components/SaldoAperturaStockModal'
 
 function LotesInline({ producto }: { producto: Producto }) {
   const lotes = producto.lotes || []
@@ -44,6 +45,7 @@ export default function StockPage() {
   const { data, isLoading, error } = useStockOverview()
   const [search, setSearch] = useState('')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   function toggleRow(id: string) {
     setExpandedRow((prev) => (prev === id ? null : id))
@@ -56,9 +58,12 @@ export default function StockPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Stock</h1>
-        <p className="font-body text-[13px] text-on-surface-variant">Visión consolidada de inventario</p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Stock</h1>
+          <p className="font-body text-[13px] text-on-surface-variant">Visión consolidada de inventario</p>
+        </div>
+        <button type="button" className="btn-primary" onClick={() => setAperturaOpen(true)}>Saldo de apertura</button>
       </div>
 
       <input
@@ -116,6 +121,7 @@ export default function StockPage() {
           </table>
         )}
       </div>
+      {aperturaOpen && <SaldoAperturaStockModal onClose={() => setAperturaOpen(false)} />}
     </div>
   )
 }

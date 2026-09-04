@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Fuse from 'fuse.js'
 import { Check, ChevronDown, PackagePlus, Plus } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
-import { can } from '@/lib/permissions'
 import { api, ApiError } from '../lib/api'
 import { toast } from '../lib/toast'
 import {
@@ -622,6 +621,8 @@ function PendienteCard({
     </div>
   )
 }
+
+import { can } from '@/lib/permissions'
 
 export default function PendientesPage() {
   const user = useAuthStore((s) => s.user)

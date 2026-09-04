@@ -147,6 +147,10 @@ export function esArmadorAsignado(pedido: Pedido, userId: string): boolean {
   return pedido.armadorId === userId
 }
 
+export function esPedidoAutomation(pedido: Pedido): boolean {
+  return pedido.origen === 'AUTOMATION'
+}
+
 import { roleHasPermission } from '@platform/core/permissions'
 
 export function canAprobar(pedido: Pedido, rol: string, userId: string): boolean {
@@ -156,10 +160,12 @@ export function canAprobar(pedido: Pedido, rol: string, userId: string): boolean
 }
 
 export function canTomar(pedido: Pedido, rol: string, userId: string): boolean {
+  if (esPedidoAutomation(pedido)) return false
   return roleHasPermission('ale-bet', rol, 'pedidos.take') && pedido.estado === 'APROBADO'
 }
 
 export function canPreparar(pedido: Pedido, rol: string, userId: string): boolean {
+  if (esPedidoAutomation(pedido)) return false
   if (pedido.estado !== 'EN_ARMADO') return false
   if (!roleHasPermission('ale-bet', rol, 'pedidos.prepare')) return false
   if (rol !== 'admin' && rol !== 'encargado' && !esArmadorAsignado(pedido, userId)) return false
@@ -167,6 +173,7 @@ export function canPreparar(pedido: Pedido, rol: string, userId: string): boolea
 }
 
 export function canDespachar(pedido: Pedido, rol: string, userId: string): boolean {
+  if (esPedidoAutomation(pedido)) return false
   if (!roleHasPermission('ale-bet', rol, 'pedidos.dispatch') || pedido.estado !== 'PREPARADO') return false
   if (rol !== 'admin' && rol !== 'encargado' && !esArmadorAsignado(pedido, userId)) return false
   return Boolean(pedido.remitos?.some((r) => r.estado === 'VIGENTE'))
@@ -185,6 +192,7 @@ export function canSolicitarCancelacion(pedido: Pedido, rol: string, userId: str
 }
 
 export function canConfirmarCancelacion(pedido: Pedido, rol: string, userId: string): boolean {
+  if (esPedidoAutomation(pedido)) return false
   if (!roleHasPermission('ale-bet', rol, 'pedidos.confirm_cancel') || pedido.estado !== 'EN_ARMADO' || !pedido.cancelacionSolicitadaAt) return false
   if (rol !== 'admin' && rol !== 'encargado' && !esArmadorAsignado(pedido, userId)) return false
   return true

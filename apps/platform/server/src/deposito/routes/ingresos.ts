@@ -8,6 +8,8 @@ import { sseManager } from '../lib/sse-manager'
 import { eventBus } from '@platform/core'
 import { generarLote } from '../lib/lote-generator'
 import { validateIngresoCatalogo } from '../services/ingreso-catalogo-rules'
+import { addDrugLotInventory, DrugLotConflictError } from '../services/droga-inventory-service'
+import { ExpiryMonthValidationError, parseExpiryMonth } from '../services/expiry-month'
 
 const router = Router()
 const mercados = Object.values(Mercado) as [Mercado, ...Mercado[]]
@@ -16,9 +18,9 @@ const crearIngresoSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
   productoId: z.string().uuid(),
   lote: z.string().trim().min(1).max(50).optional(),
-  vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  vencimientoMes: z.string().regex(/^\d{4}-\d{2}$/, 'Vencimiento inválido. Usá mes y año (MM/AAAA).').optional(),
   mercado: z.enum(mercados).optional(),
-  cantidad: z.number().int().positive().optional(),
+  cantidad: z.number().positive().optional(),
   cantidadCajas: z.number().int().positive().optional(),
   unidadesPorCaja: z.number().int().positive().optional(),
   observaciones: z.string().max(500).optional(),
@@ -45,10 +47,18 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
       cantidadCajas: data.cantidadCajas,
       unidadesPorCaja: data.unidadesPorCaja,
       lote: data.lote,
-      vencimiento: data.vencimiento,
+      vencimiento: data.vencimientoMes,
     })
   } catch (error) {
     invalid(res, error instanceof Error ? error.message : 'Datos de ingreso inválidos')
+    return
+  }
+
+  let vencimiento: Date | null = null
+  try {
+    vencimiento = data.vencimientoMes ? parseExpiryMonth(data.vencimientoMes) : null
+  } catch (error) {
+    invalid(res, error instanceof Error ? error.message : 'Vencimiento inválido')
     return
   }
 
@@ -60,12 +70,16 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
     const acta = await prisma.$transaction(async (tx) => {
       const actaRecord = await tx.acta.create({ data: { fecha: new Date(`${data.fecha}T00:00:00.000Z`), notas: data.observaciones ?? null, createdBy: currentUser.id } })
       const item = await tx.actaItem.create({
-        data: { actaId: actaRecord.id, productoId: producto.id, categoria: producto.categoria, productoNombre: producto.nombreCompleto, lote: loteFinal, vencimiento: data.vencimiento ? new Date(`${data.vencimiento}T00:00:00.000Z`) : null, mercado: materialConMercado ? data.mercado : null, cantidadIngresada: cantidad, cantidadDistribuida: cantidad },
+        data: { actaId: actaRecord.id, productoId: producto.id, categoria: producto.categoria, productoNombre: producto.nombreCompleto, lote: loteFinal, vencimiento, mercado: materialConMercado ? data.mercado : null, cantidadIngresada: cantidad, cantidadDistribuida: cantidad },
       })
       if (producto.categoria === 'droga') {
-        const existing = await tx.inventarioDroga.findFirst({ where: { productoId: producto.id, lote: loteFinal } })
-        if (existing) await tx.inventarioDroga.update({ where: { id: existing.id }, data: { cantidad: { increment: cantidad } } })
-        else await tx.inventarioDroga.create({ data: { productoId: producto.id, nombre: producto.nombreCompleto, lote: loteFinal, vencimiento: data.vencimiento ? new Date(`${data.vencimiento}T00:00:00.000Z`) : null, cantidad } })
+        await addDrugLotInventory(tx, {
+          productoId: producto.id,
+          nombre: producto.nombreCompleto,
+          lote: loteFinal,
+          vencimiento: vencimiento!,
+          cantidad,
+        })
       } else if (producto.categoria === 'estuche') {
         const existing = await tx.inventarioEstuche.findUnique({ where: { productoId_mercado: { productoId: producto.id, mercado: data.mercado! } } })
         if (!existing) throw new Error('Falta el inventario inicial del mercado habilitado')
@@ -90,7 +104,15 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
     res.status(201).json(acta)
   } catch (error) {
     console.error(error)
-    res.status(500).json({ message: 'Error interno del servidor' })
+    if (error instanceof DrugLotConflictError) {
+      res.status(409).json({ message: error.message })
+      return
+    }
+    if (error instanceof ExpiryMonthValidationError) {
+      invalid(res, error.message)
+      return
+    }
+    res.status(500).json({ message: 'No se pudo registrar el ingreso. Intentá nuevamente.' })
   }
 })
 

@@ -1,0 +1,9 @@
+{
+  "lens": "review-reliability",
+  "findings": [],
+  "evidence": [
+    "Focused unit tests: 3 files, 18/18 PASS",
+    "Focused integration tests: alebet01-verify-fixes + concurrencia, 17/17 PASS",
+    "Staged scope contains exactly 4 Logistics backend files; no UI, migration, temporary, or unrelated paths staged"
+  ]
+}

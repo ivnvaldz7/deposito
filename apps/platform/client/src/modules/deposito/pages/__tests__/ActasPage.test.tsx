@@ -52,4 +52,17 @@ describe('ActasPage', () => {
     })
     expect(screen.getByText('Actas', { selector: 'h1' })).toBeInTheDocument()
   })
+
+  it('hides create button without ingresos.create permission', async () => {
+    vi.mocked(api.get).mockResolvedValue([])
+    ;(useAuthStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+      user: createMockUser({ apps: { deposito: { rol: 'observador', activo: true } } }),
+      token: 'token'
+    })
+    render(<MemoryRouter><ActasPage /></MemoryRouter>)
+    await waitFor(() => {
+      expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
+    })
+    expect(screen.queryByText(/\+ Nueva Acta/i)).not.toBeInTheDocument()
+  })
 })

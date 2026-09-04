@@ -26,7 +26,7 @@ export function aggregateProductStock<T extends StockSaldosInput>(producto: { lo
 }
 
 export type ProductoConStockYReservas = {
-  stockMinimo: number
+  stockMinimo: number | null
   lotes: Array<
     StockSaldosInput & {
       reservas?: Array<{ cantidad: number; estado?: string }>
@@ -46,6 +46,6 @@ export function aggregateProductAvailability<T extends ProductoConStockYReservas
     ...aggregated,
     reservado,
     disponible: aggregated.stockTotal - reservado,
-    stockBajo: aggregated.stockTotal < producto.stockMinimo,
+    stockBajo: producto.stockMinimo !== null && aggregated.stockTotal <= producto.stockMinimo,
   }
 }

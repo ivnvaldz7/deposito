@@ -43,7 +43,11 @@ function buildMovimientoWhere(filters: {
   if (dateFilter) where.createdAt = dateFilter
   if (filters.categoria) where.categoria = filters.categoria as any['categoria']
   if (filters.producto) {
-    where.productoNombre = { equals: filters.producto, mode: 'insensitive' }
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.producto)) {
+      where.productoId = filters.producto
+    } else {
+      where.productoNombre = { equals: filters.producto, mode: 'insensitive' }
+    }
   }
 
   return where

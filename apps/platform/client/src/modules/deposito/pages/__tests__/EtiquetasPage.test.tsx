@@ -64,7 +64,7 @@ describe('EtiquetasPage', () => {
     render(<MemoryRouter initialEntries={['/deposito/etiquetas']}><EtiquetasPage /><LocationProbe /></MemoryRouter>)
 
     await screen.findByRole('heading', { name: 'Etiquetas' })
-    await user.click(screen.getByRole('button', { name: 'México (1)' }))
+    await user.click(screen.getByRole('button', { name: 'México' }))
 
     expect(screen.queryByText('ETIQ AMANTINA 250 ML')).not.toBeInTheDocument()
     expect(screen.getAllByText('ETIQ AMANTINA 500 ML').length).toBeGreaterThanOrEqual(1)

@@ -128,6 +128,7 @@ exports.Prisma.PlatformUserScalarFieldEnum = {
   activo: 'activo',
   estado: 'estado',
   isPlatformAdmin: 'isPlatformAdmin',
+  mustChangePassword: 'mustChangePassword',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -154,6 +155,30 @@ exports.Prisma.NotificationScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.SessionScalarFieldEnum = {
+  id: 'id',
+  platformUserId: 'platformUserId',
+  tokenHash: 'tokenHash',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  userAgent: 'userAgent',
+  ip: 'ip'
+};
+
+exports.Prisma.PlatformAuditoriaScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  targetUserId: 'targetUserId',
+  action: 'action',
+  app: 'app',
+  previous: 'previous',
+  next: 'next',
+  ip: 'ip',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.IdempotencyRecordScalarFieldEnum = {
   id: 'id',
   actorId: 'actorId',
@@ -175,6 +200,15 @@ exports.Prisma.ProductoScalarFieldEnum = {
   stockMinimo: 'stockMinimo',
   unidadesPorCaja: 'unidadesPorCaja',
   activo: 'activo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProductAliasScalarFieldEnum = {
+  id: 'id',
+  alias: 'alias',
+  aliasNormalized: 'aliasNormalized',
+  productId: 'productId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -208,12 +242,22 @@ exports.Prisma.ClienteScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ClientAliasScalarFieldEnum = {
+  id: 'id',
+  alias: 'alias',
+  aliasNormalized: 'aliasNormalized',
+  clientId: 'clientId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.PedidoScalarFieldEnum = {
   id: 'id',
   numero: 'numero',
   clienteId: 'clienteId',
   vendedorId: 'vendedorId',
   armadorId: 'armadorId',
+  origen: 'origen',
   estado: 'estado',
   version: 'version',
   cancelacionSolicitadaAt: 'cancelacionSolicitadaAt',
@@ -246,6 +290,9 @@ exports.Prisma.MovimientoStockScalarFieldEnum = {
   pedidoId: 'pedidoId',
   loteId: 'loteId',
   reservaId: 'reservaId',
+  origenUbicacionId: 'origenUbicacionId',
+  destinoUbicacionId: 'destinoUbicacionId',
+  idempotencyKey: 'idempotencyKey',
   createdAt: 'createdAt'
 };
 
@@ -254,11 +301,30 @@ exports.Prisma.ReservaStockScalarFieldEnum = {
   pedidoId: 'pedidoId',
   itemPedidoId: 'itemPedidoId',
   loteId: 'loteId',
+  ubicacionId: 'ubicacionId',
   cantidad: 'cantidad',
   estado: 'estado',
   createdAt: 'createdAt',
   releasedAt: 'releasedAt',
   consumedAt: 'consumedAt'
+};
+
+exports.Prisma.UbicacionStockScalarFieldEnum = {
+  id: 'id',
+  codigo: 'codigo',
+  nombre: 'nombre',
+  activo: 'activo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SaldoStockScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  loteId: 'loteId',
+  ubicacionId: 'ubicacionId',
+  cantidad: 'cantidad',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PedidoAuditoriaScalarFieldEnum = {
@@ -270,6 +336,33 @@ exports.Prisma.PedidoAuditoriaScalarFieldEnum = {
   anterior: 'anterior',
   nuevo: 'nuevo',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.OrderInterpretationDraftScalarFieldEnum = {
+  id: 'id',
+  originalText: 'originalText',
+  proposedSnapshot: 'proposedSnapshot',
+  editedSnapshot: 'editedSnapshot',
+  estado: 'estado',
+  version: 'version',
+  createdBy: 'createdBy',
+  confirmedBy: 'confirmedBy',
+  pedidoId: 'pedidoId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.StockProjectionOutboxScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  causeType: 'causeType',
+  causeId: 'causeId',
+  estado: 'estado',
+  attempts: 'attempts',
+  nextRetryAt: 'nextRetryAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.TransportistaScalarFieldEnum = {
@@ -355,6 +448,7 @@ exports.Prisma.InventarioDrogaScalarFieldEnum = {
   lote: 'lote',
   vencimiento: 'vencimiento',
   cantidad: 'cantidad',
+  createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
@@ -448,13 +542,25 @@ exports.Prisma.DepositoProductoScalarFieldEnum = {
   codigo: 'codigo',
   origen: 'origen',
   presentacion: 'presentacion',
+  stockMinimo: 'stockMinimo',
   mercadosHabilitados: 'mercadosHabilitados',
+  mercado: 'mercado',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SecuenciaCodigoEstucheScalarFieldEnum = {
   mercado: 'mercado',
+  ultimo: 'ultimo'
+};
+
+exports.Prisma.SecuenciaCodigoEtiquetaScalarFieldEnum = {
+  mercado: 'mercado',
+  ultimo: 'ultimo'
+};
+
+exports.Prisma.SecuenciaCodigoFrascoScalarFieldEnum = {
+  id: 'id',
   ultimo: 'ultimo'
 };
 
@@ -534,6 +640,11 @@ exports.EstadoCliente = exports.$Enums.EstadoCliente = {
   VALIDADO: 'VALIDADO'
 };
 
+exports.OrigenPedido = exports.$Enums.OrigenPedido = {
+  MANUAL: 'MANUAL',
+  AUTOMATION: 'AUTOMATION'
+};
+
 exports.EstadoPedido = exports.$Enums.EstadoPedido = {
   BORRADOR: 'BORRADOR',
   APROBADO: 'APROBADO',
@@ -546,13 +657,28 @@ exports.EstadoPedido = exports.$Enums.EstadoPedido = {
 exports.TipoMovimiento = exports.$Enums.TipoMovimiento = {
   ENTRADA_MANUAL: 'ENTRADA_MANUAL',
   SALIDA_PEDIDO: 'SALIDA_PEDIDO',
-  AJUSTE: 'AJUSTE'
+  AJUSTE: 'AJUSTE',
+  SALDO_APERTURA: 'SALDO_APERTURA',
+  TRANSFERENCIA_INTERNA: 'TRANSFERENCIA_INTERNA'
 };
 
 exports.EstadoReserva = exports.$Enums.EstadoReserva = {
   ACTIVA: 'ACTIVA',
   LIBERADA: 'LIBERADA',
   CONSUMIDA: 'CONSUMIDA'
+};
+
+exports.EstadoOrderInterpretationDraft = exports.$Enums.EstadoOrderInterpretationDraft = {
+  DRAFT: 'DRAFT',
+  READY: 'READY',
+  CONFIRMED: 'CONFIRMED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.EstadoStockProjectionOutbox = exports.$Enums.EstadoStockProjectionOutbox = {
+  PENDING: 'PENDING',
+  SYNCED: 'SYNCED',
+  ERROR: 'ERROR'
 };
 
 exports.EstadoRemito = exports.$Enums.EstadoRemito = {
@@ -656,15 +782,23 @@ exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
   AppAccess: 'AppAccess',
   Notification: 'Notification',
+  Session: 'Session',
+  PlatformAuditoria: 'PlatformAuditoria',
   IdempotencyRecord: 'IdempotencyRecord',
   Producto: 'Producto',
+  ProductAlias: 'ProductAlias',
   Lote: 'Lote',
   Cliente: 'Cliente',
+  ClientAlias: 'ClientAlias',
   Pedido: 'Pedido',
   ItemPedido: 'ItemPedido',
   MovimientoStock: 'MovimientoStock',
   ReservaStock: 'ReservaStock',
+  UbicacionStock: 'UbicacionStock',
+  SaldoStock: 'SaldoStock',
   PedidoAuditoria: 'PedidoAuditoria',
+  OrderInterpretationDraft: 'OrderInterpretationDraft',
+  StockProjectionOutbox: 'StockProjectionOutbox',
   Transportista: 'Transportista',
   Remito: 'Remito',
   User: 'User',
@@ -680,6 +814,8 @@ exports.Prisma.ModelName = {
   OrdenProduccion: 'OrdenProduccion',
   DepositoProducto: 'DepositoProducto',
   SecuenciaCodigoEstuche: 'SecuenciaCodigoEstuche',
+  SecuenciaCodigoEtiqueta: 'SecuenciaCodigoEtiqueta',
+  SecuenciaCodigoFrasco: 'SecuenciaCodigoFrasco',
   ImportacionInicialEstucheBatch: 'ImportacionInicialEstucheBatch',
   ImportacionInicialEstucheIdempotencyKey: 'ImportacionInicialEstucheIdempotencyKey',
   ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem'
