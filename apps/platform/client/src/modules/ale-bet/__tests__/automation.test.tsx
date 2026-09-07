@@ -176,6 +176,45 @@ describe('AutomationPage', () => {
     ))
   })
 
+  it('resume el effectiveSnapshot actual y confirma con su versión', async () => {
+    ;(aleBetApi.automation.createDraft as any).mockResolvedValue({ id: 'draft-summary' })
+    ;(aleBetApi.automation.getDraft as any).mockResolvedValue({
+      draft: { id: 'draft-summary', estado: 'READY', version: 2 },
+      effectiveSnapshot: {
+        customerCandidate: { customerId: 'c1', nombre: 'Veterinaria Centro', confidence: 1 },
+        requiresReview: false,
+        warnings: [],
+        lines: [{
+          lineId: 'line-oli',
+          originalText: '48 oli 300',
+          productCandidate: { productId: 'p1', nombre: 'Olivitasan 500 ML', confidence: 1 },
+          warnings: [],
+          quantity: { mode: 'UNITS', explicitBoxes: null, explicitUnits: 48, totalUnits: 48 }
+        }]
+      },
+      availability: [{ productId: 'p1', availableUnits: 48, status: 'DISPONIBLE' }]
+    })
+    ;(aleBetApi.automation.confirmDraft as any).mockResolvedValue({ draftId: 'draft-summary' })
+
+    render(<AutomationPage />, { wrapper: createWrapper() })
+    fireEvent.change(screen.getByPlaceholderText(/Veterinaria Centro/), { target: { value: 'PROVET\n48 oli 300' } })
+    fireEvent.click(screen.getByText('Interpretar pedido'))
+
+    await waitFor(() => expect(screen.getByText('Olivitasan 500 ML')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Confirmar pedido'))
+
+    expect(screen.getAllByText('Veterinaria Centro').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('1 productos')).toBeInTheDocument()
+    expect(screen.getByText('48 unidades')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar', exact: true }))
+    await waitFor(() => expect(aleBetApi.automation.confirmDraft).toHaveBeenCalledWith(
+      'draft-summary',
+      { expectedVersion: 2 },
+      expect.objectContaining({ idempotencyKey: expect.any(String) })
+    ))
+  })
+
   it('handles insufficient stock', async () => {
     ;(aleBetApi.automation.createDraft as any).mockResolvedValue({ id: 'draft-3' })
     ;(aleBetApi.automation.getDraft as any).mockResolvedValue({

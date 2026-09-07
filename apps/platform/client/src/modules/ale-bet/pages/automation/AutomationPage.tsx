@@ -227,7 +227,7 @@ export default function AutomationPage() {
     
 
 
-  const handleConfirm = async () => {
+    const handleConfirm = async () => {
       setIsProcessing(true)
       try {
         if (!idempotencyKeyRef.current || idempotencyKeyRef.current.version !== draft.version) {
@@ -264,6 +264,7 @@ export default function AutomationPage() {
     }
 
     const canConfirm = draft.estado === 'READY' && effectiveSnapshot.customerCandidate && !effectiveSnapshot.requiresReview && availability.every((a: any) => a.status !== 'INSUFICIENTE')
+    const confirmTotalUnits = effectiveSnapshot.lines.reduce((acc: number, line: any) => acc + (line.quantity?.totalUnits ?? 0), 0)
 
     return (
       <div className={cn("mx-auto max-w-4xl space-y-6 pb-20", isProcessing && "pointer-events-none opacity-50")}>
@@ -483,9 +484,9 @@ export default function AutomationPage() {
               <div className="space-y-3">
                 <p>¿Confirmar pedido y descontar stock físico?</p>
                 <div className="bg-surface-container p-3 rounded border border-white/5 text-sm">
-                  <p className="font-semibold mb-1">{draftData?.snapshot?.customerCandidate?.cliente?.razonSocial}</p>
-                  <p>{draftData?.snapshot?.lines?.length ?? 0} productos</p>
-                  <p>{draftData?.snapshot?.lines?.reduce((acc: number, l: any) => acc + (l.quantity?.totalUnits ?? 0), 0) ?? 0} unidades</p>
+                  <p className="font-semibold mb-1">{effectiveSnapshot.customerCandidate?.nombre ?? effectiveSnapshot.customerCandidateText ?? 'Cliente pendiente'}</p>
+                  <p>{effectiveSnapshot.lines.length} productos</p>
+                  <p>{confirmTotalUnits} unidades</p>
                 </div>
               </div>
             )
