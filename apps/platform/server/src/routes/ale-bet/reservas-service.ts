@@ -35,6 +35,7 @@ async function lockLots(tx: TransactionClient, productoId: string): Promise<Lock
     JOIN "ale_bet"."SaldoStock" AS saldo ON saldo."loteId" = lote.id AND saldo."productoId" = lote."productoId"
     JOIN "ale_bet"."UbicacionStock" AS ubicacion ON ubicacion.id = saldo."ubicacionId" AND ubicacion.codigo = 'DEPOSITO'
     WHERE lote."productoId" = ${productoId} AND lote.activo = true
+    ORDER BY lote.id, saldo.id
     FOR UPDATE OF lote, saldo
   `)
 }

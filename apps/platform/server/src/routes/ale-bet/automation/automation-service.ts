@@ -1,7 +1,7 @@
 import crypto from 'node:crypto'
 import { Prisma, platformDb as prisma } from '@platform/db'
 import { descomponerUnidades } from '../constants'
-import { allocateAvailability, orderEligibleLots } from '../inventory-service'
+import { getProductAvailability } from '../inventory-service'
 import { consumeActiveReservations, reserveFefo, StockConflictError } from '../reservas-service'
 import type { MatchProduct, MatchCustomer, ParsedOrder, ParsedOrderLine } from './contracts'
 import { hasStrongMismatch, interpretOrder, normalizeForMatch, presentationMismatch } from './interpreter'
@@ -37,16 +37,16 @@ function assertQuantity(value: number | undefined, field: string): number {
   return normalized
 }
 
-export async function interpretAndPersistDraft(originalText: string, actorId: string) {
+export async function interpretAndPersistDraft(originalText: string, actorId: string, inspectCatalog?: (products: MatchProduct[]) => void) {
   const [products, customers, productAliases, clientAliases] = await Promise.all([
     prisma.producto.findMany({ where: { activo: true }, select: { id: true, nombre: true, sku: true, unidadesPorCaja: true } }),
     prisma.cliente.findMany({ where: { activo: true }, select: { id: true, nombre: true } }),
     prisma.productAlias.findMany(),
     prisma.clientAlias.findMany()
   ])
-  const mappedProducts: MatchProduct[] = products.map((p: any) => ({
+  const mappedProducts: MatchProduct[] = products.map((p) => ({
     ...p,
-    aliases: productAliases.flatMap((alias: any) => {
+    aliases: productAliases.flatMap((alias) => {
       if (alias.productId !== p.id) return []
       if (hasStrongMismatch(alias.alias, p.nombre)) {
         console.warn(`[automation] Ignorando ProductAlias inconsistente ${alias.id} para producto ${p.id}`)
@@ -55,11 +55,12 @@ export async function interpretAndPersistDraft(originalText: string, actorId: st
       return [alias.alias]
     })
   }))
-  const mappedCustomers: MatchCustomer[] = customers.map((c: any) => ({
+  const mappedCustomers: MatchCustomer[] = customers.map((c) => ({
     ...c,
-    aliases: clientAliases.filter((a: any) => a.clientId === c.id).map((a: any) => a.alias)
+    aliases: clientAliases.filter((a) => a.clientId === c.id).map((a) => a.alias)
   }))
   const proposal = interpretOrder(originalText, mappedProducts, mappedCustomers)
+  inspectCatalog?.(mappedProducts)
   return prisma.orderInterpretationDraft.create({
     data: { originalText, proposedSnapshot: json(proposal), estado: proposal.requiresReview ? 'DRAFT' : 'READY', createdBy: actorId },
   })
@@ -180,15 +181,10 @@ export async function getDraftAvailability(snapshot: ParsedOrder) {
   for (const line of products) requested.set(line.productId, (requested.get(line.productId) ?? 0) + line.requested)
   const ids = [...requested.keys()]
   if (ids.length === 0) return []
-  const [balances, reservations] = await Promise.all([
-    prisma.saldoStock.findMany({ where: { productoId: { in: ids }, ubicacion: { codigo: 'DEPOSITO' } }, include: { lote: true } }),
-    prisma.reservaStock.groupBy({ by: ['loteId', 'ubicacionId'], where: { estado: 'ACTIVA', loteId: { in: (await prisma.lote.findMany({ where: { productoId: { in: ids } }, select: { id: true } })).map((lot) => lot.id) } }, _sum: { cantidad: true } }),
-  ])
-  const reserved = new Map(reservations.map((row) => [`${row.loteId}:${row.ubicacionId}`, row._sum.cantidad ?? 0]))
+  const availability = await getProductAvailability(prisma, ids.map((productoId) => ({ productoId, cantidad: requested.get(productoId)! })))
   return ids.sort().map((productId) => {
-    const lots = balances.filter((balance) => balance.productoId === productId).map((balance) => ({ id: balance.loteId, activo: balance.lote.activo, fechaVencimiento: balance.lote.fechaVencimiento, fechaProduccion: balance.lote.fechaProduccion, createdAt: balance.lote.createdAt, cantidad: Math.max(0, balance.cantidad - (reserved.get(`${balance.loteId}:${balance.ubicacionId}`) ?? 0)) }))
-    const result = allocateAvailability({ requested: requested.get(productId) ?? 1, now: new Date(), deposito: orderEligibleLots(lots, new Date()), acondicionado: [] })
-    return { productId, requestedUnits: requested.get(productId), availableUnits: result.stockDeposito, status: result.status }
+    const result = availability.get(productId)!
+    return { productId, requestedUnits: requested.get(productId), availableUnits: result.stockDisponiblePedido, status: result.status }
   })
 }
 

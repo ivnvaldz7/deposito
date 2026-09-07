@@ -82,6 +82,7 @@ describe('automation deterministic interpreter', () => {
 
   it('acepta un alias genérico que no contradice identificadores fuertes del producto', () => {
     expect(hasStrongMismatch('CETRI', 'CETRI-AMON 1 L')).toBe(false)
+    expect(hasStrongMismatch('CETRI 1 ML', 'CETRI-AMON 1 L')).toBe(true)
     expect(hasStrongMismatch('B12B25 250 ML', 'COMPLEJO B B12 B15 100 ML')).toBe(true)
   })
 

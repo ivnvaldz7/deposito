@@ -50,7 +50,7 @@ function assertOwnerOrAdmin(pedido: { vendedorId: string | null }, user: JwtPayl
 
 function assertManualArmadorWorkflow(pedido: { origen: 'MANUAL' | 'AUTOMATION' }): void {
   if (pedido.origen === 'AUTOMATION') {
-    throw new ConflictError('Los pedidos Automation se confirman con stock efectivo y no participan del flujo Armador')
+    throw new ConflictError('Los pedidos Automation confirmados son inmutables operativamente; solo se permiten operaciones documentales de remito')
   }
 }
 
@@ -228,7 +228,7 @@ router.patch('/:id', requirePermission('ale-bet', 'pedidos.edit'), async (req, r
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.editar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertOwnerOrAdmin(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertOwnerOrAdmin(pedido, user); assertManualArmadorWorkflow(pedido); assertVersion(pedido, parsed.data.expectedVersion)
       if (!canEditOrder(state(pedido.estado))) throw new ConflictError('Solo se puede editar un pedido BORRADOR o APROBADO')
       const cliente = await tx.cliente.findUnique({ where: { id: parsed.data.clienteId } }); if (!cliente) throw new NotFoundError('Cliente no encontrado')
       if (pedido.estado === 'APROBADO') await releaseActiveReservations(tx, pedido.id)
@@ -250,7 +250,7 @@ router.put('/:id/aprobar', requirePermission('ale-bet', 'pedidos.approve'), asyn
   const user = req.user as JwtPayload
   try {
     const result = await idem(user, 'ale-bet.pedido.aprobar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertOwnerOrAdmin(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertOwnerOrAdmin(pedido, user); assertManualArmadorWorkflow(pedido); assertVersion(pedido, parsed.data.expectedVersion)
       if (pedido.estado !== 'BORRADOR') throw new ConflictError('Solo se puede aprobar un pedido BORRADOR')
       if (pedido.cliente.estado !== 'VALIDADO') throw new ConflictError('El cliente está PENDIENTE_CLIENTE y debe validarse antes de aprobar')
       const availability = await getOrderAvailability(tx, pedido)
@@ -353,7 +353,7 @@ router.put('/:id/cancelar', requirePermission('ale-bet', 'pedidos.cancel'), asyn
   const user = req.user as JwtPayload
   try {
     const response = await idem(user, 'ale-bet.pedido.cancelar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
-      const pedido = await lockOrder(tx, String(req.params.id)); assertOwnerOrAdmin(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
+      const pedido = await lockOrder(tx, String(req.params.id)); assertOwnerOrAdmin(pedido, user); assertManualArmadorWorkflow(pedido); assertVersion(pedido, parsed.data.expectedVersion)
       if (!canCancelOrder(state(pedido.estado))) throw new ConflictError('No se puede cancelar un pedido DESPACHADO o CANCELADO')
       if (pedido.estado === 'PREPARADO' && actorRole(user) !== 'admin') throw new ForbiddenError('El vendedor no puede cancelar un pedido PREPARADO')
       if (actorRole(user) === 'vendedor' && !canVendorCancelDirectly(state(pedido.estado)) && pedido.estado !== 'EN_ARMADO') throw new ForbiddenError('El vendedor solo puede cancelar directamente pedidos BORRADOR o APROBADO')

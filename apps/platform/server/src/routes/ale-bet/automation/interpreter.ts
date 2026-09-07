@@ -37,8 +37,9 @@ export function hasStrongMismatch(input: string, candidate: string): boolean {
   const inputNumbers = [...inputTokens].filter((token) => /^\d+$/.test(token))
   const candidateNumbers = [...candidateTokens].filter((token) => /^\d+$/.test(token))
   if (inputNumbers.some((number) => !candidateNumbers.includes(number))) return true
+  if (presentationMismatch(input, candidate)) return true
   
-  for (const token of [...strongTokens, '1 L']) {
+  for (const token of strongTokens) {
     const hasInInput = inputStr.includes(token)
     const hasInCandidate = candidateStr.includes(token)
     if (hasInInput !== hasInCandidate) return true
@@ -153,18 +154,26 @@ export function extractQuantityAndProduct(line: string): { originalExpression: s
   return { originalExpression: line, explicitBoxes, explicitUnits, mode: (explicitBoxes === null && explicitUnits === null) ? 'AMBIGUOUS' : mode, productText }
 }
 
-function matchProduct(productText: string, products: MatchProduct[]): { candidate: ProductAlternative | null; alternatives: ProductAlternative[] } {
+export function traceProductMatch(productText: string, products: MatchProduct[]) {
   const phrase = normalizeForMatch(productText)
-  const hits = products.flatMap((product) => {
+  return products.map((product) => {
+    const strongMismatch = hasStrongMismatch(phrase, product.nombre)
+    const alias = product.aliases?.find((entry) => phrase === normalizeForMatch(entry)) ?? null
     let score = 0
     if (phrase === normalizeForMatch(product.nombre)) score = 1
-    else if (hasStrongMismatch(phrase, product.nombre)) score = 0
+    else if (strongMismatch) score = 0
     // Alias data is operator-entered. A historic alias never overrides a
     // presentation or other strong identifier from the canonical product.
-    else if (product.aliases?.some(alias => phrase === normalizeForMatch(alias))) score = 0.98
+    else if (alias) score = 0.98
     else score = Math.max(scoreMatch(phrase, product.nombre), scoreMatch(phrase, product.sku), strongIdentityScore(phrase, product.nombre))
-    return score > 0 ? [{ productId: product.id, nombre: product.nombre, confidence: score }] : []
-  }).sort((left, right) => right.confidence - left.confidence || left.nombre.localeCompare(right.nombre))
+    return { productId: product.id, nombre: product.nombre, score, strongMismatch, alias }
+  })
+}
+
+function matchProduct(productText: string, products: MatchProduct[]): { candidate: ProductAlternative | null; alternatives: ProductAlternative[] } {
+  const hits = traceProductMatch(productText, products)
+    .flatMap((entry) => entry.score > 0 ? [{ productId: entry.productId, nombre: entry.nombre, confidence: entry.score }] : [])
+    .sort((left, right) => right.confidence - left.confidence || left.nombre.localeCompare(right.nombre))
   const certain = hits[0] && (hits.length === 1 || hits[0].confidence > hits[1].confidence) && hits[0].confidence >= 0.93
   return { candidate: certain ? hits[0] : null, alternatives: hits.slice(0, 5) }
 }

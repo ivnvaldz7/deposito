@@ -119,24 +119,40 @@ export type OrderAvailability = {
   fingerprint: string
 }
 
+// Shared by Automation preview and order confirmation. Read balances and active
+// reservations once, then apply the same location and FEFO eligibility rules.
+export async function getProductAvailability(
+  tx: Prisma.TransactionClient,
+  requests: Array<{ productoId: string; cantidad: number }>,
+  excludedItemIds: string[] = [],
+) {
+  const productIds = [...new Set(requests.map((item) => item.productoId))]
+  const [balances, reservations] = await Promise.all([
+    tx.saldoStock.findMany({ where: { productoId: { in: productIds } }, include: { lote: true, ubicacion: true } }),
+    tx.reservaStock.groupBy({
+      by: ['loteId', 'ubicacionId'],
+      where: {
+        estado: 'ACTIVA', lote: { productoId: { in: productIds } },
+        ...(excludedItemIds.length ? { OR: [{ itemPedidoId: null }, { itemPedidoId: { notIn: excludedItemIds } }] } : {}),
+      },
+      _sum: { cantidad: true },
+    }),
+  ])
+  const reserved = new Map(reservations.map((row) => [`${row.loteId}:${row.ubicacionId}`, row._sum.cantidad ?? 0]))
+  const now = new Date()
+  return new Map(requests.map((item) => {
+    const lots = (codigo: StockLocationCode): EligibleLot[] => balances
+      .filter((balance) => balance.productoId === item.productoId && balance.ubicacion.codigo === codigo)
+      .map((balance) => ({ ...balance.lote, cantidad: Math.max(0, balance.cantidad - (reserved.get(`${balance.loteId}:${balance.ubicacionId}`) ?? 0)) }))
+    return [item.productoId, allocateAvailability({ requested: item.cantidad, now, deposito: lots('DEPOSITO'), acondicionado: lots('ACONDICIONADO') })]
+  }))
+}
+
 export async function getOrderAvailability(
   tx: Prisma.TransactionClient,
   pedido: { id: string; items: Array<{ id: string; productoId: string }> },
 ): Promise<OrderAvailability> {
   const itemIds = pedido.items.map((item) => item.id)
-  const productIds = [...new Set(pedido.items.map((item) => item.productoId))]
-  const [balances, reservations] = await Promise.all([
-    tx.saldoStock.findMany({
-      where: { productoId: { in: productIds } },
-      include: { lote: true, ubicacion: true },
-    }),
-    tx.reservaStock.groupBy({
-      by: ['loteId', 'ubicacionId'],
-      where: { estado: 'ACTIVA', itemPedidoId: { notIn: itemIds } },
-      _sum: { cantidad: true },
-    }),
-  ])
-  const reservedByBalance = new Map(reservations.map((row) => [`${row.loteId}:${row.ubicacionId}`, row._sum.cantidad ?? 0]))
   const items = await tx.itemPedido.findMany({ where: { id: { in: itemIds } }, select: { id: true, productoId: true, cantidad: true } })
   const allocations: OrderAvailability['allocations'] = []
   const transferencias: OrderAvailability['transferencias'] = []
@@ -156,18 +172,9 @@ export async function getOrderAvailability(
   }, new Map<string, { id: string; productoId: string; cantidad: number }>()).values()]
     .sort((left, right) => left.productoId.localeCompare(right.productoId))
 
+  const availability = await getProductAvailability(tx, consolidatedItems, itemIds)
   for (const item of consolidatedItems) {
-    const asEligible = (codigo: StockLocationCode): EligibleLot[] => balances
-      .filter((balance) => balance.productoId === item.productoId && balance.ubicacion.codigo === codigo)
-      .map((balance) => ({
-        id: balance.loteId,
-        activo: balance.lote.activo,
-        fechaVencimiento: balance.lote.fechaVencimiento,
-        fechaProduccion: balance.lote.fechaProduccion,
-        createdAt: balance.lote.createdAt,
-        cantidad: Math.max(0, balance.cantidad - (reservedByBalance.get(`${balance.loteId}:${balance.ubicacionId}`) ?? 0)),
-      }))
-    const result = allocateAvailability({ requested: item.cantidad, now: new Date(), deposito: asEligible('DEPOSITO'), acondicionado: asEligible('ACONDICIONADO') })
+    const result = availability.get(item.productoId)!
     stockTotal += result.stockTotal
     stockDeposito += result.stockDeposito
     stockAcondicionado += result.stockAcondicionado

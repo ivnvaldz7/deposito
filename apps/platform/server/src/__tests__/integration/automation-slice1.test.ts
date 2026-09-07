@@ -304,10 +304,10 @@ describe('AUTOMATION-01 Slice 1', () => {
   })
 
   it('keeps CETRI physical and available stock coherent across Automation, Productos and Stock', async () => {
-    const fixture = await seedCetri()
+    const fixture = await seedCetri(108)
     const auth = `Bearer ${adminToken()}`
 
-    for (const expectedPhysical of [108, 96, 84]) {
+    for (const expectedPhysical of [96, 84, 72]) {
       await confirmAutomationUnits({ auth, customerId: fixture.customer.id, productId: fixture.product.id, productName: fixture.product.nombre, units: 12 })
       const saldo = await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })
       expect(saldo.cantidad).toBe(expectedPhysical)
@@ -327,6 +327,77 @@ describe('AUTOMATION-01 Slice 1', () => {
       const draft = await request(app).get(`/api/ale-bet/automation/drafts/${preview.body.id}`).set('Authorization', auth).expect(200)
       expect(draft.body.availability).toContainEqual(expect.objectContaining({ productId: fixture.product.id, availableUnits: expectedPhysical }))
     }
+  })
+
+  it('rejects operational edits and cancellation of confirmed Automation, including Admin', async () => {
+    const fixture = await seedCetri(108)
+    const auth = `Bearer ${adminToken()}`
+    const confirmed = await confirmAutomationUnits({ auth, customerId: fixture.customer.id, productId: fixture.product.id, productName: fixture.product.nombre, units: 12 })
+    const pedido = confirmed.body.pedido
+    for (const authorization of [auth, `Bearer ${token('facturacion')}`]) {
+      const edit = await request(app).patch(`/api/ale-bet/pedidos/${pedido.id}`).set('Authorization', authorization)
+        .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: pedido.version, clienteId: fixture.customer.id, items: [{ productoId: fixture.product.id, cantidad: 24 }] })
+      expect([403, 409]).toContain(edit.status)
+      const cancel = await request(app).put(`/api/ale-bet/pedidos/${pedido.id}/cancelar`).set('Authorization', authorization)
+        .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: pedido.version })
+      expect([403, 409]).toContain(cancel.status)
+    }
+    expect(await prisma.pedido.findUniqueOrThrow({ where: { id: pedido.id }, include: { items: true } })).toMatchObject({ origen: 'AUTOMATION', estado: 'APROBADO', version: pedido.version, items: [{ cantidad: 12 }] })
+    expect((await prisma.saldoStock.findFirstOrThrow({ where: { loteId: fixture.lote.id } })).cantidad).toBe(96)
+    expect(await prisma.reservaStock.count({ where: { pedidoId: pedido.id, estado: 'ACTIVA' } })).toBe(0)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+  })
+
+  it('resolves bare and explicit B12 presentations through the persisted draft endpoint with historic bad aliases', async () => {
+    const fixture = await seedB12Catalog()
+    await prisma.productAlias.create({ data: { alias: 'b12b25 250ml', aliasNormalized: 'B12B25 250 ML', productId: fixture.product100.id } })
+    for (const [text, quantity, productId] of [
+      ['24 b12b15 250', 24, fixture.product250.id],
+      ['504 b12b15 100ml', 504, fixture.product100.id],
+      ['240 b12b15 250ml', 240, fixture.product250.id],
+    ] as const) {
+      const draft = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', fixture.auth)
+        .send({ originalText: text }).expect(201)
+      const detail = await getEffective(draft.body.id, fixture.auth)
+      expect(detail.effectiveSnapshot.lines[0]).toMatchObject({ productCandidate: { productId }, quantity: { totalUnits: quantity }, warnings: [] })
+      expect(detail.effectiveSnapshot.lines[0].alternatives).toHaveLength(1)
+      expect(await prisma.pedido.count()).toBe(0)
+    }
+  })
+
+  it('previews and consumes ACONDICIONADO with the same availability as confirmation', async () => {
+    const fixture = await seedCetri(0)
+    const location = await prisma.ubicacionStock.create({ data: { codigo: 'ACONDICIONADO', nombre: 'Acondicionado' } })
+    await prisma.saldoStock.create({ data: { productoId: fixture.product.id, loteId: fixture.lote.id, ubicacionId: location.id, cantidad: 108 } })
+    const auth = `Bearer ${adminToken()}`
+    const draft = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', auth)
+      .send({ originalText: `Cliente: ${fixture.customer.nombre}\n12 ${fixture.product.nombre}` }).expect(201)
+    const detail = await getEffective(draft.body.id, auth)
+    expect(detail.availability).toContainEqual(expect.objectContaining({ availableUnits: 108, status: 'DISPONIBLE_CON_TRANSFERENCIA' }))
+    const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${draft.body.id}/confirm`).set('Authorization', auth)
+      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: draft.body.version }).expect(200)
+    expect((await getEffective(draft.body.id, auth)).availability[0].availableUnits).toBe(96)
+    expect((await prisma.saldoStock.aggregate({ where: { productoId: fixture.product.id }, _sum: { cantidad: true } }))._sum.cantidad).toBe(96)
+    expect(await prisma.reservaStock.count({ where: { pedidoId: confirmed.body.pedido.id, estado: 'ACTIVA' } })).toBe(0)
+  })
+
+  it('reconciles only proven legacy Automation once and preserves real MANUAL orders', async () => {
+    const { reconcileLegacyAutomationOrder } = await import('../../routes/ale-bet/automation/reconcile-legacy')
+    const fixture = await seedCetri(108)
+    const auth = `Bearer ${adminToken()}`
+    const draft = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', auth)
+      .send({ originalText: `Cliente: ${fixture.customer.nombre}\n12 ${fixture.product.nombre}` }).expect(201)
+    const legacy = await prisma.pedido.create({ data: { numero: crypto.randomUUID(), clienteId: fixture.customer.id, estado: 'PREPARADO', items: { create: { productoId: fixture.product.id, cantidad: 12 } } }, include: { items: true } })
+    await prisma.reservaStock.create({ data: { pedidoId: legacy.id, itemPedidoId: legacy.items[0].id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id, cantidad: 12 } })
+    await expect(prisma.$transaction((tx) => reconcileLegacyAutomationOrder(tx, legacy.id, 'automation-admin'))).rejects.toThrow('Procedencia')
+    await prisma.orderInterpretationDraft.update({ where: { id: draft.body.id }, data: { pedidoId: legacy.id, estado: 'CONFIRMED', confirmedBy: 'automation-admin' } })
+    await prisma.pedidoAuditoria.createMany({ data: ['BORRADOR_CREADO_AUTOMATION', 'PEDIDO_APROBADO_AUTOMATION'].map((accion) => ({ pedidoId: legacy.id, actorId: 'automation-admin', accion })) })
+    expect(await prisma.$transaction((tx) => reconcileLegacyAutomationOrder(tx, legacy.id, 'automation-admin'))).toMatchObject({ repaired: true })
+    expect(await prisma.$transaction((tx) => reconcileLegacyAutomationOrder(tx, legacy.id, 'automation-admin'))).toMatchObject({ repaired: false })
+    expect((await prisma.saldoStock.findFirstOrThrow({ where: { loteId: fixture.lote.id } })).cantidad).toBe(96)
+    expect(await prisma.reservaStock.count({ where: { pedidoId: legacy.id, estado: 'CONSUMIDA' } })).toBe(1)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: legacy.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+    expect(await prisma.pedido.findUniqueOrThrow({ where: { id: legacy.id } })).toMatchObject({ origen: 'AUTOMATION', estado: 'APROBADO' })
   })
 
   it('serializes concurrent drafts against the last availability', async () => {
