@@ -192,30 +192,24 @@ export default function AutomationPage() {
 
     const handleChangeQuantity = async (index: number, cajas: number, sueltos: number) => {
       setIsProcessing(true)
-      const lines = effectiveSnapshot.lines.map((l: any, i: number) => {
-        if (i === index) {
-          return {
-            productId: l.productCandidate?.productId,
-            cajas,
-            unidades: sueltos,
-            mode: l.quantity.mode
-          }
-        }
-        return {
-          productId: l.productCandidate?.productId,
-          cajas: l.quantity.explicitBoxes ?? 0,
-          unidades: l.quantity.explicitUnits ?? 0,
-          mode: l.quantity.mode
-        }
-      }).filter((l: any) => l.productId)
+      const line = effectiveSnapshot.lines[index]
+      if (!line?.lineId || !line.productCandidate?.productId) {
+        setIsProcessing(false)
+        return
+      }
 
       try {
         await updateDraft.mutateAsync({
           id: draft.id,
           data: {
             expectedVersion: draft.version,
-            clienteId: effectiveSnapshot.customerCandidate?.customerId,
-            lines
+            line: {
+              lineId: line.lineId,
+              productId: line.productCandidate.productId,
+              cajas,
+              unidades: sueltos,
+              mode: line.quantity.mode,
+            }
           }
         })
       } catch (e) {

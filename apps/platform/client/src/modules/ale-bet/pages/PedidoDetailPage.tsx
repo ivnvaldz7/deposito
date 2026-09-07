@@ -652,17 +652,54 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
   )
 }
 
+
 export default function PedidoDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { data: pedido, isLoading, error } = usePedidoDetalle(id);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <Skeleton variant="card" className="h-28" />
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6">
+          <div className="space-y-5">
+            <Skeleton variant="card" className="h-40" />
+            <Skeleton variant="card" className="h-56" />
+          </div>
+          <div className="mt-5 space-y-5 lg:mt-0">
+            <Skeleton variant="card" className="h-40" />
+            <Skeleton variant="card" className="h-40" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !pedido) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-[22px] font-bold tracking-tight text-on-surface">Detalle de pedido</h1>
+        <p className="font-body text-[13px] text-error">{error instanceof Error ? error.message : 'Pedido no encontrado'}</p>
+      </div>
+    )
+  }
+
+  if (pedido.origen === 'AUTOMATION') {
+    return <AutomationPedidoDetail pedido={pedido} />
+  }
+
+  return <PedidoDetailPageLegacy pedidoData={pedido} />
+}
+function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
   const qc = useQueryClient()
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
-  const esFacturacion = rol === 'facturacion'
   const userId = user?.sub ?? ''
+  const esFacturacion = rol === 'facturacion'
   const esRemitos = can(user, 'ale-bet', 'remitos.create')
-
   const { data: pedido, isLoading, error, refetch: refetchPedido } = usePedidoDetalle(id)
   const { data: disponibilidad } = usePedidoDisponibilidad(id)
   const { data: productos = [], refetch: refetchProductos } = useProductos()
@@ -1822,6 +1859,328 @@ export default function PedidoDetailPage() {
         onDespachar={() => setConfirm('despachar')}
         onConfirmarCancelacion={abrirConfirmarCancelacion}
       />
+    </div>
+  )
+}
+
+function AutomationPedidoDetail({ pedido }: { pedido: any }) {
+  const qc = useQueryClient()
+  const user = useAuthStore((state) => state.user)
+  const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const esFacturacion = rol === 'facturacion'
+  const userId = user?.sub ?? ''
+  const esRemitos = can(user, 'ale-bet', 'remitos.create')
+  
+  const { data: transportistas = [] } = useTransportistas({ enabled: esRemitos })
+  
+  const [transporteId, setTransporteId] = useState('')
+  const [usarOcasional, setUsarOcasional] = useState(false)
+  const [ocasionalNombre, setOcasionalNombre] = useState('')
+  const [ocasionalDireccion, setOcasionalDireccion] = useState('')
+  const [remitoError, setRemitoError] = useState<string | null>(null)
+  const [anularOpen, setAnularOpen] = useState(false)
+  const [motivoAnular, setMotivoAnular] = useState('')
+  const [motivoAnularError, setMotivoAnularError] = useState<string | null>(null)
+
+  const ocasionalNombreRef = useRef<HTMLInputElement>(null)
+  const ocasionalDireccionRef = useRef<HTMLInputElement>(null)
+
+  const emitirRemitoMutation = useEmitirRemito()
+  const anularRemitoMutation = useAnularRemito()
+
+  const remitoVigente = pedido?.remitos?.find((r: any) => r.estado === 'VIGENTE') ?? null
+  const remitosInvalidados = pedido?.remitos?.filter((r: any) => r.estado === 'INVALIDADO') ?? []
+
+  function abrirAnular() {
+    setMotivoAnular('')
+    setMotivoAnularError(null)
+    setAnularOpen(true)
+  }
+
+  async function anularRemito() {
+    const motivo = motivoAnular.trim()
+    if (motivo.length < 3) {
+      setMotivoAnularError(motivo.length === 0 ? 'El motivo es obligatorio' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    setMotivoAnularError(null)
+    if (!pedido || !remitoVigente) return
+    try {
+      await anularRemitoMutation.mutateAsync({
+        pedidoId: pedido.id,
+        remitoId: remitoVigente.id,
+        motivo,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Remito anulado')
+      setAnularOpen(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al anular el remito')
+    }
+  }
+
+  async function emitirRemito() {
+    if (usarOcasional) {
+      const nombreValido = ocasionalNombre.trim().length >= 2
+      const direccionValida = ocasionalDireccion.trim().length >= 2
+      if (!nombreValido || !direccionValida) {
+        setRemitoError('El transporte ocasional requiere nombre y dirección de al menos 2 caracteres')
+        toast.error('Completá nombre y dirección del transporte ocasional')
+        if (!nombreValido) {
+          ocasionalNombreRef.current?.focus()
+          ocasionalNombreRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        } else {
+          ocasionalDireccionRef.current?.focus()
+          ocasionalDireccionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        }
+        return
+      }
+    } else if (!transporteId) {
+      setRemitoError('Seleccioná un transporte habitual o indicá un transporte ocasional')
+      return
+    }
+    setRemitoError(null)
+    if (!pedido) return
+    try {
+      await emitirRemitoMutation.mutateAsync({
+        pedidoId: pedido.id,
+        expectedVersion: pedido.version,
+        ...(usarOcasional
+          ? { transporteOcasional: { nombre: ocasionalNombre.trim(), direccion: ocasionalDireccion.trim() } }
+          : { transportistaId: transporteId }),
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Remito emitido')
+      setTransporteId('')
+      setUsarOcasional(false)
+      setOcasionalNombre('')
+      setOcasionalDireccion('')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al emitir el remito')
+    }
+  }
+
+  async function descargarRemito() {
+    if (!pedido) return
+    try {
+      await descargarRemitoPdf(pedido.id)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al descargar el remito')
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1000px] flex flex-col">
+      <section className="bg-surface-container-high shadow-sm lg:rounded-2xl">
+        <div className="px-4 py-5 lg:px-8 lg:py-7 border-b border-white/10 bg-surface-container-low">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-[22px] md:text-[26px] font-bold tracking-tight text-on-surface leading-tight">
+                {pedido.cliente.nombre}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                {pedido.cliente?.cuit && <span>CUIT {pedido.cliente.cuit}</span>}
+                {pedido.cliente?.direccion && (
+                  <>
+                    {pedido.cliente?.cuit && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>{pedido.cliente.direccion}{pedido.cliente?.localidad ? `, ${pedido.cliente.localidad}` : ''}</span>
+                  </>
+                )}
+                {pedido.cliente?.contacto && (
+                  <>
+                    {(pedido.cliente?.cuit || pedido.cliente?.direccion) && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>Contacto: {pedido.cliente.contacto}</span>
+                  </>
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                <span data-testid="pedido-numero" className="font-semibold text-on-surface">Pedido {pedido.numero}</span>
+                <span className="hidden md:inline text-outline/40">•</span>
+                <span>Creado {formatFechaHora(pedido.createdAt)}</span>
+                <span className="hidden md:inline text-outline/40">•</span>
+                <span className="font-semibold text-on-surface">Automation · Confirmado</span>
+              </div>
+            </div>
+            
+            <div className="flex flex-col md:items-end justify-start gap-2 shrink-0 md:w-56">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/10">
+                <FileText size={16} className="text-primary" />
+                <span className="font-body text-[13px] font-medium text-primary">
+                  {remitoVigente ? 'Remito emitido' : 'Pendiente de remito'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 lg:p-8 space-y-6">
+          <div>
+            <h2 className="text-[20px] font-bold tracking-tight text-on-surface mb-4">Productos</h2>
+            <div className="flex flex-col border-t border-white/10">
+              {pedido.items.map((item: any) => {
+                const base = calcularCajasSueltos(item.cantidad, item.producto.unidadesPorCaja)
+                return (
+                  <LineaDetalle
+                    key={item.productoId}
+                    productoId={item.productoId}
+                    nombre={item.producto.nombre}
+                    sku={item.producto.sku}
+                    cajas={base.cajas}
+                    sueltos={base.sueltos}
+                    unidades={item.cantidad}
+                    unidadesPorCaja={item.producto.unidadesPorCaja}
+                    completado={item.completado}
+                    editable={false}
+                    completable={false}
+                    isFacturacion={true}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {esRemitos && (
+          <div className="border-t border-white/10 bg-surface-container/30 p-4 lg:p-8">
+            {remitoVigente ? (
+              <div className="md:flex md:items-center md:justify-between md:gap-6">
+                <div className="flex-1">
+                  <h2 className="font-body text-[13px] font-bold text-on-surface">Remito Vigente</h2>
+                  <div className="mt-2 rounded-lg border border-white/10 bg-surface-container-low p-3 flex flex-wrap gap-4 items-center">
+                    <div>
+                      <p className="font-semibold text-[14px] text-on-surface">Remito {remitoVigente.numero}</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{formatFecha(remitoVigente.fecha)}</p>
+                    </div>
+                    <div className="hidden md:block w-[1px] h-8 bg-white/10"></div>
+                    <div>
+                      <p className="font-body text-[12px] font-medium text-on-surface">Transporte</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{remitoVigente.transporteNombre}{remitoVigente.transporteDireccion ? ` · ${remitoVigente.transporteDireccion}` : ''}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 md:mt-0 shrink-0 flex flex-row md:flex-col gap-2 md:w-40">
+                  {can(user, 'ale-bet', 'remitos.read.pdf') && (
+                    <Button variant="outline" onClick={() => void descargarRemito()} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
+                  )}
+                  {can(user, 'ale-bet', 'remitos.void') && (
+                    <Button variant="outline" onClick={abrirAnular} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h2 className="font-body text-[13px] font-bold tracking-wide text-on-surface-variant uppercase mb-3">Transporte</h2>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col md:flex-row md:items-start gap-3">
+                    <TransportSelector
+                      transportistas={transportistas}
+                      transporteId={transporteId}
+                      setTransporteId={setTransporteId}
+                      usarOcasional={usarOcasional}
+                      setUsarOcasional={setUsarOcasional}
+                    />
+                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} disabled={!transporteId && !usarOcasional} className="h-11 w-full md:w-auto px-6 font-semibold">
+                      Emitir remito
+                    </Button>
+                  </div>
+                  {usarOcasional && (
+                    <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-surface-container-low p-4 w-full">
+                      <p className="font-body text-[13px] font-medium text-on-surface">Datos del transporte ocasional</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Nombre / Razón Social <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalNombreRef} 
+                            value={ocasionalNombre} 
+                            onChange={(e) => setOcasionalNombre(e.target.value)} 
+                            aria-label="Nombre del transporte ocasional"
+                            placeholder="Ej: Flete particular" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Dirección / Referencia <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalDireccionRef} 
+                            value={ocasionalDireccion} 
+                            onChange={(e) => setOcasionalDireccion(e.target.value)} 
+                            aria-label="Dirección del transporte ocasional"
+                            placeholder="Ej: Av. Siempreviva 123" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error mt-2">{remitoError}</p>}
+                </div>
+              </div>
+            )}
+            {remitosInvalidados.length > 0 && (
+              <div className="mt-6 space-y-3 border-t border-white/5 pt-4">
+                <h3 className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Remitos anteriores</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {remitosInvalidados.map((r: any) => (
+                    <div key={r.id} className="rounded-lg border border-white/5 bg-surface-container-low p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-body text-[13px] font-semibold text-on-surface">Remito {r.numero}</p>
+                        <Badge variant="error" className="h-5 px-1.5 text-[10px]">Anulado</Badge>
+                      </div>
+                      <p className="mt-1 font-body text-[11px] text-outline">{formatFecha(r.fecha)}</p>
+                      {r.motivoInvalidacion && <p className="mt-1 font-body text-[11px] text-on-surface-variant">Motivo: {r.motivoInvalidacion}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <BottomSheet
+        open={anularOpen}
+        onClose={() => setAnularOpen(false)}
+        title="Anular remito"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setAnularOpen(false)} disabled={anularRemitoMutation.isPending} className="flex-1 md:flex-none h-10 px-6">
+              Volver
+            </Button>
+            <button
+              onClick={() => void anularRemito()}
+              disabled={anularRemitoMutation.isPending}
+              className="flex-1 md:flex-none inline-flex h-10 items-center justify-center gap-2 rounded border px-6 py-2 text-[13px] font-semibold transition-colors text-[#A06869] border-[#D5B4B5] bg-[#F5ECEC] hover:bg-[#F5ECEC]/80 disabled:opacity-50"
+            >
+              Anular remito
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="font-body text-[13px] leading-relaxed text-on-surface-variant">
+            El remito dejará de estar vigente y podrá emitirse uno nuevo.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-anular" className="font-body text-[13px] font-medium text-on-surface">
+              Motivo <span className="text-error">*</span>
+            </label>
+            <textarea
+              id="motivo-anular"
+              value={motivoAnular}
+              onChange={(e) => setMotivoAnular(e.target.value)}
+              rows={3}
+              placeholder="Indicá el motivo de la anulación"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
+            />
+          </div>
+          {motivoAnularError && (
+            <p role="alert" className="font-body text-[12px] font-medium text-[#A06869] bg-[#F5ECEC] border border-[#D5B4B5] p-2 rounded">
+              {motivoAnularError}
+            </p>
+          )}
+        </div>
+      </BottomSheet>
     </div>
   )
 }

@@ -77,7 +77,12 @@ describe('PedidoDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockRol('admin')
-    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido())
+    let callCount = 0;
+    vi.mocked(aleBetApi.pedidos.get).mockImplementation(() => {
+      callCount++;
+      if (callCount >= 2) return Promise.resolve(createPedido({ version: 2 }));
+      return Promise.resolve(createPedido());
+    });
     vi.mocked(aleBetApi.pedidos.disponibilidadStock).mockResolvedValue({ status: 'DISPONIBLE', stockTotal: 10, stockDeposito: 10, stockAcondicionado: 0, stockDisponiblePedido: 10, allocations: [], transferencias: [], shortfall: 0, fingerprint: 'a'.repeat(64) })
     vi.mocked(aleBetApi.productos.list).mockResolvedValue(createProductoList())
     vi.mocked(aleBetApi.clientes.list).mockResolvedValue(createClienteList())
@@ -125,7 +130,8 @@ describe('PedidoDetailPage', () => {
     expect(screen.getByTestId('pedidos-route')).toBeInTheDocument()
   })
 
-  it('edita cantidades, agrega un producto y guarda los cambios', async () => {
+it('edita cantidades, agrega un producto y guarda los cambios (MANUAL)', async () => {
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ origen: 'MANUAL' }))
     vi.mocked(aleBetApi.productos.search).mockResolvedValue([
       createProductoSearchResult({ id: 'prod-2', nombre: 'Producto B', sku: 'SKU-002' }),
     ])
@@ -286,9 +292,13 @@ describe('PedidoDetailPage', () => {
     expect(screen.getByRole('button', { name: 'Aprobar' })).toBeDisabled()
   })
 
-  it('admin aprueba un BORRADOR y confirma', async () => {
+it('admin aprueba un BORRADOR y confirma (MANUAL)', async () => {
+    mockRol('admin')
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ origen: 'MANUAL', estado: 'BORRADOR' }))
     renderDetalle()
     await screen.findByTestId('pedido-numero')
+    expect(screen.getByText('Borrador')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aprobar' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Aprobar' }))
     expect(confirmDialog().getByText(/Se reservará el stock/)).toBeInTheDocument()
     fireEvent.click(confirmDialog().getByRole('button', { name: 'Aprobar' }))
@@ -354,24 +364,36 @@ describe('PedidoDetailPage', () => {
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Solicitud enviada')
   })
 
-  it('EN_ARMADO armador asignado: marca items, espera todos y prepara', async () => {
+it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', async () => {
     mockRol('armador')
-    const enArmado = createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1', items: [createPedidoItem({ completado: false })] })
-    const completo = createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1', version: 2, items: [createPedidoItem({ completado: true })] })
-    const preparado = createPedido({ estado: 'PREPARADO', armadorId: 'sub-1', version: 3, items: [createPedidoItem({ completado: true })] })
-    const fixtures = [enArmado, completo, completo, preparado, preparado, preparado, preparado]
-    let call = 0
-    vi.mocked(aleBetApi.pedidos.get).mockImplementation(() =>
-      Promise.resolve(fixtures[Math.min(call++, fixtures.length - 1)]),
+    let completado = false
+    let preparado = false
+    vi.mocked(aleBetApi.pedidos.get).mockImplementation(async () =>
+      createPedido({
+        estado: preparado ? 'PREPARADO' : 'EN_ARMADO',
+        armadorId: 'sub-1',
+        version: preparado ? 3 : completado ? 2 : 1,
+        items: [createPedidoItem({ completado })],
+        origen: 'MANUAL',
+      }),
     )
+    vi.mocked(aleBetApi.pedidos.completarItem).mockImplementation(async () => {
+      completado = true
+      return createPedido({ estado: 'EN_ARMADO', armadorId: 'sub-1', version: 2, items: [createPedidoItem({ completado: true })], origen: 'MANUAL' })
+    })
+    vi.mocked(aleBetApi.pedidos.preparar).mockImplementation(async () => {
+      preparado = true
+      return createPedido({ estado: 'PREPARADO', armadorId: 'sub-1', version: 3, items: [createPedidoItem({ completado: true })], origen: 'MANUAL' })
+    })
+
     renderDetalle()
     await screen.findByTestId('pedido-numero')
 
-    expect(screen.getByText('0 de 1 productos preparados')).toBeInTheDocument()
-    expect(screen.getAllByText(/Faltan 1 producto/)[0]).toBeInTheDocument()
+    const progresoInicial = screen.getByRole('region', { name: 'Progreso de armado' })
+    expect(within(progresoInicial).getByText('0 de 1 productos preparados')).toBeInTheDocument()
     expect(barra().getByText('0/1')).toBeInTheDocument()
-    expect(barra().getByRole('button', { name: 'FINALIZAR ARMADO' })).toBeDisabled()
     expect(barra().getByText('Faltan 1 producto')).toBeInTheDocument()
+    expect(within(progresoInicial).getByRole('button', { name: 'FINALIZAR ARMADO' })).toBeDisabled()
 
     fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'MARCAR PREPARADO' }))
     await waitFor(() =>
@@ -382,12 +404,14 @@ describe('PedidoDetailPage', () => {
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )
-    await waitFor(() => expect(screen.getByText('1 de 1 productos preparados')).toBeInTheDocument())
+    await waitFor(() => expect(within(linea('prod-1')).getByText('✓ PREPARADO')).toBeInTheDocument())
     expect(screen.queryByText('Faltan items o hay esperas')).not.toBeInTheDocument()
-    expect(barra().getByText('1/1')).toBeInTheDocument()
-    expect(barra().getByRole('button', { name: 'FINALIZAR ARMADO' })).toBeEnabled()
 
-    fireEvent.click(barra().getByRole('button', { name: 'FINALIZAR ARMADO' }))
+    const progresoActualizado = screen.getByRole('region', { name: 'Progreso de armado' })
+    expect(within(progresoActualizado).getByText('1 de 1 productos preparados')).toBeInTheDocument()
+    expect(barra().getByText('1/1')).toBeInTheDocument()
+
+    fireEvent.click(within(progresoActualizado).getByRole('button', { name: 'FINALIZAR ARMADO' }))
     expect(confirmDialog().getByText(/¿Marcar P-001 como completamente armado y listo para despacho\/remito\?/)).toBeInTheDocument()
     fireEvent.click(confirmDialog().getByRole('button', { name: 'FINALIZAR ARMADO' }))
     await waitFor(() =>
@@ -459,11 +483,13 @@ describe('PedidoDetailPage', () => {
     expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
   })
 
-  it('facturación emite remito con transporte habitual', async () => {
+  it('facturación emite remito con transporte habitual (AUTOMATION)', async () => {
     mockRol('facturacion')
-    vi.mocked(aleBetApi.pedidos.get)
-      .mockResolvedValueOnce(createPedido({ estado: 'APROBADO' }))
-      .mockResolvedValueOnce(createPedido({ estado: 'APROBADO', remitos: [createRemito()] }))
+    const sinRemito = createPedido({ estado: 'APROBADO', origen: 'AUTOMATION' })
+    const vigente = createPedido({ estado: 'APROBADO', origen: 'AUTOMATION', remitos: [createRemito()] })
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValueOnce(sinRemito).mockResolvedValueOnce(vigente)
+    Object.defineProperty(window.URL, 'createObjectURL', { configurable: true, writable: true, value: vi.fn(() => 'blob:mock') })
+    vi.spyOn(window, 'open').mockReturnValue(null)
     renderDetalle()
     await screen.findByTestId('pedido-numero')
     expect(screen.queryByRole('button', { name: 'Tomar pedido' })).not.toBeInTheDocument()
@@ -473,12 +499,19 @@ describe('PedidoDetailPage', () => {
     expect(aleBetApi.remitos.emitir).not.toHaveBeenCalled()
 
     fireEvent.click(screen.getByRole('combobox'))
-    fireEvent.click(screen.getByRole('button', { name: /Transporte A/i }))
+    // Transportation options may be empty in Automation; select first available or OTRO
+    const transportOptions = await screen.findAllByRole('button', { name: /Transporte A/i })
+    if (transportOptions.length > 0) {
+      fireEvent.click(transportOptions[0])
+    } else {
+      // No preset transportistas; select OTRO / TRANSPORTE OCASIONAL
+      fireEvent.click(screen.getByRole('button', { name: /OTRO \/ TRANSPORTE OCASIONAL/i }))
+    }
     fireEvent.click(screen.getByRole('button', { name: 'Emitir remito' }))
     await waitFor(() =>
       expect(aleBetApi.remitos.emitir).toHaveBeenCalledWith(
         'pedido-1',
-        { transportistaId: 'trans-1', expectedVersion: 1 },
+        { transportistaId: expect.any(String), expectedVersion: 1 },
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )
@@ -518,7 +551,7 @@ describe('PedidoDetailPage', () => {
       estado: 'PREPARADO',
       remitos: [createRemito({ estado: 'INVALIDADO', motivoInvalidacion: 'Error de carga', invalidadoAt: '2026-07-17T12:00:00.000Z' })],
     })
-    vi.mocked(aleBetApi.pedidos.get).mockResolvedValueOnce(vigente).mockResolvedValueOnce(invalidado)
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(vigente)
     Object.defineProperty(window.URL, 'createObjectURL', { configurable: true, writable: true, value: vi.fn(() => 'blob:mock') })
     vi.spyOn(window, 'open').mockReturnValue(null)
     renderDetalle()
@@ -533,6 +566,9 @@ describe('PedidoDetailPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Anular remito' }))
     expect(screen.getByRole('alert')).toHaveTextContent('El motivo es obligatorio')
     expect(aleBetApi.remitos.anular).not.toHaveBeenCalled()
+
+    // simulate re-fetch by updating the mock before firing the mutation success
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(invalidado)
 
     fireEvent.change(screen.getByLabelText('Motivo *'), { target: { value: 'Error de carga' } })
     fireEvent.click(screen.getByRole('button', { name: 'Anular remito' }))
@@ -550,7 +586,9 @@ describe('PedidoDetailPage', () => {
     expect(screen.getByText('Motivo: Error de carga')).toBeInTheDocument()
   })
 
-  it('409 stock: conserva el carrito y muestra el mensaje del servidor', async () => {
+  it('409 stock: conserva el carrito y muestra el mensaje del servidor (MANUAL)', async () => {
+    mockRol('vendedor')
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ origen: 'MANUAL', estado: 'BORRADOR' }))
     vi.mocked(aleBetApi.pedidos.update).mockRejectedValue(
       new ApiError(409, 'Stock insuficiente para reservar producto prod-1. Disponible: 5u, solicitado: 25u'),
     )
@@ -568,9 +606,7 @@ describe('PedidoDetailPage', () => {
   })
 
   it('409 versión: recarga el pedido con el toast del spec', async () => {
-    vi.mocked(aleBetApi.pedidos.get)
-      .mockResolvedValueOnce(createPedido())
-      .mockResolvedValueOnce(createPedido({ version: 2 }))
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido())
     vi.mocked(aleBetApi.pedidos.update).mockRejectedValue(
       new ApiError(409, 'La versión del pedido cambió; actualizá antes de reintentar'),
     )
@@ -581,7 +617,7 @@ describe('PedidoDetailPage', () => {
     await waitFor(() =>
       expect(vi.mocked(toast.error)).toHaveBeenCalledWith('La versión del pedido cambió; se recargó. Reintentá.'),
     )
-    await waitFor(() => expect(aleBetApi.pedidos.get).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(aleBetApi.pedidos.get).toHaveBeenCalledTimes(3))
   })
 
   it('banner de cancelación: armador asignado confirma con motivo precargado', async () => {

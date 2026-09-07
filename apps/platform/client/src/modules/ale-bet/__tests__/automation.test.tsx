@@ -205,7 +205,7 @@ describe('AutomationPage', () => {
     fireEvent.click(screen.getByText('Interpretar pedido'))
     
     await waitFor(() => {
-      expect(screen.getByText(/Stock insuficiente/)).toBeInTheDocument()
+      expect(screen.getByText(/Sin stock/)).toBeInTheDocument()
     })
     
     const confirmBtn = screen.getByText('Confirmar pedido')
@@ -260,7 +260,7 @@ describe('AutomationPage', () => {
       'draft-edit',
       {
         expectedVersion: 1,
-        line: { lineId: 'line-cetri', cajas: 1, unidades: 12, mode: 'UNITS' }
+        line: { lineId: 'line-cetri', productId: 'p1', cajas: 1, unidades: 12, mode: 'UNITS' }
       }
     ))
     await waitFor(() => expect(aleBetApi.automation.getDraft).toHaveBeenCalledTimes(2))

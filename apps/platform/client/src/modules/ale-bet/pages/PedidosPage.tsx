@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { roleHasPermission } from '@platform/core/permissions'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, FileText } from 'lucide-react'
 import { type Pedido, type PedidoEstado } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { can } from '@/lib/permissions'
@@ -118,12 +118,15 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
       <div className="mt-1 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           {senalOperativa && (
-            <p
-              className="truncate font-body text-[13px] font-semibold"
-              style={isAuto ? { color: 'var(--text-on-surface-variant, #A0A0A0)' } : { color: card.accent }}
-            >
-              {senalOperativa}
-            </p>
+            <div className="flex items-center gap-1.5">
+              {isAuto && <FileText size={14} className="text-on-surface-variant" />}
+              <p
+                className="truncate font-body text-[13px] font-semibold"
+                style={isAuto ? { color: 'var(--text-on-surface-variant, #A0A0A0)' } : { color: card.accent }}
+              >
+                {senalOperativa}
+              </p>
+            </div>
           )}
         </div>
         <ChevronRight

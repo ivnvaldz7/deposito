@@ -86,7 +86,7 @@ export default function Sidebar() {
 
   const items = visibleItems(user)
   const bottomItems = bottomNavItems(user)
-  const showNuevoPedido = can(user, 'ale-bet', 'pedidos.create')
+  const showNuevoPedido = can(user, 'ale-bet', 'pedidos.create') && rol !== 'facturacion'
 
   const mobileContent = (
     <>
