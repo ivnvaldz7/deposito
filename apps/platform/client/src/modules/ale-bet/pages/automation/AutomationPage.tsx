@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/lib/toast'
 import { Badge } from '@/components/ui/Badge'
@@ -379,28 +379,25 @@ export default function AutomationPage() {
                                 const p = productos.find(prod => prod.id === target.dataset.id)
                                 if (p) {
                                   const rem = (document.getElementById(`rem-alias-${index}`) as HTMLInputElement)?.checked
-                                  const newLines = [...effectiveSnapshot.lines]
-                                  newLines[index] = {
-                                    productId: p.id,
-                                    cajas: line.quantity.explicitBoxes ?? 0,
-                                    unidades: line.quantity.explicitUnits ?? (line.quantity.totalUnits ?? 1),
-                                    mode: line.quantity.mode,
-                                    rememberAlias: rem
+                                  const payload = {
+                                    expectedVersion: draft.version,
+                                    line: {
+                                      lineId: line.lineId,
+                                      productId: p.id,
+                                      cajas: line.quantity.explicitBoxes ?? 0,
+                                      unidades: line.quantity.explicitUnits ?? (line.quantity.totalUnits ?? 1),
+                                      mode: line.quantity.mode,
+                                      rememberAlias: rem,
+                                    },
                                   }
                                   setIsProcessing(true)
                                   updateDraft.mutateAsync({
                                     id: draft.id,
-                                    data: {
-                                      expectedVersion: draft.version,
-                                      clienteId: effectiveSnapshot.customerCandidate?.customerId,
-                                      lines: newLines.map((l: any, i: number) => i === index ? newLines[i] : {
-                                        productId: l.productCandidate?.productId ?? l.productId,
-                                        cajas: l.quantity?.explicitBoxes ?? l.cajas ?? 0,
-                                        unidades: l.quantity?.explicitUnits ?? l.unidades ?? 0,
-                                        mode: l.quantity?.mode ?? l.mode
-                                      }).filter((l: any) => l.productId)
-                                    }
-                                  }).catch(() => { toast.error('Error'); refetchDraft() }).finally(() => setIsProcessing(false))
+                                    data: payload
+                                  }).catch(() => {
+                                    toast.error('Error')
+                                    refetchDraft()
+                                  }).finally(() => setIsProcessing(false))
                                 }
                               }
                             }}></div>

@@ -41,8 +41,8 @@ describe('AutomationPage', () => {
     vi.clearAllMocks()
     ;(aleBetApi.clientes.list as any).mockResolvedValue([{ id: 'c1', nombre: 'Veterinaria Centro' }])
     ;(aleBetApi.productos.list as any).mockResolvedValue([
-      { id: 'p1', nombre: 'Olivitasan 500 ML', unidadesPorCaja: 20 },
-      { id: 'p2', nombre: 'Amantina', unidadesPorCaja: 1 }
+      { id: 'p1', nombre: 'Olivitasan 500 ML', sku: 'OLI-500', unidadesPorCaja: 20 },
+      { id: 'p2', nombre: 'Amantina', sku: 'AMA-001', unidadesPorCaja: 1 }
     ])
     ;(aleBetApi.automation.getAliases as any).mockResolvedValue({ productAliases: [], clientAliases: [] })
   })
@@ -129,6 +129,51 @@ describe('AutomationPage', () => {
     
     const confirmBtn = screen.getByText('Confirmar pedido')
     expect(confirmBtn).toBeDisabled()
+  })
+
+  it('edits one unresolved product through the semantic line contract', async () => {
+    ;(aleBetApi.automation.createDraft as any).mockResolvedValue({ id: 'draft-unresolved' })
+    ;(aleBetApi.automation.getDraft as any).mockResolvedValue({
+      draft: { id: 'draft-unresolved', estado: 'DRAFT', version: 1 },
+      effectiveSnapshot: {
+        customerCandidate: null,
+        requiresReview: true,
+        warnings: ['CUSTOMER_UNRESOLVED'],
+        lines: [{
+          lineId: 'line-oli',
+          originalText: '48 oli 300',
+          productCandidate: null,
+          warnings: ['PRODUCT_UNRESOLVED'],
+          requiresReview: true,
+          quantity: { mode: 'UNITS', explicitBoxes: null, explicitUnits: 48, totalUnits: null }
+        }]
+      },
+      availability: []
+    })
+    ;(aleBetApi.automation.updateDraft as any).mockResolvedValue({ id: 'draft-unresolved', estado: 'DRAFT', version: 2 })
+
+    render(<AutomationPage />, { wrapper: createWrapper() })
+    fireEvent.change(screen.getByPlaceholderText(/Veterinaria Centro/), { target: { value: 'PROVET\n48 oli 300' } })
+    fireEvent.click(screen.getByText('Interpretar pedido'))
+
+    const search = await screen.findByPlaceholderText('Buscar producto para asignar...')
+    fireEvent.change(search, { target: { value: 'oli' } })
+    fireEvent.click(screen.getByText('Olivitasan 500 ML'))
+
+    await waitFor(() => expect(aleBetApi.automation.updateDraft).toHaveBeenCalledWith(
+      'draft-unresolved',
+      {
+        expectedVersion: 1,
+        line: {
+          lineId: 'line-oli',
+          productId: 'p1',
+          cajas: 0,
+          unidades: 48,
+          mode: 'UNITS',
+          rememberAlias: true,
+        }
+      }
+    ))
   })
 
   it('handles insufficient stock', async () => {
