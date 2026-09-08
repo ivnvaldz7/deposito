@@ -135,6 +135,8 @@ export default function AutomationPage() {
             ✓
           </div>
           <h2 className="mb-2 text-2xl font-bold text-on-surface">Pedido confirmado</h2>
+          <p className="font-body text-sm text-on-surface-variant">Cliente: {draftData.effectiveSnapshot?.customerCandidate?.nombre ?? draftData.effectiveSnapshot?.customerCandidateText ?? 'Cliente'}</p>
+          <p className="font-body text-sm text-on-surface-variant">{draftData.effectiveSnapshot?.lines.length ?? 0} productos · {(draftData.effectiveSnapshot?.lines ?? []).reduce((total, line) => total + (line.quantity?.totalUnits ?? 0), 0)} unidades</p>
           <p className="font-body text-on-surface-variant mb-6">
             Stock actualizado correctamente.
           </p>
@@ -238,6 +240,7 @@ export default function AutomationPage() {
           expectedVersion: draft.version,
           idempotencyKey: idempotencyKeyRef.current.key
         })
+        setConfirmOrderPrompt(false)
       } catch (e) {
         if (e instanceof Error) {
           if (e.message.includes('Stock insuficiente')) {

@@ -65,35 +65,17 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
   else if (pedido.estado === 'PREPARADO' && !remitoVigente) senalOperativa = 'Esperando remito'
   else if (pedido.estado === 'PREPARADO' && remitoVigente) senalOperativa = 'Listo para despacho'
 
-  const { card } = meta
-
   return (
     <article
       data-testid={`pedido-card-${pedido.id}`}
       data-estado={pedido.estado}
       onClick={onAbrir}
       className={cn(
-        'group relative flex cursor-pointer flex-col justify-between gap-4 rounded-xl p-5 transition-all duration-200 shadow-sm hover:shadow-md',
+        'group relative grid min-h-16 cursor-pointer grid-cols-1 items-center gap-2 border-b border-white/10 px-3 py-3 transition-colors hover:bg-surface-variant/20 md:grid-cols-[minmax(12rem,1.4fr)_minmax(8rem,1fr)_minmax(7rem,.8fr)_minmax(10rem,1fr)_auto]',
         esCancelado && 'opacity-60 grayscale-[50%]'
       )}
-      style={{
-        backgroundColor: card.bg,
-        borderWidth: '1px',
-        borderStyle: 'solid',
-        borderColor: card.border,
-      }}
-      onMouseEnter={(e) => {
-        const el = e.currentTarget
-        el.style.backgroundColor = card.bgHover
-        el.style.borderColor = card.borderHover
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget
-        el.style.backgroundColor = card.bg
-        el.style.borderColor = card.border
-      }}
     >
-      <header className="flex items-start justify-between gap-3">
+      <header className="min-w-0">
         <div className="min-w-0 flex-1">
           <p className="truncate text-[18px] font-bold text-on-surface">
             {pedido.cliente.nombre}
@@ -115,14 +97,18 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
         )}
       </header>
 
-      <div className="mt-1 flex items-center justify-between gap-2">
+      <p className="truncate font-body text-[12px] text-on-surface-variant md:block">
+        {pedido.numero ?? pedido.id} · {pedido.items?.length ?? 0} items
+      </p>
+      <p className="font-body text-[12px] text-on-surface-variant">Automation</p>
+      <p className="font-body text-[12px] text-on-surface-variant">{formatFecha(pedido.updatedAt)}</p>
+      <div className="flex min-w-0 items-center justify-end gap-2">
         <div className="min-w-0 flex-1">
           {senalOperativa && (
             <div className="flex items-center gap-1.5">
               {isAuto && <FileText size={14} className="text-on-surface-variant" />}
               <p
-                className="truncate font-body text-[13px] font-semibold"
-                style={isAuto ? { color: 'var(--text-on-surface-variant, #A0A0A0)' } : { color: card.accent }}
+                className="truncate font-body text-[13px] font-medium text-on-surface-variant"
               >
                 {senalOperativa}
               </p>
@@ -131,8 +117,7 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
         </div>
         <ChevronRight
           size={18}
-          className="shrink-0 transition-colors"
-          style={{ color: card.accent }}
+          className="shrink-0 text-on-surface-variant transition-colors"
         />
       </div>
     </article>
@@ -146,7 +131,6 @@ export default function PedidosPage() {
   const userId = user?.sub ?? ''
   const esFacturacion = rol === 'facturacion'
   const esOperativo = can(user, 'ale-bet', 'pedidos.prepare') || can(user, 'ale-bet', 'pedidos.take')
-  const puedeCrear = !esFacturacion && can(user, 'ale-bet', 'pedidos.create')
 
   const armadorFiltros = [
     { valor: '', etiqueta: 'Todos' },
@@ -155,8 +139,6 @@ export default function PedidosPage() {
     { valor: 'PREPARADO', etiqueta: 'Preparados' },
   ] as const
 
-  const [estadoFilter, setEstadoFilter] = useState<PedidoEstado | ''>((location.state as any)?.estadoFilter ?? '')
-  const [soloHoy, setSoloHoy] = useState((location.state as any)?.pedidosHoy ?? false)
 
   const { data: pedidos = [], isLoading, error } = usePedidos(esFacturacion ? { bandeja: 'FACTURACION' } : undefined)
 
@@ -172,13 +154,8 @@ export default function PedidosPage() {
       result = result.filter(p => p.origen === 'MANUAL' && (p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO'))
     }
 
-    if (estadoFilter) result = result.filter((p) => p.estado === estadoFilter)
-    if (soloHoy) {
-      const hoy = new Date().toDateString()
-      result = result.filter(p => new Date(p.createdAt).toDateString() === hoy)
-    }
     return result
-  }, [pedidos, estadoFilter, soloHoy, rol])
+  }, [pedidos, rol])
 
   const ordenados = useMemo(() => {
     const lista = [...filtrados]
@@ -197,15 +174,6 @@ export default function PedidosPage() {
         <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Pedidos</h1>
         <p className="font-body text-[13px] text-on-surface-variant">{esFacturacion ? 'Pendientes de remito' : 'Bandeja operativa de pedidos'}</p>
       </div>
-      {puedeCrear && (
-        <button
-          type="button"
-          onClick={() => navigate('/ale-bet/pedidos/nuevo')}
-          className="shrink-0 rounded-full bg-primary px-5 py-2.5 font-body text-[13px] font-bold text-on-primary transition hover:bg-primary/90 shadow-sm"
-        >
-          + Nuevo pedido
-        </button>
-      )}
     </div>
   )
 
@@ -213,7 +181,7 @@ export default function PedidosPage() {
     return (
       <div className="space-y-6">
         {header}
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-surface-container-high">
           <Skeleton variant="card" className="h-44" />
           <Skeleton variant="card" className="h-44" />
           <Skeleton variant="card" className="h-44" />
@@ -236,47 +204,12 @@ export default function PedidosPage() {
     <div className="space-y-6">
       {header}
 
-      {!esFacturacion && <div className="flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]" aria-label="Filtrar por estado">
-        {(rol === 'armador' ? armadorFiltros : FILTROS).map((f) => {
-          const activo = estadoFilter === f.valor
-          return (
-            <button
-              key={f.valor || 'todos'}
-              type="button"
-              aria-pressed={activo}
-              onClick={() => setEstadoFilter(f.valor as PedidoEstado | '')}
-              className={cn(
-                'shrink-0 rounded-full border px-3.5 py-1.5 font-body text-[12px] font-semibold transition',
-                activo
-                  ? 'border-primary bg-primary/15 text-primary'
-                  : 'border-white/10 text-on-surface-variant hover:text-on-surface',
-              )}
-            >
-              {f.etiqueta}
-            </button>
-          )
-        })}
-        <button
-          type="button"
-          aria-pressed={soloHoy}
-          onClick={() => setSoloHoy(!soloHoy)}
-          className={cn(
-            'shrink-0 rounded-full border px-3.5 py-1.5 font-body text-[12px] font-semibold transition ml-auto',
-            soloHoy
-              ? 'border-primary bg-primary/15 text-primary'
-              : 'border-white/10 text-on-surface-variant hover:text-on-surface'
-          )}
-        >
-          Solo hoy
-        </button>
-      </div>}
-
       {ordenados.length === 0 ? (
         <p className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">
           {pedidos.length === 0 ? (esFacturacion ? 'No hay pedidos pendientes de remito.' : 'No hay pedidos.') : 'No hay pedidos en este estado.'}
         </p>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="flex w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-surface-container-high">
           {ordenados.map((p) => (
             <PedidoCard
               key={p.id}

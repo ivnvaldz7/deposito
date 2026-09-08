@@ -6,8 +6,8 @@ import { requirePermission } from '../../middlewares/require-permission'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { applyDraftEdit, AutomationConflictError, AutomationNotFoundError, confirmDraftInTransaction, getDraft, interpretAndPersistDraft } from './automation/automation-service'
 import { StockConflictError } from './reservas-service'
+import { syncStockProjectionNow } from './stock-projection/direct-sync'
 
-const router = Router()
 const createSchema = z.object({ originalText: z.string().trim().min(1).max(20_000) })
 const editSchema = z.object({
   expectedVersion: z.number().int().positive(),
@@ -42,6 +42,16 @@ function errorResponse(error: unknown, res: { status: (code: number) => { json: 
   }
   throw error
 }
+
+export type AutomationRouteDependencies = {
+  syncStockProjectionNow?: () => Promise<unknown>
+  logger?: Pick<Console, 'error'>
+}
+
+export function createAutomationRoutes(dependencies: AutomationRouteDependencies = {}): Router {
+  const router = Router()
+  const syncProjection = dependencies.syncStockProjectionNow ?? syncStockProjectionNow
+  const logger = dependencies.logger ?? console
 
 router.get('/aliases', requirePermission('ale-bet', 'pedidos.read'), async (req, res) => {
   if (!requireOperator(req, res)) return
@@ -110,9 +120,17 @@ router.post('/drafts/:id/confirm', requirePermission('ale-bet', 'pedidos.approve
       await completeIdempotencyRecord(tx, acquired.id, 200, toPersistableResponseBody(body))
       return { body, replayed: false }
     })
+    try {
+      await syncProjection()
+    } catch {
+      logger.error('[stock-projection] Google Sheets sync failed after Automation confirmation')
+    }
     if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
     res.json(result.body)
   } catch (error) { errorResponse(error, res) }
 })
 
-export default router
+  return router
+}
+
+export default createAutomationRoutes()

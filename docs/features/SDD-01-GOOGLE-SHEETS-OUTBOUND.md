@@ -7,10 +7,9 @@
 - Proyectar exclusivamente desde PostgreSQL hacia una hoja nueva de Google Sheets un snapshot completo e idempotente del stock físico Ale-Bet por `Producto + Lote + UbicacionStock`.
 - Reutilizar `StockProjectionOutbox`; no crear un segundo outbox.
 - Publicar dos tablas de valores administrados, con encabezados `PRODUCTO | LOTE | TOTAL`, una para “PRODUCTO TERMINADO” y otra para “SIN ACONDICIONAR”, según el mapping autoritativo aprobado.
-- Generar la proyección tras confirmación efectiva de Automation, ajuste/apertura manual, transferencia interna y cualquier otro flujo vigente que cambie `SaldoStock`.
+- Generar la proyección automática únicamente tras una confirmación efectiva de Automation.
 - Ejecutar la escritura después del commit de negocio; una falla de Google no revierte pedidos, movimientos ni saldos.
-- Reconciliar un snapshot autoritativo al iniciar el runtime habilitado, sin depender del replay completo de eventos históricos.
-- Exponer observabilidad mínima de estados `PENDING`, `SYNCED`, `ERROR`, última sincronización, trabajo pendiente y último error.
+- Conservar `StockProjectionOutbox` como infraestructura existente sin consumidor activo en el MVP actual.
 
 ## No objetivos
 
@@ -19,6 +18,7 @@
 - No modificar la hoja histórica, recrear el spreadsheet ni borrar formato.
 - No tocar Depósito, WhatsApp, Railway/cloud ni rediseñar Automation, Facturación o la UI general.
 - No agregar un botón de sincronización, F5 requerido ni polling del usuario.
+- No implementar worker, polling, scheduler, retry/backoff, reconciliación de startup, dashboard de estado ni sincronización automática de otros writers físicos en el MVP actual.
 
 ## Restricciones
 
@@ -34,8 +34,31 @@
 
 `alto`
 
-- Justificación: integra stock, transacciones, outbox, proceso en segundo plano, credenciales y una dependencia externa; una cobertura incompleta puede dejar una vista operativa obsoleta o asociar cantidades a una tabla incorrecta.
+- Justificación: integra stock, límite transaccional, credenciales y una dependencia externa; una cobertura incompleta puede asociar cantidades a una tabla incorrecta o devolver un fallo ambiguo después de confirmar el negocio.
 - Riesgo alto requiere Reviewer independiente y Verify.
+
+## Arquitectura final MVP
+
+```text
+Automation confirm
+→ transacción PostgreSQL
+→ descuento físico + movimientos + señal de outbox
+→ COMMIT
+→ snapshot autoritativo completo
+→ Google Sheets STOCK APP
+```
+
+- PostgreSQL y `SaldoStock` siguen siendo la única fuente de verdad; Google Sheets es una proyección outbound.
+- `syncStockProjectionNow()` se ejecuta en la capa HTTP inmediatamente exterior al `await prisma.$transaction(...)` de confirmación Automation.
+- Google no participa en la transacción. Si configuración, autenticación, red o escritura fallan, el pedido continúa confirmado, el stock permanece descontado y la API conserva la respuesta exitosa de PostgreSQL; solo se emite un log constante saneado.
+- `GOOGLE_SHEETS_ENABLED=false` omite snapshot, credenciales, cliente y llamadas Google sin afectar la confirmación.
+- El adapter escribe un snapshot absoluto e idempotente; un replay puede volver a sincronizar sin duplicar filas ni volver a descontar stock.
+- `StockProjectionOutbox` se conserva y continúa recibiendo señales transaccionales de los writers ya instrumentados. No tiene worker consumidor en el MVP actual y no se desarrolla más salvo necesidad futura.
+- La sincronización automática vigente se limita a confirmación Automation. Ajustes, transferencias, aperturas, remitos y otros writers no disparan el helper directo.
+
+## Diseño anterior reemplazado
+
+**SUPERSEDED / DESCARTADO para el MVP actual:** el Slice 4 originalmente planificado con worker permanente, polling de `StockProjectionOutbox`, scheduler, retry/backoff, reconciliación de startup y locking de worker. También quedan fuera del alcance activo la sincronización automática de todos los writers y la UI/endpoint de observabilidad. Se preserva este antecedente únicamente como trazabilidad; no es un requisito de implementación vigente.
 
 ## Decisión autoritativa de ubicaciones — Checkpoint 0 resuelto
 
@@ -53,7 +76,7 @@ El flujo real crea lotes en `ACONDICIONADO` y permite transferir `ACONDICIONADO 
 
 La ambigüedad del nombre técnico `ACONDICIONADO` no autoriza a cambiar el dominio. SDD-01 no renombra `UbicacionStock`, no modifica el schema y no crea migraciones. Las constantes de proyección deben usar estos códigos reales y fallar cerrado si falta o se duplica una ubicación requerida.
 
-## Criterios de aceptación
+## Criterios de aceptación vigentes
 
 - [ ] 1. El mapping aprobado usa exclusivamente códigos reales de `UbicacionStock` y falla cerrado si falta o se duplica una ubicación requerida.
 - [ ] 2. Una función pura produce exactamente `{ productoTerminado, sinAcondicionar }` con filas `{ producto, lote, total }` a partir del estado autoritativo actual.
@@ -62,26 +85,26 @@ La ambigüedad del nombre técnico `ACONDICIONADO` no autoriza a cambiar el domi
 - [ ] 5. Si hay lotes positivos para producto/ubicación, solo se publican esos lotes; los lotes cero no se borran de PostgreSQL.
 - [ ] 6. Si todos los lotes del producto/ubicación están en cero, se publica una única fila cero: el lote activo más reciente por `createdAt`/`id`, o el lote más reciente total si ninguno está activo.
 - [ ] 7. La repetición del snapshot produce los mismos valores, sin filas duplicadas ni mutaciones de stock.
-- [ ] 8. Confirmar Automation persiste stock, movimiento y outbox en una transacción, responde sin esperar a Google y termina convergiendo en Sheets.
-- [ ] 9. Todo servicio vigente que modifique físicamente `SaldoStock` crea una señal de outbox en la misma transacción; una transferencia actualiza ambas tablas aunque el total global no cambie. No se crean workflows nuevos de despacho, vendedor o armador.
-- [ ] 10. Crear un lote administrado que cambie la fila cero determinista también genera una señal; un ajuste sin cambio (`delta = 0`) no crea ruido.
-- [ ] 11. Emitir, anular o reemitir remitos no modifica stock, no crea outbox de stock y no cambia Sheets.
-- [ ] 12. La caída de Google deja el negocio confirmado y el evento como trabajo no sincronizado; el retry posterior construye un snapshot nuevo desde PostgreSQL y converge.
-- [ ] 13. El inicio del runtime habilitado ejecuta reconciliación completa aun cuando no existan eventos históricos pendientes.
-- [ ] 14. La escritura limpia y reemplaza únicamente valores de rangos administrados de la hoja nueva y conserva el formato manual.
-- [ ] 15. El estado mínimo informa última sincronización, conteos pendientes/con error y último error saneado, sin exponer credenciales.
-- [ ] 16. UAT-01 a UAT-09 se ejecutan contra una hoja nueva compartida con la Service Account y quedan documentados.
+- [ ] 8. Confirmar Automation persiste stock, movimiento, pedido y outbox dentro de una transacción; solo después de su commit construye el snapshot y llama al adapter una vez.
+- [ ] 9. El snapshot post-commit refleja el saldo definitivo (por ejemplo, `120 - 12 = 108`) y nunca el estado anterior.
+- [ ] 10. `GOOGLE_SHEETS_ENABLED=false` confirma y descuenta normalmente sin construir snapshot ni instanciar Google.
+- [ ] 11. Una falla de Google se captura fuera de la transacción, registra únicamente `[stock-projection] Google Sheets sync failed after Automation confirmation` y no altera la respuesta exitosa ni el estado persistido.
+- [ ] 12. El replay idempotente de confirmación no vuelve a descontar ni crea otro movimiento; un segundo sync del snapshot absoluto es aceptable.
+- [ ] 13. Emitir, anular o reemitir remitos no dispara el helper directo, no modifica stock y no crea otro movimiento físico.
+- [ ] 14. Ajustes, transferencias, aperturas y otros writers conservan sus señales de `StockProjectionOutbox`, pero no sincronizan Google automáticamente en el MVP actual.
+- [ ] 15. La escritura limpia y reemplaza únicamente valores de rangos administrados y conserva el formato manual.
+- [ ] 16. El UAT final requiere una confirmación Automation manual autorizada; no se fabrica un pedido ni se modifica stock mediante script.
 
-## Estrategia técnica condicionada
+## Estrategia técnica vigente
 
 - Snapshot: consultar productos activos, todos sus lotes y saldos de las dos ubicaciones aprobadas; tratar la ausencia de `SaldoStock` para un lote/ubicación como cantidad física cero, sin materializar datos.
 - Orden: normalizar Unicode, espacios y mayúsculas; detectar una presentación `n ML` o `n L` en el nombre, convertirla a mililitros y ordenar por prefijo/familia, presentación, sufijo y nombre completo. Lotes: `createdAt ASC`, `id ASC`.
 - Cero: para cada producto/ubicación, emitir todas las filas positivas; si no hay ninguna, elegir un solo lote priorizando `activo`, luego `createdAt DESC`, `id DESC`. Un producto sin lotes no puede producir una fila sin inventar un lote.
 - Outbox: extraer un helper transaccional idempotente y llamarlo desde los servicios que mutan `SaldoStock` o cambian la selección de fila cero. Los eventos son señales de suciedad; el payload no contiene deltas ni cantidades.
-- Worker: al iniciar y ante eventos vencidos `PENDING`/`ERROR`, construir un snapshot global actual, escribirlo y marcar la tanda capturada `SYNCED`. En falla, incrementar `attempts`, guardar un error saneado, calcular `nextRetryAt` con backoff acotado y reintentar también eventos `ERROR`.
 - Sheets: crear solo la pestaña configurada si no existe; declarar rangos/columnas exclusivos para ambas tablas; usar `values.clear`/`values.batchUpdate` sobre esos rangos para eliminar valores obsoletos y escribir encabezados/filas completas sin tocar formato.
-- Runtime: módulo iniciable/detenible desde `src/index.ts`, ejecución inicial inmediata y ciclo corto de backend; `GOOGLE_SHEETS_ENABLED=false` no requiere credenciales ni inicia el worker.
-- Observabilidad: estado en memoria del worker combinado con agregados del outbox; endpoint autenticado bajo Ale-Bet/stock y logs estructurados sin payload de credenciales.
+- Sync directo: después del commit de confirmación Automation, construir un snapshot global actual y escribirlo una vez. `GOOGLE_SHEETS_ENABLED=false` retorna sin credenciales ni llamadas externas.
+- Fallo externo: capturar el error exclusivamente alrededor del sync post-commit, no propagarlo como fallo de confirmación y no incluir el mensaje original en logs.
+- Outbox inactivo: no consultar, consumir ni cambiar estados del outbox desde este flujo directo.
 
 ### Política de visibilidad física implementada en Slice 1
 
@@ -106,7 +129,7 @@ Los nombres siguen el prefijo `GOOGLE_` ya usado por el servidor y aíslan la Se
 
 ## Tareas de implementación por slices
 
-Las tareas posteriores quedan documentadas, pero el único alcance autorizado para Builder en esta iteración es Slice 1. Cada checkpoint es un límite obligatorio: no se inicia el slice siguiente hasta recibir aprobación explícita.
+Slices 1–3 quedan como checkpoints históricos verificados. El alcance activo autorizado es exclusivamente el cierre simplificado Direct Automation Sync; el Slice 4 Worker está cancelado.
 
 ### Checkpoint 0 — mapping de dominio
 
@@ -163,45 +186,18 @@ Las tareas posteriores quedan documentadas, pero el único alcance autorizado pa
 - [x] **CP3.1** Reviewer inspecciona que ninguna request recree spreadsheet, borre hoja completa o modifique formato.
 - [x] **CP3.2** Tester/Verify confirman configuración cerrada, credenciales externas, rangos exclusivos e idempotencia con fake.
 
+### Cierre simplificado — Direct Automation Sync
+
+- [x] **DAS.1 — Helper directo.** Construir el snapshot autoritativo actual y escribirlo mediante `StockProjectionSheetAdapter`; salir sin trabajo cuando Google está deshabilitado.
+- [x] **DAS.2 — Hook post-commit.** Ejecutar el helper inmediatamente después de que finaliza con éxito la transacción de confirmación Automation.
+- [x] **DAS.3 — Fail-open externo.** Capturar fallas de Google, emitir un log constante saneado y preservar respuesta/estado de negocio.
+- [x] **DAS.4 — Tests focalizados.** Cubrir enabled, disabled, falla, snapshot `108` post-commit, replay sin doble descuento y remitos sin sync.
+- [ ] **DAS.5 — Review/Verify independiente.** Revisar límite transaccional, seguridad del log, alcance exclusivo y evidencia focalizada.
+- [ ] **DAS.6 — UAT manual autorizado.** Confirmar manualmente un pedido de prueba en Automation y contrastar PostgreSQL con `STOCK APP`.
+
 ### Slice 4 — worker, retry y reconciliación
 
-- [ ] **S4.1 — Ciclo de vida.** Implementar worker iniciable/detenible, sin ejecuciones solapadas, habilitado solo por configuración y con shutdown controlado.
-- [ ] **S4.2 — Reconciliación inicial.** Al arrancar habilitado, construir y escribir el snapshot PostgreSQL actual aun sin eventos históricos pendientes.
-- [ ] **S4.3 — Toma de trabajo.** Capturar eventos `PENDING` y `ERROR` vencidos, construir un único snapshot actual, escribirlo y marcar la tanda capturada `SYNCED` solo después del éxito.
-- [ ] **S4.4 — Fallas y retry.** En error incrementar intentos, guardar mensaje saneado y calcular `nextRetryAt` con backoff acotado; el negocio nunca espera ni revierte por Google.
-- [ ] **S4.5 — Convergencia.** Cada retry relee PostgreSQL actual y no reproduce deltas; probar que cambios posteriores convergen sin doble descuento ni duplicaciones.
-- [ ] **S4.6 — Tests deterministas.** Usar reloj y adapter fake para inicio, solapamiento, error recuperable, retry, shutdown e idempotencia.
-
-### Checkpoint 4 — aceptación del worker
-
-- [ ] **CP4.1** Simular Google caído durante una operación de negocio: stock y outbox persisten sin bloquear la respuesta.
-- [ ] **CP4.2** Restaurar el adapter y confirmar snapshot final autoritativo, eventos sincronizados e idempotencia.
-- [ ] **CP4.3** Confirmar reconciliación correcta después de reinicio sin depender del replay histórico.
-
-### Slice 5 — observabilidad mínima
-
-- [ ] **S5.1 — Estado.** Combinar estado en memoria del worker con agregados del outbox para última sincronización, pendientes, errores y último error saneado.
-- [ ] **S5.2 — Endpoint natural.** Exponer el estado bajo una ruta Ale-Bet/stock existente o equivalente, protegida con permisos ya vigentes; no abrir una feature de UI.
-- [ ] **S5.3 — Logs.** Emitir logs estructurados para inicio, éxito, retry y error sin credenciales ni payload sensible.
-- [ ] **S5.4 — Tests.** Cubrir permisos, estados vacíos/activos, conteos, timestamps y saneamiento del último error.
-
-### Checkpoint 5 — aceptación de observabilidad
-
-- [ ] **CP5.1** Reviewer confirma mínimo alcance, autorización existente y ausencia de secretos.
-- [ ] **CP5.2** Tester/Verify contrastan endpoint/logs con el outbox y estado real del worker.
-
-### Slice 6 — UAT contra hoja nueva real
-
-- [ ] **S6.1 — Preparación externa.** Crear/seleccionar una hoja nueva, compartirla con la Service Account y configurar credenciales fuera del repo; no tocar la hoja histórica.
-- [ ] **S6.2 — Ejecución UAT.** Ejecutar y documentar UAT-01 Automation, UAT-02 ajuste, UAT-03 transferencia, UAT-04 nuevo lote, UAT-05 lote agotado, UAT-06 todos cero, UAT-07 caída de Internet/Google, UAT-08 idempotencia y UAT-09 remitos.
-- [ ] **S6.3 — Evidencia.** Registrar estado PostgreSQL/outbox, valores de ambas tablas y tiempos de convergencia sin capturar secretos.
-- [ ] **S6.4 — Limpieza controlada.** Retirar solo fixtures UAT acordados; preservar formato manual y datos fuera de los rangos administrados.
-
-### Checkpoint 6 — cierre de SDD-01
-
-- [ ] **CP6.1** Reviewer independiente revisa los criterios de aceptación completos y nueva evidencia de riesgo.
-- [ ] **CP6.2** Verify ejecuta la matriz final, registra evidencia vigente y confirma que no se tocó Depósito, WhatsApp, Railway/cloud ni workflows fuera de alcance.
-- [ ] **CP6.3** No cerrar ni archivar hasta aprobar UAT-01 a UAT-09; commit/push solo por pedido explícito del usuario.
+**CANCELLED / OUT OF SCOPE FOR MVP.** No implementar worker, polling, scheduler, retry engine, backoff, startup reconciliation, locking, consumidor automático de outbox ni observabilidad asociada. Una necesidad futura requerirá una nueva decisión y alcance explícitos.
 
 ## Archivos previstos por slices
 
@@ -209,13 +205,12 @@ Las tareas posteriores quedan documentadas, pero el único alcance autorizado pa
 - `apps/platform/server/src/routes/ale-bet/stock-projection/snapshot-repository.ts` y test de integración.
 - `apps/platform/server/src/routes/ale-bet/stock-projection/outbox.ts`.
 - `apps/platform/server/src/routes/ale-bet/stock-projection/google-sheets-adapter.ts` y tests con fake/mock.
-- `apps/platform/server/src/routes/ale-bet/stock-projection/worker.ts` y tests.
+- `apps/platform/server/src/routes/ale-bet/stock-projection/direct-sync.ts` y tests.
 - `apps/platform/server/src/routes/ale-bet/inventory-service.ts`.
 - `apps/platform/server/src/routes/ale-bet/product-stock-admin-service.ts`.
 - `apps/platform/server/src/routes/ale-bet/reservas-service.ts`.
 - `apps/platform/server/src/routes/ale-bet/automation/automation-service.ts` solo si se centraliza el productor existente, sin cambiar comportamiento funcional.
-- `apps/platform/server/src/routes/ale-bet/productos.ts`, `stock.ts` e `index.ts` para wiring/estado mínimo.
-- `apps/platform/server/src/index.ts` para ciclo de vida del worker.
+- `apps/platform/server/src/routes/ale-bet/automation.ts` e `index.ts` para el wiring post-commit inyectable.
 - `apps/platform/server/package.json`, `package-lock.json` y `apps/platform/server/.env.example` para SDK/configuración sin secretos.
 - Tests focalizados bajo `apps/platform/server/src/routes/ale-bet/**/__tests__/` y `apps/platform/server/src/__tests__/integration/`.
 
@@ -227,8 +222,8 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 
 | Cambio | Archivo/ruta | Evidencia |
 |---|---|---|
-| Checkpoint 0 resuelto y tareas detalladas; Builder autorizado solo para Slice 1 | `docs/features/SDD-01-GOOGLE-SHEETS-OUTBOUND.md` | Decisión autoritativa y checklist S1.1–S1.11 registrados |
-| Slice 1 completado por Builder | `apps/platform/server/src/routes/ale-bet/stock-projection/` | TDD RED→GREEN→REFACTOR completado; no se habilitan slices posteriores |
+| Checkpoint 0 resuelto y tareas históricas detalladas | `docs/features/SDD-01-GOOGLE-SHEETS-OUTBOUND.md` | Decisión autoritativa y checklist S1.1–S1.11 registrados |
+| Slice 1 completado por Builder | `apps/platform/server/src/routes/ale-bet/stock-projection/` | TDD RED→GREEN→REFACTOR completado dentro del alcance entonces autorizado |
 | Transformación pura y orden empresarial | `stock-projection/snapshot.ts` | Shape exacto, mapping cerrado, cantidades absolutas, política cero y orden estable sin dependencias externas |
 | Lectura PostgreSQL read-only | `stock-projection/snapshot-repository.ts` | Selects explícitos de `Producto`, `Lote`, `UbicacionStock` y `SaldoStock`; no lee `cajas`/`sueltos` ni escribe DB |
 | Cobertura Slice 1 | `stock-projection/__tests__/snapshot.test.ts`; `__tests__/integration/stock-projection-snapshot.test.ts` | 13 casos puros y fixture Prisma aislado |
@@ -238,6 +233,7 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 | Review Slice 2 — lectura independiente | Inventario writers + schema + migración + idempotency + transaccionalidad + skipOutbox safety | `APPROVED`: unique constraint verificada en migración real, nullable semantics segura, idempotencia semántica confirmada (REPLAY + upsert), transaccionalidad (mismo tx), skipOutbox seguro (solo callers con evento propio usan skip), Automation un solo evento, sanitization exclusión segura, log reescritura reutilizada, 5 tests de riesgo A–E agregados |
 | Verify Slice 2 — reejecución suites | `npm run test:integration -- stock-projection-outbox.test.ts + stock-projection-snapshot.test.ts + automation-slice1.test.ts` | PASS: 32/32 (13 Slice 2 + 19 regresión). CP2.1–CP2.3 aprobados. Checkpoint commit creado sin push. Slice 3 NO iniciado. |
 | Slice 3 — adapter + config | `sheet-adapter.ts`, `google-sheets-adapter.ts`, `__tests__/google-sheets-adapter.test.ts`, `.env.example`, `.gitignore` | Puerto `StockProjectionSheetAdapter` (interfaz), adapter Google con Service Account, `validateSheetConfig`, `googleapis` instalado, 17 tests (12 contract + 5 integration mock) PASS, service-account.json excluido de git |
+| Direct Automation Sync | `stock-projection/direct-sync.ts`, `automation.ts`, `index.ts`, tests unitarios/integración | Helper directo post-commit, disabled sin trabajo, falla externa fail-open con log saneado, snapshot post-commit `120 - 12 = 108`, replay sin doble descuento y remitos sin sync |
 
 ## Evidencia de pruebas
 
@@ -257,6 +253,9 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 | Slice 2 — outbox producers | `npm run test:integration -- src/__tests__/integration/stock-projection-outbox.test.ts` | PASS: 8 tests cubriendo ajuste manual (con/sin cambio), apertura, transferencia (éxito/fallo), remitos (regresión) y snapshot post-ajuste/transferencia |
 | Slice 2 — regresión Slice 1 + Automation | `npm run test:integration -- src/__tests__/integration/stock-projection-snapshot.test.ts src/__tests__/integration/automation-slice1.test.ts` | PASS: 19 tests (1 Slice 1 + 18 Automation) |
 | Slice 3 — adapter tests | `npm exec vitest run -- -c vitest.config.ts src/routes/ale-bet/stock-projection/__tests__/google-sheets-adapter.test.ts` | PASS: 1 archivo, 17 tests (validateSheetConfig, fake contract A–F, Google Sheets mocked G–K + clear range exacto) |
+| Direct sync — unit + regresión stock projection | Vitest focalizado: `snapshot.test.ts`, `google-sheets-adapter.test.ts`, `direct-sync.test.ts` | PASS: 3 archivos, 32/32 tests. |
+| Direct sync — integración Automation/outbox/snapshot | Integration focalizada: `direct-automation-sync.test.ts`, `automation-slice1.test.ts`, `stock-projection-snapshot.test.ts`, `stock-projection-outbox.test.ts` | PASS: 4 archivos, 37/37 tests contra `platform_test_automation`. |
+| Direct sync — typecheck focalizado | TypeScript estricto sobre `direct-sync.ts`, `automation.ts`, `index.ts` y ambos tests nuevos | PASS sin errores; el typecheck global conserva únicamente fallas históricas/temporales ajenas registradas. |
 
 ## Evidencia de verificación
 
@@ -277,7 +276,7 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 
 ## Estado e historial
 
-- Estado actual: `verificado` (Slice 1 → VERIFIED; Slice 2 → VERIFIED; Slice 3 → VERIFIED; Slice 4 → NOT STARTED)
+- Estado actual: `en-revisión` (Slice 1 → VERIFIED; Slice 2 → VERIFIED; Slice 3 → VERIFIED; Direct Automation Sync → IN REVIEW / READY FOR VERIFY; Slice 4 Worker → CANCELLED / OUT OF SCOPE FOR MVP)
 - Historial:
   - 2026-09-08 — Planner — inspección del repo actual y diseño condicionado; detenido antes de mappings/migraciones por contradicción de ubicaciones.
   - 2026-09-08 — Maintainer — aprobó el plan y resolvió Checkpoint 0 con `DEPOSITO → PRODUCTO TERMINADO` y `ACONDICIONADO → SIN ACONDICIONAR`.
@@ -299,10 +298,13 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
   - 2026-09-08 — Verify — re-Verify final mínimo confirmó `vi.hoisted()` sin casts evasivos, ausencia de TS2352, 17/17 tests, typecheck estricto PASS y rangos definitivos `A3:C1002`/`E3:G1002` (1000 filas por tabla). Emite `VERIFY: PASS`; Checkpoint 3 aprobado. Slice 4 NO iniciado.
   - 2026-09-08 — Pre-commit — staged diff limitado a ocho archivos de Slice 3, sin frontend, UAT, credenciales ni Slice 4. El gate nativo no encontró un receipt content-bound de Slice 3; el lineage previo de Slice 1 devolvió `scope-changed`, `allowed: false`, `action: explicit-maintainer-action`. Checkpoint bloqueado sin commit ni push.
   - 2026-09-08 — Maintainer — autorizó explícitamente crear un receipt content-bound nuevo para el staged content actual de Slice 3, sin bypass ni reutilización del receipt de Slice 1. Lineage asignada: `review-sdd01-slice3-code-20260908`.
+  - 2026-09-08 — Smoke real — configuración, autenticación, acceso, escritura, comparación e idempotencia PASS contra `platform` y la solapa `STOCK APP`; 35 filas Producto Terminado y 36 Sin Acondicionar.
+  - 2026-09-08 — Maintainer — reemplazó el Slice 4 por la arquitectura MVP directa Automation confirm → COMMIT → snapshot → Google; worker/polling/retry/reconciliation cancelados y outbox conservado sin consumidor.
+  - 2026-09-08 — Builder/Tester — implementó helper y hook post-commit fail-open; RED por módulos ausentes, GREEN 32/32 unitarios y 37/37 integración, typecheck focalizado PASS. Direct Automation Sync queda `en-revisión`, sin commit/push y pendiente de UAT manual autorizado.
 
 Estados válidos: `planificado` → `en-construcción` → `en-prueba` → `en-revisión` → `en-verificación` → `verificado` → `archivado`. Solo el archive SDD requerido puede pasar `verificado` a `archivado`; desde un estado activo: `bloqueado`.
 
 ## Bloqueos
 
-- Ninguno para Slice 3: off-by-one, tipado del mock, higiene de `.gitignore` y autorización del receipt resueltos.
-- Slice 4 permanece `NOT STARTED` y requiere autorización explícita antes de comenzar.
+- Ninguno técnico en implementación/tests de Direct Automation Sync; pendiente Reviewer independiente, Verify final y UAT manual autorizado.
+- Slice 4 Worker está cancelado y fuera del MVP; no debe iniciarse sin una nueva decisión explícita.

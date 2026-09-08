@@ -9,9 +9,13 @@ import historialRoutes from './historial'
 import transportistasRoutes from './transportistas'
 import remitosRoutes from './remitos'
 import facturacionRoutes from './facturacion'
-import automationRoutes from './automation'
+import { createAutomationRoutes, type AutomationRouteDependencies } from './automation'
 
-export function createAleBetRoutes(): Router {
+export type AleBetRouteOptions = {
+  automation?: AutomationRouteDependencies
+}
+
+export function createAleBetRoutes(options: AleBetRouteOptions = {}): Router {
   const router = Router()
 
   router.use('/productos', productosRoutes)
@@ -24,7 +28,7 @@ export function createAleBetRoutes(): Router {
   router.use('/transportistas', transportistasRoutes)
   router.use('/pedidos', remitosRoutes)
   router.use('/facturacion', facturacionRoutes)
-  router.use('/automation', automationRoutes)
+  router.use('/automation', createAutomationRoutes(options.automation))
 
   return router
 }

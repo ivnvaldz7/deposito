@@ -39,6 +39,7 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
   }
 
   const { lotes, ubicaciones } = stockData
+  const lotesActivos = lotes.filter((lote) => lote.stockDeposito !== 0 || lote.stockAcondicionado !== 0 || lote.stockTotal !== 0)
   const depositoUbicacion = ubicaciones.find(u => u.codigo === 'DEPOSITO')
   const acondicionadoUbicacion = ubicaciones.find(u => u.codigo === 'ACONDICIONADO')
   const stockTotal = lotes.reduce((acc, lote) => acc + lote.stockTotal, 0)
@@ -78,11 +79,11 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
           </button>
         </div>
 
-        {lotes.length === 0 ? (
-          <p className="mt-4 py-6 text-center font-body text-[13px] text-on-surface-variant">No hay lotes creados.</p>
+        {lotesActivos.length === 0 ? (
+          <p className="mt-4 py-6 text-center font-body text-[13px] text-on-surface-variant">Sin lotes con stock disponible</p>
         ) : (
           <div className="mt-4 space-y-3">
-            {lotes.map(lote => (
+            {lotesActivos.map(lote => (
               <div key={lote.id} className="rounded-xl border border-white/10 bg-surface-container-high p-4">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-[15px] text-primary">LOTE {lote.numero}</span>

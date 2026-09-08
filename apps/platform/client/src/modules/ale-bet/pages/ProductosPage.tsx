@@ -241,7 +241,7 @@ export default function ProductosPage() {
                               {puedeGestionarStock && (
                                 <button 
                                   onClick={(e) => openGestionarStock(p, e)}
-                                  className="rounded-full border border-primary px-4 py-1.5 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
+                                  className="min-w-[132px] whitespace-nowrap rounded-full border border-primary px-3 py-1.5 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
                                 >
                                   Gestionar stock
                                 </button>

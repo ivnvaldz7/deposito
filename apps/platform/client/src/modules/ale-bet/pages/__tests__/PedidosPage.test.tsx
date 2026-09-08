@@ -70,15 +70,11 @@ describe('PedidosPage', () => {
     expect(screen.getByText('Cargando pedidos...')).toBeInTheDocument()
   })
 
-  it('navigates to new order page when clicking Nuevo pedido CTA', async () => {
+  it('does not expose legacy new-order CTA', async () => {
     renderPedidos()
     await waitFor(() => expect(screen.getByTestId('pedido-card-pedido-1')).toBeInTheDocument())
 
-    const btn = screen.getByRole('button', { name: '+ Nuevo pedido' })
-    expect(btn).toBeInTheDocument()
-    fireEvent.click(btn)
-
-    expect(screen.getByText('NuevoPedido')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '+ Nuevo pedido' })).not.toBeInTheDocument()
   })
 
   it('renders error state', async () => {
@@ -105,14 +101,12 @@ describe('PedidosPage', () => {
     expect(within(card).getByText('Pendiente de validación')).toBeInTheDocument()
   })
 
-  it('filters by estado chip (BORRADOR shows only BORRADOR)', async () => {
+  it('does not render legacy state filters', async () => {
     renderPedidos()
     await waitFor(() => expect(screen.getByTestId('pedido-card-pedido-1')).toBeInTheDocument())
 
-    fireEvent.click(screen.getByRole('button', { name: 'Borrador' }))
-
-    expect(screen.getByTestId('pedido-card-pedido-1')).toBeInTheDocument()
-    expect(screen.queryByTestId('pedido-card-pedido-2')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Borrador' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Solo hoy' })).not.toBeInTheDocument()
   })
 })
 
