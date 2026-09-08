@@ -152,16 +152,16 @@ Las tareas posteriores quedan documentadas, pero el único alcance autorizado pa
 
 ### Slice 3 — adapter de Google Sheets y configuración
 
-- [ ] **S3.1 — Puerto y fake.** Definir un puerto interno de escritura de snapshot y un fake para tests; la lógica de dominio no depende del SDK.
-- [ ] **S3.2 — Configuración.** Validar `GOOGLE_SHEETS_ENABLED`, spreadsheet, nombre de pestaña y ruta externa de Service Account; deshabilitado no requiere credenciales. Documentar placeholders sin secretos.
-- [ ] **S3.3 — Adapter.** Instalar el SDK aprobado e implementar Service Account; trabajar solo sobre el spreadsheet/pestaña configurados y crear únicamente la pestaña nueva si falta.
-- [ ] **S3.4 — Rangos administrados.** Declarar rangos no superpuestos para las dos tablas; limpiar valores obsoletos y escribir encabezados/snapshot completo con operaciones de valores, sin requests de formato, dimensiones o borrado de hoja.
-- [ ] **S3.5 — Contract tests.** Verificar rangos exactos, snapshot absoluto, repetición idempotente, eliminación de sobrantes y ausencia de operaciones destructivas de formato.
+- [x] **S3.1 — Puerto y fake.** Definir `StockProjectionSheetAdapter` (interfaz) con `writeSnapshot` y un adapter fake en tests; la lógica de dominio no depende del SDK.
+- [x] **S3.2 — Configuración.** `validateSheetConfig` lee `GOOGLE_SHEETS_ENABLED`, spreadsheet, sheetName y serviceAccountFile; `enabled=false` no requiere credenciales; `enabled=true` sin config → error claro y saneado.
+- [x] **S3.3 — Adapter.** Instalar `googleapis`, implementar `GoogleSheetsAdapter` con Service Account; crear solo la pestaña configurada si falta; memoizar cliente HTTP.
+- [x] **S3.4 — Rangos administrados.** Limpiar A3:C1002 (PRODUCTO TERMINADO) y E3:G1002 (SIN ACONDICIONAR), escritura en bloque `values.update` con `RAW`; headers en filas 1–2 (título + columnas). Sin requests de formato, dimensiones o borrado de hoja.
+- [x] **S3.5 — Tests.** 17 tests: A–F contract tests con adapter fake; G–K tests de configuración y adapter Google mock (enabled=false → error, enabled+incompleta → error, creación de pestaña, no recreación, no formato, clear antes de write, rango clear exacto A3:C1002/E3:G1002).
 
 ### Checkpoint 3 — aceptación del adapter
 
-- [ ] **CP3.1** Reviewer inspecciona que ninguna request recree spreadsheet, borre hoja completa o modifique formato.
-- [ ] **CP3.2** Tester/Verify confirman configuración cerrada, credenciales externas, rangos exclusivos e idempotencia con fake.
+- [x] **CP3.1** Reviewer inspecciona que ninguna request recree spreadsheet, borre hoja completa o modifique formato.
+- [x] **CP3.2** Tester/Verify confirman configuración cerrada, credenciales externas, rangos exclusivos e idempotencia con fake.
 
 ### Slice 4 — worker, retry y reconciliación
 
@@ -237,6 +237,7 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 | Slice 2 completado por Builder | `apps/platform/server/src/routes/ale-bet/stock-projection/outbox.ts`; instrumentación en `product-stock-admin-service.ts`, `inventory-service.ts`, `reservas-service.ts`; tests en `__tests__/integration/stock-projection-outbox.test.ts` | Inventario exhaustivo de writers, helper `markStockProjectionDirty` con upsert idempotente, instrumentación de 3 writers (ajuste manual/apertura, transferencia, consumo), Automation/reconcile-legacy con `skipOutbox: true`, 8 tests de integración PASS, regresión de remitos verificada |
 | Review Slice 2 — lectura independiente | Inventario writers + schema + migración + idempotency + transaccionalidad + skipOutbox safety | `APPROVED`: unique constraint verificada en migración real, nullable semantics segura, idempotencia semántica confirmada (REPLAY + upsert), transaccionalidad (mismo tx), skipOutbox seguro (solo callers con evento propio usan skip), Automation un solo evento, sanitization exclusión segura, log reescritura reutilizada, 5 tests de riesgo A–E agregados |
 | Verify Slice 2 — reejecución suites | `npm run test:integration -- stock-projection-outbox.test.ts + stock-projection-snapshot.test.ts + automation-slice1.test.ts` | PASS: 32/32 (13 Slice 2 + 19 regresión). CP2.1–CP2.3 aprobados. Checkpoint commit creado sin push. Slice 3 NO iniciado. |
+| Slice 3 — adapter + config | `sheet-adapter.ts`, `google-sheets-adapter.ts`, `__tests__/google-sheets-adapter.test.ts`, `.env.example`, `.gitignore` | Puerto `StockProjectionSheetAdapter` (interfaz), adapter Google con Service Account, `validateSheetConfig`, `googleapis` instalado, 17 tests (12 contract + 5 integration mock) PASS, service-account.json excluido de git |
 
 ## Evidencia de pruebas
 
@@ -255,6 +256,7 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 | Suite completa informativa | `npm run test` | Baseline no limpio fuera de alcance: 52 archivos y 669 tests pasaron; 18 archivos/22 tests fallaron en suites preexistentes de Depósito, auth, importación y otras rutas, además de archivos sin DB URL. El test focalizado de `stock-projection` permaneció PASS y Slice 1 no está integrado a esos módulos. |
 | Slice 2 — outbox producers | `npm run test:integration -- src/__tests__/integration/stock-projection-outbox.test.ts` | PASS: 8 tests cubriendo ajuste manual (con/sin cambio), apertura, transferencia (éxito/fallo), remitos (regresión) y snapshot post-ajuste/transferencia |
 | Slice 2 — regresión Slice 1 + Automation | `npm run test:integration -- src/__tests__/integration/stock-projection-snapshot.test.ts src/__tests__/integration/automation-slice1.test.ts` | PASS: 19 tests (1 Slice 1 + 18 Automation) |
+| Slice 3 — adapter tests | `npm exec vitest run -- -c vitest.config.ts src/routes/ale-bet/stock-projection/__tests__/google-sheets-adapter.test.ts` | PASS: 1 archivo, 17 tests (validateSheetConfig, fake contract A–F, Google Sheets mocked G–K + clear range exacto) |
 
 ## Evidencia de verificación
 
@@ -266,10 +268,16 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 | Verify de Slice 1 — reejecución integración | `npm run test:integration -- src/__tests__/integration/stock-projection-snapshot.test.ts` | PASS: 1 archivo, 1 test contra `platform_test_automation`. |
 | Verify de Slice 1 — typecheck focalizado | `npm exec tsc -- --noEmit --strict ... src/routes/ale-bet/stock-projection/snapshot.ts src/routes/ale-bet/stock-projection/snapshot-repository.ts` | PASS sin errores. |
 | Verify de Slice 1 — inspección directa | Código staged + feature doc | PASS: mapping cerrado, TOTAL exclusivamente de `SaldoStock.cantidad`, independencia de ubicaciones, orden estable (familia → presentación → variante; lotes `createdAt ASC`, `id ASC`), política cero determinista, visibilidad física y repositorio read-only confirmados. CP1.1–CP1.4 aprobados. |
+| Verify final de Slice 3 — tests focalizados | `npm exec vitest run -- -c vitest.config.ts src/routes/ale-bet/stock-projection/__tests__/google-sheets-adapter.test.ts` | PASS: 1 archivo, 16/16 tests. |
+| Verify final de Slice 3 — typecheck productivo focalizado | `npm exec tsc -- --noEmit --strict --target ES2020 --module CommonJS --moduleResolution node --esModuleInterop --skipLibCheck src/routes/ale-bet/stock-projection/sheet-adapter.ts src/routes/ale-bet/stock-projection/google-sheets-adapter.ts` | PASS sin errores. |
+| Verify final de Slice 3 — rangos y política TypeScript | Inspección directa de adapter, tests y diff real | BLOCKED: `buildClearRange()` genera `A3:C1003`/`E3:G1003`, fuera de los rangos declarados `A3:C1000`/`E3:G1000`; el test nuevo contiene `as any`, prohibido por la política estricta. No se inició Slice 4 ni se creó checkpoint. |
+| Re-Verify focalizado de Slice 3 — rango y tests | Inspección directa + suite focalizada | PASS: fórmula `DATA_START_ROW + MAX_DATA_ROWS - 1`, rangos exactos `A3:C1002`/`E3:G1002` (1000 filas) y 17/17 tests. El test afirma presencia de 1002 y ausencia de 1003/1000. |
+| Re-Verify focalizado de Slice 3 — TypeScript | Typecheck estricto sobre puerto, adapter y test | BLOCKED: producción PASS, pero el test falla con TS2352 porque el cast del módulo `googleapis` a `{ __mocks: ... }` no tiene solapamiento suficiente. Se eliminó `as any`, pero el reemplazo todavía no constituye tipado válido bajo TypeScript estricto. |
+| Re-Verify final mínimo de Slice 3 | Inspección de `vi.hoisted`; 17 tests focalizados; typecheck estricto incluyendo el test | PASS: los mocks compartidos por `vi.hoisted()` son los usados por `vi.mock()` y las aserciones; sin casts/supresiones evasivas ni TS2352. Rangos definitivos `A3:C1002`/`E3:G1002`, 1000 filas por tabla. CP3.1–CP3.2 aprobados. |
 
 ## Estado e historial
 
-- Estado actual: `verificado` (Slice 1 y Slice 2 verificados; slices 3–6 sin iniciar)
+- Estado actual: `verificado` (Slice 1 → VERIFIED; Slice 2 → VERIFIED; Slice 3 → VERIFIED; Slice 4 → NOT STARTED)
 - Historial:
   - 2026-09-08 — Planner — inspección del repo actual y diseño condicionado; detenido antes de mappings/migraciones por contradicción de ubicaciones.
   - 2026-09-08 — Maintainer — aprobó el plan y resolvió Checkpoint 0 con `DEPOSITO → PRODUCTO TERMINADO` y `ACONDICIONADO → SIN ACONDICIONAR`.
@@ -282,10 +290,19 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
   - 2026-09-08 — Builder — completó Slice 2: inventario exhaustivo de writers de SaldoStock, helper `markStockProjectionDirty` creado, instrumentación de `adjustManagedStock`, `transferInternal` y `consumeActiveReservations`, Automation y reconcile-legacy actualizados con `skipOutbox: true`, tests de integración para todos los casos (8/8 PASS), regresión de remitos verificada. Slice 2 listo para Review/Verify.
   - 2026-09-08 — Reviewer — revisión read-only: verificó inventario exhaustivo de writers (grep $executeRaw, saldoStock.*, callers), unique constraint en migración real (`CREATE UNIQUE INDEX ... ("productId","causeType","causeId")` con columnas NOT NULL), nullable semantics segura, idempotencia semántica (idempotencyKey estable por operación, REPLAY/no-duplicate, 409 en key reuse), transaccionalidad (todos los `markStockProjectionDirty` usan el mismo `tx`), skipOutbox safety (solo automation+reconcile usan skip y crean su propio evento), Automation exactamente un efecto lógico (createMany skipDuplicates), remitos sin outbox (regresión), logistica-sanitization-service seguro sin instrumentar (solo CLI manual DEMO/TEST, fingerprint-gated). Agregó 5 tests de riesgo A–E (distinct events, retry no duplicate, consume default/skip, forced-fail rollback). Emite `APPROVED`.
   - 2026-09-08 — Verify — reejecutó 13 tests Slice 2 + 19 regresión (32/32 PASS), inspeccionó diff backend acotado (42 líneas), verificó CP2.1–CP2.3. Emite `VERIFY: PASS`. Checkpoint commit de Slice 2 creado sin push. Slice 3 NO iniciado.
+  - 2026-09-08 — Builder — completó Slice 3: `sheet-adapter.ts` (puerto + fake), `google-sheets-adapter.ts` (implementación Google con Service Account), `validateSheetConfig`, `googleapis` instalado, `.env.example` actualizado, `.gitignore` protege service-account.json, 16 tests PASS (contract A–F + Google Sheets mocked E–G–K). Slice 3 listo para Review/Verify.
+  - 2026-09-08 — Reviewer — arquitectura del adapter aprobada sin hallazgos técnicos; dictamen bloqueado exclusivamente por cinco archivos frontend ajenos presentes en el working tree.
+  - 2026-09-08 — Verify — preservó los cinco frontend y los scripts UAT fuera de staging, reejecutó 16/16 tests y typecheck productivo focalizado (PASS), pero detectó que el clear efectivo excede los rangos documentados y que el test nuevo usa `as any`. Emite `VERIFY: BLOCKED`; no stage, commit ni push; Slice 4 NO iniciado.
+  - 2026-09-08 — Builder — fix post-verify: corrigió off-by-one en `buildClearRange` (`DATA_START_ROW + MAX_DATA_ROWS - 1` → A3:C1002 / E3:G1002), eliminó `as any` del test usando interfaz local tipada, agregó test de rango exacto. 17/17 PASS. Pendiente de re-Verify.
+  - 2026-09-08 — Verify — re-Verify focalizado confirmó rango exacto de 1000 filas y 17/17 tests; producción typecheck PASS. El typecheck estricto incluyendo el test falla con TS2352 en el cast del módulo mock, por lo que el reemplazo de `as any` no es todavía tipado válido. Emite `VERIFY: BLOCKED`; no stage, commit ni push; Slice 4 NO iniciado.
+  - 2026-09-08 — Builder — reemplazó el cast incompatible del mock por referencias compartidas mediante `vi.hoisted()`, sin modificar producción; 17/17 tests PASS y typecheck incluyendo el test PASS.
+  - 2026-09-08 — Verify — re-Verify final mínimo confirmó `vi.hoisted()` sin casts evasivos, ausencia de TS2352, 17/17 tests, typecheck estricto PASS y rangos definitivos `A3:C1002`/`E3:G1002` (1000 filas por tabla). Emite `VERIFY: PASS`; Checkpoint 3 aprobado. Slice 4 NO iniciado.
+  - 2026-09-08 — Pre-commit — staged diff limitado a ocho archivos de Slice 3, sin frontend, UAT, credenciales ni Slice 4. El gate nativo no encontró un receipt content-bound de Slice 3; el lineage previo de Slice 1 devolvió `scope-changed`, `allowed: false`, `action: explicit-maintainer-action`. Checkpoint bloqueado sin commit ni push.
+  - 2026-09-08 — Maintainer — autorizó explícitamente crear un receipt content-bound nuevo para el staged content actual de Slice 3, sin bypass ni reutilización del receipt de Slice 1. Lineage asignada: `review-sdd01-slice3-code-20260908`.
 
 Estados válidos: `planificado` → `en-construcción` → `en-prueba` → `en-revisión` → `en-verificación` → `verificado` → `archivado`. Solo el archive SDD requerido puede pasar `verificado` a `archivado`; desde un estado activo: `bloqueado`.
 
 ## Bloqueos
 
-- Ninguno para iniciar Verify de Slice 1.
-- Los slices 2 a 6 permanecen fuera de alcance hasta superar el checkpoint anterior y recibir aprobación explícita.
+- Ninguno para Slice 3: off-by-one, tipado del mock, higiene de `.gitignore` y autorización del receipt resueltos.
+- Slice 4 permanece `NOT STARTED` y requiere autorización explícita antes de comenzar.

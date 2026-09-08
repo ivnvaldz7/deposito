@@ -16,3 +16,8 @@ coverage
 .claude
 *.tsbuildinfo
 .runtime/
+
+# Service Account JSON — never commit real credentials
+*-service-account.json
+*-sa.json
+service-account*.json
