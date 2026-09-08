@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { Prisma, TipoMovimiento } from '@platform/db'
 import { evaluateLotLifecycle } from './product-stock-admin-service'
+import { markStockProjectionDirty } from './stock-projection/outbox'
 
 export type StockLocationCode = 'DEPOSITO' | 'ACONDICIONADO'
 export type AvailabilityStatus = 'DISPONIBLE' | 'DISPONIBLE_CON_TRANSFERENCIA' | 'INSUFICIENTE'
@@ -198,6 +199,7 @@ export async function transferInternal(
     destino: StockLocationCode
     cantidad: number
     idempotencyKey: string
+    skipOutbox?: boolean
   },
 ): Promise<{ movimientoId: string }> {
   assertTransferQuantity(input.cantidad)
@@ -248,5 +250,12 @@ export async function transferInternal(
     },
   })
   await evaluateLotLifecycle(tx, { loteId: input.loteId, productoId: input.productoId })
+  if (!input.skipOutbox) {
+    await markStockProjectionDirty(tx, {
+      productId: input.productoId,
+      causeType: 'TRANSFER',
+      causeId: input.idempotencyKey,
+    })
+  }
   return { movimientoId: movement.id }
 }

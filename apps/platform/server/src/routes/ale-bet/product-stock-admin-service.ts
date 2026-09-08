@@ -1,4 +1,5 @@
 import { platformDb, Prisma, TipoMovimiento } from '@platform/db'
+import { markStockProjectionDirty } from './stock-projection/outbox'
 
 export class ProductStockAdminConflict extends Error {
   constructor(message: string) {
@@ -119,6 +120,11 @@ export async function adjustManagedStock(
       origenUbicacionId: input.ubicacionId,
       idempotencyKey: input.idempotencyKey,
     },
+  })
+  await markStockProjectionDirty(tx, {
+    productId: input.productoId,
+    causeType: input.tipoMovimiento === TipoMovimiento.SALDO_APERTURA ? 'SALDO_APERTURA' : 'MANUAL_ADJUST',
+    causeId: input.idempotencyKey,
   })
   return { saldo, movimiento, anterior, nuevo: input.cantidadFinal, delta }
 }

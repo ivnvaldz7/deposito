@@ -41,7 +41,7 @@ export async function reconcileLegacyAutomationOrder(tx: Prisma.TransactionClien
     const lotIds = pedido.reservas.filter((reserva) => reserva.itemPedidoId === item.id).map((reserva) => reserva.loteId)
     if (await tx.lote.count({ where: { id: { in: lotIds }, productoId: { not: item.productoId } } })) throw new Error(`Reserva de otro producto: ${item.id}`)
   }
-  await consumeActiveReservations(tx, pedidoId, actorId)
+  await consumeActiveReservations(tx, pedidoId, actorId, { skipOutbox: true })
   await tx.pedido.update({ where: { id: pedidoId }, data: { origen: 'AUTOMATION', estado: 'APROBADO', vendedorId: null, armadorId: null, preparadoAt: null, version: { increment: 1 } } })
   await tx.pedidoAuditoria.create({ data: {
     pedidoId, actorId, accion: 'AUTOMATION_LEGACY_STOCK_RECONCILIADO',

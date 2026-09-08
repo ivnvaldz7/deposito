@@ -137,18 +137,18 @@ Las tareas posteriores quedan documentadas, pero el único alcance autorizado pa
 
 ### Slice 2 — productores del outbox existente
 
-- [ ] **S2.1 — Inventario de escritores.** Localizar todos los servicios vigentes que crean, actualizan o eliminan cantidad física de `SaldoStock`; registrar operación, transacción y cobertura actual de outbox.
-- [ ] **S2.2 — Helper transaccional.** Extraer o crear un helper para dejar `StockProjectionOutbox` en `PENDING` dentro de la misma transacción de stock, sin cantidades/deltas en el payload y sin segundo outbox.
-- [ ] **S2.3 — Instrumentación acotada.** Instrumentar únicamente los escritores físicos existentes: confirmación Automation, ajuste manual, apertura/saldo inicial, transferencia y cualquier otro escritor vigente encontrado. No crear workflows de despacho, vendedor o armador.
-- [ ] **S2.4 — Señales relevantes.** Evitar señal en ajustes sin cambio; asegurar señal cuando una transferencia cambia ubicaciones aunque el total global sea igual y cuando una creación/cambio de lote altere la fila cero determinista.
-- [ ] **S2.5 — Regresión de remitos.** Demostrar que emitir, anular o reemitir remitos no modifica `SaldoStock` ni crea outbox de stock.
-- [ ] **S2.6 — Tests transaccionales.** Probar commit conjunto, rollback conjunto, idempotencia y cobertura de cada escritor físico vigente.
+- [x] **S2.1 — Inventario de escritores.** Localizar todos los servicios vigentes que crean, actualizan o eliminan cantidad física de `SaldoStock`; registrar operación, transacción y cobertura actual de outbox.
+- [x] **S2.2 — Helper transaccional.** Extraer o crear un helper para dejar `StockProjectionOutbox` en `PENDING` dentro de la misma transacción de stock, sin cantidades/deltas en el payload y sin segundo outbox.
+- [x] **S2.3 — Instrumentación acotada.** Instrumentar únicamente los escritores físicos existentes: confirmación Automation, ajuste manual, apertura/saldo inicial, transferencia y cualquier otro escritor vigente encontrado. No crear workflows de despacho, vendedor o armador.
+- [x] **S2.4 — Señales relevantes.** Evitar señal en ajustes sin cambio; asegurar señal cuando una transferencia cambia ubicaciones aunque el total global sea igual y cuando una creación/cambio de lote altere la fila cero determinista.
+- [x] **S2.5 — Regresión de remitos.** Demostrar que emitir, anular o reemitir remitos no modifica `SaldoStock` ni crea outbox de stock.
+- [x] **S2.6 — Tests transaccionales.** Probar commit conjunto, rollback conjunto, idempotencia y cobertura de cada escritor físico vigente.
 
 ### Checkpoint 2 — aceptación de productores
 
-- [ ] **CP2.1** Reviewer compara el inventario de escritores con llamadas al helper y confirma que no quedan mutadores físicos sin señal.
-- [ ] **CP2.2** Tester/Verify confirman rollback, ausencia de ruido, transferencia entre ubicaciones y regresión de remitos.
-- [ ] **CP2.3** Confirmar que no se agregó ningún workflow legacy.
+- [x] **CP2.1** Reviewer compara el inventario de escritores con llamadas al helper y confirma que no quedan mutadores físicos sin señal.
+- [x] **CP2.2** Tester/Verify confirman rollback, ausencia de ruido, transferencia entre ubicaciones y regresión de remitos.
+- [x] **CP2.3** Confirmar que no se agregó ningún workflow legacy.
 
 ### Slice 3 — adapter de Google Sheets y configuración
 
@@ -234,6 +234,9 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 | Cobertura Slice 1 | `stock-projection/__tests__/snapshot.test.ts`; `__tests__/integration/stock-projection-snapshot.test.ts` | 13 casos puros y fixture Prisma aislado |
 | Handoff independiente de Tester | Mismos módulos y tests de Slice 1 | Inspección directa confirmó separación DB/política pura, mapping cerrado, cantidades absolutas, orden, lotes cero y ausencia de Google, worker, outbox nuevo, frontend o migración; sin cambios a producción ni tests por parte de Tester |
 | Review independiente 4R | Lineage `review-sdd01-slice1-code-20260908` | `APPROVED`, sin hallazgos; target exacto de cuatro archivos backend/test, riesgo alto, cuatro lentes requeridas |
+| Slice 2 completado por Builder | `apps/platform/server/src/routes/ale-bet/stock-projection/outbox.ts`; instrumentación en `product-stock-admin-service.ts`, `inventory-service.ts`, `reservas-service.ts`; tests en `__tests__/integration/stock-projection-outbox.test.ts` | Inventario exhaustivo de writers, helper `markStockProjectionDirty` con upsert idempotente, instrumentación de 3 writers (ajuste manual/apertura, transferencia, consumo), Automation/reconcile-legacy con `skipOutbox: true`, 8 tests de integración PASS, regresión de remitos verificada |
+| Review Slice 2 — lectura independiente | Inventario writers + schema + migración + idempotency + transaccionalidad + skipOutbox safety | `APPROVED`: unique constraint verificada en migración real, nullable semantics segura, idempotencia semántica confirmada (REPLAY + upsert), transaccionalidad (mismo tx), skipOutbox seguro (solo callers con evento propio usan skip), Automation un solo evento, sanitization exclusión segura, log reescritura reutilizada, 5 tests de riesgo A–E agregados |
+| Verify Slice 2 — reejecución suites | `npm run test:integration -- stock-projection-outbox.test.ts + stock-projection-snapshot.test.ts + automation-slice1.test.ts` | PASS: 32/32 (13 Slice 2 + 19 regresión). CP2.1–CP2.3 aprobados. Checkpoint commit creado sin push. Slice 3 NO iniciado. |
 
 ## Evidencia de pruebas
 
@@ -250,6 +253,8 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 | Reejecución independiente de integración | `npm run test:integration -- src/__tests__/integration/stock-projection-snapshot.test.ts` | PASS: 1 archivo, 1 test contra el harness fijo `platform_test_automation`; objeto exacto con A/B por ubicación y una fila cero determinista tras llevar los saldos a cero. |
 | Reejecución independiente de typecheck focalizado | `npm exec tsc -- --noEmit --strict --target ES2020 --module CommonJS --moduleResolution node --esModuleInterop --skipLibCheck src/routes/ale-bet/stock-projection/snapshot.ts src/routes/ale-bet/stock-projection/snapshot-repository.ts` | PASS sin errores. |
 | Suite completa informativa | `npm run test` | Baseline no limpio fuera de alcance: 52 archivos y 669 tests pasaron; 18 archivos/22 tests fallaron en suites preexistentes de Depósito, auth, importación y otras rutas, además de archivos sin DB URL. El test focalizado de `stock-projection` permaneció PASS y Slice 1 no está integrado a esos módulos. |
+| Slice 2 — outbox producers | `npm run test:integration -- src/__tests__/integration/stock-projection-outbox.test.ts` | PASS: 8 tests cubriendo ajuste manual (con/sin cambio), apertura, transferencia (éxito/fallo), remitos (regresión) y snapshot post-ajuste/transferencia |
+| Slice 2 — regresión Slice 1 + Automation | `npm run test:integration -- src/__tests__/integration/stock-projection-snapshot.test.ts src/__tests__/integration/automation-slice1.test.ts` | PASS: 19 tests (1 Slice 1 + 18 Automation) |
 
 ## Evidencia de verificación
 
@@ -264,7 +269,7 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
 
 ## Estado e historial
 
-- Estado actual: `verificado` (Slice 1; slices 2–6 sin iniciar)
+- Estado actual: `verificado` (Slice 1 y Slice 2 verificados; slices 3–6 sin iniciar)
 - Historial:
   - 2026-09-08 — Planner — inspección del repo actual y diseño condicionado; detenido antes de mappings/migraciones por contradicción de ubicaciones.
   - 2026-09-08 — Maintainer — aprobó el plan y resolvió Checkpoint 0 con `DEPOSITO → PRODUCTO TERMINADO` y `ACONDICIONADO → SIN ACONDICIONAR`.
@@ -274,6 +279,9 @@ Ninguna prevista. El schema actual ya contiene estados, retry metadata, timestam
   - 2026-09-08 — Tester — inspeccionó implementación y tests sin confiar en el handoff, reejecutó 13 pruebas puras, 1 integración Prisma aislada y typecheck focalizado; todo Slice 1 pasó y quedó `en-prueba` para Reviewer. No modificó producción ni tests y no inició Slice 2.
   - 2026-09-08 — Reviewer — revisó en modo read-only el target staged exacto bajo las cuatro lentes 4R, reejecutó la evidencia focalizada y emitió `APPROVED` sin hallazgos. El receipt post-apply quedó validado; Slice 1 está listo para Verify.
   - 2026-09-08 — Verify — inspeccionó el estado real del repo sin confiar en el handoff, contrastó código y tests contra los invariantes de Slice 1, reejecutó 13 pruebas puras, 1 integración y typecheck focalizado (todos PASS) y emitió `VERIFY: PASS`. Checkpoint 1 (CP1.1–CP1.4) aprobado; checkpoint commit de Slice 1 creado sin push. Slice 2 NO iniciado.
+  - 2026-09-08 — Builder — completó Slice 2: inventario exhaustivo de writers de SaldoStock, helper `markStockProjectionDirty` creado, instrumentación de `adjustManagedStock`, `transferInternal` y `consumeActiveReservations`, Automation y reconcile-legacy actualizados con `skipOutbox: true`, tests de integración para todos los casos (8/8 PASS), regresión de remitos verificada. Slice 2 listo para Review/Verify.
+  - 2026-09-08 — Reviewer — revisión read-only: verificó inventario exhaustivo de writers (grep $executeRaw, saldoStock.*, callers), unique constraint en migración real (`CREATE UNIQUE INDEX ... ("productId","causeType","causeId")` con columnas NOT NULL), nullable semantics segura, idempotencia semántica (idempotencyKey estable por operación, REPLAY/no-duplicate, 409 en key reuse), transaccionalidad (todos los `markStockProjectionDirty` usan el mismo `tx`), skipOutbox safety (solo automation+reconcile usan skip y crean su propio evento), Automation exactamente un efecto lógico (createMany skipDuplicates), remitos sin outbox (regresión), logistica-sanitization-service seguro sin instrumentar (solo CLI manual DEMO/TEST, fingerprint-gated). Agregó 5 tests de riesgo A–E (distinct events, retry no duplicate, consume default/skip, forced-fail rollback). Emite `APPROVED`.
+  - 2026-09-08 — Verify — reejecutó 13 tests Slice 2 + 19 regresión (32/32 PASS), inspeccionó diff backend acotado (42 líneas), verificó CP2.1–CP2.3. Emite `VERIFY: PASS`. Checkpoint commit de Slice 2 creado sin push. Slice 3 NO iniciado.
 
 Estados válidos: `planificado` → `en-construcción` → `en-prueba` → `en-revisión` → `en-verificación` → `verificado` → `archivado`. Solo el archive SDD requerido puede pasar `verificado` a `archivado`; desde un estado activo: `bloqueado`.
 

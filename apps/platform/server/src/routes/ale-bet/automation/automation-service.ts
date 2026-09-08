@@ -223,12 +223,12 @@ export async function confirmDraftInTransaction(tx: Prisma.TransactionClient, in
   const { getOrderAvailability, transferInternal } = await import('../inventory-service')
   const availability = await getOrderAvailability(tx, pedido)
   if (availability.status === 'INSUFICIENTE') throw new StockConflictError('Stock insuficiente para aprobar el pedido')
-  for (const transfer of availability.transferencias) await transferInternal(tx, { ...transfer, actorId: input.actorId, idempotencyKey: `automation:${draft.id}:${transfer.loteId}` })
+  for (const transfer of availability.transferencias) await transferInternal(tx, { ...transfer, actorId: input.actorId, idempotencyKey: `automation:${draft.id}:${transfer.loteId}`, skipOutbox: true })
   await reserveFefo(tx, pedido.id, pedido.items)
   // Reuse the established FEFO reservation path for locks/allocation, then
   // consume it before commit. Automation therefore has no active reservation
   // or deferred Armador stock operation after confirmation.
-  await consumeActiveReservations(tx, pedido.id, input.actorId)
+  await consumeActiveReservations(tx, pedido.id, input.actorId, { skipOutbox: true })
   const approved = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'APROBADO', aprobadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
   await audit(tx, approved.id, input.actorId, 'PEDIDO_APROBADO_AUTOMATION', { draftId: draft.id, estado: approved.estado })
   await tx.orderInterpretationDraft.update({ where: { id: draft.id }, data: { estado: 'CONFIRMED', confirmedBy: input.actorId, pedidoId: approved.id, version: { increment: 1 } } })

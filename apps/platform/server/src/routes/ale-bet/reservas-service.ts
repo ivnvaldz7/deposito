@@ -2,6 +2,7 @@ import { Prisma, TipoMovimiento } from '@platform/db'
 import { calcularUnidades, descomponerUnidades } from './constants'
 import { evaluateLotLifecycle } from './product-stock-admin-service'
 import { orderEligibleLots } from './inventory-service'
+import { markStockProjectionDirty } from './stock-projection/outbox'
 
 type TransactionClient = Prisma.TransactionClient
 
@@ -120,12 +121,19 @@ export async function reserveFefo(tx: TransactionClient, pedidoId: string, items
   }
 }
 
-export async function consumeActiveReservations(tx: TransactionClient, pedidoId: string, actorId: string): Promise<void> {
+export async function consumeActiveReservations(
+  tx: TransactionClient,
+  pedidoId: string,
+  actorId: string,
+  options: { skipOutbox?: boolean } = {},
+): Promise<void> {
   const reservations = await tx.reservaStock.findMany({
     where: { pedidoId, estado: 'ACTIVA' },
     orderBy: [{ loteId: 'asc' }, { ubicacionId: 'asc' }, { id: 'asc' }],
   })
   if (reservations.length === 0) throw new StockConflictError('El pedido no tiene reservas activas para despachar')
+
+  const consumedProductIds = new Set<string>()
 
   for (const reservation of reservations) {
     const locked = await tx.$queryRaw<Array<{ id: string; productoId: string; cajas: number; sueltos: number; unidadesPorCaja: number; cantidad: number; saldoId: string }>>(Prisma.sql`
@@ -163,5 +171,16 @@ export async function consumeActiveReservations(tx: TransactionClient, pedidoId:
       },
     })
     await evaluateLotLifecycle(tx, { loteId: lot.id, productoId: lot.productoId })
+    consumedProductIds.add(lot.productoId)
+  }
+
+  if (!options.skipOutbox) {
+    for (const productId of consumedProductIds) {
+      await markStockProjectionDirty(tx, {
+        productId,
+        causeType: 'CONSUMO_PEDIDO',
+        causeId: pedidoId,
+      })
+    }
   }
 }
