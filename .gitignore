@@ -12,6 +12,7 @@ coverage
 **/node_modules
 **/.env
 !**/.env.example
+/config/*.env
 .atl
 .claude
 *.tsbuildinfo

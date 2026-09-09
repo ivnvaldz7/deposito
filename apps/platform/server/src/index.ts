@@ -13,9 +13,11 @@ import { verifyToken } from './middlewares/verify-token'
 import { createBootstrapRoutes } from './routes/bootstrap/index'
 import { eventBus, createNotificationHandler } from '@platform/core'
 import { platformDb } from '@platform/db'
+import { getHealthResponse } from './health'
 
 const app = express()
 const PORT = Number(process.env.PORT ?? 3000)
+const HOST = process.env.HOST ?? '0.0.0.0'
 
 const localhostRegex = /^http:\/\/localhost(:\d+)?$/
 const privateNetworkRegex = /^http:\/\/(?:(?:127\.0\.0\.1)|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/
@@ -33,8 +35,9 @@ app.use(cors({
 }))
 app.use(express.json())
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', app: 'platform', timestamp: new Date().toISOString() })
+app.get('/api/health', async (_req, res) => {
+  const health = await getHealthResponse(() => platformDb.$queryRaw`SELECT 1`)
+  res.status(health.statusCode).json(health.body)
 })
 
 // Auth routes (public — no JWT required)
@@ -97,8 +100,8 @@ setInterval(async () => {
   }
 }, PURGE_INTERVAL_MS)
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Platform server running on http://0.0.0.0:${PORT}`)
+app.listen(PORT, HOST, () => {
+  console.log(`Platform server running on http://${HOST}:${PORT}`)
 })
 
 export default app

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "dev:uat": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:integration": "node scripts/run-integration-automation.mjs",
