@@ -94,7 +94,8 @@ describe('AutomationPage - Rules of Hooks', () => {
     fireEvent.click(changeBtn)
 
     // 6. Volver al estado inicial
-    const cancelBtn = render2.getByText('Cancelar / Volver')
+    const cancelButtons = render2.getAllByText('Cancelar / Volver')
+    const cancelBtn = cancelButtons[cancelButtons.length - 1]
     fireEvent.click(cancelBtn)
     
     expect(render2.getAllByText('Procesar pedido').length).toBeGreaterThan(0)

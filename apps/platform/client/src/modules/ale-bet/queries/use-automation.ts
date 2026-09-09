@@ -39,6 +39,7 @@ export function useConfirmDraft() {
       aleBetApi.automation.confirmDraft(id, { expectedVersion }, { idempotencyKey }),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pedidos'] })
+      queryClient.invalidateQueries({ queryKey: automationKeys.draft(variables.id) })
     },
   })
 }

@@ -39,6 +39,7 @@ const createWrapper = () => {
 describe('AutomationPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.removeItem('ale-bet:automation:work:v1')
     ;(aleBetApi.clientes.list as any).mockResolvedValue([{ id: 'c1', nombre: 'Veterinaria Centro' }])
     ;(aleBetApi.productos.list as any).mockResolvedValue([
       { id: 'p1', nombre: 'Olivitasan 500 ML', sku: 'OLI-500', unidadesPorCaja: 20 },

@@ -7,6 +7,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import AutomationPage from '../AutomationPage'
 import { useAutomationAliases, useConfirmDraft, useCreateDraft, useDeleteAutomationAlias, useDraft, useUpdateDraft } from '../../../queries/use-automation'
 
+const { createClienteMock, updateDraftMock } = vi.hoisted(() => ({
+  createClienteMock: vi.fn(),
+  updateDraftMock: vi.fn(),
+}))
+
+const AUTOMATION_WORK_STORAGE_KEY = 'ale-bet:automation:work:v1'
+
 vi.mock('../../../queries/use-automation', () => ({
   useAutomationAliases: vi.fn(),
   useConfirmDraft: vi.fn(),
@@ -18,7 +25,8 @@ vi.mock('../../../queries/use-automation', () => ({
 
 vi.mock('../../../queries', () => ({
   useClientes: () => ({ data: [] }),
-  useProductos: () => ({ data: [] }),
+  useCreateCliente: () => ({ mutateAsync: createClienteMock, isPending: false }),
+  useProductos: () => ({ data: [{ id: 'p1', nombre: 'Prod 1', sku: 'P1', unidadesPorCaja: 10 }] }),
   useProductosSearch: () => ({ data: [] }),
 }))
 
@@ -36,6 +44,7 @@ function renderComponent() {
 describe('AutomationPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.clear()
     ;(useAutomationAliases as any).mockReturnValue({
       data: {
         productAliases: [{ id: 'p1', alias: 'prod alias', type: 'product', producto: { nombre: 'Prod A' } }],
@@ -44,9 +53,73 @@ describe('AutomationPage', () => {
     })
     ;(useDeleteAutomationAlias as any).mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}), isPending: false })
     ;(useCreateDraft as any).mockReturnValue({ mutateAsync: vi.fn() })
-    ;(useUpdateDraft as any).mockReturnValue({ mutateAsync: vi.fn() })
+    vi.mocked(useUpdateDraft).mockReturnValue({ mutateAsync: updateDraftMock } as never)
     ;(useConfirmDraft as any).mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}) })
     ;(useDraft as any).mockReturnValue({ data: null, refetch: vi.fn() })
+    createClienteMock.mockResolvedValue({ id: 'cliente-nuevo', nombre: 'Veterinaria Campo' })
+    updateDraftMock.mockResolvedValue({})
+  })
+
+  it('restaura el mensaje al desmontar y volver a Automation', async () => {
+    const user = userEvent.setup()
+    const first = renderComponent()
+
+    await user.type(screen.getByPlaceholderText(/Veterinaria/i), 'Veterinaria Centro\n20 Amantina')
+    await waitFor(() => expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).toContain('20 Amantina'))
+
+    first.unmount()
+    renderComponent()
+
+    expect(screen.getByPlaceholderText(/Veterinaria/i)).toHaveValue('Veterinaria Centro\n20 Amantina')
+  })
+
+  it('restaura el draft interpretado y sus correcciones desde el id persistido', () => {
+    localStorage.setItem(AUTOMATION_WORK_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      originalText: 'CAMPO\n20 Amantina',
+      draftId: 'draft-restaurado',
+    }))
+    vi.mocked(useDraft).mockReturnValue({
+      data: {
+        draft: { id: 'draft-restaurado', estado: 'READY', version: 4 },
+        effectiveSnapshot: {
+          customerCandidate: { customerId: 'cliente-nuevo', nombre: 'Veterinaria Campo' },
+          customerCandidateText: 'CAMPO',
+          lines: [{
+            lineId: 'line-1',
+            originalText: '20 Amantina',
+            productCandidate: { productId: 'p1' },
+            warnings: [],
+            requiresReview: false,
+            quantity: { totalUnits: 20, mode: 'UNITS' },
+          }],
+          warnings: [],
+          requiresReview: false,
+        },
+        availability: [],
+      },
+      refetch: vi.fn(),
+    } as never)
+
+    renderComponent()
+
+    expect(useDraft).toHaveBeenCalledWith('draft-restaurado')
+    expect(screen.getByText('Veterinaria Campo')).toBeInTheDocument()
+    expect(screen.getByText('Prod 1')).toBeInTheDocument()
+  })
+
+  it('Limpiar elimina el mensaje persistido', async () => {
+    const user = userEvent.setup()
+    const first = renderComponent()
+
+    await user.type(screen.getByPlaceholderText(/Veterinaria/i), 'Pedido temporal')
+    await waitFor(() => expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).not.toBeNull())
+    await user.click(screen.getByRole('button', { name: 'Limpiar' }))
+
+    expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).toBeNull()
+    first.unmount()
+    renderComponent()
+    expect(screen.getByPlaceholderText(/Veterinaria/i)).toHaveValue('')
   })
 
   it('eliminar alias abre modal propio', async () => {
@@ -132,6 +205,116 @@ describe('AutomationPage', () => {
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
       expect(screen.getAllByText('Confirmar pedido').length).toBeGreaterThan(0)
       expect(screen.getByText('¿Confirmar pedido y descontar stock físico?')).toBeInTheDocument()
+    })
+
+    it('cliente desconocido permite crearlo, seleccionarlo y preservar las líneas', async () => {
+      vi.mocked(useDraft).mockReturnValue({
+        data: {
+          draft: { id: 'd1', estado: 'DRAFT', version: 1 },
+          effectiveSnapshot: {
+            customerCandidate: null,
+            customerCandidateText: 'CAMPO',
+            lines: [{
+              lineId: 'line-1',
+              originalText: '20 Amantina',
+              productCandidate: { productId: 'p1' },
+              warnings: [],
+              requiresReview: false,
+              quantity: { explicitUnits: 20, totalUnits: 20, mode: 'UNITS' },
+            }],
+            warnings: [],
+            requiresReview: true,
+          },
+          availability: [],
+        },
+        refetch: vi.fn(),
+      } as never)
+      const user = userEvent.setup()
+      renderComponent()
+      await triggerDraftCreation(user)
+
+      await user.click(screen.getByRole('button', { name: 'Cambiar' }))
+      expect(screen.getByRole('button', { name: '+ Crear cliente' })).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: '+ Crear cliente' }))
+      await user.type(screen.getByLabelText('Nombre / Razón social'), 'Veterinaria Campo')
+      await user.click(screen.getByRole('button', { name: 'Crear cliente' }))
+
+      await waitFor(() => {
+        expect(createClienteMock).toHaveBeenCalledWith({ nombre: 'Veterinaria Campo' })
+        expect(updateDraftMock).toHaveBeenCalledWith({
+          id: 'd1',
+          data: { expectedVersion: 1, clienteId: 'cliente-nuevo', rememberClientAlias: true },
+        })
+      })
+      expect(screen.getByText('Prod 1')).toBeInTheDocument()
+      expect(screen.getByText((_, element) => element?.textContent === 'Total: 20 unidades')).toBeInTheDocument()
+    })
+
+    it('un error al crear cliente mantiene intacto el draft actual', async () => {
+      createClienteMock.mockRejectedValueOnce(new Error('Nombre duplicado'))
+      vi.mocked(useDraft).mockReturnValue({
+        data: {
+          draft: { id: 'd1', estado: 'DRAFT', version: 1 },
+          effectiveSnapshot: {
+            customerCandidate: null,
+            customerCandidateText: 'CAMPO',
+            lines: [{
+              lineId: 'line-1',
+              originalText: '20 Amantina',
+              productCandidate: { productId: 'p1' },
+              warnings: [],
+              requiresReview: false,
+              quantity: { explicitUnits: 20, totalUnits: 20, mode: 'UNITS' },
+            }],
+            warnings: [],
+            requiresReview: true,
+          },
+          availability: [],
+        },
+        refetch: vi.fn(),
+      } as never)
+      const user = userEvent.setup()
+      renderComponent()
+      await triggerDraftCreation(user)
+
+      await user.click(screen.getByRole('button', { name: 'Cambiar' }))
+      await user.click(screen.getByRole('button', { name: '+ Crear cliente' }))
+      await user.type(screen.getByLabelText('Nombre / Razón social'), 'Veterinaria Campo')
+      await user.click(screen.getByRole('button', { name: 'Crear cliente' }))
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('Nombre duplicado')
+      expect(updateDraftMock).not.toHaveBeenCalled()
+      expect(screen.getByText('Prod 1')).toBeInTheDocument()
+      expect(screen.getByText((_, element) => element?.textContent === 'Total: 20 unidades')).toBeInTheDocument()
+    })
+
+    it('Cancelar / Volver descarta la persistencia explícitamente', async () => {
+      const user = userEvent.setup()
+      const view = renderComponent()
+      await triggerDraftCreation(user)
+      await waitFor(() => expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).not.toBeNull())
+
+      await user.click(screen.getByRole('button', { name: 'Cancelar / Volver' }))
+      expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).toBeNull()
+
+      view.unmount()
+      renderComponent()
+      expect(screen.getByPlaceholderText(/Veterinaria/i)).toHaveValue('')
+    })
+
+    it('confirmar exitosamente elimina la persistencia', async () => {
+      const user = userEvent.setup()
+      const view = renderComponent()
+      await triggerDraftCreation(user)
+      await waitFor(() => expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).not.toBeNull())
+
+      await user.click(await screen.findByRole('button', { name: 'Confirmar pedido' }))
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+      await waitFor(() => expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).toBeNull())
+
+      view.unmount()
+      renderComponent()
+      expect(screen.getByPlaceholderText(/Veterinaria/i)).toHaveValue('')
     })
 
     it('estado procesando bloquea y luego muestra success animado, permitiendo Processar otro pedido y Ver pedido', async () => {

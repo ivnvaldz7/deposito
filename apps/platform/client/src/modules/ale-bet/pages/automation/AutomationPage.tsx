@@ -1,13 +1,14 @@
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from '@/lib/toast'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
 import { useAutomationAliases, useConfirmDraft, useCreateDraft, useDeleteAutomationAlias, useDraft, useUpdateDraft } from '../../queries/use-automation'
-import { useClientes, useProductosSearch, useProductos } from '../../queries'
+import { useClientes, useCreateCliente, useProductos } from '../../queries'
 import { AutomationQuantityEditor } from '../../components/AutomationQuantityEditor'
 import type { Cliente } from '../../lib/api'
+import { clearAutomationWork, persistAutomationWork, readAutomationWork } from './automation-work-storage'
 
 
 interface ConfirmDialogProps {
@@ -53,11 +54,90 @@ function newIdempotencyKey(): string {
   return globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
+function InlineCreateClientModal({
+  open,
+  onClose,
+  onCreated,
+}: {
+  open: boolean
+  onClose: () => void
+  onCreated: (cliente: Cliente) => Promise<boolean>
+}) {
+  const [nombre, setNombre] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [created, setCreated] = useState<Cliente | null>(null)
+  const createCliente = useCreateCliente()
+
+  if (!open) return null
+
+  const resetAndClose = () => {
+    setNombre('')
+    setError(null)
+    setCreated(null)
+    onClose()
+  }
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const trimmedName = nombre.trim()
+    if (!created && trimmedName.length < 2) {
+      setError('El nombre debe tener al menos 2 caracteres')
+      return
+    }
+
+    setError(null)
+    try {
+      const cliente = created ?? await createCliente.mutateAsync({ nombre: trimmedName })
+      const selected = await onCreated(cliente)
+      if (!selected) {
+        setCreated(cliente)
+        setError('El cliente fue creado, pero no se pudo seleccionar. Reintentá.')
+        return
+      }
+      resetAndClose()
+    } catch (creationError) {
+      setError(creationError instanceof Error ? creationError.message : 'Error al crear el cliente')
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4" onClick={resetAndClose}>
+      <div role="dialog" aria-label="Crear cliente" className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <h3 className="text-[18px] font-semibold text-on-surface">Crear cliente</h3>
+        <p className="mt-1 font-body text-[12px] text-on-surface-variant">Cargá solo el dato necesario para continuar el pedido.</p>
+        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+          <div>
+            <label htmlFor="automation-client-name" className="font-body text-[12px] text-outline">Nombre / Razón social</label>
+            <input
+              id="automation-client-name"
+              value={nombre}
+              onChange={(event) => setNombre(event.target.value)}
+              disabled={Boolean(created)}
+              required
+              minLength={2}
+              maxLength={120}
+              autoFocus
+              className="input-field mt-1 w-full"
+            />
+          </div>
+          {error && <p role="alert" className="font-body text-[12px] text-error">{error}</p>}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button type="button" variant="outline" onClick={resetAndClose} disabled={createCliente.isPending}>Cancelar</Button>
+            <Button type="submit" disabled={createCliente.isPending}>
+              {createCliente.isPending ? 'Creando...' : created ? 'Seleccionar cliente' : 'Crear cliente'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 export default function AutomationPage() {
   const navigate = useNavigate()
-  
-  const [originalText, setOriginalText] = useState('')
-  const [draftId, setDraftId] = useState<string | null>(null)
+  const [initialWork] = useState(readAutomationWork)
+  const [originalText, setOriginalText] = useState(initialWork.originalText)
+  const [draftId, setDraftId] = useState<string | null>(initialWork.draftId)
   const [showOriginal, setShowOriginal] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isInterpreting, setIsInterpreting] = useState(false)
@@ -80,6 +160,18 @@ export default function AutomationPage() {
 
   const [clienteSearch, setClienteSearch] = useState('')
   const [editingCliente, setEditingCliente] = useState(false)
+  const [creatingCliente, setCreatingCliente] = useState(false)
+  const [rememberClientAlias, setRememberClientAlias] = useState(true)
+
+  useEffect(() => {
+    persistAutomationWork({ originalText, draftId })
+  }, [draftId, originalText])
+
+  useEffect(() => {
+    if (draftData?.draft.estado === 'CONFIRMED' || draftData?.draft.estado === 'CANCELLED') {
+      clearAutomationWork()
+    }
+  }, [draftData?.draft.estado])
 
   const handleInterpret = async () => {
     if (!originalText.trim()) return
@@ -114,6 +206,7 @@ export default function AutomationPage() {
   }
 
   const handleProcessAnother = () => {
+    clearAutomationWork()
     setDraftId(null)
     setOriginalText('')
     setShowOriginal(false)
@@ -162,8 +255,7 @@ export default function AutomationPage() {
     const customer = effectiveSnapshot.customerCandidate
     const resolvedCustomer = customer ? clientes.find(c => c.id === customer.customerId) : null
 
-    const handleEditCustomer = async (c: Cliente) => {
-      setEditingCliente(false)
+    const handleEditCustomer = async (c: Cliente, rememberAlias: boolean): Promise<boolean> => {
       setIsProcessing(true)
       setConfirmError(null)
       try {
@@ -172,14 +264,11 @@ export default function AutomationPage() {
           data: {
             expectedVersion: draft.version,
             clienteId: c.id,
-            lines: effectiveSnapshot.lines.map((l: any) => ({
-              productId: l.productCandidate?.productId,
-              cajas: l.quantity.explicitBoxes ?? 0,
-              unidades: l.quantity.explicitUnits ?? 0,
-              mode: l.quantity.mode
-            })).filter((l: any) => l.productId)
+            rememberClientAlias: rememberAlias,
           }
         })
+        setEditingCliente(false)
+        return true
       } catch (e) {
         if (e instanceof Error && e.message.includes('versión')) {
           toast.error('El pedido cambió. Refrescando...')
@@ -187,6 +276,7 @@ export default function AutomationPage() {
         } else {
           toast.error(e instanceof Error ? e.message : 'Error al actualizar')
         }
+        return false
       } finally {
         setIsProcessing(false)
       }
@@ -240,6 +330,7 @@ export default function AutomationPage() {
           expectedVersion: draft.version,
           idempotencyKey: idempotencyKeyRef.current.key
         })
+        clearAutomationWork()
         setConfirmOrderPrompt(false)
       } catch (e) {
         if (e instanceof Error) {
@@ -301,44 +392,27 @@ export default function AutomationPage() {
                   />
                   <div className="max-h-40 overflow-y-auto space-y-1">
                     {clientes.filter(c => c.nombre.toLowerCase().includes(clienteSearch.toLowerCase())).slice(0, 5).map(c => (
-                      <div key={c.id} className="cursor-pointer p-2 hover:bg-surface-variant rounded-md text-sm" onClick={() => {
-                        const rem = (document.getElementById('rem-client-alias') as HTMLInputElement)?.checked
-                        setEditingCliente(false)
-                        setIsProcessing(true)
-                        updateDraft.mutateAsync({
-                          id: draft.id,
-                          data: {
-                            expectedVersion: draft.version,
-                            clienteId: c.id,
-                            rememberClientAlias: rem,
-                            lines: effectiveSnapshot.lines.map((l: any) => ({
-                              productId: l.productCandidate?.productId,
-                              cajas: l.quantity.explicitBoxes ?? 0,
-                              unidades: l.quantity.explicitUnits ?? 0,
-                              mode: l.quantity.mode
-                            })).filter((l: any) => l.productId)
-                          }
-                        }).catch((e) => {
-                          if (e instanceof Error && e.message.includes('versión')) {
-                            toast.error('El pedido cambió. Refrescando...')
-                            refetchDraft()
-                          } else {
-                            toast.error(e instanceof Error ? e.message : 'Error al actualizar')
-                          }
-                        }).finally(() => setIsProcessing(false))
-                      }}>
+                      <div key={c.id} className="cursor-pointer p-2 hover:bg-surface-variant rounded-md text-sm" onClick={() => void handleEditCustomer(c, rememberClientAlias)}>
                         {c.nombre}
                       </div>
                     ))}
                   </div>
+                  <Button variant="outline" onClick={() => setCreatingCliente(true)}>+ Crear cliente</Button>
                   {effectiveSnapshot.customerCandidateText && (
                     <label className="flex items-center gap-2 text-sm mt-2 text-on-surface-variant cursor-pointer">
-                      <input type="checkbox" id="rem-client-alias" defaultChecked={true} />
+                      <input type="checkbox" id="rem-client-alias" checked={rememberClientAlias} onChange={(event) => setRememberClientAlias(event.target.checked)} />
                       Recordar "{effectiveSnapshot.customerCandidateText}"
                     </label>
                   )}
                   <Button variant="outline" onClick={() => setEditingCliente(false)}>Cancelar</Button>
                 </div>
+              )}
+              {creatingCliente && (
+                <InlineCreateClientModal
+                  open
+                  onClose={() => setCreatingCliente(false)}
+                  onCreated={(cliente) => handleEditCustomer(cliente, rememberClientAlias)}
+                />
               )}
             </section>
 
@@ -570,7 +644,11 @@ export default function AutomationPage() {
         <div className="flex items-center justify-between">
           <p className="text-xs text-outline">Atajo: Ctrl + Enter para interpretar</p>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => setOriginalText('')} disabled={!originalText}>
+            <Button variant="outline" onClick={() => {
+              clearAutomationWork()
+              setOriginalText('')
+              setDraftId(null)
+            }} disabled={!originalText}>
               Limpiar
             </Button>
             <Button onClick={handleInterpret} disabled={!originalText.trim()}>
