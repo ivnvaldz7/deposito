@@ -151,12 +151,7 @@ export async function evaluateLotLifecycle(
 
   let action: 'ARCHIVED' | 'REACTIVATED' | 'UNCHANGED' = 'UNCHANGED'
 
-  if (stockTotal === 0) {
-    if (activeReservations === 0 && lote?.activo !== false) {
-      await tx.lote.update({ where: { id: loteId }, data: { activo: false } })
-      action = 'ARCHIVED'
-    }
-  } else if (stockTotal > 0) {
+  if (stockTotal > 0) {
     if (lote?.activo === false) {
       await tx.lote.update({ where: { id: loteId }, data: { activo: true } })
       action = 'REACTIVATED'

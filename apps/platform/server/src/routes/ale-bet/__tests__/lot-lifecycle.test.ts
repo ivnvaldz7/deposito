@@ -48,7 +48,7 @@ describe('Lot Lifecycle Tests', () => {
       expect(mockTx.lote.update).not.toHaveBeenCalled()
     })
 
-    it('B. Lot with Deposito=0, Acondicionado=0, no active reservations → archived (activo=false)', async () => {
+    it('B. Lot with Deposito=0, Acondicionado=0, no active reservations → stays active (zero stock does not archive)', async () => {
       mockTx.saldoStock.findMany.mockResolvedValue([{ cantidad: 0 }, { cantidad: 0 }])
       mockTx.reservaStock.count.mockResolvedValue(0)
       mockTx.lote.findUnique.mockResolvedValue({ activo: true })
@@ -57,14 +57,11 @@ describe('Lot Lifecycle Tests', () => {
 
       expect(result).toEqual({
         loteId: 'l2',
-        action: 'ARCHIVED',
+        action: 'UNCHANGED',
         stockTotal: 0,
         activeReservations: 0,
       })
-      expect(mockTx.lote.update).toHaveBeenCalledWith({
-        where: { id: 'l2' },
-        data: { activo: false },
-      })
+      expect(mockTx.lote.update).not.toHaveBeenCalled()
     })
 
     it('C. Lot with Deposito=0, Acondicionado=0, WITH active reservation → stays active', async () => {
@@ -119,7 +116,7 @@ describe('Lot Lifecycle Tests', () => {
       expect(mockTx.lote.update).not.toHaveBeenCalled()
     })
 
-    it('F. SALIDA_PEDIDO consumes last units → stockTotal=0 → archived', async () => {
+    it('F. SALIDA_PEDIDO consumes last units → stockTotal=0 → stays active (zero stock does not archive)', async () => {
       mockTx.saldoStock.findMany.mockResolvedValue([{ cantidad: 0 }]) // Last units consumed
       mockTx.reservaStock.count.mockResolvedValue(0)
       mockTx.lote.findUnique.mockResolvedValue({ activo: true })
@@ -128,25 +125,41 @@ describe('Lot Lifecycle Tests', () => {
 
       expect(result).toEqual({
         loteId: 'l6',
-        action: 'ARCHIVED',
+        action: 'UNCHANGED',
         stockTotal: 0,
         activeReservations: 0,
       })
+      expect(mockTx.lote.update).not.toHaveBeenCalled()
+    })
+
+    it('G. Previously deactivated lot (old data) receives stock → reactivated', async () => {
+      mockTx.saldoStock.findMany.mockResolvedValue([{ cantidad: 600 }])
+      mockTx.reservaStock.count.mockResolvedValue(0)
+      mockTx.lote.findUnique.mockResolvedValue({ activo: false }) // Auto-deactivated by old logic
+
+      const result = await evaluateLotLifecycle(mockTx, { loteId: 'l7', productoId: 'p1' })
+
+      expect(result).toEqual({
+        loteId: 'l7',
+        action: 'REACTIVATED',
+        stockTotal: 600,
+        activeReservations: 0,
+      })
       expect(mockTx.lote.update).toHaveBeenCalledWith({
-        where: { id: 'l6' },
-        data: { activo: false },
+        where: { id: 'l7' },
+        data: { activo: true },
       })
     })
   })
 
   describe('inventory-service: orderEligibleLots', () => {
-    it('G. FEFO/FIFO ignores inactive lots', () => {
+    it('H. FEFO/FIFO ignores inactive lots and lots with zero stock', () => {
       const now = new Date('2026-08-18T12:00:00Z')
       const lots: EligibleLot[] = [
-        { id: '1', lote: 'l1', cantidad: 10, activo: true, fechaVencimiento: new Date('2026-10-18T12:00:00Z'), fechaElaboracion: null },
-        { id: '2', lote: 'l2', cantidad: 10, activo: false, fechaVencimiento: new Date('2026-11-18T12:00:00Z'), fechaElaboracion: null },
-        { id: '3', lote: 'l3', cantidad: 0, activo: true, fechaVencimiento: new Date('2026-12-18T12:00:00Z'), fechaElaboracion: null }, // Empty
-        { id: '4', lote: 'l4', cantidad: 10, activo: true, fechaVencimiento: new Date('2025-08-18T12:00:00Z'), fechaElaboracion: null }, // Expired
+        { id: '1', lote: 'l1', cantidad: 10, activo: true, fechaVencimiento: new Date('2026-10-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') },
+        { id: '2', lote: 'l2', cantidad: 10, activo: false, fechaVencimiento: new Date('2026-11-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') },
+        { id: '3', lote: 'l3', cantidad: 0, activo: true, fechaVencimiento: new Date('2026-12-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') }, // Empty
+        { id: '4', lote: 'l4', cantidad: 10, activo: true, fechaVencimiento: new Date('2025-08-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') }, // Expired
       ]
 
       const eligible = orderEligibleLots(lots, now)
@@ -154,11 +167,23 @@ describe('Lot Lifecycle Tests', () => {
       expect(eligible).toHaveLength(1)
       expect(eligible[0].id).toBe('1') // Only lot 1 is active, has stock, and not expired
     })
+
+    it('I. FEFO/FIFO includes reactivated lot with stock', () => {
+      const now = new Date('2026-08-18T12:00:00Z')
+      const lots: EligibleLot[] = [
+        { id: '1', lote: 'l1', cantidad: 10, activo: true, fechaVencimiento: new Date('2026-10-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') },
+        { id: '5', lote: 'l5', cantidad: 600, activo: true, fechaVencimiento: new Date('2026-11-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-05') },
+      ]
+
+      const eligible = orderEligibleLots(lots, now)
+
+      expect(eligible).toHaveLength(2)
+      expect(eligible.map(e => e.id)).toEqual(expect.arrayContaining(['1', '5']))
+    })
   })
 
   describe('getManagedProductStock', () => {
-    it('H. Default: returns only active lots', async () => {
-      // getManagedProductStock uses a db instance, so we mock it directly
+    it('J. Without includeArchived, filters lotes to activo=true', async () => {
       const mockDb = {
         producto: {
           findUnique: vi.fn().mockResolvedValue({
@@ -166,7 +191,6 @@ describe('Lot Lifecycle Tests', () => {
             nombre: 'Prod 1',
             lotes: [
               { id: '1', numero: 'L1', activo: true, saldos: [] },
-              { id: '2', numero: 'L2', activo: true, saldos: [] },
             ]
           }),
         },
@@ -177,22 +201,13 @@ describe('Lot Lifecycle Tests', () => {
 
       const { getManagedProductStock } = await import('../product-stock-admin-service')
       
-      const result = await getManagedProductStock('p1', mockDb)
+      await getManagedProductStock('p1', mockDb)
       
-      expect(mockDb.producto.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'p1' },
-          select: expect.objectContaining({
-            lotes: expect.objectContaining({
-              where: { activo: true },
-            }),
-          }),
-        })
-      )
-      expect(result.lotes).toHaveLength(2)
+      const call = mockDb.producto.findUnique.mock.calls[0][0]
+      expect(call.select.lotes.where).toEqual({ activo: true })
     })
 
-    it('I. includeArchived=true: returns all lots including archived', async () => {
+    it('K. With includeArchived=true, includes inactive lotes (no filter)', async () => {
       const mockDb = {
         producto: {
           findUnique: vi.fn().mockResolvedValue({
@@ -213,17 +228,10 @@ describe('Lot Lifecycle Tests', () => {
       
       const result = await getManagedProductStock('p1', mockDb, true)
       
-      expect(mockDb.producto.findUnique).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'p1' },
-          select: expect.objectContaining({
-            lotes: expect.objectContaining({
-              where: undefined,
-            }),
-          }),
-        })
-      )
+      const call = mockDb.producto.findUnique.mock.calls[0][0]
+      expect(call.select.lotes.where).toBeUndefined()
       expect(result.lotes).toHaveLength(2)
+      expect(result.lotes.map(l => l.activo)).toEqual([true, false])
     })
   })
 })

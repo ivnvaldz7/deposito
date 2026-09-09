@@ -46,6 +46,85 @@ describe('PRODUCTOS stock administration', () => {
     expect(response.body.ubicaciones).toHaveLength(2)
   })
 
+  it('creates a lot with 600 opening units in ACONDICIONADO atomically', async () => {
+    const data = await fixture()
+
+    const created = await request(app)
+      .post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'create-lot-opening-600')
+      .send({ numero: 'L-OPEN-600', cantidadInicial: 600 })
+
+    expect(created.status).toBe(201)
+    expect(created.body).toMatchObject({
+      numero: 'L-OPEN-600',
+      stockTotal: 600,
+      stockDeposito: 0,
+      stockAcondicionado: 600,
+    })
+
+    const retry = await request(app)
+      .post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'create-lot-opening-600')
+      .send({ numero: 'L-OPEN-600', cantidadInicial: 600 })
+
+    expect(retry.status).toBe(201)
+    expect(retry.body).toEqual(created.body)
+
+    const lot = await prisma.lote.findUniqueOrThrow({
+      where: { numero_productoId: { numero: 'L-OPEN-600', productoId: data.producto.id } },
+    })
+    expect(await prisma.saldoStock.findUnique({
+      where: {
+        productoId_loteId_ubicacionId: {
+          productoId: data.producto.id,
+          loteId: lot.id,
+          ubicacionId: data.acondicionado.id,
+        },
+      },
+    })).toMatchObject({ cantidad: 600 })
+    expect(await prisma.saldoStock.findUnique({
+      where: {
+        productoId_loteId_ubicacionId: {
+          productoId: data.producto.id,
+          loteId: lot.id,
+          ubicacionId: data.deposito.id,
+        },
+      },
+    })).toBeNull()
+    expect(await prisma.movimientoStock.findMany({ where: { loteId: lot.id } })).toEqual([
+      expect.objectContaining({
+        cantidad: 600,
+        tipo: 'SALDO_APERTURA',
+        origenUbicacionId: data.acondicionado.id,
+        idempotencyKey: 'create-lot-opening-600',
+      }),
+    ])
+    expect(await prisma.stockProjectionOutbox.findMany({
+      where: { productId: data.producto.id, causeType: 'SALDO_APERTURA' },
+    })).toEqual([
+      expect.objectContaining({ causeId: 'create-lot-opening-600', estado: 'PENDING' }),
+    ])
+  })
+
+  it('rolls back the new lot when its ACONDICIONADO opening cannot be recorded', async () => {
+    const data = await fixture()
+    await prisma.ubicacionStock.update({ where: { id: data.acondicionado.id }, data: { activo: false } })
+
+    const response = await request(app)
+      .post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'create-lot-opening-fail')
+      .send({ numero: 'L-ROLLBACK', cantidadInicial: 600 })
+
+    expect(response.status).toBe(409)
+    expect(await prisma.lote.findFirst({ where: { productoId: data.producto.id, numero: 'L-ROLLBACK' } })).toBeNull()
+    expect(await prisma.saldoStock.count({ where: { productoId: data.producto.id } })).toBe(0)
+    expect(await prisma.movimientoStock.count({ where: { productoId: data.producto.id } })).toBe(0)
+    expect(await prisma.stockProjectionOutbox.count({ where: { productId: data.producto.id } })).toBe(0)
+  })
+
   it('adjusts final quantity transactionally, is idempotent, and audits signed delta', async () => {
     const data = await fixture()
     const lot = await prisma.lote.create({ data: { numero: 'L-1', productoId: data.producto.id } })
@@ -205,9 +284,140 @@ describe('PRODUCTOS stock administration', () => {
       expect.objectContaining({ id: lot1.id, numero: 'L-DEP', stockTotal: 40, stockDeposito: 40, stockAcondicionado: 0 }),
       expect.objectContaining({ id: lot2.id, numero: 'L-ACO', stockTotal: 40, stockDeposito: 0, stockAcondicionado: 40 }),
     ]))
-    expect(stockProd.lotes).toEqual(expect.arrayContaining([
-      expect.objectContaining({ id: lot1.id, numero: 'L-DEP', stockTotal: 40, stockDeposito: 40, stockAcondicionado: 0 }),
-      expect.objectContaining({ id: lot2.id, numero: 'L-ACO', stockTotal: 40, stockDeposito: 0, stockAcondicionado: 40 }),
-    ]))
+      expect(stockProd.lotes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: lot1.id, numero: 'L-DEP', stockTotal: 40, stockDeposito: 40, stockAcondicionado: 0 }),
+        expect.objectContaining({ id: lot2.id, numero: 'L-ACO', stockTotal: 40, stockDeposito: 0, stockAcondicionado: 40 }),
+      ]))
+  })
+
+  it('ingresa delta into existing lot at ACONDICIONADO atomically and idempotently', async () => {
+    const data = await fixture()
+    const lot = await prisma.lote.create({ data: { numero: 'L-ING-1', productoId: data.producto.id } })
+    await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: lot.id, ubicacionId: data.acondicionado.id, cantidad: 100 } })
+
+    const first = await request(app)
+      .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'ingreso-1')
+      .send({ ubicacionId: data.acondicionado.id, cantidad: 600 })
+
+    expect(first.status).toBe(200)
+    expect(first.body).toMatchObject({ anterior: 100, nuevo: 700, delta: 600 })
+
+    const retry = await request(app)
+      .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'ingreso-1')
+      .send({ ubicacionId: data.acondicionado.id, cantidad: 600 })
+
+    expect(retry.status).toBe(200)
+    expect(retry.body).toEqual(first.body)
+
+    const saldo = await prisma.saldoStock.findUnique({
+      where: { productoId_loteId_ubicacionId: { productoId: data.producto.id, loteId: lot.id, ubicacionId: data.acondicionado.id } },
+    })
+    expect(saldo).toMatchObject({ cantidad: 700 })
+    expect(await prisma.movimientoStock.count({ where: { loteId: lot.id, tipo: 'AJUSTE' } })).toBe(1)
+    expect(await prisma.stockProjectionOutbox.findMany({
+      where: { productId: data.producto.id, causeType: 'MANUAL_ADJUST' },
+    })).toEqual([expect.objectContaining({ estado: 'PENDING' })])
+  })
+
+  it('ingresa delta into zero-stock lot and reactivates it if previously inactive', async () => {
+    const data = await fixture()
+    const lot = await prisma.lote.create({ data: { numero: 'L-ING-ZERO', productoId: data.producto.id, activo: false } })
+
+    const response = await request(app)
+      .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'ingreso-zero-reactivate')
+      .send({ ubicacionId: data.acondicionado.id, cantidad: 600 })
+
+    expect(response.status).toBe(200)
+    expect(response.body).toMatchObject({ anterior: 0, nuevo: 600, delta: 600 })
+
+    const reactivated = await prisma.lote.findUnique({ where: { id: lot.id } })
+    expect(reactivated?.activo).toBe(true)
+
+    const saldo = await prisma.saldoStock.findUnique({
+      where: { productoId_loteId_ubicacionId: { productoId: data.producto.id, loteId: lot.id, ubicacionId: data.acondicionado.id } },
+    })
+    expect(saldo).toMatchObject({ cantidad: 600 })
+  })
+
+  it('returns only active lots by default, includes inactive with includeArchived and admin permission', async () => {
+    const data = await fixture()
+    await prisma.lote.create({ data: { numero: 'L-ACTIVE', productoId: data.producto.id, activo: true } })
+    await prisma.lote.create({ data: { numero: 'L-INACTIVE', productoId: data.producto.id, activo: false } })
+
+    const defaultResponse = await request(app).get(`/api/ale-bet/productos/${data.producto.id}/stock`).set('Authorization', auth('vendedor'))
+    expect(defaultResponse.status).toBe(200)
+    expect(defaultResponse.body.lotes).toHaveLength(1)
+    expect(defaultResponse.body.lotes[0].numero).toBe('L-ACTIVE')
+
+    const adminResponse = await request(app).get(`/api/ale-bet/productos/${data.producto.id}/stock?includeArchived=true`).set('Authorization', auth('admin'))
+    expect(adminResponse.status).toBe(200)
+    expect(adminResponse.body.lotes).toHaveLength(2)
+    expect(adminResponse.body.lotes.map((l: { numero: string }) => l.numero)).toEqual(expect.arrayContaining(['L-ACTIVE', 'L-INACTIVE']))
+  })
+
+  it('rejects ingreso with negative or zero cantidad', async () => {
+    const data = await fixture()
+    const lot = await prisma.lote.create({ data: { numero: 'L-ING-NEG', productoId: data.producto.id } })
+
+    const negative = await request(app)
+      .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'ingreso-neg')
+      .send({ ubicacionId: data.acondicionado.id, cantidad: -1 })
+
+    const zero = await request(app)
+      .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'ingreso-zero')
+      .send({ ubicacionId: data.acondicionado.id, cantidad: 0 })
+
+    expect(negative.status).toBe(400)
+    expect(zero.status).toBe(400)
+    expect(await prisma.movimientoStock.count({ where: { loteId: lot.id } })).toBe(0)
+  })
+
+  it('rejects ingreso without idempotency key', async () => {
+    const data = await fixture()
+    const lot = await prisma.lote.create({ data: { numero: 'L-ING-NOKEY', productoId: data.producto.id } })
+
+    const response = await request(app)
+      .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+      .set('Authorization', auth('admin'))
+      .send({ ubicacionId: data.acondicionado.id, cantidad: 100 })
+
+    expect(response.status).toBe(400)
+  })
+
+  it('concurrent ingresos serialize correctly without lost updates', async () => {
+    const data = await fixture()
+    const lot = await prisma.lote.create({ data: { numero: 'L-CONC', productoId: data.producto.id } })
+    await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: lot.id, ubicacionId: data.acondicionado.id, cantidad: 100 } })
+
+    const [resA, resB] = await Promise.all([
+      request(app)
+        .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+        .set('Authorization', auth('admin'))
+        .set('Idempotency-Key', 'conc-a')
+        .send({ ubicacionId: data.acondicionado.id, cantidad: 600 }),
+      request(app)
+        .patch(`/api/ale-bet/productos/${data.producto.id}/stock/lotes/${lot.id}/ingreso`)
+        .set('Authorization', auth('admin'))
+        .set('Idempotency-Key', 'conc-b')
+        .send({ ubicacionId: data.acondicionado.id, cantidad: 50 }),
+    ])
+
+    expect(resA.status).toBe(200)
+    expect(resB.status).toBe(200)
+
+    const saldo = await prisma.saldoStock.findUnique({
+      where: { productoId_loteId_ubicacionId: { productoId: data.producto.id, loteId: lot.id, ubicacionId: data.acondicionado.id } },
+    })
+    expect(saldo?.cantidad).toBe(750)
   })
 })

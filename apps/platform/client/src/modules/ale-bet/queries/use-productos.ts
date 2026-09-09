@@ -98,10 +98,11 @@ export function useUpdateLote() {
 
 // ─── Admin Stock ─────────────────────────────────────────────────────────────
 
-export function useProductoAdminStock(productoId: string) {
+export function useProductoAdminStock(productoId: string, options?: { includeArchived?: boolean }) {
+  const includeArchived = options?.includeArchived ?? false
   return useQuery({
-    queryKey: [...productosKeys.all, 'admin-stock', productoId] as const,
-    queryFn: () => aleBetApi.productos.stock.get(productoId),
+    queryKey: [...productosKeys.all, 'admin-stock', productoId, { includeArchived }] as const,
+    queryFn: () => aleBetApi.productos.stock.get(productoId, { includeArchived }),
     enabled: !!productoId,
   })
 }
@@ -109,11 +110,13 @@ export function useProductoAdminStock(productoId: string) {
 export function useCreateAdminLote() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ productoId, ...data }: { productoId: string; numero: string; fechaProduccion?: string | null; fechaVencimiento?: string | null }) =>
-      aleBetApi.productos.stock.lotes.create(productoId, data),
+    mutationFn: ({ productoId, idempotencyKey, ...data }: { productoId: string; numero: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null; idempotencyKey?: string }) =>
+      aleBetApi.productos.stock.lotes.create(productoId, data, { idempotencyKey }),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
+      qc.invalidateQueries({ queryKey: productosKeys.list() })
       qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
     },
   })
 }
@@ -126,6 +129,20 @@ export function useAjusteAdminStock() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
       qc.invalidateQueries({ queryKey: productosKeys.list() }) // Invalidate product list to update overall stock
+      qc.invalidateQueries({ queryKey: stockKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
+  })
+}
+
+export function useIngresarAdminStock() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ productoId, loteId, ubicacionId, cantidad, motivo, fechaEfectiva, idempotencyKey }: { productoId: string; loteId: string; ubicacionId: string; cantidad: number; motivo?: string; fechaEfectiva?: string; idempotencyKey: string }) =>
+      aleBetApi.productos.stock.lotes.ingreso(productoId, loteId, { ubicacionId, cantidad, motivo, fechaEfectiva }, { idempotencyKey }),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
+      qc.invalidateQueries({ queryKey: productosKeys.list() })
       qc.invalidateQueries({ queryKey: stockKeys.all })
       qc.invalidateQueries({ queryKey: dashboardKeys.all })
     },

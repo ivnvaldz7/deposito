@@ -455,6 +455,7 @@ router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale
 router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.create'), async (req, res) => {
   const schema = z.object({
     numero: z.string().trim().min(1).max(60),
+    cantidadInicial: z.number().int().positive().optional(),
     fechaProduccion: z.string().datetime().nullable().optional(),
     fechaVencimiento: z.string().datetime().nullable().optional(),
   })
@@ -463,14 +464,80 @@ router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-be
     res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
     return
   }
+  const productoId = String(req.params.id)
+  const user = req.user as JwtPayload
+  const cantidadInicial = parsed.data.cantidadInicial
+
+  if (cantidadInicial !== undefined && !hasPermission(user, 'ale-bet', 'stock.lots.adjust')) {
+    res.status(403).json({ error: 'Permisos insuficientes' })
+    return
+  }
+
+  const idempotencyKey = cantidadInicial === undefined ? null : getSingleIdempotencyKey(req.rawHeaders)
+  if (cantidadInicial !== undefined && !idempotencyKey) {
+    res.status(400).json({ error: 'Idempotency-Key requerido' })
+    return
+  }
+
   try {
-    const lote = await prisma.$transaction((tx) => createManagedLot(tx, {
-      productoId: String(req.params.id),
-      numero: parsed.data.numero,
-      fechaProduccion: parseOptionalDate(parsed.data.fechaProduccion),
-      fechaVencimiento: parseOptionalDate(parsed.data.fechaVencimiento),
-    }))
-    res.status(201).json({ id: lote.id, numero: lote.numero, fechaProduccion: lote.fechaProduccion, fechaVencimiento: lote.fechaVencimiento, activo: lote.activo, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 })
+    if (cantidadInicial === undefined || !idempotencyKey) {
+      const lote = await prisma.$transaction((tx) => createManagedLot(tx, {
+        productoId,
+        numero: parsed.data.numero,
+        fechaProduccion: parseOptionalDate(parsed.data.fechaProduccion),
+        fechaVencimiento: parseOptionalDate(parsed.data.fechaVencimiento),
+      }))
+      res.status(201).json({ id: lote.id, numero: lote.numero, fechaProduccion: lote.fechaProduccion, fechaVencimiento: lote.fechaVencimiento, activo: lote.activo, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 })
+      return
+    }
+
+    const body = { productoId, ...parsed.data }
+    const scope = 'ale-bet.producto.stock-lote-apertura'
+    const fingerprint = calculateFingerprint('POST', scope, productoId, body)
+    const result = await prisma.$transaction(async (tx) => {
+      const acquired = await acquireIdempotencyRecord(tx, user.sub, scope, idempotencyKey, fingerprint)
+      if (acquired.type === 'REPLAY') return acquired.body
+
+      const lote = await createManagedLot(tx, {
+        productoId,
+        numero: parsed.data.numero,
+        fechaProduccion: parseOptionalDate(parsed.data.fechaProduccion),
+        fechaVencimiento: parseOptionalDate(parsed.data.fechaVencimiento),
+      })
+      const acondicionado = await tx.ubicacionStock.findUnique({
+        where: { codigo: 'ACONDICIONADO' },
+        select: { id: true, activo: true },
+      })
+      if (!acondicionado?.activo) {
+        throw new ProductStockAdminConflict('La ubicación ACONDICIONADO no existe o está inactiva')
+      }
+
+      const fechaEfectiva = new Date().toISOString().slice(0, 10)
+      await adjustManagedStock(tx, {
+        productoId,
+        loteId: lote.id,
+        ubicacionId: acondicionado.id,
+        cantidadFinal: cantidadInicial,
+        actorId: user.sub,
+        motivo: 'Saldo de apertura',
+        fechaEfectiva,
+        idempotencyKey,
+        tipoMovimiento: TipoMovimiento.SALDO_APERTURA,
+      })
+      const response = {
+        id: lote.id,
+        numero: lote.numero,
+        fechaProduccion: lote.fechaProduccion,
+        fechaVencimiento: lote.fechaVencimiento,
+        activo: lote.activo,
+        stockTotal: cantidadInicial,
+        stockDeposito: 0,
+        stockAcondicionado: cantidadInicial,
+      }
+      await completeIdempotencyRecord(tx, acquired.id, 201, toPersistableResponseBody(response))
+      return response
+    })
+    res.status(201).json(result)
   } catch (error) {
     if (error instanceof ProductStockAdminConflict) {
       res.status(409).json({ error: error.message })
@@ -522,6 +589,63 @@ router.patch('/:id/stock/lotes/:loteId/ajuste', requireApp('ale-bet'), requirePe
       res.status(409).json({ error: error.message })
       return
     }
+    throw error
+  }
+})
+
+router.patch('/:id/stock/lotes/:loteId/ingreso', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.adjust'), async (req, res) => {
+  const schema = z.object({
+    ubicacionId: z.string().min(1),
+    cantidad: z.number().int().positive(),
+    motivo: z.string().trim().max(500).optional(),
+    fechaEfectiva: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  })
+  const parsed = schema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
+  const user = req.user as JwtPayload
+  const key = getSingleIdempotencyKey(req.rawHeaders)
+  if (!key) { res.status(400).json({ error: 'Idempotency-Key requerido' }); return }
+  const body = { productoId: String(req.params.id), loteId: String(req.params.loteId), ...parsed.data, fechaEfectiva: parsed.data.fechaEfectiva ?? new Date().toISOString().slice(0, 10) }
+  const scope = 'ale-bet.producto.stock-ingreso'
+  const fingerprint = calculateFingerprint('PATCH', scope, body.loteId, body)
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const acquired = await acquireIdempotencyRecord(tx, user.sub, scope, key, fingerprint)
+      if (acquired.type === 'REPLAY') return acquired.body
+
+      await tx.$queryRaw(Prisma.sql`
+        SELECT id FROM "ale_bet"."Lote" WHERE id = ${body.loteId} AND "productoId" = ${body.productoId} FOR UPDATE
+      `)
+      await tx.$queryRaw(Prisma.sql`
+        SELECT id FROM "ale_bet"."SaldoStock"
+        WHERE "productoId" = ${body.productoId} AND "loteId" = ${body.loteId} AND "ubicacionId" = ${body.ubicacionId}
+        FOR UPDATE
+      `)
+
+      const current = await tx.saldoStock.findUnique({
+        where: { productoId_loteId_ubicacionId: { productoId: body.productoId, loteId: body.loteId, ubicacionId: body.ubicacionId } },
+        select: { cantidad: true },
+      })
+      const currentAmount = current?.cantidad ?? 0
+      const cantidadFinal = currentAmount + body.cantidad
+
+      const adjustment = await adjustManagedStock(tx, {
+        productoId: body.productoId,
+        loteId: body.loteId,
+        ubicacionId: body.ubicacionId,
+        cantidadFinal,
+        actorId: user.sub,
+        motivo: body.motivo ?? 'Ingreso de mercadería',
+        fechaEfectiva: body.fechaEfectiva,
+        idempotencyKey: key,
+      })
+      const response = { loteId: body.loteId, ubicacionId: body.ubicacionId, anterior: adjustment.anterior, nuevo: adjustment.nuevo, delta: adjustment.delta, movimientoId: adjustment.movimiento?.id ?? null }
+      await completeIdempotencyRecord(tx, acquired.id, 200, toPersistableResponseBody(response))
+      return response
+    })
+    res.json(result)
+  } catch (error) {
+    if (error instanceof ProductStockAdminConflict) { res.status(409).json({ error: error.message }); return }
     throw error
   }
 })

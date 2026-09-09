@@ -411,12 +411,14 @@ export const aleBetApi = {
         apiClient.put<Lote>(`${BASE}/productos/${id}/lotes/${loteId}`, data),
     },
     stock: {
-      get: (id: string) => apiClient.get<ProductoAdminStock>(`${BASE}/productos/${id}/stock`),
+      get: (id: string, options?: { includeArchived?: boolean }) => apiClient.get<ProductoAdminStock>(`${BASE}/productos/${id}/stock${options?.includeArchived ? '?includeArchived=true' : ''}`),
       lotes: {
-        create: (id: string, data: { numero: string; fechaProduccion?: string | null; fechaVencimiento?: string | null }) =>
-          apiClient.post<{ id: string; numero: string; fechaProduccion: string | null; fechaVencimiento: string | null; activo: boolean; stockTotal: number; stockDeposito: number; stockAcondicionado: number }>(`${BASE}/productos/${id}/stock/lotes`, data),
+        create: (id: string, data: { numero: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null }, options?: MutationOptions) =>
+          apiClient.post<{ id: string; numero: string; fechaProduccion: string | null; fechaVencimiento: string | null; activo: boolean; stockTotal: number; stockDeposito: number; stockAcondicionado: number }>(`${BASE}/productos/${id}/stock/lotes`, data, undefined, mutationOptions(options)),
         ajuste: (id: string, loteId: string, data: { ubicacionId: string; cantidadFinal: number; motivo?: string }, options?: MutationOptions) =>
           apiClient.patch<{ loteId: string; ubicacionId: string; anterior: number; nuevo: number; delta: number; movimientoId: string | null }>(`${BASE}/productos/${id}/stock/lotes/${loteId}/ajuste`, data, undefined, mutationOptions(options)),
+        ingreso: (id: string, loteId: string, data: { ubicacionId: string; cantidad: number; motivo?: string; fechaEfectiva?: string }, options?: MutationOptions) =>
+          apiClient.patch<{ loteId: string; ubicacionId: string; anterior: number; nuevo: number; delta: number; movimientoId: string | null }>(`${BASE}/productos/${id}/stock/lotes/${loteId}/ingreso`, data, undefined, mutationOptions(options)),
       },
     },
   },
