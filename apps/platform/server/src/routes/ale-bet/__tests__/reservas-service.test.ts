@@ -20,6 +20,7 @@ describe('consumeActiveReservations', () => {
       saldoStock: { update: vi.fn().mockResolvedValue({}), findMany: vi.fn().mockResolvedValue([]) },
       lote: { update: vi.fn().mockResolvedValue({}), findUnique: vi.fn().mockResolvedValue({ activo: true }) },
       movimientoStock: { create: movimientoCreate },
+      stockProjectionOutbox: { upsert: vi.fn().mockResolvedValue({}) },
     }
 
     await consumeActiveReservations(tx as never, 'order-1', 'actor-1')

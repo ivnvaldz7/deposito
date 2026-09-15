@@ -7,9 +7,9 @@
     "build": "prisma generate && tsc && node -e \"require('fs').cpSync('src/generated','dist/generated',{recursive:true})\""
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.0.0",
-    "@prisma/client": "^7.7.0",
+    "@prisma/adapter-pg": "7.7.0",
+    "@prisma/client": "7.7.0",
     "pg": "^8.16.3",
-    "prisma": "^7.7.0"
+    "prisma": "7.7.0"
   }
 }

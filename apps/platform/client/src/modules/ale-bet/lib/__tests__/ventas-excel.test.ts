@@ -8,29 +8,30 @@ const mockWriteBuffer = vi.fn().mockResolvedValue(new ArrayBuffer(8))
 const mockAddWorksheet = vi.fn()
 
 vi.mock('exceljs', () => {
+  class MockWorkbook {
+    calcProperties = {}
+    xlsx = { writeBuffer: mockWriteBuffer }
+
+    addWorksheet(...args: [string, object?]) {
+      mockAddWorksheet(...args)
+      return {
+        pageSetup: {},
+        headerFooter: {},
+        mergeCells: vi.fn(),
+        getCell: vi.fn(() => ({})),
+        getRow: vi.fn(() => ({
+          getCell: vi.fn(() => ({})),
+          eachCell: vi.fn()
+        })),
+        autoFilter: {},
+        views: []
+      }
+    }
+  }
+
   return {
     default: {
-      Workbook: vi.fn(() => ({
-        calcProperties: {},
-        addWorksheet: (...args: any[]) => {
-          mockAddWorksheet(...args)
-          return {
-            pageSetup: {},
-            headerFooter: {},
-            mergeCells: vi.fn(),
-            getCell: vi.fn(() => ({})),
-            getRow: vi.fn(() => ({
-              getCell: vi.fn(() => ({})),
-              eachCell: vi.fn()
-            })),
-            autoFilter: {},
-            views: []
-          }
-        },
-        xlsx: {
-          writeBuffer: mockWriteBuffer
-        }
-      }))
+      Workbook: MockWorkbook
     }
   }
 })
@@ -39,8 +40,19 @@ describe('ventas-excel', () => {
   const cliente: Cliente = {
     id: 'c-1',
     nombre: 'DEMO Agropecuaria',
+    contacto: null,
+    referencia: null,
+    direccion: null,
+    localidad: null,
+    provincia: null,
     cuit: '20-12345678-9',
-  } as any
+    condicionIva: null,
+    condicionVenta: null,
+    estado: 'VALIDADO',
+    activo: true,
+    createdAt: '2026-08-01T00:00:00.000Z',
+    updatedAt: '2026-08-01T00:00:00.000Z',
+  }
 
   const reporteMensual: ReporteVentas = {
     modo: 'mensual',
@@ -82,7 +94,13 @@ describe('ventas-excel', () => {
       }
     ],
     meses: [
-      { month: 8, pedidosDespachados: 1, productosDistintos: 1, unidadesTotales: 10 } as any
+      {
+        month: 8,
+        pedidosDespachados: 1,
+        productosDistintos: 1,
+        unidadesTotales: 10,
+        productos: [],
+      }
     ],
   }
 
@@ -105,9 +123,10 @@ describe('ventas-excel', () => {
     })
     
     const origCreate = document.createElement.bind(document)
-    const mockAnchor = { href: '', download: '', click: mockClick }
+    const mockAnchor = origCreate('a')
+    mockAnchor.click = mockClick
     vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      if (tag === 'a') return mockAnchor as any
+      if (tag === 'a') return mockAnchor
       return origCreate(tag)
     })
 
@@ -134,9 +153,10 @@ describe('ventas-excel', () => {
     })
     
     const origCreate = document.createElement.bind(document)
-    const mockAnchor = { href: '', download: '', click: mockClick }
+    const mockAnchor = origCreate('a')
+    mockAnchor.click = mockClick
     vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
-      if (tag === 'a') return mockAnchor as any
+      if (tag === 'a') return mockAnchor
       return origCreate(tag)
     })
 

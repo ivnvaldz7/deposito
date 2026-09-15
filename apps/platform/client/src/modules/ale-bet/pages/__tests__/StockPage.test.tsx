@@ -54,8 +54,8 @@ describe('StockPage', () => {
   })
 
   it('shows location-aware balances for a product and expands lotes', async () => {
-    const data = createStockOverview();
-    (data.productos as any)[0] = { /*@ts-ignore*/
+    const data: StockOverview = createStockOverview()
+    data.productos[0] = {
       ...data.productos[0],
       stockTotal: 12,
       stockDeposito: 7,

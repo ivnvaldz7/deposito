@@ -13,7 +13,7 @@
     "dev:clean": "node scripts/dev-clean.mjs",
     "dev:status": "node scripts/dev-status.mjs",
     "dev:turbo": "turbo run dev --filter=./apps/platform/* --filter=./packages/*",
-    "lint": "turbo run lint",
+    "lint": "eslint apps packages scripts --max-warnings 0",
     "start:prod": "npm --workspace @platform/server run start",
     "db:migrate": "npm --workspace @platform/server run db:migrate",
     "db:seed:staging-users": "npm --workspace @platform/server run db:seed-users:staging",
@@ -22,6 +22,11 @@
     "typecheck": "turbo run typecheck"
   },
   "devDependencies": {
-    "turbo": "^2.5.4"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "esbuild": "^0.28.1",
+    "globals": "^17.12.0",
+    "turbo": "^2.5.4",
+    "typescript-eslint": "^8.70.0"
   }
 }

@@ -1,4 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@platform/db', () => ({ Prisma: {} }))
+
 import { buildSanitizationManifest } from '../logistica-sanitization-service'
 
 describe('logistics sanitization manifest', () => {

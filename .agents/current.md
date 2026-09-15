@@ -1,13 +1,15 @@
 # Contexto operativo vigente
 
-> **Snapshot de evidencia verificado solo al 2026-07-29.** No usarlo como prueba de estado posterior. Solo **Verify** puede actualizar este archivo después de reconciliarlo con evidencia; los demás roles proponen cambios.
+> **Snapshot de evidencia reconciliado al 2026-09-15.** Solo **Verify** puede actualizar este archivo después de reconciliarlo con evidencia; los demás roles proponen cambios.
 ## Estado operativo solicitado
 
-- Etapa actual: Verificación — fix de disponibilidad Ale-Bet (UAT: Disponible 0 vs 80 y 400 al aprobar AMANTINA 60u)
-- Feature diferida: Cajas de embalaje y salida por lote
-- Feature activa siguiente: MVP-01 — Catálogo maestro de productos e importación
-- Próximo rol: Reviewer (previo a Verify final)
-- Implementación activa: ALEBET-PEDIDOS-DISPONIBILIDAD
+- Etapa actual: producción local operativa — PROD-03 cerrado con reboot real y acceso remoto por IP verificados.
+- Runtime: `http://localhost:3000` en el servidor y `http://192.168.0.120:3000` como fallback LAN; health HTTP 200 con DB conectada.
+- Operación automática: tareas `LOGISTICA - Server` y `LOGISTICA - Backup Diario` registradas, ejecutadas después del boot del 2026-09-15 y con resultado `0`; backup diario a las 16:10.
+- Autenticación: superadmin productivo activo; primer login y cambio obligatorio de contraseña completados.
+- Calidad: lint real sobre `apps`, `packages` y `scripts`; build productivo y suites focalizadas de Logística verdes.
+- Mejoras no bloqueantes: reserva DHCP y resolución de `DEPOSITO` desde otras PCs. El acceso operativo por IP ya fue validado.
+- Implementación activa: ninguna; el próximo alcance funcional requiere selección explícita.
 
 ## Arquitectura
 
@@ -67,7 +69,7 @@ npm --workspace @platform/server run db:migrate
 
 Estados válidos: `planificado` → `en-construcción` → `en-prueba` → `en-revisión` → `en-verificación` → `verificado` → `archivado`. Solo el archive SDD requerido puede pasar `verificado` a `archivado`; desde cualquier estado activo: `bloqueado`.
 
-## Cambio en curso: ALEBET-PEDIDOS-DISPONIBILIDAD
+## Cambio histórico cerrado: ALEBET-PEDIDOS-DISPONIBILIDAD
 
 **Objetivo**: que búsqueda, listado y aprobación de pedidos Ale-Bet usen `SaldoStock` como única fuente de verdad; soportar transferencia ACONDICIONADO→DEPÓSITO con confirmación; multilote FEFO; idempotencia.
 
