@@ -22,10 +22,11 @@ describe('GET /api/drogas', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('returns one catalog row for a drug without lots', async () => {
-    prismaMock.depositoProducto.findMany.mockResolvedValue([{ id: 'p1', nombreCompleto: 'ATP', inventarioDrogas: [] }])
+    prismaMock.depositoProducto.findMany.mockResolvedValue([{ id: 'p1', codigo: 'ARG1', nombreCompleto: 'ARGinina', inventarioDrogas: [] }])
     const response = await request(app).get('/api/drogas').set('x-test-role', 'observador')
     expect(response.status).toBe(200)
-    expect(response.body).toEqual([{ productoId: 'p1', nombre: 'ATP', stockMinimo: null, cantidadTotal: 0, proximoVencimiento: null, lotes: [] }])
+    expect(response.body).toEqual([{ productoId: 'p1', codigo: 'ARG1', nombre: 'ARGinina', stockMinimo: null, cantidadTotal: 0, proximoVencimiento: null, lotes: [] }])
+    expect(prismaMock.depositoProducto.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { categoria: 'droga', activo: true } }))
   })
 
   it('aggregates multiple lots and exposes FEFO ordering', async () => {

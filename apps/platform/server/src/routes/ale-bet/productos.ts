@@ -9,6 +9,7 @@ import { VENCIMIENTO_DEFAULT_AÑOS, calcularUnidades, validarSueltos } from './c
 import { adjustManagedStock, createManagedLot, getManagedProductStock, ProductStockAdminConflict } from './product-stock-admin-service'
 import { aggregateProductAvailability } from './stock-aggregation'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
+import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
 
 const router = Router()
 
@@ -537,6 +538,7 @@ router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-be
       await completeIdempotencyRecord(tx, acquired.id, 201, toPersistableResponseBody(response))
       return response
     })
+    await syncStockProjectionAfterCommit()
     res.status(201).json(result)
   } catch (error) {
     if (error instanceof ProductStockAdminConflict) {
@@ -583,6 +585,7 @@ router.patch('/:id/stock/lotes/:loteId/ajuste', requireApp('ale-bet'), requirePe
       await completeIdempotencyRecord(tx, acquired.id, 200, toPersistableResponseBody(response))
       return { replay: false, body: response }
     })
+    await syncStockProjectionAfterCommit()
     res.json(result.body)
   } catch (error) {
     if (error instanceof ProductStockAdminConflict) {
@@ -643,6 +646,7 @@ router.patch('/:id/stock/lotes/:loteId/ingreso', requireApp('ale-bet'), requireP
       await completeIdempotencyRecord(tx, acquired.id, 200, toPersistableResponseBody(response))
       return response
     })
+    await syncStockProjectionAfterCommit()
     res.json(result)
   } catch (error) {
     if (error instanceof ProductStockAdminConflict) { res.status(409).json({ error: error.message }); return }
@@ -651,29 +655,10 @@ router.patch('/:id/stock/lotes/:loteId/ingreso', requireApp('ale-bet'), requireP
 })
 
 router.patch('/:id/stock/lotes/:loteId/apertura', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.adjust'), async (req, res) => {
-  const schema = z.object({ ubicacionId: z.string().min(1), cantidadFinal: z.number().int().positive(), fechaEfectiva: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional() })
-  const parsed = schema.safeParse(req.body)
-  if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
-  const user = req.user as JwtPayload
-  const key = getSingleIdempotencyKey(req.rawHeaders)
-  if (!key) { res.status(400).json({ error: 'Idempotency-Key requerido' }); return }
-  const body = { productoId: String(req.params.id), loteId: String(req.params.loteId), ...parsed.data, fechaEfectiva: parsed.data.fechaEfectiva ?? new Date().toISOString().slice(0, 10) }
-  const scope = 'ale-bet.producto.stock-apertura'
-  const fingerprint = calculateFingerprint('PATCH', scope, body.loteId, body)
-  try {
-    const result = await prisma.$transaction(async (tx) => {
-      const acquired = await acquireIdempotencyRecord(tx, user.sub, scope, key, fingerprint)
-      if (acquired.type === 'REPLAY') return acquired.body
-      const adjustment = await adjustManagedStock(tx, { ...body, actorId: user.sub, motivo: 'Saldo de apertura', tipoMovimiento: TipoMovimiento.SALDO_APERTURA, idempotencyKey: key })
-      const response = { loteId: body.loteId, ubicacionId: body.ubicacionId, anterior: adjustment.anterior, nuevo: adjustment.nuevo, delta: adjustment.delta, movimientoId: adjustment.movimiento?.id ?? null, tipo: 'SALDO_APERTURA', motivo: 'Saldo de apertura', fechaEfectiva: body.fechaEfectiva }
-      await completeIdempotencyRecord(tx, acquired.id, 201, toPersistableResponseBody(response))
-      return response
-    })
-    res.status(201).json(result)
-  } catch (error) {
-    if (error instanceof ProductStockAdminConflict) { res.status(409).json({ error: error.message }); return }
-    throw error
-  }
+  void req
+  res.status(410).json({
+    error: 'La edición de apertura está cerrada para la operación normal. Usá un ajuste o ingreso de stock; el historial existente no se modifica.',
+  })
 })
 
 export default router

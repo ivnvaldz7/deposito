@@ -104,6 +104,7 @@ export default function ActaNuevaPage() {
     register,
     handleSubmit,
     setValue,
+    getValues,
     control,
     formState: { errors, isValid, isDirty, isSubmitted },
     clearErrors,
@@ -157,7 +158,15 @@ export default function ActaNuevaPage() {
     setValue('cantidad', '', { shouldValidate: false })
     setValue('cantidadCajas', '', { shouldValidate: false })
     setValue('unidadesPorCaja', '', { shouldValidate: false })
+    setValue('lote', '', { shouldValidate: false })
   }, [resolvedCategoria, setValue])
+
+  useEffect(() => {
+    const suggestedLote = nextLoteQuery.data?.lote
+    if (esME && suggestedLote && !getValues('lote')) {
+      setValue('lote', suggestedLote, { shouldDirty: false, shouldValidate: true })
+    }
+  }, [esME, getValues, nextLoteQuery.data?.lote, resolvedCategoria, setValue])
 
   useEffect(() => {
     if (categoria === 'frasco' && productoId) {
@@ -179,7 +188,7 @@ export default function ActaNuevaPage() {
       const acta = await api.post<{ id: string }>('/ingresos', {
         fecha: data.fecha,
         productoId: data.productoId,
-        lote: data.categoria === 'droga' ? data.lote?.trim() : undefined,
+        lote: data.lote?.trim() || undefined,
         vencimientoMes: data.categoria === 'droga' ? `${data.vencimientoAnio}-${data.vencimientoMes}` : undefined,
         mercado: data.categoria === 'etiqueta' || data.categoria === 'estuche' ? data.mercado : undefined,
         cantidad: data.categoria === 'frasco' 
@@ -444,20 +453,20 @@ export default function ActaNuevaPage() {
                   {esME && (
                     <div className="space-y-1">
                       <label htmlFor="ingreso-lote-sugerido" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
-                        Lote Sugerido (Automático)
+                        Lote sugerido
                       </label>
                       <div className="relative">
                         <Hash size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-50" />
                         <input
                           id="ingreso-lote-sugerido"
                           type="text"
-                          readOnly
-                          disabled
-                          value={nextLoteQuery.isLoading ? 'Generando...' : nextLoteQuery.data?.lote || ''}
-                          className="input-field pl-10 opacity-70 bg-surface-container-high"
+                          placeholder={nextLoteQuery.isLoading ? 'Generando...' : 'Ej: 1'}
+                          className="input-field pl-10"
+                          {...register('lote')}
                         />
                       </div>
-                      <p className="font-body text-xs text-on-surface-variant/60">El lote correlativo se asignará automáticamente al guardar.</p>
+                      <p className="font-body text-xs text-on-surface-variant/60">Podés editarlo para indicar desde qué número comienza la referencia. Si lo dejás vacío, se asignará el correlativo disponible.</p>
+                      {errors.lote && <p className="font-body text-error text-xs">{errors.lote.message}</p>}
                     </div>
                   )}
 

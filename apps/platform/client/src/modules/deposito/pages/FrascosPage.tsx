@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { useFrascos, useCreateFrasco, useUpdateFrasco, useDeleteFrasco } from '../queries/use-frascos'
 import { toast } from '../lib/toast'
-import { fetchCatalogoProductos, type CatalogoProducto } from '../lib/catalogo-productos'
+import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { sortByArticulo } from '../lib/sort-utils'
@@ -31,7 +31,6 @@ import {
 } from '../components/ui/Dialog'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
-import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
 import { StockChip } from '../components/inventory-shared/stock-chip'
 import { getStockStatus } from '../lib/stock-status'
 
@@ -196,12 +195,10 @@ export default function FrascosPage() {
   const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
   const [editingFrasco, setEditingFrasco] = useState<Frasco | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
-  const [catalogProducts, setCatalogProducts] = useState<CatalogoProducto[]>([])
   const [agregarOpen, setAgregarOpen] = useState(false)
-  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
-    fetchCatalogoProductos('frasco').then((productos) => { setCatalogProducts(productos); setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
+    fetchCatalogoProductos('frasco').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
   const getDisplayName = useCallback((frasco: Frasco): string => frasco.productoId ? (catalogMap[frasco.productoId] ?? frasco.articulo) : frasco.articulo, [catalogMap])
@@ -254,10 +251,9 @@ export default function FrascosPage() {
           active: stockBajoFiltro,
           onClick: () => setStockBajoFiltro((prev) => !prev)
         },
-      ]} primaryAction={canManage ? { label: 'Agregar frasco', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} secondaryActions={canManage ? [{ label: 'Carga inicial', onClick: () => setAperturaOpen(true) }] : undefined} />
+      ]} primaryAction={canManage ? { label: 'Agregar frasco', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} />
 
       {canManage && <AgregarFrascoModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
-      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="frasco" items={catalogProducts.length > 0 ? catalogProducts.map((p) => ({ id: p.id, productoId: p.id, label: p.nombreCompleto, unidadesPorCaja: p.presentacion ?? 1 })) : frascos.map((item) => ({ id: item.id, productoId: item.productoId ?? item.id, label: getDisplayName(item), unidadesPorCaja: item.unidadesPorCaja }))} />}
       {editingFrasco && <EditarFrascoModal frasco={editingFrasco} onClose={() => setEditingFrasco(null)} />}
 
       {filteredFrascos.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />

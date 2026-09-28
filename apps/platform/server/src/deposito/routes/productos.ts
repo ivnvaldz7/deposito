@@ -361,13 +361,53 @@ function getMultipartFile(req: Request): { bytes: Buffer; fileName: string } | n
 router.get('/', authenticate, requirePermission('deposito', 'productos_catalogo.read'), async (req, res): Promise<void> => {
   const categoria = typeof req.query.categoria === 'string' && categorias.includes(req.query.categoria as Categoria) ? req.query.categoria as Categoria : undefined
   const estado = typeof req.query.estado === 'string' && estados.includes(req.query.estado as EstadoProductoCatalogo) ? req.query.estado as EstadoProductoCatalogo : undefined
+  const activo = req.query.activo === 'true' ? true : req.query.activo === 'false' ? false : undefined
   const buscar = typeof req.query.buscar === 'string' ? req.query.buscar.trim() : undefined
+  const incluirStock = req.query.incluirStock === 'true'
+  const where: Prisma.DepositoProductoWhereInput = { ...(categoria ? { categoria } : {}), ...(estado ? { estado } : {}), ...(activo !== undefined ? { activo } : {}), ...(buscar ? { OR: [{ nombreCompleto: { contains: buscar, mode: 'insensitive' } }, { codigo: { contains: buscar, mode: 'insensitive' } }] } : {}) }
   try {
-    const productos = await prisma.depositoProducto.findMany({
-      where: { ...(categoria ? { categoria } : {}), ...(estado ? { estado } : {}), ...(buscar ? { OR: [{ nombreCompleto: { contains: buscar, mode: 'insensitive' } }, { codigo: { contains: buscar, mode: 'insensitive' } }] } : {}) },
-      orderBy: { nombreCompleto: 'asc' },
-    })
-    res.json(productos)
+    if (!incluirStock) {
+      const productos = await prisma.depositoProducto.findMany({ where, orderBy: { nombreCompleto: 'asc' } })
+      res.json(productos)
+      return
+    }
+
+    const productos = await prisma.depositoProducto.findMany({ where, orderBy: { nombreCompleto: 'asc' } })
+    const productoIds = productos.map((producto) => producto.id)
+    const [drogas, estuches, etiquetas, frascos] = await Promise.all([
+      prisma.inventarioDroga.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, cantidad: true } }),
+      prisma.inventarioEstuche.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, mercado: true, cantidad: true } }),
+      prisma.inventarioEtiqueta.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, mercado: true, cantidad: true } }),
+      prisma.inventarioFrasco.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, total: true } }),
+    ])
+    const stockDrogas = new Map<string, number>()
+    const stockFrascos = new Map<string, number>()
+    const stockPorMercado = new Map<string, Record<string, number>>()
+    for (const inventario of drogas) {
+      if (!inventario.productoId) continue
+      stockDrogas.set(inventario.productoId, (stockDrogas.get(inventario.productoId) ?? 0) + inventario.cantidad)
+    }
+    for (const inventario of frascos) {
+      if (!inventario.productoId) continue
+      stockFrascos.set(inventario.productoId, (stockFrascos.get(inventario.productoId) ?? 0) + inventario.total)
+    }
+    for (const inventario of [...estuches, ...etiquetas]) {
+      if (!inventario.productoId) continue
+      const stock = stockPorMercado.get(inventario.productoId) ?? {}
+      stock[inventario.mercado] = inventario.cantidad
+      stockPorMercado.set(inventario.productoId, stock)
+    }
+
+    res.json(productos.map((producto) => {
+      const stockDelProducto = stockPorMercado.get(producto.id) ?? {}
+      const stockActual = producto.categoria === 'droga'
+        ? stockDrogas.get(producto.id) ?? 0
+        : producto.categoria === 'frasco'
+          ? stockFrascos.get(producto.id) ?? 0
+          : Object.values(stockDelProducto).reduce((total, cantidad) => total + cantidad, 0)
+
+      return { ...producto, stockActual, stockPorMercado: stockDelProducto }
+    }))
   } catch { res.status(500).json({ message: 'Error interno del servidor' }) }
 })
 

@@ -107,6 +107,14 @@ export function useProductoAdminStock(productoId: string, options?: { includeArc
   })
 }
 
+export function useProductTransferRules(productoId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...productosKeys.all, 'transfer-rules', productoId] as const,
+    queryFn: () => aleBetApi.stock.transferRules(productoId),
+    enabled: enabled && !!productoId,
+  })
+}
+
 export function useCreateAdminLote() {
   const qc = useQueryClient()
   return useMutation({
@@ -126,11 +134,13 @@ export function useAjusteAdminStock() {
   return useMutation({
     mutationFn: ({ productoId, loteId, ubicacionId, cantidadFinal, motivo, idempotencyKey }: { productoId: string; loteId: string; ubicacionId: string; cantidadFinal: number; motivo?: string; idempotencyKey: string }) =>
       aleBetApi.productos.stock.lotes.ajuste(productoId, loteId, { ubicacionId, cantidadFinal, motivo }, { idempotencyKey }),
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
-      qc.invalidateQueries({ queryKey: productosKeys.list() }) // Invalidate product list to update overall stock
-      qc.invalidateQueries({ queryKey: stockKeys.all })
-      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] }),
+        qc.invalidateQueries({ queryKey: productosKeys.list() }),
+        qc.invalidateQueries({ queryKey: stockKeys.all }),
+        qc.invalidateQueries({ queryKey: dashboardKeys.all }),
+      ])
     },
   })
 }
@@ -140,25 +150,13 @@ export function useIngresarAdminStock() {
   return useMutation({
     mutationFn: ({ productoId, loteId, ubicacionId, cantidad, motivo, fechaEfectiva, idempotencyKey }: { productoId: string; loteId: string; ubicacionId: string; cantidad: number; motivo?: string; fechaEfectiva?: string; idempotencyKey: string }) =>
       aleBetApi.productos.stock.lotes.ingreso(productoId, loteId, { ubicacionId, cantidad, motivo, fechaEfectiva }, { idempotencyKey }),
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
-      qc.invalidateQueries({ queryKey: productosKeys.list() })
-      qc.invalidateQueries({ queryKey: stockKeys.all })
-      qc.invalidateQueries({ queryKey: dashboardKeys.all })
-    },
-  })
-}
-
-export function useAperturaAdminStock() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ productoId, loteId, ubicacionId, cantidadFinal, fechaEfectiva, idempotencyKey }: { productoId: string; loteId: string; ubicacionId: string; cantidadFinal: number; fechaEfectiva?: string; idempotencyKey: string }) =>
-      aleBetApi.stock.apertura(productoId, loteId, { ubicacionId, cantidadFinal, fechaEfectiva }, { idempotencyKey }),
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
-      qc.invalidateQueries({ queryKey: productosKeys.list() })
-      qc.invalidateQueries({ queryKey: stockKeys.all })
-      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] }),
+        qc.invalidateQueries({ queryKey: productosKeys.list() }),
+        qc.invalidateQueries({ queryKey: stockKeys.all }),
+        qc.invalidateQueries({ queryKey: dashboardKeys.all }),
+      ])
     },
   })
 }
@@ -166,15 +164,18 @@ export function useAperturaAdminStock() {
 export function useTransferirStock() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number; idempotencyKey: string }) => {
+    mutationFn: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number; transferRuleId?: string; idempotencyKey: string }) => {
       const { idempotencyKey, ...payload } = data
       return aleBetApi.stock.transferir(payload, { idempotencyKey })
     },
-    onSuccess: (_, variables) => {
-      qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })
-      qc.invalidateQueries({ queryKey: productosKeys.list() })
-      qc.invalidateQueries({ queryKey: stockKeys.all })
-      qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    onSuccess: async (_, variables) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] }),
+        ...(variables.transferRuleId ? [qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock'] })] : []),
+        qc.invalidateQueries({ queryKey: productosKeys.list() }),
+        qc.invalidateQueries({ queryKey: stockKeys.all }),
+        qc.invalidateQueries({ queryKey: dashboardKeys.all }),
+      ])
     },
   })
 }

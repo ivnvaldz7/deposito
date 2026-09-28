@@ -68,14 +68,21 @@ export function InventoryPageHeader({
           </article>
         ))}
       </section>
-      {secondaryActions?.length || children ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-outline-variant/20 bg-surface-container-low p-3">
+      {children ? (
+        <section
+          aria-label="Filtros de mercado"
+          className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-3"
+        >
+          {children}
+        </section>
+      ) : null}
+      {secondaryActions?.length ? (
+        <div aria-label="Acciones contextuales" className="flex flex-wrap items-center gap-2">
           {secondaryActions?.map((action) => (
             <button key={action.label} type="button" onClick={action.onClick} className="inline-flex min-h-9 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-on-surface hover:bg-surface-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               {action.icon}{action.label}
             </button>
           ))}
-          {children}
         </div>
       ) : null}
     </div>

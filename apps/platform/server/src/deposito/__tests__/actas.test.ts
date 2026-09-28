@@ -263,6 +263,7 @@ describe('Actas críticas', () => {
   })
 
   it('crea acta, agrega item droga, distribuye todo y actualiza stock', async () => {
+    mocks.state.inventarioDrogas.push({ id: 'opening', productoId: null, nombre: 'ATP', lote: 'APERTURA-SIN-LOTE', vencimiento: null, cantidad: 4 })
     const createActa = await request(app)
       .post('/api/actas')
       .set('x-test-role', 'encargado')
@@ -289,8 +290,9 @@ describe('Actas críticas', () => {
       .send({ cantidad: 10 })
 
     expect(distribute.status).toBe(200)
-    expect(mocks.state.inventarioDrogas).toHaveLength(1)
-    expect(mocks.state.inventarioDrogas[0]?.cantidad).toBe(10)
+    expect(mocks.state.inventarioDrogas).toHaveLength(2)
+    expect(mocks.state.inventarioDrogas.find((row) => row.lote === 'ATP-001')).toMatchObject({ cantidad: 10, vencimiento: new Date('2026-12-31T00:00:00.000Z') })
+    expect(mocks.state.inventarioDrogas.find((row) => row.lote === 'APERTURA-SIN-LOTE')).toMatchObject({ cantidad: 4, vencimiento: null })
     expect(mocks.state.actas[0]?.estado).toBe('completada')
   })
 

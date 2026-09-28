@@ -36,6 +36,7 @@ export type DepositoPermission =
   | 'importaciones_iniciales.create'
   | 'eventos.stream'
   | 'usuarios_deposito.read' | 'usuarios_deposito.manage'
+  | 'partidas.read' | 'partidas.create' | 'partidas.manage' | 'partidas.confirm'
 
 export type AdminPermission =
   | 'platform_admin'
@@ -79,7 +80,8 @@ export const PERMISSIONS: Record<AppPermissionKey, readonly string[]> = {
     'lotes.read.next',
     'importaciones_iniciales.create',
     'eventos.stream',
-    'usuarios_deposito.read', 'usuarios_deposito.manage'
+    'usuarios_deposito.read', 'usuarios_deposito.manage',
+    'partidas.read', 'partidas.create', 'partidas.manage', 'partidas.confirm'
   ] as const,
   admin: [
     'platform_admin',
@@ -142,7 +144,8 @@ export const ROLE_PERMISSIONS: {
       'estuches.read', 'etiquetas.read', 'frascos.read',
       'actas.read', 'movimientos.read', 'pendientes.read',
       'ordenes.read', 'ordenes.create', 'productos_catalogo.read', 'metricas.productos.read',
-      'lotes.read.next', 'eventos.stream'
+      'lotes.read.next', 'eventos.stream',
+      'partidas.read', 'partidas.create', 'partidas.manage'
     ],
   },
   admin: {

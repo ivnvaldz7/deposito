@@ -9,6 +9,7 @@ type DrugLot = {
 
 type CatalogDrug = {
   id: string
+  codigo?: string | null
   nombreCompleto: string
   stockMinimo: number | null
   inventarioDrogas: DrugLot[]
@@ -27,6 +28,7 @@ export function aggregateDrugCatalog(products: CatalogDrug[]) {
 
     return {
       productoId: product.id,
+      ...(product.codigo ? { codigo: product.codigo } : {}),
       nombre: product.nombreCompleto,
       stockMinimo: product.stockMinimo ?? null,
       cantidadTotal: lotes.reduce((total, lot) => total + lot.cantidad, 0),

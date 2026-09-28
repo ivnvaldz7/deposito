@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { useEtiquetas, useCreateEtiqueta, useUpdateEtiqueta, useDeleteEtiqueta } from '../queries/use-etiquetas'
 import { toast } from '../lib/toast'
-import { fetchCatalogoProductos, type CatalogoProducto } from '../lib/catalogo-productos'
+import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
 import { MercadoChip } from '../components/inventory-shared/mercado-chip'
@@ -35,7 +35,6 @@ import {
 } from '../components/ui/Dialog'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
-import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
 
 import type { Etiqueta } from '../queries/use-etiquetas'
 function sortEtiquetas(list: Etiqueta[]): Etiqueta[] {
@@ -253,12 +252,10 @@ export default function EtiquetasPage() {
   const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
   const [editingEtiqueta, setEditingEtiqueta] = useState<Etiqueta | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
-  const [catalogProducts, setCatalogProducts] = useState<CatalogoProducto[]>([])
   const [agregarOpen, setAgregarOpen] = useState(false)
-  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
-    fetchCatalogoProductos('etiqueta').then((productos) => { setCatalogProducts(productos); setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
+    fetchCatalogoProductos('etiqueta').then((productos) => { setCatalogMap(Object.fromEntries(productos.map((p) => [p.id, p.nombreCompleto]))) }).catch(() => {})
   }, [])
 
   const getDisplayName = useCallback((etiqueta: Etiqueta): string => etiqueta.productoId ? (catalogMap[etiqueta.productoId] ?? etiqueta.articulo) : etiqueta.articulo, [catalogMap])
@@ -320,11 +317,10 @@ export default function EtiquetasPage() {
           warning: stockBajoCount > 0 || stockBajoFiltro,
           onClick: () => setStockBajoFiltro((prev) => !prev)
         },
-      ]} primaryAction={canManage ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} secondaryActions={canManage ? [{ label: 'Carga inicial', onClick: () => setAperturaOpen(true) }] : undefined}>
+      ]} primaryAction={canManage ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
         <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={handleMercadoChange} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
       </InventoryPageHeader>
       {canManage && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
-      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="etiqueta" items={catalogProducts.length > 0 ? catalogProducts.flatMap((p) => (p.mercadosHabilitados ?? (p.mercado ? [p.mercado] : [])).map((mercado) => ({ id: `${p.id}:${mercado}`, productoId: p.id, label: p.nombreCompleto, mercado }))) : allEtiquetas.map((item) => ({ id: item.id, productoId: item.productoId ?? item.id, label: getDisplayName(item), mercado: item.mercado }))} />}
       {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onClose={() => setEditingEtiqueta(null)} />}
       {etiquetas.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       : (

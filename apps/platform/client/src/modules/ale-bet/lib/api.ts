@@ -390,6 +390,13 @@ export interface ProductoAdminStock {
   ubicaciones: Array<{ id: string; codigo: string; nombre: string }>
 }
 
+export interface ProductoTransferRule {
+  id: string
+  label: string
+  tipo: 'SAME_PRODUCT' | 'PRESENTATION'
+  targetProduct: { id: string; nombre: string }
+}
+
 export const aleBetApi = {
   // Dashboard (legacy, still unaligned on the server)
   dashboard: () => apiClient.get<DashboardOverview>(`${BASE}/dashboard`),
@@ -501,10 +508,9 @@ export const aleBetApi = {
   stock: {
     get: () => apiClient.get<StockOverview>(`${BASE}/stock`),
     movimientos: () => apiClient.get<MovimientoStock[]>(`${BASE}/stock/movimientos`),
-    transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number }, options?: MutationOptions) =>
+    transferRules: (productoId: string) => apiClient.get<{ rules: ProductoTransferRule[] }>(`${BASE}/stock/transfer-rules?productoId=${encodeURIComponent(productoId)}`),
+    transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number; transferRuleId?: string }, options?: MutationOptions) =>
       apiClient.post<{ movimientoId: string }>(`${BASE}/stock/transferencias`, data, undefined, mutationOptions(options)),
-    apertura: (productoId: string, loteId: string, data: { ubicacionId: string; cantidadFinal: number; fechaEfectiva?: string }, options?: MutationOptions) =>
-      apiClient.patch<{ movimientoId: string; tipo: 'SALDO_APERTURA'; anterior: number; nuevo: number; delta: number }>(`${BASE}/productos/${productoId}/stock/lotes/${loteId}/apertura`, data, undefined, mutationOptions(options)),
   },
 
   // Historial (legacy)

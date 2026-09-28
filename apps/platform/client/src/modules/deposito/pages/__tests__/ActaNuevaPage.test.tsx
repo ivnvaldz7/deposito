@@ -71,6 +71,7 @@ describe('ActaNuevaPage', () => {
     })
     // Mock active catalog fetch for ProductoSelector.
     vi.mocked(api.get).mockImplementation((path: string) => {
+      if (path === '/lotes/siguiente') return Promise.resolve({ lote: '500' })
       return Promise.resolve(PRODUCTOS_MOCK)
     })
   })
@@ -178,6 +179,20 @@ describe('ActaNuevaPage', () => {
       expect(screen.queryByLabelText('Lote')).not.toBeInTheDocument()
       expect(screen.getByLabelText('Mercado')).toBeInTheDocument()
     })
+  })
+
+  it('preloads an editable lot suggestion for packaging', async () => {
+    render(<ActaNuevaPage />)
+    fireEvent.click(screen.getByText('Material de Empaque'))
+
+    const loteInput = await screen.findByLabelText('Lote sugerido')
+    await waitFor(() => {
+      expect(loteInput).toHaveValue('500')
+    })
+    expect(loteInput).toBeEnabled()
+
+    fireEvent.change(loteInput, { target: { value: '900' } })
+    expect(loteInput).toHaveValue('900')
   })
 
   it('submits the form successfully and navigates to /deposito/actas', async () => {

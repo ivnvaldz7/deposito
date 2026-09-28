@@ -1,4 +1,5 @@
 export type QuantityMode = 'BOXES' | 'UNITS' | 'MIXED' | 'AMBIGUOUS'
+export type InterpretationLineState = 'VALID' | 'NEEDS_REVIEW' | 'DISCARDED'
 
 export type ProductAlternative = { productId: string; nombre: string; confidence: number }
 export type CustomerAlternative = { customerId: string; nombre: string; confidence: number }
@@ -23,6 +24,11 @@ export type ParsedOrderLine = {
   quantity: ParsedQuantity
   requiresReview: boolean
   warnings: string[]
+  /** A user decision within the interpretation draft. Persisted only there. */
+  lineState?: InterpretationLineState
+  /** Preserved only while discarded so undo can restore the original review state. */
+  discardedWarnings?: string[]
+  discardedRequiresReview?: boolean
 }
 
 export type ParsedOrder = {

@@ -96,6 +96,35 @@ describe('AUTOMATION-01 Slice 1', () => {
     return { auth: `Bearer ${adminToken()}`, customer, productA, productB, productC, draft }
   }
 
+  async function createDiscardableDraft(unresolvedCount = 1, duplicateLineWarningsAtOrderLevel = false) {
+    const fixture = await seed(120)
+    const unresolved = Array.from({ length: unresolvedCount }, (_, index) => ({
+      lineId: `line-unresolved-${index + 1}`,
+      originalText: index === 0 ? 'Y sin cargo' : `Desconocido ${index + 1}`,
+      productCandidate: null,
+      alternatives: [],
+      confidence: 0,
+      quantity: { originalExpression: index === 0 ? 'Y sin cargo' : `Desconocido ${index + 1}`, mode: 'AMBIGUOUS' as const, explicitBoxes: null, explicitUnits: null, totalUnits: null, normalizedBoxes: null, normalizedLooseUnits: null },
+      requiresReview: true,
+      warnings: ['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'],
+    }))
+    const snapshot: ParsedOrder = {
+      originalText: 'Pedido de prueba',
+      customerCandidate: { customerId: fixture.customer.id, nombre: fixture.customer.nombre, confidence: 1 },
+      customerAlternatives: [],
+      customerConfidence: 1,
+      warnings: duplicateLineWarningsAtOrderLevel ? ['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'] : [],
+      requiresReview: true,
+      lines: [
+        { lineId: 'line-valid-a', originalText: '4 Olivitasan', productCandidate: { productId: fixture.product.id, nombre: fixture.product.nombre, confidence: 1 }, alternatives: [], confidence: 1, quantity: { originalExpression: '4 Olivitasan', mode: 'UNITS', explicitBoxes: null, explicitUnits: 4, totalUnits: 4, normalizedBoxes: 0, normalizedLooseUnits: 4 }, requiresReview: false, warnings: [] },
+        { lineId: 'line-valid-b', originalText: '8 Olivitasan', productCandidate: { productId: fixture.product.id, nombre: fixture.product.nombre, confidence: 1 }, alternatives: [], confidence: 1, quantity: { originalExpression: '8 Olivitasan', mode: 'UNITS', explicitBoxes: null, explicitUnits: 8, totalUnits: 8, normalizedBoxes: 0, normalizedLooseUnits: 8 }, requiresReview: false, warnings: [] },
+        ...unresolved,
+      ],
+    }
+    const draft = await prisma.orderInterpretationDraft.create({ data: { originalText: snapshot.originalText, proposedSnapshot: json(snapshot), estado: 'DRAFT', createdBy: 'automation-admin' } })
+    return { ...fixture, auth: `Bearer ${adminToken()}`, draft }
+  }
+
   async function getEffective(id: string, auth: string) {
     const response = await request(app).get(`/api/ale-bet/automation/drafts/${id}`).set('Authorization', auth).expect(200)
     return response.body
@@ -189,6 +218,77 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(await prisma.clientAlias.count()).toBe(0)
     const current = await getEffective(fixture.draft.id, fixture.auth)
     expect(current.effectiveSnapshot.lines[1].productCandidate).toBeNull()
+  })
+
+  it('permite descartar una línea sin coincidencia, confirma solo las válidas y consume solo su stock', async () => {
+    const fixture = await createDiscardableDraft()
+    const initial = await getEffective(fixture.draft.id, fixture.auth)
+    expect(initial.draft.estado).toBe('DRAFT')
+    expect(initial.effectiveSnapshot.requiresReview).toBe(true)
+
+    const discarded = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: initial.draft.version, line: { lineId: 'line-unresolved-1', action: 'DISCARD' } }).expect(200)
+    const ready = await getEffective(fixture.draft.id, fixture.auth)
+    expect(discarded.body.estado).toBe('READY')
+    expect(ready.effectiveSnapshot.requiresReview).toBe(false)
+    expect(ready.effectiveSnapshot.lines.find((line: { lineId: string }) => line.lineId === 'line-unresolved-1')).toMatchObject({ lineState: 'DISCARDED', warnings: [] })
+    expect(ready.availability).toEqual([expect.objectContaining({ productId: fixture.product.id, requestedUnits: 12 })])
+
+    const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${fixture.draft.id}/confirm`).set('Authorization', fixture.auth)
+      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: discarded.body.version }).expect(200)
+    expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.product.id, cantidad: 12 })])
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: confirmed.body.pedido.id, productoId: fixture.product.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: (await prisma.ubicacionStock.findFirstOrThrow({ where: { codigo: 'DEPOSITO' } })).id } } })).cantidad).toBe(108)
+  })
+
+  it('no deja que warnings históricos de una línea desestimada sigan bloqueando el pedido', async () => {
+    const fixture = await createDiscardableDraft(1, true)
+    const initial = await getEffective(fixture.draft.id, fixture.auth)
+    expect(initial.effectiveSnapshot.warnings).toEqual(['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'])
+
+    const discarded = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: initial.draft.version, line: { lineId: 'line-unresolved-1', action: 'DISCARD' } }).expect(200)
+    const ready = await getEffective(fixture.draft.id, fixture.auth)
+
+    expect(discarded.body.estado).toBe('READY')
+    expect(ready.effectiveSnapshot.requiresReview).toBe(false)
+    // The original parser evidence remains available, but only active lines
+    // contribute to operational blockers.
+    expect(ready.effectiveSnapshot.warnings).toEqual(['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'])
+    await request(app).post(`/api/ale-bet/automation/drafts/${fixture.draft.id}/confirm`).set('Authorization', fixture.auth)
+      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: discarded.body.version }).expect(200)
+  })
+
+  it('mantiene bloqueado hasta decidir cada línea y deshacer restaura el bloqueo sin alterar las válidas', async () => {
+    const fixture = await createDiscardableDraft(2)
+    const before = await getEffective(fixture.draft.id, fixture.auth)
+    const first = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: before.draft.version, line: { lineId: 'line-unresolved-1', action: 'DISCARD' } }).expect(200)
+    expect(first.body.estado).toBe('DRAFT')
+    const second = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: first.body.version, line: { lineId: 'line-unresolved-2', action: 'DISCARD' } }).expect(200)
+    expect(second.body.estado).toBe('READY')
+    const restored = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: second.body.version, line: { lineId: 'line-unresolved-2', action: 'RESTORE' } }).expect(200)
+    const after = await getEffective(fixture.draft.id, fixture.auth)
+    expect(restored.body.estado).toBe('DRAFT')
+    expect(after.effectiveSnapshot.requiresReview).toBe(true)
+    expect(after.effectiveSnapshot.lines.find((line: { lineId: string }) => line.lineId === 'line-unresolved-2')).toMatchObject({ warnings: ['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'], requiresReview: true })
+    expect(after.effectiveSnapshot.lines.find((line: { lineId: string }) => line.lineId === 'line-valid-a')).toEqual(before.effectiveSnapshot.lines.find((line: { lineId: string }) => line.lineId === 'line-valid-a'))
+  })
+
+  it('no deja confirmar un borrador cuando todas las líneas fueron descartadas', async () => {
+    const fixture = await createDiscardableDraft()
+    const first = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: fixture.draft.version, line: { lineId: 'line-unresolved-1', action: 'DISCARD' } }).expect(200)
+    const second = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: first.body.version, line: { lineId: 'line-valid-a', action: 'DISCARD' } }).expect(200)
+    const final = await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: second.body.version, line: { lineId: 'line-valid-b', action: 'DISCARD' } }).expect(200)
+    expect(final.body.estado).toBe('DRAFT')
+    await request(app).post(`/api/ale-bet/automation/drafts/${fixture.draft.id}/confirm`).set('Authorization', fixture.auth)
+      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: final.body.version }).expect(409)
+    expect(await prisma.pedido.count()).toBe(0)
   })
 
   it('rechaza guardar un alias con presentación incompatible y acepta la presentación correcta', async () => {

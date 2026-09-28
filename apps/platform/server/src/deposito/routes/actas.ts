@@ -431,10 +431,12 @@ router.post(
           if (!frasco) {
             throw new Error('DepositoProducto no encontrado en inventario de frasco')
           }
-          const nuevasCajas = frasco.cantidadCajas + cantidad
           await tx.inventarioFrasco.update({
             where: { id: frasco.id },
-            data: { cantidadCajas: nuevasCajas, total: nuevasCajas * frasco.unidadesPorCaja },
+            data: {
+              cantidadCajas: { increment: cantidad },
+              total: { increment: cantidad * frasco.unidadesPorCaja },
+            },
           })
         }
 

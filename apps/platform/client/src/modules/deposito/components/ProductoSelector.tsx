@@ -19,6 +19,8 @@ export interface Producto {
   nombreCompleto: string
   codigo?: string
   presentacion?: number
+  stockActual?: number
+  stockPorMercado?: Partial<Record<Mercado, number>>
   activo: boolean
   estado: 'PENDIENTE_REVISION' | 'ACTIVO' | 'INACTIVO'
   mercadosHabilitados: Mercado[]
@@ -26,7 +28,8 @@ export interface Producto {
 
 interface ProductoSelectorProps {
   id?: string
-  categoria: CategoriaProducto
+  categoria?: CategoriaProducto
+  expandirMercados?: boolean
   mercadoFiltro?: Mercado | null
   displayValue: string
   onChange: (productoId: string, nombreCompleto: string, producto?: Producto, mercado?: Mercado) => void
@@ -60,9 +63,20 @@ interface VirtualRow {
   secundaryText?: string
 }
 
+function getStockDetail(producto: Producto, mercado?: Mercado): string | null {
+  if (producto.stockActual === undefined) return null
+  if (mercado && (producto.categoria === 'estuche' || producto.categoria === 'etiqueta')) {
+    return `Stock: ${producto.stockPorMercado?.[mercado] ?? 0}`
+  }
+  return producto.categoria === 'estuche' || producto.categoria === 'etiqueta'
+    ? `Stock total: ${producto.stockActual}`
+    : `Stock: ${producto.stockActual}`
+}
+
 export function ProductoSelector({
   id,
   categoria,
+  expandirMercados = true,
   mercadoFiltro,
   displayValue,
   onChange,
@@ -74,12 +88,16 @@ export function ProductoSelector({
   const [results, setResults] = useState<VirtualRow[]>([])
   const [open, setOpen] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(-1)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const queryRef = useRef(displayValue)
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([])
   
   const fuseRef = useRef<Fuse<VirtualRow>>(new Fuse<VirtualRow>([], { keys: ['displayText', 'secundaryText', 'producto.codigo'], threshold: 0.3 }))
+  const rowsRef = useRef<VirtualRow[]>([])
 
   useEffect(() => {
     api
-      .get<Producto[]>(`/productos?categoria=${categoria}&estado=ACTIVO`)
+      .get<Producto[]>(`/productos${categoria ? `?categoria=${categoria}&` : '?'}activo=true&incluirStock=true`)
       .then((data) => {
         setAllData(sortProductsByNaturalPresentation(data, (producto) => producto.nombreCompleto))
       })
@@ -96,14 +114,14 @@ export function ProductoSelector({
     base.forEach(p => {
       // If we are showing a market-based category and we DON'T have a specific market filter,
       // expand the product into one row per market so the user can choose the market via the product.
-      if (!mercadoFiltro && (categoria === 'estuche' || categoria === 'etiqueta') && p.mercadosHabilitados.length > 0) {
+      if (expandirMercados && !mercadoFiltro && (categoria === 'estuche' || categoria === 'etiqueta') && p.mercadosHabilitados.length > 0) {
         p.mercadosHabilitados.forEach(m => {
           virtualRows.push({
             key: `${p.id}-${m}`,
             producto: p,
             mercadoContext: m,
             displayText: `${p.nombreCompleto} — ${MARKET_ABBR[m] ?? m}`,
-            secundaryText: [p.codigo, p.presentacion ? `${p.presentacion} ${p.unidad ?? ''}`.trim() : null, categoria].filter(Boolean).join(' • ')
+            secundaryText: [p.codigo, getStockDetail(p, m), categoria ?? p.categoria].filter(Boolean).join(' • ')
           })
         })
       } else {
@@ -113,10 +131,11 @@ export function ProductoSelector({
           producto: p,
           mercadoContext: mercadoFiltro || undefined,
           displayText: p.nombreCompleto,
-          secundaryText: [
-            p.codigo,
-            p.presentacion ? `${p.presentacion} ${p.unidad ?? ''}`.trim() : null,
-            categoria,
+            secundaryText: [
+              p.nombreBase,
+              p.codigo,
+              getStockDetail(p, mercadoFiltro || undefined),
+              categoria ?? p.categoria,
             (!mercadoFiltro && p.mercadosHabilitados.length > 0) ? `(${p.mercadosHabilitados.map(m => MARKET_ABBR[m] || m).join(', ')})` : null
           ].filter(Boolean).join(' • ')
         })
@@ -124,16 +143,30 @@ export function ProductoSelector({
     })
 
     fuseRef.current = new Fuse(virtualRows, { keys: ['displayText', 'secundaryText', 'producto.codigo'], threshold: 0.3 })
+    rowsRef.current = virtualRows
+    if (inputRef.current === document.activeElement) {
+      const activeQuery = queryRef.current
+      const matchingRows = activeQuery.trim()
+        ? fuseRef.current.search(activeQuery).map(result => result.item).slice(0, 10)
+        : virtualRows.slice(0, 10)
+      setResults(matchingRows)
+      setOpen(matchingRows.length > 0)
+    }
     // We don't automatically trigger a search here so the dropdown doesn't pop open unexpectedly,
     // but if it's already open, we could refresh it. For simplicity, we just rebuild the index.
-  }, [allData, mercadoFiltro, categoria])
+  }, [allData, mercadoFiltro, categoria, expandirMercados])
+
+  useEffect(() => {
+    if (highlightIndex >= 0) optionRefs.current[highlightIndex]?.scrollIntoView?.({ block: 'nearest' })
+  }, [highlightIndex])
 
   function handleInput(q: string) {
+    queryRef.current = q
     setQuery(q)
     if (!q.trim()) {
       onChange('', '')
-      setResults([])
-      setOpen(false)
+      setResults(rowsRef.current.slice(0, 10))
+      setOpen(rowsRef.current.length > 0)
       setHighlightIndex(-1)
       return
     }
@@ -148,6 +181,7 @@ export function ProductoSelector({
   }
 
   function select(row: VirtualRow) {
+    queryRef.current = row.producto.nombreCompleto
     setQuery(row.producto.nombreCompleto)
     onChange(row.producto.id, row.producto.nombreCompleto, row.producto, row.mercadoContext)
     setResults([])
@@ -159,12 +193,20 @@ export function ProductoSelector({
     <div className="relative">
       <input
         id={id}
+        ref={inputRef}
         type="text"
         value={query}
         disabled={disabled}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={`${id ?? 'producto-selector'}-options`}
+        aria-activedescendant={highlightIndex >= 0 ? `${id ?? 'producto-selector'}-option-${highlightIndex}` : undefined}
         onChange={(e) => handleInput(e.target.value)}
         onFocus={(e) => {
-          if (e.target.value.trim() && results.length === 0) {
+          if (!e.target.value.trim()) {
+            setResults(rowsRef.current.slice(0, 10))
+            setOpen(rowsRef.current.length > 0)
+          } else if (results.length === 0) {
             handleInput(e.target.value)
           }
         }}
@@ -186,15 +228,19 @@ export function ProductoSelector({
             setHighlightIndex(-1)
           }
         }}
-        placeholder={placeholder ?? PLACEHOLDERS[categoria]}
+        placeholder={placeholder ?? (categoria ? PLACEHOLDERS[categoria] : 'Buscá un producto terminado...')}
         className="input-field"
         autoComplete="off"
       />
       {open && (
-        <div className="absolute z-20 w-full mt-1 bg-surface-highest/90 backdrop-blur-[12px] rounded shadow-float overflow-hidden max-h-64 overflow-y-auto">
+        <div id={`${id ?? 'producto-selector'}-options`} role="listbox" className="absolute z-20 w-full mt-1 bg-surface-highest/90 backdrop-blur-[12px] rounded shadow-float overflow-hidden max-h-64 overflow-y-auto">
           {results.map((row, i) => (
             <button
               key={row.key}
+              id={`${id ?? 'producto-selector'}-option-${i}`}
+              ref={(element) => { optionRefs.current[i] = element }}
+              role="option"
+              aria-selected={i === highlightIndex}
               type="button"
               onMouseDown={(e) => {
                 e.preventDefault()

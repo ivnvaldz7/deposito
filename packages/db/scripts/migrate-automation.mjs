@@ -26,7 +26,7 @@ function assertAutomationDatabase(databaseUrl) {
 try {
   assertAutomationDatabase(process.env.DATABASE_URL)
   const dbDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-  const prismaCli = resolve(dbDirectory, '../../node_modules/prisma/build/index.js')
+  const prismaCli = resolve(dbDirectory, 'node_modules/prisma/build/index.js')
   const result = spawnSync(
     process.execPath,
     [prismaCli, 'migrate', 'deploy', '--config', resolve(dbDirectory, 'prisma.config.ts')],

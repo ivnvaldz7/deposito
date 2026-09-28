@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path'
 
 const AUTOMATION_DATABASE_URL = 'postgresql://postgres:postgres@localhost:5432/platform_test_automation'
 const serverDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const vitestCli = resolve(serverDirectory, 'node_modules/vitest/vitest.mjs')
+const vitestCli = resolve(serverDirectory, '../../../node_modules/vitest/vitest.mjs')
 const result = spawnSync(
   process.execPath,
   [vitestCli, 'run', '-c', resolve(serverDirectory, 'vitest.integration.config.ts'), ...process.argv.slice(2)],

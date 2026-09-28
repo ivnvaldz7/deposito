@@ -21,6 +21,7 @@ vi.mock('../middleware/auth', () => ({
 
 interface FrascoMock {
   id: string
+  productoId?: string
   articulo: string
   unidadesPorCaja: number
   cantidadCajas: number
@@ -39,6 +40,7 @@ const prismaMock = vi.hoisted(() => {
   return {
     state,
     reset,
+    depositoProducto: { findMany: vi.fn(async () => state.frascos.map((row) => ({ id: row.productoId ?? row.id, nombreCompleto: row.articulo, presentacion: row.unidadesPorCaja, updatedAt: new Date() })).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto))) },
     inventarioFrasco: {
       findMany: vi.fn(async ({ orderBy }: any = {}) => {
         const result = [...state.frascos]
@@ -60,8 +62,10 @@ const prismaMock = vi.hoisted(() => {
         }) ?? null
       }),
       create: vi.fn(async ({ data }: any) => {
+        const id = `frasco-${idCounter++}`
         const frasco: FrascoMock = {
-          id: `frasco-${idCounter++}`,
+          id,
+          productoId: data.productoId ?? id,
           articulo: data.articulo,
           unidadesPorCaja: data.unidadesPorCaja,
           cantidadCajas: data.cantidadCajas,
@@ -202,7 +206,21 @@ describe('Frascos', () => {
       expect(res.body.total).toBe(100)
     })
 
-    it('actualiza también con cambio de artículo y recálculo', async () => {
+    it('conserva unidades sueltas al editar cantidad de cajas', async () => {
+      const created = await prismaMock.inventarioFrasco.create({
+        data: { articulo: 'CON RESTO', unidadesPorCaja: 10, cantidadCajas: 5, total: 53 },
+      })
+
+      const res = await request(app)
+        .put(`/api/frascos/${created.id}`)
+        .set('x-test-role', 'encargado')
+        .send({ cantidadCajas: 6 })
+
+      expect(res.status).toBe(200)
+      expect(res.body.total).toBe(63)
+    })
+
+    it('conserva el total al cambiar unidades por caja sin ajuste absoluto', async () => {
       const created = await prismaMock.inventarioFrasco.create({
         data: { articulo: 'VIEJO', unidadesPorCaja: 10, cantidadCajas: 5, total: 50 },
       })
@@ -215,7 +233,8 @@ describe('Frascos', () => {
       expect(res.status).toBe(200)
       expect(res.body.articulo).toBe('NUEVO')
       expect(res.body.unidadesPorCaja).toBe(20)
-      expect(res.body.total).toBe(100)
+      expect(res.body.total).toBe(50)
+      expect(res.body.cantidadCajas).toBe(2)
     })
 
     it('devuelve 404 para id inexistente', async () => {

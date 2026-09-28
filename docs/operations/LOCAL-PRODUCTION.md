@@ -28,6 +28,18 @@ El frontend productivo usa API same-origin; no requiere `VITE_API_URL=localhost`
 
 ## Autoarranque y estado
 
+Para aplicar una actualización aprobada, ejecutar desde la raíz del repositorio:
+
+```powershell
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\scripts\windows\deploy-prod.ps1
+```
+
+El flujo valida `production.env`, la tarea `LOGISTICA - Server` y el destino `platform_prod`; compila antes de detener el servicio; luego detiene la tarea/proceso con ownership validado, arranca la tarea y espera health, listener único, PID estable y `LastTaskResult=0`. No ejecuta migraciones, seeds ni cambios de DB. Si falla una etapa, no imprime OK y reporta etapa, PID y rutas de logs. No ejecutar manualmente `start-prod.ps1` para aplicar una actualización.
+
+### Regla de publicación
+
+Toda implementación aprobada se publica en esta instancia local después de compilarla, verificar sus pruebas relevantes y crear un backup cuando corresponda. La publicación queda ligada a un commit local revisado; no implica `push`. Las migraciones o cambios de datos siguen requiriendo autorización explícita y respaldo previo.
+
 ```powershell
 powershell.exe -NoProfile -File .\scripts\windows\start-prod.ps1 -StartupTimeoutSeconds 60
 powershell.exe -NoProfile -File .\scripts\windows\status-prod.ps1
@@ -35,6 +47,8 @@ powershell.exe -NoProfile -File .\scripts\windows\stop-prod.ps1
 ```
 
 Startup valida config externa, build, PID y puerto 3000. Inicia Node con `Start-Process -PassThru`, guarda su PID real y escribe stdout/stderr en logs separados. Nunca termina el proceso que ya ocupa el puerto.
+
+`start-prod.ps1` mantiene `platform.pid` y genera el sidecar `platform.pid.owner.json` sin secretos. Contiene únicamente PID, ruta de `node.exe`, entryPath y hora de creación para comprobar ownership cuando S4U oculta `Win32_Process.CommandLine` a una sesión interactiva.
 
 `status-prod.ps1` conserva la validación estricta por propietario cuando Windows expone `CommandLine`. En tareas S4U, donde CIM puede ocultarlo, acepta únicamente una comprobación conjunta y de solo lectura: PID registrado, ese PID escuchando en el puerto 3000 y health exacto `status=ok`, `app=platform`, `db=connected`. Los scripts de arranque y detención no usan este fallback.
 

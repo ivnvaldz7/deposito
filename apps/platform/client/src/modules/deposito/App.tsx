@@ -18,7 +18,6 @@ const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
 const UsuariosPage = lazy(() => import('./pages/UsuariosPage'))
 const ProductosPage = lazy(() => import('./pages/ProductosPage'))
 const MetricasPage = lazy(() => import('./pages/MetricasPage'))
-
 function LoadingFallback() {
   return (
     <div className="flex h-48 items-center justify-center">

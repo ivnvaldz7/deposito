@@ -13,9 +13,12 @@ import { validateSheetConfig } from '../routes/ale-bet/stock-projection/sheet-ad
 import { buildCurrentStockProjectionSnapshot } from '../routes/ale-bet/stock-projection/snapshot-repository'
 import type { StockProjectionSnapshot } from '../routes/ale-bet/stock-projection/snapshot'
 
-const EXPECTED_MANIFEST_SHA256 = 'BDE23A05C7E40237B9146D20B739131EBF60442933B04758F6B2D0FCB2766CA5'
-const EXPECTED_DATABASE = 'platform_prod'
-const EXPECTED_PRODUCT_COUNT = 49
+const EXPECTED_MANIFEST_SHA256 = '20DDFD897E92C853335B0F435C12B9D4296F403B998D3AEECEAD88BBA9E7E94E'
+const MANIFEST_SOURCE_DATABASE = 'platform_prod'
+const EXPECTED_DATABASE = process.env.PROD_02_TARGET_DATABASE ?? MANIFEST_SOURCE_DATABASE
+const ALLOWED_TARGET_DATABASES = new Set(['platform_prod', 'platform_uat'])
+const EXPECTED_CATALOG_PRODUCT_COUNT = 52
+const EXPECTED_MANIFEST_PRODUCT_COUNT = 49
 const EXPECTED_ROWS = 56
 const EXPECTED_ZERO_ROWS = 10
 const EXPECTED_TOTALS = { DEPOSITO: 17177, ACONDICIONADO: 15259, GENERAL: 32436 } as const
@@ -25,6 +28,10 @@ const MANIFEST_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
   '../../../../../docs/operations/PROD-02B-initial-stock-manifest.json',
 )
+
+if (!ALLOWED_TARGET_DATABASES.has(EXPECTED_DATABASE)) {
+  throw new Error(`Target PROD-02 no autorizado: ${EXPECTED_DATABASE}`)
+}
 
 const ManifestRowSchema = z.object({
   sourceRow: z.string().regex(/^[DA]\d{2}$/),
@@ -42,13 +49,14 @@ const ManifestRowSchema = z.object({
 const ManifestSchema = z.object({
   lineage: z.literal('prod-02b-initial-stock'),
   generatedAt: z.string().datetime(),
-  targetDatabase: z.literal(EXPECTED_DATABASE),
+  targetDatabase: z.literal(MANIFEST_SOURCE_DATABASE),
   authoritativeSource: z.string().min(1),
   applyStatus: z.literal('NOT_APPLIED'),
   corrections: z.object({
     vitaminB12Lot: z.literal('BB0005'),
     syringeAtpLot: z.literal('EA0116'),
     equineVariant: z.literal('EQUINO'),
+    legacyAmino50Presentation: z.literal('AVES'),
   }).strict(),
   summary: z.object({
     sourceRows: z.literal(EXPECTED_ROWS),
@@ -174,7 +182,7 @@ function buildPlan(manifest: Manifest, manifestSha256: string): ImportPlan {
     'La corrección EA0116 no está aplicada a todas las filas JERINGA ATP',
   )
   invariant(manifest.rows.every((row) => !row.canonicalProductName.includes('EQUINOS')), 'El manifiesto contiene EQUINOS')
-  invariant(products.size === EXPECTED_PRODUCT_COUNT, `Productos referenciados: ${products.size}; esperados: ${EXPECTED_PRODUCT_COUNT}`)
+  invariant(products.size === EXPECTED_MANIFEST_PRODUCT_COUNT, `Productos referenciados: ${products.size}; esperados: ${EXPECTED_MANIFEST_PRODUCT_COUNT}`)
   invariant(zeroLotRows === EXPECTED_ZERO_ROWS, `Filas zero-lot: ${zeroLotRows}; esperadas: ${EXPECTED_ZERO_ROWS}`)
   invariant(deposito === EXPECTED_TOTALS.DEPOSITO, `Total DEPOSITO inválido: ${deposito}`)
   invariant(acondicionado === EXPECTED_TOTALS.ACONDICIONADO, `Total ACONDICIONADO inválido: ${acondicionado}`)
@@ -222,10 +230,10 @@ async function validateTargetAndCatalog(tx: Tx, manifest: Manifest): Promise<Map
       select: { id: true, codigo: true, activo: true },
     }),
   ])
-  invariant(products.length === EXPECTED_PRODUCT_COUNT, `Producto count inválido: ${products.length}`)
+  invariant(products.length === EXPECTED_CATALOG_PRODUCT_COUNT, `Producto count inválido: ${products.length}`)
   invariant(products.every((product) => product.activo), 'Existe un producto inactivo')
-  invariant(new Set(products.map((product) => product.nombre)).size === EXPECTED_PRODUCT_COUNT, 'Nombres de producto no únicos')
-  invariant(new Set(products.map((product) => product.sku)).size === EXPECTED_PRODUCT_COUNT, 'SKU no únicos')
+  invariant(new Set(products.map((product) => product.nombre)).size === EXPECTED_CATALOG_PRODUCT_COUNT, 'Nombres de producto no únicos')
+  invariant(new Set(products.map((product) => product.sku)).size === EXPECTED_CATALOG_PRODUCT_COUNT, 'SKU no únicos')
 
   const productsById = new Map(products.map((product) => [product.id, product]))
   for (const row of manifest.rows) {
@@ -247,7 +255,7 @@ async function validateTargetAndCatalog(tx: Tx, manifest: Manifest): Promise<Map
 }
 
 function assertPreloadCounts(counts: DbCounts): void {
-  invariant(counts.Producto === EXPECTED_PRODUCT_COUNT, `Producto debe ser ${EXPECTED_PRODUCT_COUNT}`)
+  invariant(counts.Producto === EXPECTED_CATALOG_PRODUCT_COUNT, `Producto debe ser ${EXPECTED_CATALOG_PRODUCT_COUNT}`)
   for (const key of ['Lote', 'SaldoStock', 'MovimientoStock', 'Pedido', 'ReservaStock', 'StockProjectionOutbox'] as const) {
     invariant(counts[key] === 0, `${key} debe ser 0 y es ${counts[key]}`)
   }
@@ -263,7 +271,7 @@ async function dryRun(tx: Tx, manifest: Manifest, plan: ImportPlan): Promise<{ d
 async function verifyPostconditions(tx: Tx, manifest: Manifest, plan: ImportPlan): Promise<PostcheckResult> {
   const locations = await validateTargetAndCatalog(tx, manifest)
   const counts = await readCounts(tx)
-  invariant(counts.Producto === EXPECTED_PRODUCT_COUNT, `Producto count post-import inválido: ${counts.Producto}`)
+  invariant(counts.Producto === EXPECTED_CATALOG_PRODUCT_COUNT, `Producto count post-import inválido: ${counts.Producto}`)
   invariant(counts.Lote === plan.distinctLots, `Lote count inválido: ${counts.Lote}`)
   invariant(counts.SaldoStock === plan.positiveRows, `SaldoStock count inválido: ${counts.SaldoStock}`)
   invariant(counts.MovimientoStock === plan.positiveRows, `MovimientoStock count inválido: ${counts.MovimientoStock}`)

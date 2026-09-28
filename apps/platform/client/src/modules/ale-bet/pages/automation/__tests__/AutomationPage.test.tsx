@@ -172,7 +172,15 @@ describe('AutomationPage', () => {
           draft: { id: 'd1', estado: 'READY', version: 1 },
           effectiveSnapshot: {
             customerCandidate: { customerId: 'c1' },
-            lines: [],
+            lines: [{
+              lineId: 'line-valid',
+              originalText: '1 Prod 1',
+              productCandidate: { productId: 'p1' },
+              warnings: [],
+              requiresReview: false,
+              lineState: 'VALID',
+              quantity: { totalUnits: 1, mode: 'UNITS' },
+            }],
             warnings: [],
             requiresReview: false
           },
@@ -193,6 +201,102 @@ describe('AutomationPage', () => {
       await user.type(input, 'pedido de prueba')
       await user.click(screen.getByRole('button', { name: 'Interpretar pedido' }))
     }
+
+    it('desestimar una línea no requiere recordar un alias y desbloquea confirmar solo con líneas válidas', async () => {
+      const reviewDraft = {
+        draft: { id: 'd1', estado: 'DRAFT', version: 1 },
+        effectiveSnapshot: {
+          customerCandidate: { customerId: 'c1', nombre: 'Cliente 1' },
+          lines: [
+            {
+              lineId: 'line-valid', originalText: '4 Prod 1', productCandidate: { productId: 'p1' }, warnings: [], requiresReview: false,
+              quantity: { totalUnits: 4, mode: 'UNITS' }, lineState: 'VALID',
+            },
+            {
+              lineId: 'line-junk', originalText: 'Y sin cargo', productCandidate: null,
+              warnings: ['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'], requiresReview: true,
+              quantity: { totalUnits: null, mode: 'AMBIGUOUS' }, lineState: 'NEEDS_REVIEW',
+            },
+          ],
+          warnings: ['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'],
+          requiresReview: true,
+        },
+        availability: [],
+      }
+      vi.mocked(useDraft).mockReturnValue({ data: reviewDraft, refetch: vi.fn() } as never)
+
+      const user = userEvent.setup()
+      const view = renderComponent()
+      await triggerDraftCreation(user)
+
+      expect(await screen.findByRole('button', { name: 'Confirmar pedido' })).toBeDisabled()
+      expect(screen.getByPlaceholderText('Buscar producto para asignar...')).toBeInTheDocument()
+      await user.click(screen.getByLabelText(/Recordar "Y sin cargo"/))
+      await user.click(screen.getByRole('button', { name: 'No es un producto' }))
+      await waitFor(() => expect(updateDraftMock).toHaveBeenCalledWith({
+        id: 'd1',
+        data: { expectedVersion: 1, line: { lineId: 'line-junk', action: 'DISCARD' } },
+      }))
+
+      vi.mocked(useDraft).mockReturnValue({
+        data: {
+          ...reviewDraft,
+          draft: { id: 'd1', estado: 'READY', version: 2 },
+          effectiveSnapshot: {
+            ...reviewDraft.effectiveSnapshot,
+            // This models an old snapshot that still retains parser evidence.
+            // The card is dismissed, so it must not affect canConfirm.
+            requiresReview: true,
+            lines: [reviewDraft.effectiveSnapshot.lines[0], {
+              ...reviewDraft.effectiveSnapshot.lines[1],
+              lineState: 'DISCARDED',
+              warnings: [],
+              requiresReview: false,
+            }],
+          },
+        },
+        refetch: vi.fn(),
+      } as never)
+      view.rerender(
+        <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+          <BrowserRouter><AutomationPage /></BrowserRouter>
+        </QueryClientProvider>
+      )
+
+      expect(screen.getByText('Línea desestimada · Y sin cargo')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Confirmar pedido' })).toBeEnabled()
+      await user.click(screen.getByRole('button', { name: 'Deshacer' }))
+      expect(updateDraftMock).toHaveBeenLastCalledWith({
+        id: 'd1',
+        data: { expectedVersion: 2, line: { lineId: 'line-junk', action: 'RESTORE' } },
+      })
+    })
+
+    it('muestra que no quedan productos cuando todas las líneas fueron desestimadas', async () => {
+      vi.mocked(useDraft).mockReturnValue({
+        data: {
+          draft: { id: 'd1', estado: 'DRAFT', version: 2 },
+          effectiveSnapshot: {
+            customerCandidate: { customerId: 'c1', nombre: 'Cliente 1' },
+            lines: [{
+              lineId: 'line-junk', originalText: 'Y sin cargo', productCandidate: null,
+              warnings: [], requiresReview: false, lineState: 'DISCARDED',
+              quantity: { totalUnits: null, mode: 'AMBIGUOUS' },
+            }],
+            warnings: [], requiresReview: false,
+          },
+          availability: [],
+        },
+        refetch: vi.fn(),
+      } as never)
+
+      const user = userEvent.setup()
+      renderComponent()
+      await triggerDraftCreation(user)
+
+      expect(await screen.findByText('No quedan productos para confirmar.')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Confirmar pedido' })).toBeDisabled()
+    })
 
     it('Confirmar pedido abre modal', async () => {
       const user = userEvent.setup()

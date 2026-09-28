@@ -7,7 +7,8 @@
   "corrections": {
     "vitaminB12Lot": "BB0005",
     "syringeAtpLot": "EA0116",
-    "equineVariant": "EQUINO"
+    "equineVariant": "EQUINO",
+    "legacyAmino50Presentation": "AVES"
   },
   "summary": {
     "sourceRows": 56,
@@ -131,7 +132,7 @@
     {
       "sourceRow": "D10",
       "productId": "cmtx1uj0b0009v4oj442qiqsj",
-      "canonicalProductName": "AMINOÁCIDOS 50 ML GALLO",
+      "canonicalProductName": "AMINOÁCIDOS 50 ML AVES",
       "sku": "LOG-D8C1A70AF2FDD426",
       "lot": "AO0297",
       "location": "DEPOSITO",

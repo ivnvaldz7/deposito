@@ -52,8 +52,6 @@ export {
   useCreateOrden,
   useAprobarOrden,
   useRechazarOrden,
-  useEjecutarOrden,
-  useCompletarOrden,
   ordenesKeys,
 } from './use-ordenes'
 export type { OrdenProduccion } from './use-ordenes'

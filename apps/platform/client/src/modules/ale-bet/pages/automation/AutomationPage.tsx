@@ -54,6 +54,20 @@ function newIdempotencyKey(): string {
   return globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`
 }
 
+function isDiscardedLine(line: any): boolean {
+  return line.lineState === 'DISCARDED'
+}
+
+function isValidIncludedLine(line: any): boolean {
+  return !isDiscardedLine(line) && (line.lineState === 'VALID' || (
+    !line.lineState && Boolean(line.productCandidate) && !line.requiresReview && line.warnings.length === 0 && Boolean(line.quantity?.totalUnits)
+  ))
+}
+
+function isNeedsReviewLine(line: any): boolean {
+  return !isDiscardedLine(line) && !isValidIncludedLine(line)
+}
+
 function InlineCreateClientModal({
   open,
   onClose,
@@ -221,6 +235,7 @@ export default function AutomationPage() {
   }
 
   if (draftData && draftData.draft.estado === 'CONFIRMED') {
+    const confirmedLines = (draftData.effectiveSnapshot?.lines ?? []).filter((line: any) => !isDiscardedLine(line))
     return (
       <div className="mx-auto max-w-2xl space-y-6 pt-8">
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-8 text-center">
@@ -229,7 +244,7 @@ export default function AutomationPage() {
           </div>
           <h2 className="mb-2 text-2xl font-bold text-on-surface">Pedido confirmado</h2>
           <p className="font-body text-sm text-on-surface-variant">Cliente: {draftData.effectiveSnapshot?.customerCandidate?.nombre ?? draftData.effectiveSnapshot?.customerCandidateText ?? 'Cliente'}</p>
-          <p className="font-body text-sm text-on-surface-variant">{draftData.effectiveSnapshot?.lines.length ?? 0} productos · {(draftData.effectiveSnapshot?.lines ?? []).reduce((total, line) => total + (line.quantity?.totalUnits ?? 0), 0)} unidades</p>
+          <p className="font-body text-sm text-on-surface-variant">{confirmedLines.length} productos · {confirmedLines.reduce((total: number, line: any) => total + (line.quantity?.totalUnits ?? 0), 0)} unidades</p>
           <p className="font-body text-on-surface-variant mb-6">
             Stock actualizado correctamente.
           </p>
@@ -251,7 +266,10 @@ export default function AutomationPage() {
 
   if (draftId && draftData) {
     const { draft, effectiveSnapshot, availability } = draftData
-    const hasWarnings = effectiveSnapshot.warnings.length > 0 || effectiveSnapshot.lines.some((l: any) => l.warnings.length > 0 || l.requiresReview) || effectiveSnapshot.requiresReview
+    const includedLines = effectiveSnapshot.lines.filter((line: any) => !isDiscardedLine(line))
+    const discardedLines = effectiveSnapshot.lines.filter((line: any) => isDiscardedLine(line))
+    const validLines = includedLines.filter((line: any) => isValidIncludedLine(line))
+    const needsReviewLines = includedLines.filter((line: any) => isNeedsReviewLine(line))
     const customer = effectiveSnapshot.customerCandidate
     const resolvedCustomer = customer ? clientes.find(c => c.id === customer.customerId) : null
 
@@ -300,7 +318,7 @@ export default function AutomationPage() {
               productId: line.productCandidate.productId,
               cajas,
               unidades: sueltos,
-              mode: line.quantity.mode,
+              mode: line.quantity.mode === 'AMBIGUOUS' ? (cajas > 0 && sueltos > 0 ? 'MIXED' : cajas > 0 ? 'BOXES' : 'UNITS') : line.quantity.mode,
             }
           }
         })
@@ -311,6 +329,23 @@ export default function AutomationPage() {
         } else {
           toast.error(e instanceof Error ? e.message : 'Error al actualizar')
         }
+      } finally {
+        setIsProcessing(false)
+      }
+    }
+
+    const handleLineDecision = async (line: any, action: 'DISCARD' | 'RESTORE') => {
+      setIsProcessing(true)
+      setConfirmError(null)
+      try {
+        await updateDraft.mutateAsync({
+          id: draft.id,
+          data: { expectedVersion: draft.version, line: { lineId: line.lineId, action } },
+        })
+        if (action === 'DISCARD') toast.success('Línea desestimada')
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('versión')) refetchDraft()
+        toast.error(error instanceof Error ? error.message : 'No se pudo actualizar la línea')
       } finally {
         setIsProcessing(false)
       }
@@ -357,8 +392,8 @@ export default function AutomationPage() {
       }
     }
 
-    const canConfirm = draft.estado === 'READY' && effectiveSnapshot.customerCandidate && !effectiveSnapshot.requiresReview && availability.every((a: any) => a.status !== 'INSUFICIENTE')
-    const confirmTotalUnits = effectiveSnapshot.lines.reduce((acc: number, line: any) => acc + (line.quantity?.totalUnits ?? 0), 0)
+    const canConfirm = draft.estado === 'READY' && Boolean(effectiveSnapshot.customerCandidate) && needsReviewLines.length === 0 && validLines.length > 0 && availability.every((a: any) => a.status !== 'INSUFICIENTE')
+    const confirmTotalUnits = includedLines.reduce((acc: number, line: any) => acc + (line.quantity?.totalUnits ?? 0), 0)
 
     return (
       <div className={cn("mx-auto max-w-4xl space-y-6 pb-20", isProcessing && "pointer-events-none opacity-50")}>
@@ -377,7 +412,7 @@ export default function AutomationPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold">{resolvedCustomer?.nombre || effectiveSnapshot.customerCandidate?.nombre || (effectiveSnapshot.customerCandidateText ? `Desconocido: ${effectiveSnapshot.customerCandidateText}` : 'Desconocido')}</span>
                     {!effectiveSnapshot.customerCandidate && <Badge variant="error">⚠ Revisar cliente</Badge>}
-                    {effectiveSnapshot.requiresReview && effectiveSnapshot.customerCandidate && <Badge variant="error">⚠ Revisar cliente</Badge>}
+                    {effectiveSnapshot.warnings.includes('CUSTOMER_UNRESOLVED') && effectiveSnapshot.customerCandidate && <Badge variant="error">⚠ Revisar cliente</Badge>}
                   </div>
                   <Button variant="outline" onClick={() => setEditingCliente(true)}>Cambiar</Button>
                 </div>
@@ -419,7 +454,7 @@ export default function AutomationPage() {
             {/* Productos */}
             <section className="space-y-3">
               <h2 className="text-sm font-semibold uppercase tracking-wider text-outline">Productos</h2>
-              {effectiveSnapshot.lines.map((line: any, index: number) => {
+              {includedLines.map((line: any, index: number) => {
                 const isWarning = line.requiresReview || line.warnings.length > 0 || !line.productCandidate
                 const product = line.productCandidate ? productos.find(p => p.id === line.productCandidate.productId) : null
                 const avail = line.productCandidate ? availability.find((a: any) => a.productId === line.productCandidate.productId) : null
@@ -430,7 +465,7 @@ export default function AutomationPage() {
                       <div className="font-semibold w-full">
                         {!product ? (
                           <div className="space-y-2 mb-3 w-full">
-                            <span className="italic text-outline block mb-2">Desconocido: {line.originalText}</span>
+                            <span className="italic text-outline block mb-2">Desconocido · {line.originalText}</span>
                             <input
                               type="search"
                               placeholder="Buscar producto para asignar..."
@@ -458,7 +493,7 @@ export default function AutomationPage() {
                                       productId: p.id,
                                       cajas: line.quantity.explicitBoxes ?? 0,
                                       unidades: line.quantity.explicitUnits ?? (line.quantity.totalUnits ?? 1),
-                                      mode: line.quantity.mode,
+                                      mode: line.quantity.mode === 'AMBIGUOUS' ? 'UNITS' : line.quantity.mode,
                                       rememberAlias: rem,
                                     },
                                   }
@@ -473,9 +508,16 @@ export default function AutomationPage() {
                                 }
                               }
                             }}></div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => void handleLineDecision(line, 'DISCARD')}
+                            >
+                              No es un producto
+                            </Button>
                             <label className="flex items-center gap-2 text-sm mt-2 text-on-surface-variant cursor-pointer">
                               <input type="checkbox" id={`rem-alias-${index}`} defaultChecked={true} />
-                              Recordar "{line.originalText}"
+                              Recordar "{line.originalText}" como alias al asignar un producto
                             </label>
                           </div>
                         ) : (
@@ -512,15 +554,37 @@ export default function AutomationPage() {
                         )}
                       </div>
                     )}
+                    {product && (
+                      <div className="mt-4 border-t border-white/5 pt-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleLineDecision(line, 'DISCARD')}
+                        >
+                          Desestimar línea
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )
               })}
+              {discardedLines.length > 0 && (
+                <div className="space-y-2" aria-label="Líneas descartadas">
+                  {discardedLines.map((line: any) => (
+                    <div key={line.lineId} className="flex items-center justify-between rounded-lg border border-white/10 bg-surface-container-high px-3 py-2 text-sm text-on-surface-variant">
+                      <span>Línea desestimada · {line.originalText}</span>
+                      <Button type="button" variant="outline" onClick={() => void handleLineDecision(line, 'RESTORE')}>Deshacer</Button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           </div>
 
           <div className="space-y-4">
             <div className="rounded-xl border border-white/10 bg-surface-container-high p-4">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-outline">Acciones</h2>
+              {includedLines.length === 0 && <p className="mb-3 text-sm text-on-surface-variant">No quedan productos para confirmar.</p>}
               <Button 
                 onClick={() => setConfirmOrderPrompt(true)} 
                 disabled={!canConfirm}
@@ -562,7 +626,7 @@ export default function AutomationPage() {
                 <p>¿Confirmar pedido y descontar stock físico?</p>
                 <div className="bg-surface-container p-3 rounded border border-white/5 text-sm">
                   <p className="font-semibold mb-1">{effectiveSnapshot.customerCandidate?.nombre ?? effectiveSnapshot.customerCandidateText ?? 'Cliente pendiente'}</p>
-                  <p>{effectiveSnapshot.lines.length} productos</p>
+                  <p>{includedLines.length} productos</p>
                   <p>{confirmTotalUnits} unidades</p>
                 </div>
               </div>

@@ -62,7 +62,7 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
     return
   }
 
-  const loteFinal = producto.categoria === 'droga' ? data.lote!.trim() : await generarLote()
+  const loteFinal = data.lote?.trim() || await generarLote()
   const cantidad = producto.categoria === 'frasco' ? data.cantidadCajas! * data.unidadesPorCaja! : data.cantidad!
   try {
     const currentUser = await prisma.user.findUnique({ where: { id: req.depositoUser!.id }, select: { id: true, name: true } })

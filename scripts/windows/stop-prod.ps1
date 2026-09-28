@@ -8,20 +8,36 @@ param(
 $repoRoot = Get-AleBetRepoRoot
 $entryPath = Join-Path $repoRoot 'apps\platform\server\dist\index.js'
 if (-not $PidFile) { $PidFile = Join-Path $RuntimeRoot 'platform.pid' }
-if (-not (Test-Path -LiteralPath $PidFile -PathType Leaf)) { Write-Host 'ALE-BET ya está detenido.'; exit 0 }
+$ownerFile = "$PidFile.owner.json"
+$recordedProcessId = $null
 
-[int]$recordedProcessId = 0
-$pidText = (Get-Content -LiteralPath $PidFile -Raw).Trim()
-if (-not [int]::TryParse($pidText, [ref]$recordedProcessId)) { throw "PID file inválido: $PidFile" }
-$recordedProcess = Get-Process -Id $recordedProcessId -ErrorAction SilentlyContinue
-if (-not $recordedProcess) { Remove-Item -LiteralPath $PidFile; Write-Host 'Se eliminó un PID file stale.'; exit 0 }
-if (-not (Test-AleBetOwnedNodeProcess -ProcessId $recordedProcessId -EntryPath $entryPath)) {
-    throw "PID $recordedProcessId no pertenece a este servidor; no se terminó ni modificó."
+if (Test-Path -LiteralPath $PidFile -PathType Leaf) {
+    [int]$parsedProcessId = 0
+    $pidText = (Get-Content -LiteralPath $PidFile -Raw).Trim()
+    if (-not [int]::TryParse($pidText, [ref]$parsedProcessId) -or $parsedProcessId -le 0) {
+        throw "PID file inválido: $PidFile"
+    }
+    $recordedProcessId = $parsedProcessId
+    if (Get-Process -Id $recordedProcessId -ErrorAction SilentlyContinue) {
+        Stop-AleBetOwnedNodeProcess -ProcessId $recordedProcessId -EntryPath $entryPath -OwnerFile $ownerFile -GracefulTimeoutSeconds 30 -ForcedTimeoutSeconds 10
+    }
+
+    # El PID file se elimina únicamente cuando se confirmó que su proceso murió.
+    if (Get-Process -Id $recordedProcessId -ErrorAction SilentlyContinue) {
+        throw "El proceso $recordedProcessId continúa vivo; se conservó el PID file $PidFile."
+    }
+    Remove-Item -LiteralPath $PidFile -Force
+    if (Test-Path -LiteralPath $ownerFile -PathType Leaf) { Remove-Item -LiteralPath $ownerFile -Force }
 }
 
-Stop-Process -Id $recordedProcessId
-Wait-Process -Id $recordedProcessId -Timeout 10 -ErrorAction SilentlyContinue
-if (Get-Process -Id $recordedProcessId -ErrorAction SilentlyContinue) { throw "El proceso $recordedProcessId no terminó; revisar manualmente." }
-Remove-Item -LiteralPath $PidFile
-Write-Host "ALE-BET detenido (PID $recordedProcessId)."
+$listeners = @(Get-AleBetListeningConnections -Port 3000)
+if ($listeners.Count -gt 0) {
+    $owners = @($listeners | Select-Object -ExpandProperty OwningProcess -Unique)
+    throw "El puerto 3000 continúa ocupado por PID(s) $($owners -join ', '); no se terminó ningún proceso desconocido."
+}
 
+if ($null -eq $recordedProcessId) {
+    Write-Host 'ALE-BET ya estaba detenido; puerto 3000 libre.'
+} else {
+    Write-Host "ALE-BET detenido (PID $recordedProcessId); puerto 3000 libre."
+}

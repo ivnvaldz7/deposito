@@ -35,6 +35,7 @@ vi.mock('../middleware/auth', () => ({
 interface EstucheMock {
   id: string
   productoId?: string
+  productoId?: string
   articulo: string
   mercado: string
   cantidad: number
@@ -53,6 +54,7 @@ const prismaMock = vi.hoisted(() => {
   return {
     state,
     reset,
+    depositoProducto: { findMany: vi.fn(async () => state.estuches.map((row) => ({ id: row.productoId ?? row.id, nombreCompleto: row.articulo, mercadosHabilitados: [row.mercado], mercado: row.mercado, updatedAt: new Date() })).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto))) },
     inventarioEstuche: {
       findMany: vi.fn(async ({ where }: any = {}) => {
         let result = [...state.estuches]
@@ -90,8 +92,10 @@ const prismaMock = vi.hoisted(() => {
         )
       }),
       create: vi.fn(async ({ data }: any) => {
+        const id = `estuche-${idCounter++}`
         const estuche: EstucheMock = {
-          id: `estuche-${idCounter++}`,
+          id,
+          productoId: data.productoId ?? id,
           articulo: data.articulo,
           mercado: data.mercado,
           cantidad: data.cantidad,

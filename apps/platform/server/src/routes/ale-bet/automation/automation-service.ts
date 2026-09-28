@@ -3,7 +3,7 @@ import { Prisma, platformDb as prisma } from '@platform/db'
 import { descomponerUnidades } from '../constants'
 import { getProductAvailability } from '../inventory-service'
 import { consumeActiveReservations, reserveFefo, StockConflictError } from '../reservas-service'
-import type { MatchProduct, MatchCustomer, ParsedOrder, ParsedOrderLine } from './contracts'
+import type { InterpretationLineState, MatchProduct, MatchCustomer, ParsedOrder, ParsedOrderLine } from './contracts'
 import { hasStrongMismatch, interpretOrder, normalizeForMatch, presentationMismatch } from './interpreter'
 
 export class AutomationConflictError extends Error {}
@@ -11,6 +11,7 @@ export class AutomationNotFoundError extends Error {}
 
 type DraftLineEdit = {
   lineId: string
+  action?: 'DISCARD' | 'RESTORE'
   productId?: string
   cajas?: number
   unidades?: number
@@ -62,7 +63,7 @@ export async function interpretAndPersistDraft(originalText: string, actorId: st
   const proposal = interpretOrder(originalText, mappedProducts, mappedCustomers)
   inspectCatalog?.(mappedProducts)
   return prisma.orderInterpretationDraft.create({
-    data: { originalText, proposedSnapshot: json(proposal), estado: proposal.requiresReview ? 'DRAFT' : 'READY', createdBy: actorId },
+    data: { originalText, proposedSnapshot: json(proposal), estado: proposal.requiresReview || !hasIncludedValidLine(proposal) ? 'DRAFT' : 'READY', createdBy: actorId },
   })
 }
 
@@ -70,19 +71,46 @@ function effectiveSnapshot(draft: { proposedSnapshot: Prisma.JsonValue; editedSn
   const snapshot = parsed(draft.editedSnapshot ?? draft.proposedSnapshot)
   return {
     ...snapshot,
-    lines: snapshot.lines.map((line, index) => ({
-      ...line,
-      // Existing drafts predate lineId. The original text plus its source
-      // position remains stable because partial edits never remove/reorder lines.
-      lineId: line.lineId ?? `line-${crypto.createHash('sha256').update(`${index}\u0000${line.originalText}`).digest('hex').slice(0, 16)}`,
-    })),
+    lines: snapshot.lines.map((line, index) => {
+      const normalized = {
+        ...line,
+        // Existing drafts predate lineId. The original text plus its source
+        // position remains stable because partial edits never remove/reorder lines.
+        lineId: line.lineId ?? `line-${crypto.createHash('sha256').update(`${index}\u0000${line.originalText}`).digest('hex').slice(0, 16)}`,
+      }
+      return { ...normalized, lineState: lineState(normalized) }
+    }),
   }
 }
+
+function lineState(line: ParsedOrderLine): InterpretationLineState {
+  if (line.lineState === 'DISCARDED') return 'DISCARDED'
+  return line.requiresReview || line.warnings.length > 0 || !line.productCandidate || !line.quantity.totalUnits
+    ? 'NEEDS_REVIEW'
+    : 'VALID'
+}
+
+function includedLines(snapshot: ParsedOrder): ParsedOrderLine[] {
+  return snapshot.lines.filter((line) => lineState(line) !== 'DISCARDED')
+}
+
+function hasIncludedValidLine(snapshot: ParsedOrder): boolean {
+  return includedLines(snapshot).some((line) => lineState(line) === 'VALID')
+}
+
+// Older snapshots (and some imported parser responses) may have copied a
+// per-line warning to the order-level warning list.  The source snapshot is
+// kept intact for audit/debugging, but those historical copies cannot decide
+// whether an active line still needs review: a discarded line is no longer a
+// candidate for the order.
+const HISTORICAL_LINE_WARNING_CODES = new Set(['PRODUCT_UNRESOLVED', 'QUANTITY_AMBIGUOUS'])
 
 function refreshReviewState(snapshot: ParsedOrder): ParsedOrder {
   return {
     ...snapshot,
-    requiresReview: snapshot.warnings.length > 0 || snapshot.lines.some((line) => line.requiresReview || line.warnings.length > 0 || !line.productCandidate),
+    requiresReview:
+      snapshot.warnings.some((warning) => !HISTORICAL_LINE_WARNING_CODES.has(warning)) ||
+      includedLines(snapshot).some((line) => lineState(line) === 'NEEDS_REVIEW'),
   }
 }
 
@@ -121,6 +149,32 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
       const lineIndex = edited.lines.findIndex((line) => line.lineId === input.line?.lineId)
       if (lineIndex < 0) throw new AutomationConflictError('La línea a editar ya no existe; actualizá antes de reintentar')
       const currentLine = edited.lines[lineIndex]!
+      const lines: ParsedOrderLine[] = [...edited.lines]
+      if (input.line.action === 'DISCARD' || input.line.action === 'RESTORE') {
+        lines[lineIndex] = input.line.action === 'DISCARD'
+          ? {
+              ...currentLine,
+              lineState: 'DISCARDED',
+              discardedWarnings: currentLine.discardedWarnings ?? currentLine.warnings,
+              discardedRequiresReview: currentLine.discardedRequiresReview ?? currentLine.requiresReview,
+              warnings: [],
+              requiresReview: false,
+            }
+          : {
+              ...currentLine,
+              lineState: lineState({
+                ...currentLine,
+                lineState: undefined,
+                warnings: currentLine.discardedWarnings ?? currentLine.warnings,
+                requiresReview: currentLine.discardedRequiresReview ?? currentLine.requiresReview,
+              }),
+              warnings: currentLine.discardedWarnings ?? currentLine.warnings,
+              requiresReview: currentLine.discardedRequiresReview ?? currentLine.requiresReview,
+              discardedWarnings: undefined,
+              discardedRequiresReview: undefined,
+            }
+        edited = { ...edited, lines }
+      } else {
       const productId = input.line.productId ?? currentLine.productCandidate?.productId
       if (!productId) throw new AutomationConflictError('Seleccioná un producto para esta línea')
       const product = await tx.producto.findFirst({ where: { id: productId, activo: true } })
@@ -149,7 +203,6 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
           throw new AutomationConflictError(`El alias "${parsedLine.productText}" ya pertenece a otro producto.`)
         }
       }
-      const lines: ParsedOrderLine[] = [...edited.lines]
       lines[lineIndex] = {
         ...currentLine,
         productCandidate: { productId: product.id, nombre: product.nombre, confidence: 1 },
@@ -157,6 +210,7 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
         confidence: 1,
         requiresReview: false,
         warnings: [],
+        lineState: 'VALID',
         quantity: {
           originalExpression: currentLine.quantity.originalExpression,
           mode,
@@ -168,15 +222,16 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
         },
       }
       edited = { ...edited, lines }
+      }
     }
 
     const finalized = refreshReviewState(edited)
-    return tx.orderInterpretationDraft.update({ where: { id }, data: { editedSnapshot: json(finalized), estado: finalized.requiresReview ? 'DRAFT' : 'READY', version: { increment: 1 } } })
+    return tx.orderInterpretationDraft.update({ where: { id }, data: { editedSnapshot: json(finalized), estado: finalized.requiresReview || !hasIncludedValidLine(finalized) ? 'DRAFT' : 'READY', version: { increment: 1 } } })
   })
 }
 
 export async function getDraftAvailability(snapshot: ParsedOrder) {
-  const products = snapshot.lines.flatMap((line) => line.productCandidate && line.quantity.totalUnits ? [{ productId: line.productCandidate.productId, requested: line.quantity.totalUnits }] : [])
+  const products = includedLines(snapshot).flatMap((line) => lineState(line) === 'VALID' && line.productCandidate && line.quantity.totalUnits ? [{ productId: line.productCandidate.productId, requested: line.quantity.totalUnits }] : [])
   const requested = new Map<string, number>()
   for (const line of products) requested.set(line.productId, (requested.get(line.productId) ?? 0) + line.requested)
   const ids = [...requested.keys()]
@@ -196,10 +251,11 @@ export async function getDraft(id: string) {
 
 function consolidate(snapshot: ParsedOrder): Array<{ productId: string; cantidad: number }> {
   const result = new Map<string, number>()
-  for (const line of snapshot.lines) {
-    if (!line.productCandidate || !line.quantity.totalUnits || line.requiresReview) throw new AutomationConflictError('El borrador contiene líneas sin resolver')
+  for (const line of includedLines(snapshot)) {
+    if (lineState(line) !== 'VALID' || !line.productCandidate || !line.quantity.totalUnits) throw new AutomationConflictError('El borrador contiene líneas sin resolver')
     result.set(line.productCandidate.productId, (result.get(line.productCandidate.productId) ?? 0) + line.quantity.totalUnits)
   }
+  if (result.size === 0) throw new AutomationConflictError('El pedido debe incluir al menos un producto válido')
   return [...result.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([productId, cantidad]) => ({ productId, cantidad }))
 }
 

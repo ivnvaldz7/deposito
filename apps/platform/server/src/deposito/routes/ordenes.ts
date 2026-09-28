@@ -1,6 +1,6 @@
 import { Request,  Router, Response  } from 'express'
 import { z } from 'zod'
-import { Mercado, Prisma } from '@platform/db'
+import { Mercado } from '@platform/db'
 import { extractDbConstraintViolation, isKnownInventoryConflict } from '../../utils/db-errors'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
@@ -8,57 +8,25 @@ import { requirePermission } from '../../middlewares/require-permission'
 import { sseManager } from '../lib/sse-manager'
 import { isStockBajo } from '../lib/stock-status'
 import { eventBus } from '@platform/core'
-import { resolveCanonicalProductName } from '../lib/producto-catalogo'
 import { resolveUniqueFrascoCandidate } from './shared/frasco-inventory-resolution'
-import {
-  getSingleIdempotencyKey,
-  calculateFingerprint,
-  acquireIdempotencyRecord,
-  completeIdempotencyRecord,
-  toPersistableResponseBody,
-} from '../../utils/idempotency'
+import { descontarStockOrden, OrdenStockError } from '../services/orden-stock-service'
 
 const router = Router()
 
 const MERCADOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
 
-type HttpError = {
-  status: number
-  code?: string
-  message: string
-}
-
-function isHttpError(error: unknown): error is HttpError {
-  if (typeof error !== 'object' || error === null) return false
-  const candidate = error as Record<string, unknown>
-  return (
-    typeof candidate.status === 'number' &&
-    typeof candidate.message === 'string' &&
-    (candidate.code === undefined || typeof candidate.code === 'string')
-  )
-}
-
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const crearOrdenSchema = z.object({
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
-  productoId: z.string().uuid().optional(),
-  productoNombre: z.string().min(2).max(200),
+  productoId: z.string().uuid(),
   mercado: z.enum(MERCADOS).optional(),
-  cantidad: z.number().int().positive(),
+  cantidad: z.number().finite().positive(),
   urgencia: z.enum(['normal', 'urgente']).default('normal'),
 })
+  .refine((data) => data.categoria === 'droga' || Number.isInteger(data.cantidad), { message: 'La cantidad debe ser entera para materiales de empaque', path: ['cantidad'] })
 
-const rechazarSchema = z.object({
-  motivoRechazo: z.string().min(5).max(500),
-})
-
-// Estados finales que no permiten más transiciones
-const ESTADOS_FINALES = ['completada', 'rechazada'] as const
-
-function normalizeForMatch(str: string): string {
-  return resolveCanonicalProductName(str)
-}
+const rechazarSchema = z.object({ motivoRechazo: z.string().trim().max(500).optional() }).optional().transform((data) => data ?? {})
 
 function isSolicitante(req: Request): boolean {
   return req.user?.apps.deposito?.rol === 'solicitante'
@@ -119,22 +87,28 @@ router.post(
     }
 
     const { categoria, productoId, mercado, cantidad, urgencia } = result.data
-    let { productoNombre } = result.data
 
     if ((categoria === 'estuche' || categoria === 'etiqueta') && !mercado) {
       res.status(400).json({ message: 'El campo mercado es obligatorio para estuches y etiquetas' })
       return
     }
-
-    // Si viene productoId, validar en catálogo y usar nombreCompleto
-    if (productoId) {
-      const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
-      if (!producto || producto.categoria !== categoria) {
-        res.status(400).json({ message: 'DepositoProducto no encontrado en el catálogo o categoría incorrecta' })
-        return
-      }
-      productoNombre = producto.nombreCompleto
+    if ((categoria === 'droga' || categoria === 'frasco') && mercado) {
+      res.status(400).json({ message: 'El mercado solo aplica a estuches y etiquetas' })
+      return
     }
+
+    let producto: Awaited<ReturnType<typeof prisma.depositoProducto.findUnique>>
+    try {
+      producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
+    } catch {
+      res.status(500).json({ message: 'No se pudo validar el producto seleccionado' })
+      return
+    }
+    if (!producto || !producto.activo || producto.categoria !== categoria) {
+      res.status(400).json({ message: 'Elegí un producto activo de la categoría correspondiente' })
+      return
+    }
+    const productoNombre = producto.nombreCompleto
 
     try {
       const orden = await prisma.ordenProduccion.create({
@@ -257,7 +231,7 @@ router.get(
 
 // ─── PUT /api/ordenes/:id/aprobar — solo encargado ───────────────────────────
 
-router.put(
+router.post(
   '/:id/aprobar',
   authenticate,
   requirePermission('deposito', 'ordenes.approve'),
@@ -265,28 +239,59 @@ router.put(
     const id = req.params['id'] as string
 
     try {
-      const orden = await prisma.ordenProduccion.findUnique({ where: { id } })
-      if (!orden) {
-        res.status(404).json({ message: 'Orden no encontrada' })
-        return
-      }
-      if ((ESTADOS_FINALES as readonly string[]).includes(orden.estado)) {
-        res.status(409).json({ message: `No se puede aprobar una orden en estado "${orden.estado}"` })
-        return
-      }
-      if (orden.estado !== 'solicitada') {
-        res.status(409).json({ message: `La orden ya está en estado "${orden.estado}"` })
-        return
-      }
+      const updated = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM deposito.ordenes_produccion WHERE id = ${id} FOR UPDATE`
+        const orden = await tx.ordenProduccion.findUnique({ where: { id } })
+        if (!orden) throw new Error('HTTP_404: Orden no encontrada')
+        if (orden.estado !== 'solicitada') throw new Error(`HTTP_409: La orden ya está en estado "${orden.estado}"`)
 
-      const updated = await prisma.ordenProduccion.update({
-        where: { id },
-        data: { estado: 'aprobada', aprobadoPor: req.depositoUser!.id },
-        include: {
-          solicitante: { select: { id: true, name: true, role: true } },
-          aprobador: { select: { id: true, name: true } },
-        },
+        await descontarStockOrden(tx, orden, req.depositoUser!.id)
+        const transition = await tx.ordenProduccion.updateMany({
+          where: { id, estado: 'solicitada' },
+          data: { estado: 'aprobada', aprobadoPor: req.depositoUser!.id },
+        })
+        if (transition.count !== 1) throw new Error('HTTP_409: La orden ya fue procesada')
+        return tx.ordenProduccion.findUnique({
+          where: { id },
+          include: {
+            solicitante: { select: { id: true, name: true, role: true } },
+            aprobador: { select: { id: true, name: true } },
+          },
+        })
       })
+      if (!updated) throw new Error('HTTP_404: Orden no encontrada')
+
+      const timestamp = new Date().toISOString()
+      sseManager.broadcastGlobal({
+        tipo: 'stock_actualizado',
+        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
+        datos: { producto: updated.productoNombre, productoId: updated.productoId, categoria: updated.categoria, mercado: updated.mercado, cantidad: -updated.cantidad, tipo: 'egreso' },
+        timestamp,
+      })
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'stock_actualizado',
+        titulo: 'Stock actualizado',
+        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
+        timestamp,
+      })
+      const stockBajo = await checkStockBajo(updated.categoria, updated.productoNombre, updated.mercado, updated.productoId)
+      if (stockBajo !== null) {
+        sseManager.broadcastGlobal({
+          tipo: 'stock_bajo',
+          mensaje: `Stock bajo: ${updated.productoNombre} (${stockBajo} restantes)`,
+          datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: stockBajo },
+          timestamp,
+        })
+        eventBus.emit({
+          app: 'deposito',
+          tipo: 'stock_bajo',
+          titulo: 'Stock bajo',
+          mensaje: `Stock bajo: ${updated.productoNombre} (${stockBajo} restantes)`,
+          link: '/deposito/drogas',
+          timestamp,
+        })
+      }
 
       sseManager.broadcastToUser(
         {
@@ -308,316 +313,32 @@ router.put(
       })
 
       res.json(updated)
-    } catch {
-      res.status(500).json({ message: 'Error interno del servidor' })
-    }
-  }
-)
-
-// ─── POST /api/ordenes/:id/ejecutar — descuenta inventario, crea movimiento ───
-
-router.post(
-  '/:id/ejecutar',
-  authenticate,
-  requirePermission('deposito', 'ordenes.execute'),
-  async (req: Request, res: Response): Promise<void> => {
-    const id = req.params['id'] as string
-
-    let idempotencyKey: string | undefined
-    try {
-      idempotencyKey = getSingleIdempotencyKey(req.rawHeaders)
-    } catch (err: unknown) {
-      if (isHttpError(err)) {
-        res.status(err.status).json({ message: err.message, code: err.code })
+    } catch (error) {
+      if (error instanceof OrdenStockError) {
+        res.status(error.code === 'MERCADO_REQUERIDO' ? 400 : 409).json({ message: error.message, code: error.code })
         return
       }
-      res.status(400).json({ message: 'Clave de idempotencia inválida' })
-      return
-    }
-
-    try {
-      const fingerprint = calculateFingerprint('POST', 'deposito.orden.ejecutar', id, {})
-
-      const txResult = await prisma.$transaction(async (tx) => {
-        let idempRecordId: string | undefined
-
-        if (idempotencyKey) {
-          const acq = await acquireIdempotencyRecord(
-            tx,
-            req.depositoUser!.id,
-            'deposito.orden.ejecutar',
-            idempotencyKey,
-            fingerprint
-          )
-          if (acq.type === 'REPLAY') {
-            return { type: 'REPLAY', status: acq.status, body: acq.body }
-          }
-          idempRecordId = acq.id
-        }
-
-        const orden = await tx.ordenProduccion.findUnique({ where: { id } })
-        if (!orden) {
-          throw new Error('HTTP_404: Orden no encontrada')
-        }
-        if ((ESTADOS_FINALES as readonly string[]).includes(orden.estado)) {
-          throw new Error(`HTTP_409: No se puede ejecutar una orden en estado "${orden.estado}"`)
-        }
-        if (orden.estado !== 'aprobada') {
-          throw new Error('HTTP_409: La orden debe estar aprobada antes de ejecutarse')
-        }
-        const updateRes = await tx.ordenProduccion.updateMany({
-          where: { id, estado: 'aprobada' },
-          data: { estado: 'ejecutada' }
-        })
-        if (updateRes.count === 0) {
-          throw new Error('HTTP_409: La orden debe estar aprobada antes de ejecutarse')
-        }
-
-        const { categoria, productoNombre, mercado, cantidad } = orden
-
-        if (categoria === 'droga') {
-          // FIFO: descontar empezando por el lote con vencimiento más próximo, usando FOR UPDATE ordenado para evitar deadlocks
-          const query = orden.productoId
-            ? Prisma.sql`SELECT id, cantidad, lote FROM deposito.inventario_drogas WHERE producto_id = ${orden.productoId} AND cantidad > 0 ORDER BY CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END, vencimiento ASC, id ASC FOR UPDATE`
-            : Prisma.sql`SELECT id, cantidad, lote FROM deposito.inventario_drogas WHERE nombre = ${productoNombre} AND cantidad > 0 ORDER BY CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END, vencimiento ASC, id ASC FOR UPDATE`
-
-          const lotes = await tx.$queryRaw<{id: string, cantidad: number, lote: string | null}[]>(query)
-
-          const totalDisponible = lotes.reduce((s, l) => s + l.cantidad, 0)
-          if (totalDisponible < cantidad) {
-            throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (disponible: ${totalDisponible})`)
-          }
-
-          let restante = cantidad
-          const lotesMov: { lote: string | null; decrementado: number }[] = []
-          for (const lote of lotes) {
-            if (restante <= 0) break
-            const tomar = Math.min(lote.cantidad, restante)
-            await tx.inventarioDroga.update({
-              where: { id: lote.id },
-              data: { cantidad: { decrement: tomar } },
-            })
-            lotesMov.push({ lote: lote.lote, decrementado: tomar })
-            restante -= tomar
-          }
-
-          // Crear un movimiento por lote usado
-          for (const { lote: loteUsado, decrementado } of lotesMov) {
-            await tx.movimiento.create({
-              data: {
-                tipo: 'egreso_orden',
-                categoria,
-                productoNombre,
-                lote: loteUsado,
-                cantidad: -decrementado,
-                referenciaId: orden.id,
-                referenciaTipo: 'orden',
-                createdBy: req.depositoUser!.id,
-              },
-            })
-          }
-        } else if (categoria === 'estuche') {
-          if (!mercado) throw new Error('HTTP_400: El campo mercado es obligatorio para estuches')
-
-          let targetId = orden.productoId
-            ? (await tx.inventarioEstuche.findFirst({ where: { productoId: orden.productoId, mercado }, select: { id: true } }))?.id
-            : null
-
-          if (!targetId) {
-            const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioEstuche.findMany({ where: { mercado }, select: { id: true, articulo: true } })
-            targetId = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)?.id
-          }
-          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de estuches')
-
-          const resUpdate = await tx.inventarioEstuche.updateMany({
-            where: { id: targetId, cantidad: { gte: cantidad } },
-            data: { cantidad: { decrement: cantidad } },
-          })
-          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (estuche)`)
-
-        } else if (categoria === 'etiqueta') {
-          if (!mercado) throw new Error('HTTP_400: El campo mercado es obligatorio para etiquetas')
-
-          let targetId = orden.productoId
-            ? (await tx.inventarioEtiqueta.findFirst({ where: { productoId: orden.productoId, mercado }, select: { id: true } }))?.id
-            : null
-
-          if (!targetId) {
-            const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioEtiqueta.findMany({ where: { mercado }, select: { id: true, articulo: true } })
-            targetId = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)?.id
-          }
-          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de etiquetas')
-
-          const resUpdate = await tx.inventarioEtiqueta.updateMany({
-            where: { id: targetId, cantidad: { gte: cantidad } },
-            data: { cantidad: { decrement: cantidad } },
-          })
-          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (etiqueta)`)
-
-        } else if (categoria === 'frasco') {
-          let targetId: string | undefined = undefined
-          let uniPorCaja = 1
-
-          if (orden.productoId) {
-            const f = await tx.inventarioFrasco.findFirst({ where: { productoId: orden.productoId }, select: { id: true, unidadesPorCaja: true } })
-            if (f) {
-              targetId = f.id
-              uniPorCaja = f.unidadesPorCaja
-            }
-          }
-
-          if (!targetId) {
-            const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioFrasco.findMany({ select: { id: true, articulo: true, unidadesPorCaja: true } })
-            const match = resolveUniqueFrascoCandidate(buscar, candidatos)
-            if (match) {
-              targetId = match.id
-              uniPorCaja = match.unidadesPorCaja
-            }
-          }
-          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de frascos')
-
-          const resUpdate = await tx.inventarioFrasco.updateMany({
-            where: {
-              id: targetId,
-              cantidadCajas: { gte: cantidad },
-              total: { gte: cantidad * uniPorCaja }
-            },
-            data: {
-              cantidadCajas: { decrement: cantidad },
-              total: { decrement: cantidad * uniPorCaja }
-            },
-          })
-          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (frasco)`)
-        }
-
-        // Movimiento de auditoría para categorías no-droga (drogas crean movimientos en el loop FIFO)
-        if (categoria !== 'droga') {
-          await tx.movimiento.create({
-            data: {
-              tipo: 'egreso_orden',
-              categoria,
-              productoNombre,
-              cantidad: -cantidad,
-              referenciaId: orden.id,
-              referenciaTipo: 'orden',
-              createdBy: req.depositoUser!.id,
-            },
-          })
-        }
-
-        const updatedOrden = await tx.ordenProduccion.findUnique({
-          where: { id },
-          include: {
-            solicitante: { select: { id: true, name: true, role: true } },
-            aprobador: { select: { id: true, name: true } },
-          },
-        })
-
-        if (idempRecordId) {
-          const persistableBody = toPersistableResponseBody(updatedOrden)
-          await completeIdempotencyRecord(tx, idempRecordId, 200, persistableBody)
-        }
-
-        return { type: 'NEW', result: updatedOrden! }
-      })
-
-      if (txResult.type === 'REPLAY') {
-        res.setHeader('Idempotency-Replayed', 'true')
-        res.status(txResult.status as number).json(txResult.body)
-        return
-      }
-
-      const updated = txResult.result!
-
-      const ts = new Date().toISOString()
-
-      sseManager.broadcastGlobal({
-        tipo: 'stock_actualizado',
-        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
-        datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: updated.cantidad, tipo: 'egreso' },
-        timestamp: ts,
-      })
-      eventBus.emit({
-        app: 'deposito',
-        tipo: 'stock_actualizado',
-        titulo: 'Stock actualizado',
-        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
-        timestamp: ts,
-      })
-
-      sseManager.broadcastToUser(
-        {
-          tipo: 'orden_actualizada',
-          mensaje: `Tu orden de ${updated.productoNombre} fue ejecutada`,
-          datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'ejecutada' },
-          timestamp: ts,
-        },
-        updated.solicitanteId
-      )
-      eventBus.emit({
-        app: 'deposito',
-        tipo: 'orden_actualizada',
-        titulo: 'Orden ejecutada',
-        mensaje: `Orden de ${updated.productoNombre} ejecutada`,
-        userId: updated.solicitanteId,
-        link: `/deposito/ordenes/${updated.id}`,
-        timestamp: ts,
-      })
-
-      const nuevoStock = await checkStockBajo(updated.categoria, updated.productoNombre, updated.mercado, updated.productoId)
-      if (nuevoStock !== null) {
-        sseManager.broadcastGlobal({
-          tipo: 'stock_bajo',
-          mensaje: `Stock bajo: ${updated.productoNombre} (${nuevoStock} restantes)`,
-          datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: nuevoStock },
-          timestamp: ts,
-        })
-        eventBus.emit({
-          app: 'deposito',
-          tipo: 'stock_bajo',
-          titulo: 'Stock bajo',
-          mensaje: `Stock bajo: ${updated.productoNombre} (${nuevoStock} restantes)`,
-          link: `/deposito/drogas`,
-          timestamp: ts,
-        })
-      }
-
-      res.json(updated)
-    } catch (err: unknown) {
-      console.error('Error interno al ejecutar la orden')
-
-      if (isHttpError(err)) {
-        res.status(err.status).json({ message: err.message, code: err.code })
-        return
-      }
-
-      const dbErr = extractDbConstraintViolation(err)
+      const dbErr = extractDbConstraintViolation(error)
       if (dbErr && isKnownInventoryConflict(dbErr.constraintName)) {
-        res.status(409).json({
-          message: 'La operación no puede completarse por una inconsistencia de stock',
-          code: 'INVENTORY_CONSTRAINT_VIOLATION'
-        })
+        res.status(409).json({ message: 'La operación no puede completarse por una inconsistencia de stock', code: 'INVENTORY_CONSTRAINT_VIOLATION' })
         return
       }
-
-      const msg = err instanceof Error ? err.message : 'Error interno del servidor'
-      if (msg.startsWith('HTTP_404: ')) {
-        res.status(404).json({ message: msg.replace('HTTP_404: ', '') })
-      } else if (msg.startsWith('HTTP_409: ')) {
-        res.status(409).json({ message: msg.replace('HTTP_409: ', '') })
-      } else if (msg.startsWith('HTTP_400: ')) {
-        res.status(400).json({ message: msg.replace('HTTP_400: ', '') })
-      } else {
-        res.status(500).json({ message: 'Error interno del servidor' })
-      }
+      const message = error instanceof Error ? error.message : ''
+      if (message.startsWith('HTTP_404: ')) res.status(404).json({ message: message.slice(10) })
+      else if (message.startsWith('HTTP_409: ')) res.status(409).json({ message: message.slice(10) })
+      else res.status(500).json({ message: 'Error interno del servidor' })
     }
   }
 )
 
-// ─── PUT /api/ordenes/:id/rechazar — solo encargado, requiere motivo ──────────
+// Legacy execution endpoint is intentionally disabled: approval now performs
+// stock deduction atomically in the same transaction.
+
+router.post('/:id/ejecutar', authenticate, requirePermission('deposito', 'ordenes.execute'), (_req, res) => {
+  res.status(410).json({ message: 'La ejecución ahora se realiza al aprobar la orden' })
+})
+
+// ─── PUT /api/ordenes/:id/rechazar — solo encargado ──────────────────────────
 
 router.put(
   '/:id/rechazar',
@@ -628,33 +349,30 @@ router.put(
 
     const result = rechazarSchema.safeParse(req.body)
     if (!result.success) {
-      res.status(400).json({ message: 'El motivo de rechazo es obligatorio (mínimo 5 caracteres)' })
+      res.status(400).json({ message: 'Motivo de rechazo inválido' })
       return
     }
 
     try {
-      const orden = await prisma.ordenProduccion.findUnique({ where: { id } })
-      if (!orden) {
-        res.status(404).json({ message: 'Orden no encontrada' })
-        return
-      }
-      if (orden.estado !== 'solicitada' && orden.estado !== 'aprobada') {
-        res.status(400).json({ message: 'No se puede rechazar una orden ya ejecutada' })
-        return
-      }
-
-      const updated = await prisma.ordenProduccion.update({
-        where: { id },
-        data: {
-          estado: 'rechazada',
-          motivoRechazo: result.data.motivoRechazo,
-          aprobadoPor: req.depositoUser!.id,
-        },
-        include: {
-          solicitante: { select: { id: true, name: true, role: true } },
-          aprobador: { select: { id: true, name: true } },
-        },
+      const updated = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM deposito.ordenes_produccion WHERE id = ${id} FOR UPDATE`
+        const orden = await tx.ordenProduccion.findUnique({ where: { id } })
+        if (!orden) throw new Error('HTTP_404: Orden no encontrada')
+        if (orden.estado !== 'solicitada') throw new Error(`HTTP_409: No se puede rechazar una orden en estado "${orden.estado}"`)
+        const transition = await tx.ordenProduccion.updateMany({
+          where: { id, estado: 'solicitada' },
+          data: { estado: 'rechazada', motivoRechazo: result.data.motivoRechazo ?? null, aprobadoPor: req.depositoUser!.id },
+        })
+        if (transition.count !== 1) throw new Error('HTTP_409: La orden ya fue procesada')
+        return tx.ordenProduccion.findUnique({
+          where: { id },
+          include: {
+            solicitante: { select: { id: true, name: true, role: true } },
+            aprobador: { select: { id: true, name: true } },
+          },
+        })
       })
+      if (!updated) throw new Error('HTTP_404: Orden no encontrada')
 
       sseManager.broadcastToUser(
         {
@@ -676,8 +394,11 @@ router.put(
       })
 
       res.json(updated)
-    } catch {
-      res.status(500).json({ message: 'Error interno del servidor' })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      if (message.startsWith('HTTP_404: ')) res.status(404).json({ message: message.slice(10) })
+      else if (message.startsWith('HTTP_409: ')) res.status(409).json({ message: message.slice(10) })
+      else res.status(500).json({ message: 'Error interno del servidor' })
     }
   }
 )

@@ -6,7 +6,7 @@ import { requirePermission } from '../../middlewares/require-permission'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { applyDraftEdit, AutomationConflictError, AutomationNotFoundError, confirmDraftInTransaction, getDraft, interpretAndPersistDraft } from './automation/automation-service'
 import { StockConflictError } from './reservas-service'
-import { syncStockProjectionNow } from './stock-projection/direct-sync'
+import { syncStockProjectionAfterCommit, syncStockProjectionNow } from './stock-projection/direct-sync'
 
 const createSchema = z.object({ originalText: z.string().trim().min(1).max(20_000) })
 const editSchema = z.object({
@@ -15,6 +15,7 @@ const editSchema = z.object({
   rememberClientAlias: z.boolean().optional(),
   line: z.object({
     lineId: z.string().min(1),
+    action: z.enum(['DISCARD', 'RESTORE']).optional(),
     productId: z.string().min(1).optional(),
     cajas: z.number().int().nonnegative().optional(),
     unidades: z.number().int().nonnegative().optional(),
@@ -120,11 +121,7 @@ router.post('/drafts/:id/confirm', requirePermission('ale-bet', 'pedidos.approve
       await completeIdempotencyRecord(tx, acquired.id, 200, toPersistableResponseBody(body))
       return { body, replayed: false }
     })
-    try {
-      await syncProjection()
-    } catch {
-      logger.error('[stock-projection] Google Sheets sync failed after Automation confirmation')
-    }
+    await syncStockProjectionAfterCommit({ syncStockProjectionNow: syncProjection, logger })
     if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
     res.json(result.body)
   } catch (error) { errorResponse(error, res) }

@@ -59,6 +59,11 @@ export type ProductAlias = $Result.DefaultSelection<Prisma.$ProductAliasPayload>
  */
 export type Lote = $Result.DefaultSelection<Prisma.$LotePayload>
 /**
+ * Model ProductoTransferRule
+ * 
+ */
+export type ProductoTransferRule = $Result.DefaultSelection<Prisma.$ProductoTransferRulePayload>
+/**
  * Model Cliente
  * 
  */
@@ -213,6 +218,16 @@ export type ImportacionInicialEstucheIdempotencyKey = $Result.DefaultSelection<P
  * 
  */
 export type ImportacionInicialEstucheItem = $Result.DefaultSelection<Prisma.$ImportacionInicialEstucheItemPayload>
+/**
+ * Model PartidaProduccion
+ * 
+ */
+export type PartidaProduccion = $Result.DefaultSelection<Prisma.$PartidaProduccionPayload>
+/**
+ * Model ItemSolicitud
+ * 
+ */
+export type ItemSolicitud = $Result.DefaultSelection<Prisma.$ItemSolicitudPayload>
 
 /**
  * Enums
@@ -234,6 +249,14 @@ export const IdempotencyStatus: {
 };
 
 export type IdempotencyStatus = (typeof IdempotencyStatus)[keyof typeof IdempotencyStatus]
+
+
+export const TipoReglaTransferenciaProducto: {
+  SAME_PRODUCT: 'SAME_PRODUCT',
+  PRESENTATION: 'PRESENTATION'
+};
+
+export type TipoReglaTransferenciaProducto = (typeof TipoReglaTransferenciaProducto)[keyof typeof TipoReglaTransferenciaProducto]
 
 
 export const EstadoPedido: {
@@ -399,7 +422,8 @@ export type TipoAuditoriaCatalogo = (typeof TipoAuditoriaCatalogo)[keyof typeof 
 
 export const RefTipo: {
   acta_item: 'acta_item',
-  orden: 'orden'
+  orden: 'orden',
+  partida: 'partida'
 };
 
 export type RefTipo = (typeof RefTipo)[keyof typeof RefTipo]
@@ -408,6 +432,7 @@ export type RefTipo = (typeof RefTipo)[keyof typeof RefTipo]
 export const DepositoTipoMovimiento: {
   ingreso_acta: 'ingreso_acta',
   egreso_orden: 'egreso_orden',
+  egreso_partida: 'egreso_partida',
   ajuste_manual: 'ajuste_manual',
   stock_inicial: 'stock_inicial'
 };
@@ -441,6 +466,15 @@ export const EstadoOrden: {
 
 export type EstadoOrden = (typeof EstadoOrden)[keyof typeof EstadoOrden]
 
+
+export const EstadoPartida: {
+  SOLICITADO: 'SOLICITADO',
+  CONFIRMADO: 'CONFIRMADO',
+  RECHAZADO: 'RECHAZADO'
+};
+
+export type EstadoPartida = (typeof EstadoPartida)[keyof typeof EstadoPartida]
+
 }
 
 export type AppId = $Enums.AppId
@@ -450,6 +484,10 @@ export const AppId: typeof $Enums.AppId
 export type IdempotencyStatus = $Enums.IdempotencyStatus
 
 export const IdempotencyStatus: typeof $Enums.IdempotencyStatus
+
+export type TipoReglaTransferenciaProducto = $Enums.TipoReglaTransferenciaProducto
+
+export const TipoReglaTransferenciaProducto: typeof $Enums.TipoReglaTransferenciaProducto
 
 export type EstadoPedido = $Enums.EstadoPedido
 
@@ -534,6 +572,10 @@ export const Urgencia: typeof $Enums.Urgencia
 export type EstadoOrden = $Enums.EstadoOrden
 
 export const EstadoOrden: typeof $Enums.EstadoOrden
+
+export type EstadoPartida = $Enums.EstadoPartida
+
+export const EstadoPartida: typeof $Enums.EstadoPartida
 
 /**
  * ##  Prisma Client ʲˢ
@@ -745,6 +787,16 @@ export class PrismaClient<
     * ```
     */
   get lote(): Prisma.LoteDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.productoTransferRule`: Exposes CRUD operations for the **ProductoTransferRule** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProductoTransferRules
+    * const productoTransferRules = await prisma.productoTransferRule.findMany()
+    * ```
+    */
+  get productoTransferRule(): Prisma.ProductoTransferRuleDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.cliente`: Exposes CRUD operations for the **Cliente** model.
@@ -1055,6 +1107,26 @@ export class PrismaClient<
     * ```
     */
   get importacionInicialEstucheItem(): Prisma.ImportacionInicialEstucheItemDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.partidaProduccion`: Exposes CRUD operations for the **PartidaProduccion** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PartidaProduccions
+    * const partidaProduccions = await prisma.partidaProduccion.findMany()
+    * ```
+    */
+  get partidaProduccion(): Prisma.PartidaProduccionDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.itemSolicitud`: Exposes CRUD operations for the **ItemSolicitud** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ItemSolicituds
+    * const itemSolicituds = await prisma.itemSolicitud.findMany()
+    * ```
+    */
+  get itemSolicitud(): Prisma.ItemSolicitudDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -1498,6 +1570,7 @@ export namespace Prisma {
     Producto: 'Producto',
     ProductAlias: 'ProductAlias',
     Lote: 'Lote',
+    ProductoTransferRule: 'ProductoTransferRule',
     Cliente: 'Cliente',
     ClientAlias: 'ClientAlias',
     Pedido: 'Pedido',
@@ -1528,7 +1601,9 @@ export namespace Prisma {
     SecuenciaCodigoFrasco: 'SecuenciaCodigoFrasco',
     ImportacionInicialEstucheBatch: 'ImportacionInicialEstucheBatch',
     ImportacionInicialEstucheIdempotencyKey: 'ImportacionInicialEstucheIdempotencyKey',
-    ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem'
+    ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem',
+    PartidaProduccion: 'PartidaProduccion',
+    ItemSolicitud: 'ItemSolicitud'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1544,7 +1619,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem"
+      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "productoTransferRule" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem" | "partidaProduccion" | "itemSolicitud"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2211,6 +2286,80 @@ export namespace Prisma {
           count: {
             args: Prisma.LoteCountArgs<ExtArgs>
             result: $Utils.Optional<LoteCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProductoTransferRule: {
+        payload: Prisma.$ProductoTransferRulePayload<ExtArgs>
+        fields: Prisma.ProductoTransferRuleFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProductoTransferRuleFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProductoTransferRuleFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>
+          }
+          findFirst: {
+            args: Prisma.ProductoTransferRuleFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProductoTransferRuleFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>
+          }
+          findMany: {
+            args: Prisma.ProductoTransferRuleFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>[]
+          }
+          create: {
+            args: Prisma.ProductoTransferRuleCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>
+          }
+          createMany: {
+            args: Prisma.ProductoTransferRuleCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProductoTransferRuleCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>[]
+          }
+          delete: {
+            args: Prisma.ProductoTransferRuleDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>
+          }
+          update: {
+            args: Prisma.ProductoTransferRuleUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>
+          }
+          deleteMany: {
+            args: Prisma.ProductoTransferRuleDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProductoTransferRuleUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProductoTransferRuleUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>[]
+          }
+          upsert: {
+            args: Prisma.ProductoTransferRuleUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProductoTransferRulePayload>
+          }
+          aggregate: {
+            args: Prisma.ProductoTransferRuleAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProductoTransferRule>
+          }
+          groupBy: {
+            args: Prisma.ProductoTransferRuleGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProductoTransferRuleGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProductoTransferRuleCountArgs<ExtArgs>
+            result: $Utils.Optional<ProductoTransferRuleCountAggregateOutputType> | number
           }
         }
       }
@@ -4508,6 +4657,154 @@ export namespace Prisma {
           }
         }
       }
+      PartidaProduccion: {
+        payload: Prisma.$PartidaProduccionPayload<ExtArgs>
+        fields: Prisma.PartidaProduccionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PartidaProduccionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PartidaProduccionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>
+          }
+          findFirst: {
+            args: Prisma.PartidaProduccionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PartidaProduccionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>
+          }
+          findMany: {
+            args: Prisma.PartidaProduccionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>[]
+          }
+          create: {
+            args: Prisma.PartidaProduccionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>
+          }
+          createMany: {
+            args: Prisma.PartidaProduccionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PartidaProduccionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>[]
+          }
+          delete: {
+            args: Prisma.PartidaProduccionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>
+          }
+          update: {
+            args: Prisma.PartidaProduccionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>
+          }
+          deleteMany: {
+            args: Prisma.PartidaProduccionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PartidaProduccionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.PartidaProduccionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>[]
+          }
+          upsert: {
+            args: Prisma.PartidaProduccionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PartidaProduccionPayload>
+          }
+          aggregate: {
+            args: Prisma.PartidaProduccionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePartidaProduccion>
+          }
+          groupBy: {
+            args: Prisma.PartidaProduccionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PartidaProduccionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PartidaProduccionCountArgs<ExtArgs>
+            result: $Utils.Optional<PartidaProduccionCountAggregateOutputType> | number
+          }
+        }
+      }
+      ItemSolicitud: {
+        payload: Prisma.$ItemSolicitudPayload<ExtArgs>
+        fields: Prisma.ItemSolicitudFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ItemSolicitudFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ItemSolicitudFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>
+          }
+          findFirst: {
+            args: Prisma.ItemSolicitudFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ItemSolicitudFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>
+          }
+          findMany: {
+            args: Prisma.ItemSolicitudFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>[]
+          }
+          create: {
+            args: Prisma.ItemSolicitudCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>
+          }
+          createMany: {
+            args: Prisma.ItemSolicitudCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ItemSolicitudCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>[]
+          }
+          delete: {
+            args: Prisma.ItemSolicitudDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>
+          }
+          update: {
+            args: Prisma.ItemSolicitudUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>
+          }
+          deleteMany: {
+            args: Prisma.ItemSolicitudDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ItemSolicitudUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ItemSolicitudUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>[]
+          }
+          upsert: {
+            args: Prisma.ItemSolicitudUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ItemSolicitudPayload>
+          }
+          aggregate: {
+            args: Prisma.ItemSolicitudAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateItemSolicitud>
+          }
+          groupBy: {
+            args: Prisma.ItemSolicitudGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ItemSolicitudGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ItemSolicitudCountArgs<ExtArgs>
+            result: $Utils.Optional<ItemSolicitudCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -4625,6 +4922,7 @@ export namespace Prisma {
     producto?: ProductoOmit
     productAlias?: ProductAliasOmit
     lote?: LoteOmit
+    productoTransferRule?: ProductoTransferRuleOmit
     cliente?: ClienteOmit
     clientAlias?: ClientAliasOmit
     pedido?: PedidoOmit
@@ -4656,6 +4954,8 @@ export namespace Prisma {
     importacionInicialEstucheBatch?: ImportacionInicialEstucheBatchOmit
     importacionInicialEstucheIdempotencyKey?: ImportacionInicialEstucheIdempotencyKeyOmit
     importacionInicialEstucheItem?: ImportacionInicialEstucheItemOmit
+    partidaProduccion?: PartidaProduccionOmit
+    itemSolicitud?: ItemSolicitudOmit
   }
 
   /* Types for Logging */
@@ -4781,6 +5081,8 @@ export namespace Prisma {
     saldos: number
     projectionOutbox: number
     aliases: number
+    sourceTransferRules: number
+    targetTransferRules: number
   }
 
   export type ProductoCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -4789,6 +5091,8 @@ export namespace Prisma {
     saldos?: boolean | ProductoCountOutputTypeCountSaldosArgs
     projectionOutbox?: boolean | ProductoCountOutputTypeCountProjectionOutboxArgs
     aliases?: boolean | ProductoCountOutputTypeCountAliasesArgs
+    sourceTransferRules?: boolean | ProductoCountOutputTypeCountSourceTransferRulesArgs
+    targetTransferRules?: boolean | ProductoCountOutputTypeCountTargetTransferRulesArgs
   }
 
   // Custom InputTypes
@@ -4837,17 +5141,33 @@ export namespace Prisma {
     where?: ProductAliasWhereInput
   }
 
+  /**
+   * ProductoCountOutputType without action
+   */
+  export type ProductoCountOutputTypeCountSourceTransferRulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProductoTransferRuleWhereInput
+  }
+
+  /**
+   * ProductoCountOutputType without action
+   */
+  export type ProductoCountOutputTypeCountTargetTransferRulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProductoTransferRuleWhereInput
+  }
+
 
   /**
    * Count Type LoteCountOutputType
    */
 
   export type LoteCountOutputType = {
+    derivedLotes: number
     reservas: number
     saldos: number
   }
 
   export type LoteCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    derivedLotes?: boolean | LoteCountOutputTypeCountDerivedLotesArgs
     reservas?: boolean | LoteCountOutputTypeCountReservasArgs
     saldos?: boolean | LoteCountOutputTypeCountSaldosArgs
   }
@@ -4861,6 +5181,13 @@ export namespace Prisma {
      * Select specific fields to fetch from the LoteCountOutputType
      */
     select?: LoteCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * LoteCountOutputType without action
+   */
+  export type LoteCountOutputTypeCountDerivedLotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LoteWhereInput
   }
 
   /**
@@ -5108,6 +5435,8 @@ export namespace Prisma {
     ordenesComoAprobador: number
     auditoriasCatalogo: number
     importacionesInicialesEstuche: number
+    partidasSolicitadas: number
+    partidasConfirmadas: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5118,6 +5447,8 @@ export namespace Prisma {
     ordenesComoAprobador?: boolean | UserCountOutputTypeCountOrdenesComoAprobadorArgs
     auditoriasCatalogo?: boolean | UserCountOutputTypeCountAuditoriasCatalogoArgs
     importacionesInicialesEstuche?: boolean | UserCountOutputTypeCountImportacionesInicialesEstucheArgs
+    partidasSolicitadas?: boolean | UserCountOutputTypeCountPartidasSolicitadasArgs
+    partidasConfirmadas?: boolean | UserCountOutputTypeCountPartidasConfirmadasArgs
   }
 
   // Custom InputTypes
@@ -5180,6 +5511,20 @@ export namespace Prisma {
     where?: ImportacionInicialEstucheBatchWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountPartidasSolicitadasArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PartidaProduccionWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountPartidasConfirmadasArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PartidaProduccionWhereInput
+  }
+
 
   /**
    * Count Type ActaCountOutputType
@@ -5226,6 +5571,7 @@ export namespace Prisma {
     auditoriasCatalogo: number
     movimientos: number
     importacionesInicialesEstuche: number
+    itemsSolicitud: number
   }
 
   export type DepositoProductoCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5238,6 +5584,7 @@ export namespace Prisma {
     auditoriasCatalogo?: boolean | DepositoProductoCountOutputTypeCountAuditoriasCatalogoArgs
     movimientos?: boolean | DepositoProductoCountOutputTypeCountMovimientosArgs
     importacionesInicialesEstuche?: boolean | DepositoProductoCountOutputTypeCountImportacionesInicialesEstucheArgs
+    itemsSolicitud?: boolean | DepositoProductoCountOutputTypeCountItemsSolicitudArgs
   }
 
   // Custom InputTypes
@@ -5314,6 +5661,13 @@ export namespace Prisma {
     where?: ImportacionInicialEstucheItemWhereInput
   }
 
+  /**
+   * DepositoProductoCountOutputType without action
+   */
+  export type DepositoProductoCountOutputTypeCountItemsSolicitudArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ItemSolicitudWhereInput
+  }
+
 
   /**
    * Count Type ImportacionInicialEstucheBatchCountOutputType
@@ -5352,6 +5706,37 @@ export namespace Prisma {
    */
   export type ImportacionInicialEstucheBatchCountOutputTypeCountIdempotencyKeysArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ImportacionInicialEstucheIdempotencyKeyWhereInput
+  }
+
+
+  /**
+   * Count Type PartidaProduccionCountOutputType
+   */
+
+  export type PartidaProduccionCountOutputType = {
+    items: number
+  }
+
+  export type PartidaProduccionCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    items?: boolean | PartidaProduccionCountOutputTypeCountItemsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * PartidaProduccionCountOutputType without action
+   */
+  export type PartidaProduccionCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccionCountOutputType
+     */
+    select?: PartidaProduccionCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * PartidaProduccionCountOutputType without action
+   */
+  export type PartidaProduccionCountOutputTypeCountItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ItemSolicitudWhereInput
   }
 
 
@@ -12162,6 +12547,8 @@ export namespace Prisma {
     saldos?: boolean | Producto$saldosArgs<ExtArgs>
     projectionOutbox?: boolean | Producto$projectionOutboxArgs<ExtArgs>
     aliases?: boolean | Producto$aliasesArgs<ExtArgs>
+    sourceTransferRules?: boolean | Producto$sourceTransferRulesArgs<ExtArgs>
+    targetTransferRules?: boolean | Producto$targetTransferRulesArgs<ExtArgs>
     _count?: boolean | ProductoCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["producto"]>
 
@@ -12205,6 +12592,8 @@ export namespace Prisma {
     saldos?: boolean | Producto$saldosArgs<ExtArgs>
     projectionOutbox?: boolean | Producto$projectionOutboxArgs<ExtArgs>
     aliases?: boolean | Producto$aliasesArgs<ExtArgs>
+    sourceTransferRules?: boolean | Producto$sourceTransferRulesArgs<ExtArgs>
+    targetTransferRules?: boolean | Producto$targetTransferRulesArgs<ExtArgs>
     _count?: boolean | ProductoCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProductoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -12218,6 +12607,8 @@ export namespace Prisma {
       saldos: Prisma.$SaldoStockPayload<ExtArgs>[]
       projectionOutbox: Prisma.$StockProjectionOutboxPayload<ExtArgs>[]
       aliases: Prisma.$ProductAliasPayload<ExtArgs>[]
+      sourceTransferRules: Prisma.$ProductoTransferRulePayload<ExtArgs>[]
+      targetTransferRules: Prisma.$ProductoTransferRulePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -12627,6 +13018,8 @@ export namespace Prisma {
     saldos<T extends Producto$saldosArgs<ExtArgs> = {}>(args?: Subset<T, Producto$saldosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SaldoStockPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     projectionOutbox<T extends Producto$projectionOutboxArgs<ExtArgs> = {}>(args?: Subset<T, Producto$projectionOutboxArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StockProjectionOutboxPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     aliases<T extends Producto$aliasesArgs<ExtArgs> = {}>(args?: Subset<T, Producto$aliasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductAliasPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    sourceTransferRules<T extends Producto$sourceTransferRulesArgs<ExtArgs> = {}>(args?: Subset<T, Producto$sourceTransferRulesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    targetTransferRules<T extends Producto$targetTransferRulesArgs<ExtArgs> = {}>(args?: Subset<T, Producto$targetTransferRulesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -13174,6 +13567,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProductAliasScalarFieldEnum | ProductAliasScalarFieldEnum[]
+  }
+
+  /**
+   * Producto.sourceTransferRules
+   */
+  export type Producto$sourceTransferRulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    where?: ProductoTransferRuleWhereInput
+    orderBy?: ProductoTransferRuleOrderByWithRelationInput | ProductoTransferRuleOrderByWithRelationInput[]
+    cursor?: ProductoTransferRuleWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProductoTransferRuleScalarFieldEnum | ProductoTransferRuleScalarFieldEnum[]
+  }
+
+  /**
+   * Producto.targetTransferRules
+   */
+  export type Producto$targetTransferRulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    where?: ProductoTransferRuleWhereInput
+    orderBy?: ProductoTransferRuleOrderByWithRelationInput | ProductoTransferRuleOrderByWithRelationInput[]
+    cursor?: ProductoTransferRuleWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProductoTransferRuleScalarFieldEnum | ProductoTransferRuleScalarFieldEnum[]
   }
 
   /**
@@ -14303,6 +14744,7 @@ export namespace Prisma {
     fechaVencimiento: Date | null
     activo: boolean | null
     createdAt: Date | null
+    derivedFromLoteId: string | null
   }
 
   export type LoteMaxAggregateOutputType = {
@@ -14315,6 +14757,7 @@ export namespace Prisma {
     fechaVencimiento: Date | null
     activo: boolean | null
     createdAt: Date | null
+    derivedFromLoteId: string | null
   }
 
   export type LoteCountAggregateOutputType = {
@@ -14327,6 +14770,7 @@ export namespace Prisma {
     fechaVencimiento: number
     activo: number
     createdAt: number
+    derivedFromLoteId: number
     _all: number
   }
 
@@ -14351,6 +14795,7 @@ export namespace Prisma {
     fechaVencimiento?: true
     activo?: true
     createdAt?: true
+    derivedFromLoteId?: true
   }
 
   export type LoteMaxAggregateInputType = {
@@ -14363,6 +14808,7 @@ export namespace Prisma {
     fechaVencimiento?: true
     activo?: true
     createdAt?: true
+    derivedFromLoteId?: true
   }
 
   export type LoteCountAggregateInputType = {
@@ -14375,6 +14821,7 @@ export namespace Prisma {
     fechaVencimiento?: true
     activo?: true
     createdAt?: true
+    derivedFromLoteId?: true
     _all?: true
   }
 
@@ -14474,6 +14921,7 @@ export namespace Prisma {
     fechaVencimiento: Date | null
     activo: boolean
     createdAt: Date
+    derivedFromLoteId: string | null
     _count: LoteCountAggregateOutputType | null
     _avg: LoteAvgAggregateOutputType | null
     _sum: LoteSumAggregateOutputType | null
@@ -14505,7 +14953,10 @@ export namespace Prisma {
     fechaVencimiento?: boolean
     activo?: boolean
     createdAt?: boolean
+    derivedFromLoteId?: boolean
     producto?: boolean | ProductoDefaultArgs<ExtArgs>
+    derivedFromLote?: boolean | Lote$derivedFromLoteArgs<ExtArgs>
+    derivedLotes?: boolean | Lote$derivedLotesArgs<ExtArgs>
     reservas?: boolean | Lote$reservasArgs<ExtArgs>
     saldos?: boolean | Lote$saldosArgs<ExtArgs>
     _count?: boolean | LoteCountOutputTypeDefaultArgs<ExtArgs>
@@ -14521,7 +14972,9 @@ export namespace Prisma {
     fechaVencimiento?: boolean
     activo?: boolean
     createdAt?: boolean
+    derivedFromLoteId?: boolean
     producto?: boolean | ProductoDefaultArgs<ExtArgs>
+    derivedFromLote?: boolean | Lote$derivedFromLoteArgs<ExtArgs>
   }, ExtArgs["result"]["lote"]>
 
   export type LoteSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -14534,7 +14987,9 @@ export namespace Prisma {
     fechaVencimiento?: boolean
     activo?: boolean
     createdAt?: boolean
+    derivedFromLoteId?: boolean
     producto?: boolean | ProductoDefaultArgs<ExtArgs>
+    derivedFromLote?: boolean | Lote$derivedFromLoteArgs<ExtArgs>
   }, ExtArgs["result"]["lote"]>
 
   export type LoteSelectScalar = {
@@ -14547,26 +15002,33 @@ export namespace Prisma {
     fechaVencimiento?: boolean
     activo?: boolean
     createdAt?: boolean
+    derivedFromLoteId?: boolean
   }
 
-  export type LoteOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "numero" | "productoId" | "cajas" | "sueltos" | "fechaProduccion" | "fechaVencimiento" | "activo" | "createdAt", ExtArgs["result"]["lote"]>
+  export type LoteOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "numero" | "productoId" | "cajas" | "sueltos" | "fechaProduccion" | "fechaVencimiento" | "activo" | "createdAt" | "derivedFromLoteId", ExtArgs["result"]["lote"]>
   export type LoteInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     producto?: boolean | ProductoDefaultArgs<ExtArgs>
+    derivedFromLote?: boolean | Lote$derivedFromLoteArgs<ExtArgs>
+    derivedLotes?: boolean | Lote$derivedLotesArgs<ExtArgs>
     reservas?: boolean | Lote$reservasArgs<ExtArgs>
     saldos?: boolean | Lote$saldosArgs<ExtArgs>
     _count?: boolean | LoteCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type LoteIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     producto?: boolean | ProductoDefaultArgs<ExtArgs>
+    derivedFromLote?: boolean | Lote$derivedFromLoteArgs<ExtArgs>
   }
   export type LoteIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     producto?: boolean | ProductoDefaultArgs<ExtArgs>
+    derivedFromLote?: boolean | Lote$derivedFromLoteArgs<ExtArgs>
   }
 
   export type $LotePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Lote"
     objects: {
       producto: Prisma.$ProductoPayload<ExtArgs>
+      derivedFromLote: Prisma.$LotePayload<ExtArgs> | null
+      derivedLotes: Prisma.$LotePayload<ExtArgs>[]
       reservas: Prisma.$ReservaStockPayload<ExtArgs>[]
       saldos: Prisma.$SaldoStockPayload<ExtArgs>[]
     }
@@ -14580,6 +15042,7 @@ export namespace Prisma {
       fechaVencimiento: Date | null
       activo: boolean
       createdAt: Date
+      derivedFromLoteId: string | null
     }, ExtArgs["result"]["lote"]>
     composites: {}
   }
@@ -14975,6 +15438,8 @@ export namespace Prisma {
   export interface Prisma__LoteClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     producto<T extends ProductoDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProductoDefaultArgs<ExtArgs>>): Prisma__ProductoClient<$Result.GetResult<Prisma.$ProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    derivedFromLote<T extends Lote$derivedFromLoteArgs<ExtArgs> = {}>(args?: Subset<T, Lote$derivedFromLoteArgs<ExtArgs>>): Prisma__LoteClient<$Result.GetResult<Prisma.$LotePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    derivedLotes<T extends Lote$derivedLotesArgs<ExtArgs> = {}>(args?: Subset<T, Lote$derivedLotesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LotePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     reservas<T extends Lote$reservasArgs<ExtArgs> = {}>(args?: Subset<T, Lote$reservasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ReservaStockPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     saldos<T extends Lote$saldosArgs<ExtArgs> = {}>(args?: Subset<T, Lote$saldosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SaldoStockPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -15015,6 +15480,7 @@ export namespace Prisma {
     readonly fechaVencimiento: FieldRef<"Lote", 'DateTime'>
     readonly activo: FieldRef<"Lote", 'Boolean'>
     readonly createdAt: FieldRef<"Lote", 'DateTime'>
+    readonly derivedFromLoteId: FieldRef<"Lote", 'String'>
   }
     
 
@@ -15416,6 +15882,49 @@ export namespace Prisma {
   }
 
   /**
+   * Lote.derivedFromLote
+   */
+  export type Lote$derivedFromLoteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Lote
+     */
+    select?: LoteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Lote
+     */
+    omit?: LoteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoteInclude<ExtArgs> | null
+    where?: LoteWhereInput
+  }
+
+  /**
+   * Lote.derivedLotes
+   */
+  export type Lote$derivedLotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Lote
+     */
+    select?: LoteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Lote
+     */
+    omit?: LoteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LoteInclude<ExtArgs> | null
+    where?: LoteWhereInput
+    orderBy?: LoteOrderByWithRelationInput | LoteOrderByWithRelationInput[]
+    cursor?: LoteWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LoteScalarFieldEnum | LoteScalarFieldEnum[]
+  }
+
+  /**
    * Lote.reservas
    */
   export type Lote$reservasArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -15479,6 +15988,1163 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: LoteInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProductoTransferRule
+   */
+
+  export type AggregateProductoTransferRule = {
+    _count: ProductoTransferRuleCountAggregateOutputType | null
+    _avg: ProductoTransferRuleAvgAggregateOutputType | null
+    _sum: ProductoTransferRuleSumAggregateOutputType | null
+    _min: ProductoTransferRuleMinAggregateOutputType | null
+    _max: ProductoTransferRuleMaxAggregateOutputType | null
+  }
+
+  export type ProductoTransferRuleAvgAggregateOutputType = {
+    orden: number | null
+  }
+
+  export type ProductoTransferRuleSumAggregateOutputType = {
+    orden: number | null
+  }
+
+  export type ProductoTransferRuleMinAggregateOutputType = {
+    id: string | null
+    sourceProductId: string | null
+    targetProductId: string | null
+    label: string | null
+    tipo: $Enums.TipoReglaTransferenciaProducto | null
+    activo: boolean | null
+    orden: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProductoTransferRuleMaxAggregateOutputType = {
+    id: string | null
+    sourceProductId: string | null
+    targetProductId: string | null
+    label: string | null
+    tipo: $Enums.TipoReglaTransferenciaProducto | null
+    activo: boolean | null
+    orden: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProductoTransferRuleCountAggregateOutputType = {
+    id: number
+    sourceProductId: number
+    targetProductId: number
+    label: number
+    tipo: number
+    activo: number
+    orden: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProductoTransferRuleAvgAggregateInputType = {
+    orden?: true
+  }
+
+  export type ProductoTransferRuleSumAggregateInputType = {
+    orden?: true
+  }
+
+  export type ProductoTransferRuleMinAggregateInputType = {
+    id?: true
+    sourceProductId?: true
+    targetProductId?: true
+    label?: true
+    tipo?: true
+    activo?: true
+    orden?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProductoTransferRuleMaxAggregateInputType = {
+    id?: true
+    sourceProductId?: true
+    targetProductId?: true
+    label?: true
+    tipo?: true
+    activo?: true
+    orden?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProductoTransferRuleCountAggregateInputType = {
+    id?: true
+    sourceProductId?: true
+    targetProductId?: true
+    label?: true
+    tipo?: true
+    activo?: true
+    orden?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProductoTransferRuleAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProductoTransferRule to aggregate.
+     */
+    where?: ProductoTransferRuleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProductoTransferRules to fetch.
+     */
+    orderBy?: ProductoTransferRuleOrderByWithRelationInput | ProductoTransferRuleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProductoTransferRuleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProductoTransferRules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProductoTransferRules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProductoTransferRules
+    **/
+    _count?: true | ProductoTransferRuleCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProductoTransferRuleAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProductoTransferRuleSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProductoTransferRuleMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProductoTransferRuleMaxAggregateInputType
+  }
+
+  export type GetProductoTransferRuleAggregateType<T extends ProductoTransferRuleAggregateArgs> = {
+        [P in keyof T & keyof AggregateProductoTransferRule]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProductoTransferRule[P]>
+      : GetScalarType<T[P], AggregateProductoTransferRule[P]>
+  }
+
+
+
+
+  export type ProductoTransferRuleGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProductoTransferRuleWhereInput
+    orderBy?: ProductoTransferRuleOrderByWithAggregationInput | ProductoTransferRuleOrderByWithAggregationInput[]
+    by: ProductoTransferRuleScalarFieldEnum[] | ProductoTransferRuleScalarFieldEnum
+    having?: ProductoTransferRuleScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProductoTransferRuleCountAggregateInputType | true
+    _avg?: ProductoTransferRuleAvgAggregateInputType
+    _sum?: ProductoTransferRuleSumAggregateInputType
+    _min?: ProductoTransferRuleMinAggregateInputType
+    _max?: ProductoTransferRuleMaxAggregateInputType
+  }
+
+  export type ProductoTransferRuleGroupByOutputType = {
+    id: string
+    sourceProductId: string
+    targetProductId: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo: boolean
+    orden: number
+    createdAt: Date
+    updatedAt: Date
+    _count: ProductoTransferRuleCountAggregateOutputType | null
+    _avg: ProductoTransferRuleAvgAggregateOutputType | null
+    _sum: ProductoTransferRuleSumAggregateOutputType | null
+    _min: ProductoTransferRuleMinAggregateOutputType | null
+    _max: ProductoTransferRuleMaxAggregateOutputType | null
+  }
+
+  type GetProductoTransferRuleGroupByPayload<T extends ProductoTransferRuleGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProductoTransferRuleGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProductoTransferRuleGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProductoTransferRuleGroupByOutputType[P]>
+            : GetScalarType<T[P], ProductoTransferRuleGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProductoTransferRuleSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceProductId?: boolean
+    targetProductId?: boolean
+    label?: boolean
+    tipo?: boolean
+    activo?: boolean
+    orden?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    sourceProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+    targetProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["productoTransferRule"]>
+
+  export type ProductoTransferRuleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceProductId?: boolean
+    targetProductId?: boolean
+    label?: boolean
+    tipo?: boolean
+    activo?: boolean
+    orden?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    sourceProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+    targetProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["productoTransferRule"]>
+
+  export type ProductoTransferRuleSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    sourceProductId?: boolean
+    targetProductId?: boolean
+    label?: boolean
+    tipo?: boolean
+    activo?: boolean
+    orden?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    sourceProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+    targetProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["productoTransferRule"]>
+
+  export type ProductoTransferRuleSelectScalar = {
+    id?: boolean
+    sourceProductId?: boolean
+    targetProductId?: boolean
+    label?: boolean
+    tipo?: boolean
+    activo?: boolean
+    orden?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProductoTransferRuleOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "sourceProductId" | "targetProductId" | "label" | "tipo" | "activo" | "orden" | "createdAt" | "updatedAt", ExtArgs["result"]["productoTransferRule"]>
+  export type ProductoTransferRuleInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourceProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+    targetProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+  }
+  export type ProductoTransferRuleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourceProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+    targetProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+  }
+  export type ProductoTransferRuleIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    sourceProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+    targetProduct?: boolean | ProductoDefaultArgs<ExtArgs>
+  }
+
+  export type $ProductoTransferRulePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProductoTransferRule"
+    objects: {
+      sourceProduct: Prisma.$ProductoPayload<ExtArgs>
+      targetProduct: Prisma.$ProductoPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      sourceProductId: string
+      targetProductId: string
+      label: string
+      tipo: $Enums.TipoReglaTransferenciaProducto
+      activo: boolean
+      orden: number
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["productoTransferRule"]>
+    composites: {}
+  }
+
+  type ProductoTransferRuleGetPayload<S extends boolean | null | undefined | ProductoTransferRuleDefaultArgs> = $Result.GetResult<Prisma.$ProductoTransferRulePayload, S>
+
+  type ProductoTransferRuleCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProductoTransferRuleFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProductoTransferRuleCountAggregateInputType | true
+    }
+
+  export interface ProductoTransferRuleDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProductoTransferRule'], meta: { name: 'ProductoTransferRule' } }
+    /**
+     * Find zero or one ProductoTransferRule that matches the filter.
+     * @param {ProductoTransferRuleFindUniqueArgs} args - Arguments to find a ProductoTransferRule
+     * @example
+     * // Get one ProductoTransferRule
+     * const productoTransferRule = await prisma.productoTransferRule.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProductoTransferRuleFindUniqueArgs>(args: SelectSubset<T, ProductoTransferRuleFindUniqueArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProductoTransferRule that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProductoTransferRuleFindUniqueOrThrowArgs} args - Arguments to find a ProductoTransferRule
+     * @example
+     * // Get one ProductoTransferRule
+     * const productoTransferRule = await prisma.productoTransferRule.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProductoTransferRuleFindUniqueOrThrowArgs>(args: SelectSubset<T, ProductoTransferRuleFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProductoTransferRule that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProductoTransferRuleFindFirstArgs} args - Arguments to find a ProductoTransferRule
+     * @example
+     * // Get one ProductoTransferRule
+     * const productoTransferRule = await prisma.productoTransferRule.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProductoTransferRuleFindFirstArgs>(args?: SelectSubset<T, ProductoTransferRuleFindFirstArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProductoTransferRule that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProductoTransferRuleFindFirstOrThrowArgs} args - Arguments to find a ProductoTransferRule
+     * @example
+     * // Get one ProductoTransferRule
+     * const productoTransferRule = await prisma.productoTransferRule.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProductoTransferRuleFindFirstOrThrowArgs>(args?: SelectSubset<T, ProductoTransferRuleFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProductoTransferRules that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProductoTransferRuleFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProductoTransferRules
+     * const productoTransferRules = await prisma.productoTransferRule.findMany()
+     * 
+     * // Get first 10 ProductoTransferRules
+     * const productoTransferRules = await prisma.productoTransferRule.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const productoTransferRuleWithIdOnly = await prisma.productoTransferRule.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProductoTransferRuleFindManyArgs>(args?: SelectSubset<T, ProductoTransferRuleFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProductoTransferRule.
+     * @param {ProductoTransferRuleCreateArgs} args - Arguments to create a ProductoTransferRule.
+     * @example
+     * // Create one ProductoTransferRule
+     * const ProductoTransferRule = await prisma.productoTransferRule.create({
+     *   data: {
+     *     // ... data to create a ProductoTransferRule
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProductoTransferRuleCreateArgs>(args: SelectSubset<T, ProductoTransferRuleCreateArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProductoTransferRules.
+     * @param {ProductoTransferRuleCreateManyArgs} args - Arguments to create many ProductoTransferRules.
+     * @example
+     * // Create many ProductoTransferRules
+     * const productoTransferRule = await prisma.productoTransferRule.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProductoTransferRuleCreateManyArgs>(args?: SelectSubset<T, ProductoTransferRuleCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProductoTransferRules and returns the data saved in the database.
+     * @param {ProductoTransferRuleCreateManyAndReturnArgs} args - Arguments to create many ProductoTransferRules.
+     * @example
+     * // Create many ProductoTransferRules
+     * const productoTransferRule = await prisma.productoTransferRule.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProductoTransferRules and only return the `id`
+     * const productoTransferRuleWithIdOnly = await prisma.productoTransferRule.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProductoTransferRuleCreateManyAndReturnArgs>(args?: SelectSubset<T, ProductoTransferRuleCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProductoTransferRule.
+     * @param {ProductoTransferRuleDeleteArgs} args - Arguments to delete one ProductoTransferRule.
+     * @example
+     * // Delete one ProductoTransferRule
+     * const ProductoTransferRule = await prisma.productoTransferRule.delete({
+     *   where: {
+     *     // ... filter to delete one ProductoTransferRule
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProductoTransferRuleDeleteArgs>(args: SelectSubset<T, ProductoTransferRuleDeleteArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProductoTransferRule.
+     * @param {ProductoTransferRuleUpdateArgs} args - Arguments to update one ProductoTransferRule.
+     * @example
+     * // Update one ProductoTransferRule
+     * const productoTransferRule = await prisma.productoTransferRule.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProductoTransferRuleUpdateArgs>(args: SelectSubset<T, ProductoTransferRuleUpdateArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProductoTransferRules.
+     * @param {ProductoTransferRuleDeleteManyArgs} args - Arguments to filter ProductoTransferRules to delete.
+     * @example
+     * // Delete a few ProductoTransferRules
+     * const { count } = await prisma.productoTransferRule.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProductoTransferRuleDeleteManyArgs>(args?: SelectSubset<T, ProductoTransferRuleDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProductoTransferRules.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProductoTransferRuleUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProductoTransferRules
+     * const productoTransferRule = await prisma.productoTransferRule.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProductoTransferRuleUpdateManyArgs>(args: SelectSubset<T, ProductoTransferRuleUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProductoTransferRules and returns the data updated in the database.
+     * @param {ProductoTransferRuleUpdateManyAndReturnArgs} args - Arguments to update many ProductoTransferRules.
+     * @example
+     * // Update many ProductoTransferRules
+     * const productoTransferRule = await prisma.productoTransferRule.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProductoTransferRules and only return the `id`
+     * const productoTransferRuleWithIdOnly = await prisma.productoTransferRule.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProductoTransferRuleUpdateManyAndReturnArgs>(args: SelectSubset<T, ProductoTransferRuleUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProductoTransferRule.
+     * @param {ProductoTransferRuleUpsertArgs} args - Arguments to update or create a ProductoTransferRule.
+     * @example
+     * // Update or create a ProductoTransferRule
+     * const productoTransferRule = await prisma.productoTransferRule.upsert({
+     *   create: {
+     *     // ... data to create a ProductoTransferRule
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProductoTransferRule we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProductoTransferRuleUpsertArgs>(args: SelectSubset<T, ProductoTransferRuleUpsertArgs<ExtArgs>>): Prisma__ProductoTransferRuleClient<$Result.GetResult<Prisma.$ProductoTransferRulePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProductoTransferRules.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProductoTransferRuleCountArgs} args - Arguments to filter ProductoTransferRules to count.
+     * @example
+     * // Count the number of ProductoTransferRules
+     * const count = await prisma.productoTransferRule.count({
+     *   where: {
+     *     // ... the filter for the ProductoTransferRules we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProductoTransferRuleCountArgs>(
+      args?: Subset<T, ProductoTransferRuleCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProductoTransferRuleCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProductoTransferRule.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProductoTransferRuleAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProductoTransferRuleAggregateArgs>(args: Subset<T, ProductoTransferRuleAggregateArgs>): Prisma.PrismaPromise<GetProductoTransferRuleAggregateType<T>>
+
+    /**
+     * Group by ProductoTransferRule.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProductoTransferRuleGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProductoTransferRuleGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProductoTransferRuleGroupByArgs['orderBy'] }
+        : { orderBy?: ProductoTransferRuleGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProductoTransferRuleGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProductoTransferRuleGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProductoTransferRule model
+   */
+  readonly fields: ProductoTransferRuleFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProductoTransferRule.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProductoTransferRuleClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    sourceProduct<T extends ProductoDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProductoDefaultArgs<ExtArgs>>): Prisma__ProductoClient<$Result.GetResult<Prisma.$ProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    targetProduct<T extends ProductoDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProductoDefaultArgs<ExtArgs>>): Prisma__ProductoClient<$Result.GetResult<Prisma.$ProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProductoTransferRule model
+   */
+  interface ProductoTransferRuleFieldRefs {
+    readonly id: FieldRef<"ProductoTransferRule", 'String'>
+    readonly sourceProductId: FieldRef<"ProductoTransferRule", 'String'>
+    readonly targetProductId: FieldRef<"ProductoTransferRule", 'String'>
+    readonly label: FieldRef<"ProductoTransferRule", 'String'>
+    readonly tipo: FieldRef<"ProductoTransferRule", 'TipoReglaTransferenciaProducto'>
+    readonly activo: FieldRef<"ProductoTransferRule", 'Boolean'>
+    readonly orden: FieldRef<"ProductoTransferRule", 'Int'>
+    readonly createdAt: FieldRef<"ProductoTransferRule", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProductoTransferRule", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProductoTransferRule findUnique
+   */
+  export type ProductoTransferRuleFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * Filter, which ProductoTransferRule to fetch.
+     */
+    where: ProductoTransferRuleWhereUniqueInput
+  }
+
+  /**
+   * ProductoTransferRule findUniqueOrThrow
+   */
+  export type ProductoTransferRuleFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * Filter, which ProductoTransferRule to fetch.
+     */
+    where: ProductoTransferRuleWhereUniqueInput
+  }
+
+  /**
+   * ProductoTransferRule findFirst
+   */
+  export type ProductoTransferRuleFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * Filter, which ProductoTransferRule to fetch.
+     */
+    where?: ProductoTransferRuleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProductoTransferRules to fetch.
+     */
+    orderBy?: ProductoTransferRuleOrderByWithRelationInput | ProductoTransferRuleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProductoTransferRules.
+     */
+    cursor?: ProductoTransferRuleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProductoTransferRules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProductoTransferRules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProductoTransferRules.
+     */
+    distinct?: ProductoTransferRuleScalarFieldEnum | ProductoTransferRuleScalarFieldEnum[]
+  }
+
+  /**
+   * ProductoTransferRule findFirstOrThrow
+   */
+  export type ProductoTransferRuleFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * Filter, which ProductoTransferRule to fetch.
+     */
+    where?: ProductoTransferRuleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProductoTransferRules to fetch.
+     */
+    orderBy?: ProductoTransferRuleOrderByWithRelationInput | ProductoTransferRuleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProductoTransferRules.
+     */
+    cursor?: ProductoTransferRuleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProductoTransferRules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProductoTransferRules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProductoTransferRules.
+     */
+    distinct?: ProductoTransferRuleScalarFieldEnum | ProductoTransferRuleScalarFieldEnum[]
+  }
+
+  /**
+   * ProductoTransferRule findMany
+   */
+  export type ProductoTransferRuleFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * Filter, which ProductoTransferRules to fetch.
+     */
+    where?: ProductoTransferRuleWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProductoTransferRules to fetch.
+     */
+    orderBy?: ProductoTransferRuleOrderByWithRelationInput | ProductoTransferRuleOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProductoTransferRules.
+     */
+    cursor?: ProductoTransferRuleWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProductoTransferRules from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProductoTransferRules.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProductoTransferRules.
+     */
+    distinct?: ProductoTransferRuleScalarFieldEnum | ProductoTransferRuleScalarFieldEnum[]
+  }
+
+  /**
+   * ProductoTransferRule create
+   */
+  export type ProductoTransferRuleCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProductoTransferRule.
+     */
+    data: XOR<ProductoTransferRuleCreateInput, ProductoTransferRuleUncheckedCreateInput>
+  }
+
+  /**
+   * ProductoTransferRule createMany
+   */
+  export type ProductoTransferRuleCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProductoTransferRules.
+     */
+    data: ProductoTransferRuleCreateManyInput | ProductoTransferRuleCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProductoTransferRule createManyAndReturn
+   */
+  export type ProductoTransferRuleCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProductoTransferRules.
+     */
+    data: ProductoTransferRuleCreateManyInput | ProductoTransferRuleCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProductoTransferRule update
+   */
+  export type ProductoTransferRuleUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProductoTransferRule.
+     */
+    data: XOR<ProductoTransferRuleUpdateInput, ProductoTransferRuleUncheckedUpdateInput>
+    /**
+     * Choose, which ProductoTransferRule to update.
+     */
+    where: ProductoTransferRuleWhereUniqueInput
+  }
+
+  /**
+   * ProductoTransferRule updateMany
+   */
+  export type ProductoTransferRuleUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProductoTransferRules.
+     */
+    data: XOR<ProductoTransferRuleUpdateManyMutationInput, ProductoTransferRuleUncheckedUpdateManyInput>
+    /**
+     * Filter which ProductoTransferRules to update
+     */
+    where?: ProductoTransferRuleWhereInput
+    /**
+     * Limit how many ProductoTransferRules to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProductoTransferRule updateManyAndReturn
+   */
+  export type ProductoTransferRuleUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * The data used to update ProductoTransferRules.
+     */
+    data: XOR<ProductoTransferRuleUpdateManyMutationInput, ProductoTransferRuleUncheckedUpdateManyInput>
+    /**
+     * Filter which ProductoTransferRules to update
+     */
+    where?: ProductoTransferRuleWhereInput
+    /**
+     * Limit how many ProductoTransferRules to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProductoTransferRule upsert
+   */
+  export type ProductoTransferRuleUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProductoTransferRule to update in case it exists.
+     */
+    where: ProductoTransferRuleWhereUniqueInput
+    /**
+     * In case the ProductoTransferRule found by the `where` argument doesn't exist, create a new ProductoTransferRule with this data.
+     */
+    create: XOR<ProductoTransferRuleCreateInput, ProductoTransferRuleUncheckedCreateInput>
+    /**
+     * In case the ProductoTransferRule was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProductoTransferRuleUpdateInput, ProductoTransferRuleUncheckedUpdateInput>
+  }
+
+  /**
+   * ProductoTransferRule delete
+   */
+  export type ProductoTransferRuleDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
+    /**
+     * Filter which ProductoTransferRule to delete.
+     */
+    where: ProductoTransferRuleWhereUniqueInput
+  }
+
+  /**
+   * ProductoTransferRule deleteMany
+   */
+  export type ProductoTransferRuleDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProductoTransferRules to delete
+     */
+    where?: ProductoTransferRuleWhereInput
+    /**
+     * Limit how many ProductoTransferRules to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProductoTransferRule without action
+   */
+  export type ProductoTransferRuleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProductoTransferRule
+     */
+    select?: ProductoTransferRuleSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProductoTransferRule
+     */
+    omit?: ProductoTransferRuleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProductoTransferRuleInclude<ExtArgs> | null
   }
 
 
@@ -31004,6 +32670,8 @@ export namespace Prisma {
     ordenesComoAprobador?: boolean | User$ordenesComoAprobadorArgs<ExtArgs>
     auditoriasCatalogo?: boolean | User$auditoriasCatalogoArgs<ExtArgs>
     importacionesInicialesEstuche?: boolean | User$importacionesInicialesEstucheArgs<ExtArgs>
+    partidasSolicitadas?: boolean | User$partidasSolicitadasArgs<ExtArgs>
+    partidasConfirmadas?: boolean | User$partidasConfirmadasArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -31046,6 +32714,8 @@ export namespace Prisma {
     ordenesComoAprobador?: boolean | User$ordenesComoAprobadorArgs<ExtArgs>
     auditoriasCatalogo?: boolean | User$auditoriasCatalogoArgs<ExtArgs>
     importacionesInicialesEstuche?: boolean | User$importacionesInicialesEstucheArgs<ExtArgs>
+    partidasSolicitadas?: boolean | User$partidasSolicitadasArgs<ExtArgs>
+    partidasConfirmadas?: boolean | User$partidasConfirmadasArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -31061,6 +32731,8 @@ export namespace Prisma {
       ordenesComoAprobador: Prisma.$OrdenProduccionPayload<ExtArgs>[]
       auditoriasCatalogo: Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>[]
       importacionesInicialesEstuche: Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>[]
+      partidasSolicitadas: Prisma.$PartidaProduccionPayload<ExtArgs>[]
+      partidasConfirmadas: Prisma.$PartidaProduccionPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -31471,6 +33143,8 @@ export namespace Prisma {
     ordenesComoAprobador<T extends User$ordenesComoAprobadorArgs<ExtArgs> = {}>(args?: Subset<T, User$ordenesComoAprobadorArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrdenProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditoriasCatalogo<T extends User$auditoriasCatalogoArgs<ExtArgs> = {}>(args?: Subset<T, User$auditoriasCatalogoArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importacionesInicialesEstuche<T extends User$importacionesInicialesEstucheArgs<ExtArgs> = {}>(args?: Subset<T, User$importacionesInicialesEstucheArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheBatchPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    partidasSolicitadas<T extends User$partidasSolicitadasArgs<ExtArgs> = {}>(args?: Subset<T, User$partidasSolicitadasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    partidasConfirmadas<T extends User$partidasConfirmadasArgs<ExtArgs> = {}>(args?: Subset<T, User$partidasConfirmadasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -32065,6 +33739,54 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ImportacionInicialEstucheBatchScalarFieldEnum | ImportacionInicialEstucheBatchScalarFieldEnum[]
+  }
+
+  /**
+   * User.partidasSolicitadas
+   */
+  export type User$partidasSolicitadasArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    where?: PartidaProduccionWhereInput
+    orderBy?: PartidaProduccionOrderByWithRelationInput | PartidaProduccionOrderByWithRelationInput[]
+    cursor?: PartidaProduccionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PartidaProduccionScalarFieldEnum | PartidaProduccionScalarFieldEnum[]
+  }
+
+  /**
+   * User.partidasConfirmadas
+   */
+  export type User$partidasConfirmadasArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    where?: PartidaProduccionWhereInput
+    orderBy?: PartidaProduccionOrderByWithRelationInput | PartidaProduccionOrderByWithRelationInput[]
+    cursor?: PartidaProduccionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PartidaProduccionScalarFieldEnum | PartidaProduccionScalarFieldEnum[]
   }
 
   /**
@@ -43399,7 +45121,7 @@ export namespace Prisma {
     readonly categoria: FieldRef<"OrdenProduccion", 'Categoria'>
     readonly productoNombre: FieldRef<"OrdenProduccion", 'String'>
     readonly mercado: FieldRef<"OrdenProduccion", 'Mercado'>
-    readonly cantidad: FieldRef<"OrdenProduccion", 'Int'>
+    readonly cantidad: FieldRef<"OrdenProduccion", 'Float'>
     readonly urgencia: FieldRef<"OrdenProduccion", 'Urgencia'>
     readonly estado: FieldRef<"OrdenProduccion", 'EstadoOrden'>
     readonly motivoRechazo: FieldRef<"OrdenProduccion", 'String'>
@@ -44169,6 +45891,7 @@ export namespace Prisma {
     auditoriasCatalogo?: boolean | DepositoProducto$auditoriasCatalogoArgs<ExtArgs>
     movimientos?: boolean | DepositoProducto$movimientosArgs<ExtArgs>
     importacionesInicialesEstuche?: boolean | DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>
+    itemsSolicitud?: boolean | DepositoProducto$itemsSolicitudArgs<ExtArgs>
     _count?: boolean | DepositoProductoCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["depositoProducto"]>
 
@@ -44243,6 +45966,7 @@ export namespace Prisma {
     auditoriasCatalogo?: boolean | DepositoProducto$auditoriasCatalogoArgs<ExtArgs>
     movimientos?: boolean | DepositoProducto$movimientosArgs<ExtArgs>
     importacionesInicialesEstuche?: boolean | DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>
+    itemsSolicitud?: boolean | DepositoProducto$itemsSolicitudArgs<ExtArgs>
     _count?: boolean | DepositoProductoCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DepositoProductoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -44260,6 +45984,7 @@ export namespace Prisma {
       auditoriasCatalogo: Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>[]
       movimientos: Prisma.$MovimientoPayload<ExtArgs>[]
       importacionesInicialesEstuche: Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>[]
+      itemsSolicitud: Prisma.$ItemSolicitudPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -44682,6 +46407,7 @@ export namespace Prisma {
     auditoriasCatalogo<T extends DepositoProducto$auditoriasCatalogoArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$auditoriasCatalogoArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     movimientos<T extends DepositoProducto$movimientosArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$movimientosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importacionesInicialesEstuche<T extends DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    itemsSolicitud<T extends DepositoProducto$itemsSolicitudArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$itemsSolicitudArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -45334,6 +47060,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ImportacionInicialEstucheItemScalarFieldEnum | ImportacionInicialEstucheItemScalarFieldEnum[]
+  }
+
+  /**
+   * DepositoProducto.itemsSolicitud
+   */
+  export type DepositoProducto$itemsSolicitudArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    where?: ItemSolicitudWhereInput
+    orderBy?: ItemSolicitudOrderByWithRelationInput | ItemSolicitudOrderByWithRelationInput[]
+    cursor?: ItemSolicitudWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ItemSolicitudScalarFieldEnum | ItemSolicitudScalarFieldEnum[]
   }
 
   /**
@@ -51739,6 +53489,2287 @@ export namespace Prisma {
 
 
   /**
+   * Model PartidaProduccion
+   */
+
+  export type AggregatePartidaProduccion = {
+    _count: PartidaProduccionCountAggregateOutputType | null
+    _min: PartidaProduccionMinAggregateOutputType | null
+    _max: PartidaProduccionMaxAggregateOutputType | null
+  }
+
+  export type PartidaProduccionMinAggregateOutputType = {
+    id: string | null
+    solicitanteId: string | null
+    confirmadoPorId: string | null
+    confirmadoAt: Date | null
+    estado: $Enums.EstadoPartida | null
+    notas: string | null
+    motivoRechazo: string | null
+    createdAt: Date | null
+  }
+
+  export type PartidaProduccionMaxAggregateOutputType = {
+    id: string | null
+    solicitanteId: string | null
+    confirmadoPorId: string | null
+    confirmadoAt: Date | null
+    estado: $Enums.EstadoPartida | null
+    notas: string | null
+    motivoRechazo: string | null
+    createdAt: Date | null
+  }
+
+  export type PartidaProduccionCountAggregateOutputType = {
+    id: number
+    solicitanteId: number
+    confirmadoPorId: number
+    confirmadoAt: number
+    estado: number
+    notas: number
+    motivoRechazo: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type PartidaProduccionMinAggregateInputType = {
+    id?: true
+    solicitanteId?: true
+    confirmadoPorId?: true
+    confirmadoAt?: true
+    estado?: true
+    notas?: true
+    motivoRechazo?: true
+    createdAt?: true
+  }
+
+  export type PartidaProduccionMaxAggregateInputType = {
+    id?: true
+    solicitanteId?: true
+    confirmadoPorId?: true
+    confirmadoAt?: true
+    estado?: true
+    notas?: true
+    motivoRechazo?: true
+    createdAt?: true
+  }
+
+  export type PartidaProduccionCountAggregateInputType = {
+    id?: true
+    solicitanteId?: true
+    confirmadoPorId?: true
+    confirmadoAt?: true
+    estado?: true
+    notas?: true
+    motivoRechazo?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type PartidaProduccionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartidaProduccion to aggregate.
+     */
+    where?: PartidaProduccionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartidaProduccions to fetch.
+     */
+    orderBy?: PartidaProduccionOrderByWithRelationInput | PartidaProduccionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PartidaProduccionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartidaProduccions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartidaProduccions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PartidaProduccions
+    **/
+    _count?: true | PartidaProduccionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PartidaProduccionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PartidaProduccionMaxAggregateInputType
+  }
+
+  export type GetPartidaProduccionAggregateType<T extends PartidaProduccionAggregateArgs> = {
+        [P in keyof T & keyof AggregatePartidaProduccion]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePartidaProduccion[P]>
+      : GetScalarType<T[P], AggregatePartidaProduccion[P]>
+  }
+
+
+
+
+  export type PartidaProduccionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PartidaProduccionWhereInput
+    orderBy?: PartidaProduccionOrderByWithAggregationInput | PartidaProduccionOrderByWithAggregationInput[]
+    by: PartidaProduccionScalarFieldEnum[] | PartidaProduccionScalarFieldEnum
+    having?: PartidaProduccionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PartidaProduccionCountAggregateInputType | true
+    _min?: PartidaProduccionMinAggregateInputType
+    _max?: PartidaProduccionMaxAggregateInputType
+  }
+
+  export type PartidaProduccionGroupByOutputType = {
+    id: string
+    solicitanteId: string
+    confirmadoPorId: string | null
+    confirmadoAt: Date | null
+    estado: $Enums.EstadoPartida
+    notas: string | null
+    motivoRechazo: string | null
+    createdAt: Date
+    _count: PartidaProduccionCountAggregateOutputType | null
+    _min: PartidaProduccionMinAggregateOutputType | null
+    _max: PartidaProduccionMaxAggregateOutputType | null
+  }
+
+  type GetPartidaProduccionGroupByPayload<T extends PartidaProduccionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PartidaProduccionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PartidaProduccionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PartidaProduccionGroupByOutputType[P]>
+            : GetScalarType<T[P], PartidaProduccionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PartidaProduccionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    solicitanteId?: boolean
+    confirmadoPorId?: boolean
+    confirmadoAt?: boolean
+    estado?: boolean
+    notas?: boolean
+    motivoRechazo?: boolean
+    createdAt?: boolean
+    solicitante?: boolean | UserDefaultArgs<ExtArgs>
+    confirmadoPor?: boolean | PartidaProduccion$confirmadoPorArgs<ExtArgs>
+    items?: boolean | PartidaProduccion$itemsArgs<ExtArgs>
+    _count?: boolean | PartidaProduccionCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["partidaProduccion"]>
+
+  export type PartidaProduccionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    solicitanteId?: boolean
+    confirmadoPorId?: boolean
+    confirmadoAt?: boolean
+    estado?: boolean
+    notas?: boolean
+    motivoRechazo?: boolean
+    createdAt?: boolean
+    solicitante?: boolean | UserDefaultArgs<ExtArgs>
+    confirmadoPor?: boolean | PartidaProduccion$confirmadoPorArgs<ExtArgs>
+  }, ExtArgs["result"]["partidaProduccion"]>
+
+  export type PartidaProduccionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    solicitanteId?: boolean
+    confirmadoPorId?: boolean
+    confirmadoAt?: boolean
+    estado?: boolean
+    notas?: boolean
+    motivoRechazo?: boolean
+    createdAt?: boolean
+    solicitante?: boolean | UserDefaultArgs<ExtArgs>
+    confirmadoPor?: boolean | PartidaProduccion$confirmadoPorArgs<ExtArgs>
+  }, ExtArgs["result"]["partidaProduccion"]>
+
+  export type PartidaProduccionSelectScalar = {
+    id?: boolean
+    solicitanteId?: boolean
+    confirmadoPorId?: boolean
+    confirmadoAt?: boolean
+    estado?: boolean
+    notas?: boolean
+    motivoRechazo?: boolean
+    createdAt?: boolean
+  }
+
+  export type PartidaProduccionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "solicitanteId" | "confirmadoPorId" | "confirmadoAt" | "estado" | "notas" | "motivoRechazo" | "createdAt", ExtArgs["result"]["partidaProduccion"]>
+  export type PartidaProduccionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    solicitante?: boolean | UserDefaultArgs<ExtArgs>
+    confirmadoPor?: boolean | PartidaProduccion$confirmadoPorArgs<ExtArgs>
+    items?: boolean | PartidaProduccion$itemsArgs<ExtArgs>
+    _count?: boolean | PartidaProduccionCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type PartidaProduccionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    solicitante?: boolean | UserDefaultArgs<ExtArgs>
+    confirmadoPor?: boolean | PartidaProduccion$confirmadoPorArgs<ExtArgs>
+  }
+  export type PartidaProduccionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    solicitante?: boolean | UserDefaultArgs<ExtArgs>
+    confirmadoPor?: boolean | PartidaProduccion$confirmadoPorArgs<ExtArgs>
+  }
+
+  export type $PartidaProduccionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PartidaProduccion"
+    objects: {
+      solicitante: Prisma.$UserPayload<ExtArgs>
+      confirmadoPor: Prisma.$UserPayload<ExtArgs> | null
+      items: Prisma.$ItemSolicitudPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      solicitanteId: string
+      confirmadoPorId: string | null
+      confirmadoAt: Date | null
+      estado: $Enums.EstadoPartida
+      notas: string | null
+      motivoRechazo: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["partidaProduccion"]>
+    composites: {}
+  }
+
+  type PartidaProduccionGetPayload<S extends boolean | null | undefined | PartidaProduccionDefaultArgs> = $Result.GetResult<Prisma.$PartidaProduccionPayload, S>
+
+  type PartidaProduccionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<PartidaProduccionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: PartidaProduccionCountAggregateInputType | true
+    }
+
+  export interface PartidaProduccionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PartidaProduccion'], meta: { name: 'PartidaProduccion' } }
+    /**
+     * Find zero or one PartidaProduccion that matches the filter.
+     * @param {PartidaProduccionFindUniqueArgs} args - Arguments to find a PartidaProduccion
+     * @example
+     * // Get one PartidaProduccion
+     * const partidaProduccion = await prisma.partidaProduccion.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PartidaProduccionFindUniqueArgs>(args: SelectSubset<T, PartidaProduccionFindUniqueArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one PartidaProduccion that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {PartidaProduccionFindUniqueOrThrowArgs} args - Arguments to find a PartidaProduccion
+     * @example
+     * // Get one PartidaProduccion
+     * const partidaProduccion = await prisma.partidaProduccion.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PartidaProduccionFindUniqueOrThrowArgs>(args: SelectSubset<T, PartidaProduccionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PartidaProduccion that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartidaProduccionFindFirstArgs} args - Arguments to find a PartidaProduccion
+     * @example
+     * // Get one PartidaProduccion
+     * const partidaProduccion = await prisma.partidaProduccion.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PartidaProduccionFindFirstArgs>(args?: SelectSubset<T, PartidaProduccionFindFirstArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first PartidaProduccion that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartidaProduccionFindFirstOrThrowArgs} args - Arguments to find a PartidaProduccion
+     * @example
+     * // Get one PartidaProduccion
+     * const partidaProduccion = await prisma.partidaProduccion.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PartidaProduccionFindFirstOrThrowArgs>(args?: SelectSubset<T, PartidaProduccionFindFirstOrThrowArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more PartidaProduccions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartidaProduccionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PartidaProduccions
+     * const partidaProduccions = await prisma.partidaProduccion.findMany()
+     * 
+     * // Get first 10 PartidaProduccions
+     * const partidaProduccions = await prisma.partidaProduccion.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const partidaProduccionWithIdOnly = await prisma.partidaProduccion.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PartidaProduccionFindManyArgs>(args?: SelectSubset<T, PartidaProduccionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a PartidaProduccion.
+     * @param {PartidaProduccionCreateArgs} args - Arguments to create a PartidaProduccion.
+     * @example
+     * // Create one PartidaProduccion
+     * const PartidaProduccion = await prisma.partidaProduccion.create({
+     *   data: {
+     *     // ... data to create a PartidaProduccion
+     *   }
+     * })
+     * 
+     */
+    create<T extends PartidaProduccionCreateArgs>(args: SelectSubset<T, PartidaProduccionCreateArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many PartidaProduccions.
+     * @param {PartidaProduccionCreateManyArgs} args - Arguments to create many PartidaProduccions.
+     * @example
+     * // Create many PartidaProduccions
+     * const partidaProduccion = await prisma.partidaProduccion.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PartidaProduccionCreateManyArgs>(args?: SelectSubset<T, PartidaProduccionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PartidaProduccions and returns the data saved in the database.
+     * @param {PartidaProduccionCreateManyAndReturnArgs} args - Arguments to create many PartidaProduccions.
+     * @example
+     * // Create many PartidaProduccions
+     * const partidaProduccion = await prisma.partidaProduccion.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PartidaProduccions and only return the `id`
+     * const partidaProduccionWithIdOnly = await prisma.partidaProduccion.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PartidaProduccionCreateManyAndReturnArgs>(args?: SelectSubset<T, PartidaProduccionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a PartidaProduccion.
+     * @param {PartidaProduccionDeleteArgs} args - Arguments to delete one PartidaProduccion.
+     * @example
+     * // Delete one PartidaProduccion
+     * const PartidaProduccion = await prisma.partidaProduccion.delete({
+     *   where: {
+     *     // ... filter to delete one PartidaProduccion
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PartidaProduccionDeleteArgs>(args: SelectSubset<T, PartidaProduccionDeleteArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one PartidaProduccion.
+     * @param {PartidaProduccionUpdateArgs} args - Arguments to update one PartidaProduccion.
+     * @example
+     * // Update one PartidaProduccion
+     * const partidaProduccion = await prisma.partidaProduccion.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PartidaProduccionUpdateArgs>(args: SelectSubset<T, PartidaProduccionUpdateArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more PartidaProduccions.
+     * @param {PartidaProduccionDeleteManyArgs} args - Arguments to filter PartidaProduccions to delete.
+     * @example
+     * // Delete a few PartidaProduccions
+     * const { count } = await prisma.partidaProduccion.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PartidaProduccionDeleteManyArgs>(args?: SelectSubset<T, PartidaProduccionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PartidaProduccions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartidaProduccionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PartidaProduccions
+     * const partidaProduccion = await prisma.partidaProduccion.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PartidaProduccionUpdateManyArgs>(args: SelectSubset<T, PartidaProduccionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PartidaProduccions and returns the data updated in the database.
+     * @param {PartidaProduccionUpdateManyAndReturnArgs} args - Arguments to update many PartidaProduccions.
+     * @example
+     * // Update many PartidaProduccions
+     * const partidaProduccion = await prisma.partidaProduccion.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more PartidaProduccions and only return the `id`
+     * const partidaProduccionWithIdOnly = await prisma.partidaProduccion.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends PartidaProduccionUpdateManyAndReturnArgs>(args: SelectSubset<T, PartidaProduccionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one PartidaProduccion.
+     * @param {PartidaProduccionUpsertArgs} args - Arguments to update or create a PartidaProduccion.
+     * @example
+     * // Update or create a PartidaProduccion
+     * const partidaProduccion = await prisma.partidaProduccion.upsert({
+     *   create: {
+     *     // ... data to create a PartidaProduccion
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PartidaProduccion we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PartidaProduccionUpsertArgs>(args: SelectSubset<T, PartidaProduccionUpsertArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of PartidaProduccions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartidaProduccionCountArgs} args - Arguments to filter PartidaProduccions to count.
+     * @example
+     * // Count the number of PartidaProduccions
+     * const count = await prisma.partidaProduccion.count({
+     *   where: {
+     *     // ... the filter for the PartidaProduccions we want to count
+     *   }
+     * })
+    **/
+    count<T extends PartidaProduccionCountArgs>(
+      args?: Subset<T, PartidaProduccionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PartidaProduccionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PartidaProduccion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartidaProduccionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PartidaProduccionAggregateArgs>(args: Subset<T, PartidaProduccionAggregateArgs>): Prisma.PrismaPromise<GetPartidaProduccionAggregateType<T>>
+
+    /**
+     * Group by PartidaProduccion.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PartidaProduccionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PartidaProduccionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PartidaProduccionGroupByArgs['orderBy'] }
+        : { orderBy?: PartidaProduccionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PartidaProduccionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPartidaProduccionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PartidaProduccion model
+   */
+  readonly fields: PartidaProduccionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PartidaProduccion.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PartidaProduccionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    solicitante<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    confirmadoPor<T extends PartidaProduccion$confirmadoPorArgs<ExtArgs> = {}>(args?: Subset<T, PartidaProduccion$confirmadoPorArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    items<T extends PartidaProduccion$itemsArgs<ExtArgs> = {}>(args?: Subset<T, PartidaProduccion$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PartidaProduccion model
+   */
+  interface PartidaProduccionFieldRefs {
+    readonly id: FieldRef<"PartidaProduccion", 'String'>
+    readonly solicitanteId: FieldRef<"PartidaProduccion", 'String'>
+    readonly confirmadoPorId: FieldRef<"PartidaProduccion", 'String'>
+    readonly confirmadoAt: FieldRef<"PartidaProduccion", 'DateTime'>
+    readonly estado: FieldRef<"PartidaProduccion", 'EstadoPartida'>
+    readonly notas: FieldRef<"PartidaProduccion", 'String'>
+    readonly motivoRechazo: FieldRef<"PartidaProduccion", 'String'>
+    readonly createdAt: FieldRef<"PartidaProduccion", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PartidaProduccion findUnique
+   */
+  export type PartidaProduccionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * Filter, which PartidaProduccion to fetch.
+     */
+    where: PartidaProduccionWhereUniqueInput
+  }
+
+  /**
+   * PartidaProduccion findUniqueOrThrow
+   */
+  export type PartidaProduccionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * Filter, which PartidaProduccion to fetch.
+     */
+    where: PartidaProduccionWhereUniqueInput
+  }
+
+  /**
+   * PartidaProduccion findFirst
+   */
+  export type PartidaProduccionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * Filter, which PartidaProduccion to fetch.
+     */
+    where?: PartidaProduccionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartidaProduccions to fetch.
+     */
+    orderBy?: PartidaProduccionOrderByWithRelationInput | PartidaProduccionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartidaProduccions.
+     */
+    cursor?: PartidaProduccionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartidaProduccions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartidaProduccions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartidaProduccions.
+     */
+    distinct?: PartidaProduccionScalarFieldEnum | PartidaProduccionScalarFieldEnum[]
+  }
+
+  /**
+   * PartidaProduccion findFirstOrThrow
+   */
+  export type PartidaProduccionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * Filter, which PartidaProduccion to fetch.
+     */
+    where?: PartidaProduccionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartidaProduccions to fetch.
+     */
+    orderBy?: PartidaProduccionOrderByWithRelationInput | PartidaProduccionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PartidaProduccions.
+     */
+    cursor?: PartidaProduccionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartidaProduccions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartidaProduccions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartidaProduccions.
+     */
+    distinct?: PartidaProduccionScalarFieldEnum | PartidaProduccionScalarFieldEnum[]
+  }
+
+  /**
+   * PartidaProduccion findMany
+   */
+  export type PartidaProduccionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * Filter, which PartidaProduccions to fetch.
+     */
+    where?: PartidaProduccionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PartidaProduccions to fetch.
+     */
+    orderBy?: PartidaProduccionOrderByWithRelationInput | PartidaProduccionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PartidaProduccions.
+     */
+    cursor?: PartidaProduccionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PartidaProduccions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PartidaProduccions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PartidaProduccions.
+     */
+    distinct?: PartidaProduccionScalarFieldEnum | PartidaProduccionScalarFieldEnum[]
+  }
+
+  /**
+   * PartidaProduccion create
+   */
+  export type PartidaProduccionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PartidaProduccion.
+     */
+    data: XOR<PartidaProduccionCreateInput, PartidaProduccionUncheckedCreateInput>
+  }
+
+  /**
+   * PartidaProduccion createMany
+   */
+  export type PartidaProduccionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PartidaProduccions.
+     */
+    data: PartidaProduccionCreateManyInput | PartidaProduccionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PartidaProduccion createManyAndReturn
+   */
+  export type PartidaProduccionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * The data used to create many PartidaProduccions.
+     */
+    data: PartidaProduccionCreateManyInput | PartidaProduccionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PartidaProduccion update
+   */
+  export type PartidaProduccionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PartidaProduccion.
+     */
+    data: XOR<PartidaProduccionUpdateInput, PartidaProduccionUncheckedUpdateInput>
+    /**
+     * Choose, which PartidaProduccion to update.
+     */
+    where: PartidaProduccionWhereUniqueInput
+  }
+
+  /**
+   * PartidaProduccion updateMany
+   */
+  export type PartidaProduccionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PartidaProduccions.
+     */
+    data: XOR<PartidaProduccionUpdateManyMutationInput, PartidaProduccionUncheckedUpdateManyInput>
+    /**
+     * Filter which PartidaProduccions to update
+     */
+    where?: PartidaProduccionWhereInput
+    /**
+     * Limit how many PartidaProduccions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * PartidaProduccion updateManyAndReturn
+   */
+  export type PartidaProduccionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * The data used to update PartidaProduccions.
+     */
+    data: XOR<PartidaProduccionUpdateManyMutationInput, PartidaProduccionUncheckedUpdateManyInput>
+    /**
+     * Filter which PartidaProduccions to update
+     */
+    where?: PartidaProduccionWhereInput
+    /**
+     * Limit how many PartidaProduccions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PartidaProduccion upsert
+   */
+  export type PartidaProduccionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PartidaProduccion to update in case it exists.
+     */
+    where: PartidaProduccionWhereUniqueInput
+    /**
+     * In case the PartidaProduccion found by the `where` argument doesn't exist, create a new PartidaProduccion with this data.
+     */
+    create: XOR<PartidaProduccionCreateInput, PartidaProduccionUncheckedCreateInput>
+    /**
+     * In case the PartidaProduccion was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PartidaProduccionUpdateInput, PartidaProduccionUncheckedUpdateInput>
+  }
+
+  /**
+   * PartidaProduccion delete
+   */
+  export type PartidaProduccionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+    /**
+     * Filter which PartidaProduccion to delete.
+     */
+    where: PartidaProduccionWhereUniqueInput
+  }
+
+  /**
+   * PartidaProduccion deleteMany
+   */
+  export type PartidaProduccionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PartidaProduccions to delete
+     */
+    where?: PartidaProduccionWhereInput
+    /**
+     * Limit how many PartidaProduccions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * PartidaProduccion.confirmadoPor
+   */
+  export type PartidaProduccion$confirmadoPorArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * PartidaProduccion.items
+   */
+  export type PartidaProduccion$itemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    where?: ItemSolicitudWhereInput
+    orderBy?: ItemSolicitudOrderByWithRelationInput | ItemSolicitudOrderByWithRelationInput[]
+    cursor?: ItemSolicitudWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ItemSolicitudScalarFieldEnum | ItemSolicitudScalarFieldEnum[]
+  }
+
+  /**
+   * PartidaProduccion without action
+   */
+  export type PartidaProduccionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PartidaProduccion
+     */
+    select?: PartidaProduccionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the PartidaProduccion
+     */
+    omit?: PartidaProduccionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PartidaProduccionInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ItemSolicitud
+   */
+
+  export type AggregateItemSolicitud = {
+    _count: ItemSolicitudCountAggregateOutputType | null
+    _avg: ItemSolicitudAvgAggregateOutputType | null
+    _sum: ItemSolicitudSumAggregateOutputType | null
+    _min: ItemSolicitudMinAggregateOutputType | null
+    _max: ItemSolicitudMaxAggregateOutputType | null
+  }
+
+  export type ItemSolicitudAvgAggregateOutputType = {
+    cantidadSolicitada: number | null
+    cantidadFinal: number | null
+  }
+
+  export type ItemSolicitudSumAggregateOutputType = {
+    cantidadSolicitada: number | null
+    cantidadFinal: number | null
+  }
+
+  export type ItemSolicitudMinAggregateOutputType = {
+    id: string | null
+    partidaId: string | null
+    productoId: string | null
+    mercado: $Enums.Mercado | null
+    cantidadSolicitada: number | null
+    cantidadFinal: number | null
+  }
+
+  export type ItemSolicitudMaxAggregateOutputType = {
+    id: string | null
+    partidaId: string | null
+    productoId: string | null
+    mercado: $Enums.Mercado | null
+    cantidadSolicitada: number | null
+    cantidadFinal: number | null
+  }
+
+  export type ItemSolicitudCountAggregateOutputType = {
+    id: number
+    partidaId: number
+    productoId: number
+    mercado: number
+    cantidadSolicitada: number
+    cantidadFinal: number
+    _all: number
+  }
+
+
+  export type ItemSolicitudAvgAggregateInputType = {
+    cantidadSolicitada?: true
+    cantidadFinal?: true
+  }
+
+  export type ItemSolicitudSumAggregateInputType = {
+    cantidadSolicitada?: true
+    cantidadFinal?: true
+  }
+
+  export type ItemSolicitudMinAggregateInputType = {
+    id?: true
+    partidaId?: true
+    productoId?: true
+    mercado?: true
+    cantidadSolicitada?: true
+    cantidadFinal?: true
+  }
+
+  export type ItemSolicitudMaxAggregateInputType = {
+    id?: true
+    partidaId?: true
+    productoId?: true
+    mercado?: true
+    cantidadSolicitada?: true
+    cantidadFinal?: true
+  }
+
+  export type ItemSolicitudCountAggregateInputType = {
+    id?: true
+    partidaId?: true
+    productoId?: true
+    mercado?: true
+    cantidadSolicitada?: true
+    cantidadFinal?: true
+    _all?: true
+  }
+
+  export type ItemSolicitudAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ItemSolicitud to aggregate.
+     */
+    where?: ItemSolicitudWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ItemSolicituds to fetch.
+     */
+    orderBy?: ItemSolicitudOrderByWithRelationInput | ItemSolicitudOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ItemSolicitudWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ItemSolicituds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ItemSolicituds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ItemSolicituds
+    **/
+    _count?: true | ItemSolicitudCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ItemSolicitudAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ItemSolicitudSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ItemSolicitudMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ItemSolicitudMaxAggregateInputType
+  }
+
+  export type GetItemSolicitudAggregateType<T extends ItemSolicitudAggregateArgs> = {
+        [P in keyof T & keyof AggregateItemSolicitud]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateItemSolicitud[P]>
+      : GetScalarType<T[P], AggregateItemSolicitud[P]>
+  }
+
+
+
+
+  export type ItemSolicitudGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ItemSolicitudWhereInput
+    orderBy?: ItemSolicitudOrderByWithAggregationInput | ItemSolicitudOrderByWithAggregationInput[]
+    by: ItemSolicitudScalarFieldEnum[] | ItemSolicitudScalarFieldEnum
+    having?: ItemSolicitudScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ItemSolicitudCountAggregateInputType | true
+    _avg?: ItemSolicitudAvgAggregateInputType
+    _sum?: ItemSolicitudSumAggregateInputType
+    _min?: ItemSolicitudMinAggregateInputType
+    _max?: ItemSolicitudMaxAggregateInputType
+  }
+
+  export type ItemSolicitudGroupByOutputType = {
+    id: string
+    partidaId: string
+    productoId: string
+    mercado: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal: number | null
+    _count: ItemSolicitudCountAggregateOutputType | null
+    _avg: ItemSolicitudAvgAggregateOutputType | null
+    _sum: ItemSolicitudSumAggregateOutputType | null
+    _min: ItemSolicitudMinAggregateOutputType | null
+    _max: ItemSolicitudMaxAggregateOutputType | null
+  }
+
+  type GetItemSolicitudGroupByPayload<T extends ItemSolicitudGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ItemSolicitudGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ItemSolicitudGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ItemSolicitudGroupByOutputType[P]>
+            : GetScalarType<T[P], ItemSolicitudGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ItemSolicitudSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partidaId?: boolean
+    productoId?: boolean
+    mercado?: boolean
+    cantidadSolicitada?: boolean
+    cantidadFinal?: boolean
+    partida?: boolean | PartidaProduccionDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["itemSolicitud"]>
+
+  export type ItemSolicitudSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partidaId?: boolean
+    productoId?: boolean
+    mercado?: boolean
+    cantidadSolicitada?: boolean
+    cantidadFinal?: boolean
+    partida?: boolean | PartidaProduccionDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["itemSolicitud"]>
+
+  export type ItemSolicitudSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    partidaId?: boolean
+    productoId?: boolean
+    mercado?: boolean
+    cantidadSolicitada?: boolean
+    cantidadFinal?: boolean
+    partida?: boolean | PartidaProduccionDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["itemSolicitud"]>
+
+  export type ItemSolicitudSelectScalar = {
+    id?: boolean
+    partidaId?: boolean
+    productoId?: boolean
+    mercado?: boolean
+    cantidadSolicitada?: boolean
+    cantidadFinal?: boolean
+  }
+
+  export type ItemSolicitudOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "partidaId" | "productoId" | "mercado" | "cantidadSolicitada" | "cantidadFinal", ExtArgs["result"]["itemSolicitud"]>
+  export type ItemSolicitudInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    partida?: boolean | PartidaProduccionDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+  }
+  export type ItemSolicitudIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    partida?: boolean | PartidaProduccionDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+  }
+  export type ItemSolicitudIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    partida?: boolean | PartidaProduccionDefaultArgs<ExtArgs>
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+  }
+
+  export type $ItemSolicitudPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ItemSolicitud"
+    objects: {
+      partida: Prisma.$PartidaProduccionPayload<ExtArgs>
+      producto: Prisma.$DepositoProductoPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      partidaId: string
+      productoId: string
+      mercado: $Enums.Mercado | null
+      cantidadSolicitada: number
+      cantidadFinal: number | null
+    }, ExtArgs["result"]["itemSolicitud"]>
+    composites: {}
+  }
+
+  type ItemSolicitudGetPayload<S extends boolean | null | undefined | ItemSolicitudDefaultArgs> = $Result.GetResult<Prisma.$ItemSolicitudPayload, S>
+
+  type ItemSolicitudCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ItemSolicitudFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ItemSolicitudCountAggregateInputType | true
+    }
+
+  export interface ItemSolicitudDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ItemSolicitud'], meta: { name: 'ItemSolicitud' } }
+    /**
+     * Find zero or one ItemSolicitud that matches the filter.
+     * @param {ItemSolicitudFindUniqueArgs} args - Arguments to find a ItemSolicitud
+     * @example
+     * // Get one ItemSolicitud
+     * const itemSolicitud = await prisma.itemSolicitud.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ItemSolicitudFindUniqueArgs>(args: SelectSubset<T, ItemSolicitudFindUniqueArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ItemSolicitud that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ItemSolicitudFindUniqueOrThrowArgs} args - Arguments to find a ItemSolicitud
+     * @example
+     * // Get one ItemSolicitud
+     * const itemSolicitud = await prisma.itemSolicitud.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ItemSolicitudFindUniqueOrThrowArgs>(args: SelectSubset<T, ItemSolicitudFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ItemSolicitud that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ItemSolicitudFindFirstArgs} args - Arguments to find a ItemSolicitud
+     * @example
+     * // Get one ItemSolicitud
+     * const itemSolicitud = await prisma.itemSolicitud.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ItemSolicitudFindFirstArgs>(args?: SelectSubset<T, ItemSolicitudFindFirstArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ItemSolicitud that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ItemSolicitudFindFirstOrThrowArgs} args - Arguments to find a ItemSolicitud
+     * @example
+     * // Get one ItemSolicitud
+     * const itemSolicitud = await prisma.itemSolicitud.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ItemSolicitudFindFirstOrThrowArgs>(args?: SelectSubset<T, ItemSolicitudFindFirstOrThrowArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ItemSolicituds that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ItemSolicitudFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ItemSolicituds
+     * const itemSolicituds = await prisma.itemSolicitud.findMany()
+     * 
+     * // Get first 10 ItemSolicituds
+     * const itemSolicituds = await prisma.itemSolicitud.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const itemSolicitudWithIdOnly = await prisma.itemSolicitud.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ItemSolicitudFindManyArgs>(args?: SelectSubset<T, ItemSolicitudFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ItemSolicitud.
+     * @param {ItemSolicitudCreateArgs} args - Arguments to create a ItemSolicitud.
+     * @example
+     * // Create one ItemSolicitud
+     * const ItemSolicitud = await prisma.itemSolicitud.create({
+     *   data: {
+     *     // ... data to create a ItemSolicitud
+     *   }
+     * })
+     * 
+     */
+    create<T extends ItemSolicitudCreateArgs>(args: SelectSubset<T, ItemSolicitudCreateArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ItemSolicituds.
+     * @param {ItemSolicitudCreateManyArgs} args - Arguments to create many ItemSolicituds.
+     * @example
+     * // Create many ItemSolicituds
+     * const itemSolicitud = await prisma.itemSolicitud.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ItemSolicitudCreateManyArgs>(args?: SelectSubset<T, ItemSolicitudCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ItemSolicituds and returns the data saved in the database.
+     * @param {ItemSolicitudCreateManyAndReturnArgs} args - Arguments to create many ItemSolicituds.
+     * @example
+     * // Create many ItemSolicituds
+     * const itemSolicitud = await prisma.itemSolicitud.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ItemSolicituds and only return the `id`
+     * const itemSolicitudWithIdOnly = await prisma.itemSolicitud.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ItemSolicitudCreateManyAndReturnArgs>(args?: SelectSubset<T, ItemSolicitudCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ItemSolicitud.
+     * @param {ItemSolicitudDeleteArgs} args - Arguments to delete one ItemSolicitud.
+     * @example
+     * // Delete one ItemSolicitud
+     * const ItemSolicitud = await prisma.itemSolicitud.delete({
+     *   where: {
+     *     // ... filter to delete one ItemSolicitud
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ItemSolicitudDeleteArgs>(args: SelectSubset<T, ItemSolicitudDeleteArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ItemSolicitud.
+     * @param {ItemSolicitudUpdateArgs} args - Arguments to update one ItemSolicitud.
+     * @example
+     * // Update one ItemSolicitud
+     * const itemSolicitud = await prisma.itemSolicitud.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ItemSolicitudUpdateArgs>(args: SelectSubset<T, ItemSolicitudUpdateArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ItemSolicituds.
+     * @param {ItemSolicitudDeleteManyArgs} args - Arguments to filter ItemSolicituds to delete.
+     * @example
+     * // Delete a few ItemSolicituds
+     * const { count } = await prisma.itemSolicitud.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ItemSolicitudDeleteManyArgs>(args?: SelectSubset<T, ItemSolicitudDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ItemSolicituds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ItemSolicitudUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ItemSolicituds
+     * const itemSolicitud = await prisma.itemSolicitud.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ItemSolicitudUpdateManyArgs>(args: SelectSubset<T, ItemSolicitudUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ItemSolicituds and returns the data updated in the database.
+     * @param {ItemSolicitudUpdateManyAndReturnArgs} args - Arguments to update many ItemSolicituds.
+     * @example
+     * // Update many ItemSolicituds
+     * const itemSolicitud = await prisma.itemSolicitud.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ItemSolicituds and only return the `id`
+     * const itemSolicitudWithIdOnly = await prisma.itemSolicitud.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ItemSolicitudUpdateManyAndReturnArgs>(args: SelectSubset<T, ItemSolicitudUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ItemSolicitud.
+     * @param {ItemSolicitudUpsertArgs} args - Arguments to update or create a ItemSolicitud.
+     * @example
+     * // Update or create a ItemSolicitud
+     * const itemSolicitud = await prisma.itemSolicitud.upsert({
+     *   create: {
+     *     // ... data to create a ItemSolicitud
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ItemSolicitud we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ItemSolicitudUpsertArgs>(args: SelectSubset<T, ItemSolicitudUpsertArgs<ExtArgs>>): Prisma__ItemSolicitudClient<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ItemSolicituds.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ItemSolicitudCountArgs} args - Arguments to filter ItemSolicituds to count.
+     * @example
+     * // Count the number of ItemSolicituds
+     * const count = await prisma.itemSolicitud.count({
+     *   where: {
+     *     // ... the filter for the ItemSolicituds we want to count
+     *   }
+     * })
+    **/
+    count<T extends ItemSolicitudCountArgs>(
+      args?: Subset<T, ItemSolicitudCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ItemSolicitudCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ItemSolicitud.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ItemSolicitudAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ItemSolicitudAggregateArgs>(args: Subset<T, ItemSolicitudAggregateArgs>): Prisma.PrismaPromise<GetItemSolicitudAggregateType<T>>
+
+    /**
+     * Group by ItemSolicitud.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ItemSolicitudGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ItemSolicitudGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ItemSolicitudGroupByArgs['orderBy'] }
+        : { orderBy?: ItemSolicitudGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ItemSolicitudGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetItemSolicitudGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ItemSolicitud model
+   */
+  readonly fields: ItemSolicitudFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ItemSolicitud.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ItemSolicitudClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    partida<T extends PartidaProduccionDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PartidaProduccionDefaultArgs<ExtArgs>>): Prisma__PartidaProduccionClient<$Result.GetResult<Prisma.$PartidaProduccionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    producto<T extends DepositoProductoDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProductoDefaultArgs<ExtArgs>>): Prisma__DepositoProductoClient<$Result.GetResult<Prisma.$DepositoProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ItemSolicitud model
+   */
+  interface ItemSolicitudFieldRefs {
+    readonly id: FieldRef<"ItemSolicitud", 'String'>
+    readonly partidaId: FieldRef<"ItemSolicitud", 'String'>
+    readonly productoId: FieldRef<"ItemSolicitud", 'String'>
+    readonly mercado: FieldRef<"ItemSolicitud", 'Mercado'>
+    readonly cantidadSolicitada: FieldRef<"ItemSolicitud", 'Float'>
+    readonly cantidadFinal: FieldRef<"ItemSolicitud", 'Float'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ItemSolicitud findUnique
+   */
+  export type ItemSolicitudFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * Filter, which ItemSolicitud to fetch.
+     */
+    where: ItemSolicitudWhereUniqueInput
+  }
+
+  /**
+   * ItemSolicitud findUniqueOrThrow
+   */
+  export type ItemSolicitudFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * Filter, which ItemSolicitud to fetch.
+     */
+    where: ItemSolicitudWhereUniqueInput
+  }
+
+  /**
+   * ItemSolicitud findFirst
+   */
+  export type ItemSolicitudFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * Filter, which ItemSolicitud to fetch.
+     */
+    where?: ItemSolicitudWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ItemSolicituds to fetch.
+     */
+    orderBy?: ItemSolicitudOrderByWithRelationInput | ItemSolicitudOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ItemSolicituds.
+     */
+    cursor?: ItemSolicitudWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ItemSolicituds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ItemSolicituds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ItemSolicituds.
+     */
+    distinct?: ItemSolicitudScalarFieldEnum | ItemSolicitudScalarFieldEnum[]
+  }
+
+  /**
+   * ItemSolicitud findFirstOrThrow
+   */
+  export type ItemSolicitudFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * Filter, which ItemSolicitud to fetch.
+     */
+    where?: ItemSolicitudWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ItemSolicituds to fetch.
+     */
+    orderBy?: ItemSolicitudOrderByWithRelationInput | ItemSolicitudOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ItemSolicituds.
+     */
+    cursor?: ItemSolicitudWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ItemSolicituds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ItemSolicituds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ItemSolicituds.
+     */
+    distinct?: ItemSolicitudScalarFieldEnum | ItemSolicitudScalarFieldEnum[]
+  }
+
+  /**
+   * ItemSolicitud findMany
+   */
+  export type ItemSolicitudFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * Filter, which ItemSolicituds to fetch.
+     */
+    where?: ItemSolicitudWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ItemSolicituds to fetch.
+     */
+    orderBy?: ItemSolicitudOrderByWithRelationInput | ItemSolicitudOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ItemSolicituds.
+     */
+    cursor?: ItemSolicitudWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ItemSolicituds from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ItemSolicituds.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ItemSolicituds.
+     */
+    distinct?: ItemSolicitudScalarFieldEnum | ItemSolicitudScalarFieldEnum[]
+  }
+
+  /**
+   * ItemSolicitud create
+   */
+  export type ItemSolicitudCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ItemSolicitud.
+     */
+    data: XOR<ItemSolicitudCreateInput, ItemSolicitudUncheckedCreateInput>
+  }
+
+  /**
+   * ItemSolicitud createMany
+   */
+  export type ItemSolicitudCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ItemSolicituds.
+     */
+    data: ItemSolicitudCreateManyInput | ItemSolicitudCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ItemSolicitud createManyAndReturn
+   */
+  export type ItemSolicitudCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * The data used to create many ItemSolicituds.
+     */
+    data: ItemSolicitudCreateManyInput | ItemSolicitudCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ItemSolicitud update
+   */
+  export type ItemSolicitudUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ItemSolicitud.
+     */
+    data: XOR<ItemSolicitudUpdateInput, ItemSolicitudUncheckedUpdateInput>
+    /**
+     * Choose, which ItemSolicitud to update.
+     */
+    where: ItemSolicitudWhereUniqueInput
+  }
+
+  /**
+   * ItemSolicitud updateMany
+   */
+  export type ItemSolicitudUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ItemSolicituds.
+     */
+    data: XOR<ItemSolicitudUpdateManyMutationInput, ItemSolicitudUncheckedUpdateManyInput>
+    /**
+     * Filter which ItemSolicituds to update
+     */
+    where?: ItemSolicitudWhereInput
+    /**
+     * Limit how many ItemSolicituds to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ItemSolicitud updateManyAndReturn
+   */
+  export type ItemSolicitudUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * The data used to update ItemSolicituds.
+     */
+    data: XOR<ItemSolicitudUpdateManyMutationInput, ItemSolicitudUncheckedUpdateManyInput>
+    /**
+     * Filter which ItemSolicituds to update
+     */
+    where?: ItemSolicitudWhereInput
+    /**
+     * Limit how many ItemSolicituds to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ItemSolicitud upsert
+   */
+  export type ItemSolicitudUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ItemSolicitud to update in case it exists.
+     */
+    where: ItemSolicitudWhereUniqueInput
+    /**
+     * In case the ItemSolicitud found by the `where` argument doesn't exist, create a new ItemSolicitud with this data.
+     */
+    create: XOR<ItemSolicitudCreateInput, ItemSolicitudUncheckedCreateInput>
+    /**
+     * In case the ItemSolicitud was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ItemSolicitudUpdateInput, ItemSolicitudUncheckedUpdateInput>
+  }
+
+  /**
+   * ItemSolicitud delete
+   */
+  export type ItemSolicitudDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+    /**
+     * Filter which ItemSolicitud to delete.
+     */
+    where: ItemSolicitudWhereUniqueInput
+  }
+
+  /**
+   * ItemSolicitud deleteMany
+   */
+  export type ItemSolicitudDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ItemSolicituds to delete
+     */
+    where?: ItemSolicitudWhereInput
+    /**
+     * Limit how many ItemSolicituds to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ItemSolicitud without action
+   */
+  export type ItemSolicitudDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ItemSolicitud
+     */
+    select?: ItemSolicitudSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ItemSolicitud
+     */
+    omit?: ItemSolicitudOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ItemSolicitudInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -51878,10 +55909,26 @@ export namespace Prisma {
     fechaProduccion: 'fechaProduccion',
     fechaVencimiento: 'fechaVencimiento',
     activo: 'activo',
-    createdAt: 'createdAt'
+    createdAt: 'createdAt',
+    derivedFromLoteId: 'derivedFromLoteId'
   };
 
   export type LoteScalarFieldEnum = (typeof LoteScalarFieldEnum)[keyof typeof LoteScalarFieldEnum]
+
+
+  export const ProductoTransferRuleScalarFieldEnum: {
+    id: 'id',
+    sourceProductId: 'sourceProductId',
+    targetProductId: 'targetProductId',
+    label: 'label',
+    tipo: 'tipo',
+    activo: 'activo',
+    orden: 'orden',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProductoTransferRuleScalarFieldEnum = (typeof ProductoTransferRuleScalarFieldEnum)[keyof typeof ProductoTransferRuleScalarFieldEnum]
 
 
   export const ClienteScalarFieldEnum: {
@@ -52346,6 +56393,32 @@ export namespace Prisma {
   export type ImportacionInicialEstucheItemScalarFieldEnum = (typeof ImportacionInicialEstucheItemScalarFieldEnum)[keyof typeof ImportacionInicialEstucheItemScalarFieldEnum]
 
 
+  export const PartidaProduccionScalarFieldEnum: {
+    id: 'id',
+    solicitanteId: 'solicitanteId',
+    confirmadoPorId: 'confirmadoPorId',
+    confirmadoAt: 'confirmadoAt',
+    estado: 'estado',
+    notas: 'notas',
+    motivoRechazo: 'motivoRechazo',
+    createdAt: 'createdAt'
+  };
+
+  export type PartidaProduccionScalarFieldEnum = (typeof PartidaProduccionScalarFieldEnum)[keyof typeof PartidaProduccionScalarFieldEnum]
+
+
+  export const ItemSolicitudScalarFieldEnum: {
+    id: 'id',
+    partidaId: 'partidaId',
+    productoId: 'productoId',
+    mercado: 'mercado',
+    cantidadSolicitada: 'cantidadSolicitada',
+    cantidadFinal: 'cantidadFinal'
+  };
+
+  export type ItemSolicitudScalarFieldEnum = (typeof ItemSolicitudScalarFieldEnum)[keyof typeof ItemSolicitudScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -52487,6 +56560,20 @@ export namespace Prisma {
    * Reference to a field of type 'Int[]'
    */
   export type ListIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'TipoReglaTransferenciaProducto'
+   */
+  export type EnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TipoReglaTransferenciaProducto'>
+    
+
+
+  /**
+   * Reference to a field of type 'TipoReglaTransferenciaProducto[]'
+   */
+  export type ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'TipoReglaTransferenciaProducto[]'>
     
 
 
@@ -52809,6 +56896,20 @@ export namespace Prisma {
    * Reference to a field of type 'OrigenProductoCatalogo[]'
    */
   export type ListEnumOrigenProductoCatalogoFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'OrigenProductoCatalogo[]'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoPartida'
+   */
+  export type EnumEstadoPartidaFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoPartida'>
+    
+
+
+  /**
+   * Reference to a field of type 'EstadoPartida[]'
+   */
+  export type ListEnumEstadoPartidaFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'EstadoPartida[]'>
     
   /**
    * Deep Input Types
@@ -53285,6 +57386,8 @@ export namespace Prisma {
     saldos?: SaldoStockListRelationFilter
     projectionOutbox?: StockProjectionOutboxListRelationFilter
     aliases?: ProductAliasListRelationFilter
+    sourceTransferRules?: ProductoTransferRuleListRelationFilter
+    targetTransferRules?: ProductoTransferRuleListRelationFilter
   }
 
   export type ProductoOrderByWithRelationInput = {
@@ -53301,6 +57404,8 @@ export namespace Prisma {
     saldos?: SaldoStockOrderByRelationAggregateInput
     projectionOutbox?: StockProjectionOutboxOrderByRelationAggregateInput
     aliases?: ProductAliasOrderByRelationAggregateInput
+    sourceTransferRules?: ProductoTransferRuleOrderByRelationAggregateInput
+    targetTransferRules?: ProductoTransferRuleOrderByRelationAggregateInput
   }
 
   export type ProductoWhereUniqueInput = Prisma.AtLeast<{
@@ -53320,6 +57425,8 @@ export namespace Prisma {
     saldos?: SaldoStockListRelationFilter
     projectionOutbox?: StockProjectionOutboxListRelationFilter
     aliases?: ProductAliasListRelationFilter
+    sourceTransferRules?: ProductoTransferRuleListRelationFilter
+    targetTransferRules?: ProductoTransferRuleListRelationFilter
   }, "id" | "sku">
 
   export type ProductoOrderByWithAggregationInput = {
@@ -53425,7 +57532,10 @@ export namespace Prisma {
     fechaVencimiento?: DateTimeNullableFilter<"Lote"> | Date | string | null
     activo?: BoolFilter<"Lote"> | boolean
     createdAt?: DateTimeFilter<"Lote"> | Date | string
+    derivedFromLoteId?: StringNullableFilter<"Lote"> | string | null
     producto?: XOR<ProductoScalarRelationFilter, ProductoWhereInput>
+    derivedFromLote?: XOR<LoteNullableScalarRelationFilter, LoteWhereInput> | null
+    derivedLotes?: LoteListRelationFilter
     reservas?: ReservaStockListRelationFilter
     saldos?: SaldoStockListRelationFilter
   }
@@ -53440,7 +57550,10 @@ export namespace Prisma {
     fechaVencimiento?: SortOrderInput | SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
+    derivedFromLoteId?: SortOrderInput | SortOrder
     producto?: ProductoOrderByWithRelationInput
+    derivedFromLote?: LoteOrderByWithRelationInput
+    derivedLotes?: LoteOrderByRelationAggregateInput
     reservas?: ReservaStockOrderByRelationAggregateInput
     saldos?: SaldoStockOrderByRelationAggregateInput
   }
@@ -53449,6 +57562,7 @@ export namespace Prisma {
     id?: string
     numero_productoId?: LoteNumeroProductoIdCompoundUniqueInput
     id_productoId?: LoteIdProductoIdCompoundUniqueInput
+    productoId_derivedFromLoteId?: LoteProductoIdDerivedFromLoteIdCompoundUniqueInput
     AND?: LoteWhereInput | LoteWhereInput[]
     OR?: LoteWhereInput[]
     NOT?: LoteWhereInput | LoteWhereInput[]
@@ -53460,10 +57574,13 @@ export namespace Prisma {
     fechaVencimiento?: DateTimeNullableFilter<"Lote"> | Date | string | null
     activo?: BoolFilter<"Lote"> | boolean
     createdAt?: DateTimeFilter<"Lote"> | Date | string
+    derivedFromLoteId?: StringNullableFilter<"Lote"> | string | null
     producto?: XOR<ProductoScalarRelationFilter, ProductoWhereInput>
+    derivedFromLote?: XOR<LoteNullableScalarRelationFilter, LoteWhereInput> | null
+    derivedLotes?: LoteListRelationFilter
     reservas?: ReservaStockListRelationFilter
     saldos?: SaldoStockListRelationFilter
-  }, "id" | "numero_productoId" | "id_productoId">
+  }, "id" | "numero_productoId" | "id_productoId" | "productoId_derivedFromLoteId">
 
   export type LoteOrderByWithAggregationInput = {
     id?: SortOrder
@@ -53475,6 +57592,7 @@ export namespace Prisma {
     fechaVencimiento?: SortOrderInput | SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
+    derivedFromLoteId?: SortOrderInput | SortOrder
     _count?: LoteCountOrderByAggregateInput
     _avg?: LoteAvgOrderByAggregateInput
     _max?: LoteMaxOrderByAggregateInput
@@ -53495,6 +57613,88 @@ export namespace Prisma {
     fechaVencimiento?: DateTimeNullableWithAggregatesFilter<"Lote"> | Date | string | null
     activo?: BoolWithAggregatesFilter<"Lote"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Lote"> | Date | string
+    derivedFromLoteId?: StringNullableWithAggregatesFilter<"Lote"> | string | null
+  }
+
+  export type ProductoTransferRuleWhereInput = {
+    AND?: ProductoTransferRuleWhereInput | ProductoTransferRuleWhereInput[]
+    OR?: ProductoTransferRuleWhereInput[]
+    NOT?: ProductoTransferRuleWhereInput | ProductoTransferRuleWhereInput[]
+    id?: StringFilter<"ProductoTransferRule"> | string
+    sourceProductId?: StringFilter<"ProductoTransferRule"> | string
+    targetProductId?: StringFilter<"ProductoTransferRule"> | string
+    label?: StringFilter<"ProductoTransferRule"> | string
+    tipo?: EnumTipoReglaTransferenciaProductoFilter<"ProductoTransferRule"> | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFilter<"ProductoTransferRule"> | boolean
+    orden?: IntFilter<"ProductoTransferRule"> | number
+    createdAt?: DateTimeFilter<"ProductoTransferRule"> | Date | string
+    updatedAt?: DateTimeFilter<"ProductoTransferRule"> | Date | string
+    sourceProduct?: XOR<ProductoScalarRelationFilter, ProductoWhereInput>
+    targetProduct?: XOR<ProductoScalarRelationFilter, ProductoWhereInput>
+  }
+
+  export type ProductoTransferRuleOrderByWithRelationInput = {
+    id?: SortOrder
+    sourceProductId?: SortOrder
+    targetProductId?: SortOrder
+    label?: SortOrder
+    tipo?: SortOrder
+    activo?: SortOrder
+    orden?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    sourceProduct?: ProductoOrderByWithRelationInput
+    targetProduct?: ProductoOrderByWithRelationInput
+  }
+
+  export type ProductoTransferRuleWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    sourceProductId_targetProductId_label?: ProductoTransferRuleSourceProductIdTargetProductIdLabelCompoundUniqueInput
+    AND?: ProductoTransferRuleWhereInput | ProductoTransferRuleWhereInput[]
+    OR?: ProductoTransferRuleWhereInput[]
+    NOT?: ProductoTransferRuleWhereInput | ProductoTransferRuleWhereInput[]
+    sourceProductId?: StringFilter<"ProductoTransferRule"> | string
+    targetProductId?: StringFilter<"ProductoTransferRule"> | string
+    label?: StringFilter<"ProductoTransferRule"> | string
+    tipo?: EnumTipoReglaTransferenciaProductoFilter<"ProductoTransferRule"> | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFilter<"ProductoTransferRule"> | boolean
+    orden?: IntFilter<"ProductoTransferRule"> | number
+    createdAt?: DateTimeFilter<"ProductoTransferRule"> | Date | string
+    updatedAt?: DateTimeFilter<"ProductoTransferRule"> | Date | string
+    sourceProduct?: XOR<ProductoScalarRelationFilter, ProductoWhereInput>
+    targetProduct?: XOR<ProductoScalarRelationFilter, ProductoWhereInput>
+  }, "id" | "sourceProductId_targetProductId_label">
+
+  export type ProductoTransferRuleOrderByWithAggregationInput = {
+    id?: SortOrder
+    sourceProductId?: SortOrder
+    targetProductId?: SortOrder
+    label?: SortOrder
+    tipo?: SortOrder
+    activo?: SortOrder
+    orden?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProductoTransferRuleCountOrderByAggregateInput
+    _avg?: ProductoTransferRuleAvgOrderByAggregateInput
+    _max?: ProductoTransferRuleMaxOrderByAggregateInput
+    _min?: ProductoTransferRuleMinOrderByAggregateInput
+    _sum?: ProductoTransferRuleSumOrderByAggregateInput
+  }
+
+  export type ProductoTransferRuleScalarWhereWithAggregatesInput = {
+    AND?: ProductoTransferRuleScalarWhereWithAggregatesInput | ProductoTransferRuleScalarWhereWithAggregatesInput[]
+    OR?: ProductoTransferRuleScalarWhereWithAggregatesInput[]
+    NOT?: ProductoTransferRuleScalarWhereWithAggregatesInput | ProductoTransferRuleScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProductoTransferRule"> | string
+    sourceProductId?: StringWithAggregatesFilter<"ProductoTransferRule"> | string
+    targetProductId?: StringWithAggregatesFilter<"ProductoTransferRule"> | string
+    label?: StringWithAggregatesFilter<"ProductoTransferRule"> | string
+    tipo?: EnumTipoReglaTransferenciaProductoWithAggregatesFilter<"ProductoTransferRule"> | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolWithAggregatesFilter<"ProductoTransferRule"> | boolean
+    orden?: IntWithAggregatesFilter<"ProductoTransferRule"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"ProductoTransferRule"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProductoTransferRule"> | Date | string
   }
 
   export type ClienteWhereInput = {
@@ -54622,6 +58822,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchListRelationFilter
+    partidasSolicitadas?: PartidaProduccionListRelationFilter
+    partidasConfirmadas?: PartidaProduccionListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -54639,6 +58841,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionOrderByRelationAggregateInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoOrderByRelationAggregateInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchOrderByRelationAggregateInput
+    partidasSolicitadas?: PartidaProduccionOrderByRelationAggregateInput
+    partidasConfirmadas?: PartidaProduccionOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -54659,6 +58863,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchListRelationFilter
+    partidasSolicitadas?: PartidaProduccionListRelationFilter
+    partidasConfirmadas?: PartidaProduccionListRelationFilter
   }, "id" | "email" | "platformUserId">
 
   export type UserOrderByWithAggregationInput = {
@@ -55421,7 +59627,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
-    cantidad?: IntFilter<"OrdenProduccion"> | number
+    cantidad?: FloatFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
@@ -55462,7 +59668,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
-    cantidad?: IntFilter<"OrdenProduccion"> | number
+    cantidad?: FloatFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
@@ -55505,7 +59711,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaWithAggregatesFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringWithAggregatesFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableWithAggregatesFilter<"OrdenProduccion"> | $Enums.Mercado | null
-    cantidad?: IntWithAggregatesFilter<"OrdenProduccion"> | number
+    cantidad?: FloatWithAggregatesFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaWithAggregatesFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenWithAggregatesFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
@@ -55543,6 +59749,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
     movimientos?: MovimientoListRelationFilter
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemListRelationFilter
+    itemsSolicitud?: ItemSolicitudListRelationFilter
   }
 
   export type DepositoProductoOrderByWithRelationInput = {
@@ -55572,6 +59779,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoOrderByRelationAggregateInput
     movimientos?: MovimientoOrderByRelationAggregateInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemOrderByRelationAggregateInput
+    itemsSolicitud?: ItemSolicitudOrderByRelationAggregateInput
   }
 
   export type DepositoProductoWhereUniqueInput = Prisma.AtLeast<{
@@ -55605,6 +59813,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
     movimientos?: MovimientoListRelationFilter
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemListRelationFilter
+    itemsSolicitud?: ItemSolicitudListRelationFilter
   }, "id" | "codigo" | "nombreCompleto_categoria_mercado">
 
   export type DepositoProductoOrderByWithAggregationInput = {
@@ -55983,6 +60192,147 @@ export namespace Prisma {
     sourceRow?: IntWithAggregatesFilter<"ImportacionInicialEstucheItem"> | number
     cantidad?: IntWithAggregatesFilter<"ImportacionInicialEstucheItem"> | number
     createdAt?: DateTimeWithAggregatesFilter<"ImportacionInicialEstucheItem"> | Date | string
+  }
+
+  export type PartidaProduccionWhereInput = {
+    AND?: PartidaProduccionWhereInput | PartidaProduccionWhereInput[]
+    OR?: PartidaProduccionWhereInput[]
+    NOT?: PartidaProduccionWhereInput | PartidaProduccionWhereInput[]
+    id?: StringFilter<"PartidaProduccion"> | string
+    solicitanteId?: StringFilter<"PartidaProduccion"> | string
+    confirmadoPorId?: StringNullableFilter<"PartidaProduccion"> | string | null
+    confirmadoAt?: DateTimeNullableFilter<"PartidaProduccion"> | Date | string | null
+    estado?: EnumEstadoPartidaFilter<"PartidaProduccion"> | $Enums.EstadoPartida
+    notas?: StringNullableFilter<"PartidaProduccion"> | string | null
+    motivoRechazo?: StringNullableFilter<"PartidaProduccion"> | string | null
+    createdAt?: DateTimeFilter<"PartidaProduccion"> | Date | string
+    solicitante?: XOR<UserScalarRelationFilter, UserWhereInput>
+    confirmadoPor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    items?: ItemSolicitudListRelationFilter
+  }
+
+  export type PartidaProduccionOrderByWithRelationInput = {
+    id?: SortOrder
+    solicitanteId?: SortOrder
+    confirmadoPorId?: SortOrderInput | SortOrder
+    confirmadoAt?: SortOrderInput | SortOrder
+    estado?: SortOrder
+    notas?: SortOrderInput | SortOrder
+    motivoRechazo?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    solicitante?: UserOrderByWithRelationInput
+    confirmadoPor?: UserOrderByWithRelationInput
+    items?: ItemSolicitudOrderByRelationAggregateInput
+  }
+
+  export type PartidaProduccionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: PartidaProduccionWhereInput | PartidaProduccionWhereInput[]
+    OR?: PartidaProduccionWhereInput[]
+    NOT?: PartidaProduccionWhereInput | PartidaProduccionWhereInput[]
+    solicitanteId?: StringFilter<"PartidaProduccion"> | string
+    confirmadoPorId?: StringNullableFilter<"PartidaProduccion"> | string | null
+    confirmadoAt?: DateTimeNullableFilter<"PartidaProduccion"> | Date | string | null
+    estado?: EnumEstadoPartidaFilter<"PartidaProduccion"> | $Enums.EstadoPartida
+    notas?: StringNullableFilter<"PartidaProduccion"> | string | null
+    motivoRechazo?: StringNullableFilter<"PartidaProduccion"> | string | null
+    createdAt?: DateTimeFilter<"PartidaProduccion"> | Date | string
+    solicitante?: XOR<UserScalarRelationFilter, UserWhereInput>
+    confirmadoPor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    items?: ItemSolicitudListRelationFilter
+  }, "id">
+
+  export type PartidaProduccionOrderByWithAggregationInput = {
+    id?: SortOrder
+    solicitanteId?: SortOrder
+    confirmadoPorId?: SortOrderInput | SortOrder
+    confirmadoAt?: SortOrderInput | SortOrder
+    estado?: SortOrder
+    notas?: SortOrderInput | SortOrder
+    motivoRechazo?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: PartidaProduccionCountOrderByAggregateInput
+    _max?: PartidaProduccionMaxOrderByAggregateInput
+    _min?: PartidaProduccionMinOrderByAggregateInput
+  }
+
+  export type PartidaProduccionScalarWhereWithAggregatesInput = {
+    AND?: PartidaProduccionScalarWhereWithAggregatesInput | PartidaProduccionScalarWhereWithAggregatesInput[]
+    OR?: PartidaProduccionScalarWhereWithAggregatesInput[]
+    NOT?: PartidaProduccionScalarWhereWithAggregatesInput | PartidaProduccionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PartidaProduccion"> | string
+    solicitanteId?: StringWithAggregatesFilter<"PartidaProduccion"> | string
+    confirmadoPorId?: StringNullableWithAggregatesFilter<"PartidaProduccion"> | string | null
+    confirmadoAt?: DateTimeNullableWithAggregatesFilter<"PartidaProduccion"> | Date | string | null
+    estado?: EnumEstadoPartidaWithAggregatesFilter<"PartidaProduccion"> | $Enums.EstadoPartida
+    notas?: StringNullableWithAggregatesFilter<"PartidaProduccion"> | string | null
+    motivoRechazo?: StringNullableWithAggregatesFilter<"PartidaProduccion"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"PartidaProduccion"> | Date | string
+  }
+
+  export type ItemSolicitudWhereInput = {
+    AND?: ItemSolicitudWhereInput | ItemSolicitudWhereInput[]
+    OR?: ItemSolicitudWhereInput[]
+    NOT?: ItemSolicitudWhereInput | ItemSolicitudWhereInput[]
+    id?: StringFilter<"ItemSolicitud"> | string
+    partidaId?: StringFilter<"ItemSolicitud"> | string
+    productoId?: StringFilter<"ItemSolicitud"> | string
+    mercado?: EnumMercadoNullableFilter<"ItemSolicitud"> | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFilter<"ItemSolicitud"> | number
+    cantidadFinal?: FloatNullableFilter<"ItemSolicitud"> | number | null
+    partida?: XOR<PartidaProduccionScalarRelationFilter, PartidaProduccionWhereInput>
+    producto?: XOR<DepositoProductoScalarRelationFilter, DepositoProductoWhereInput>
+  }
+
+  export type ItemSolicitudOrderByWithRelationInput = {
+    id?: SortOrder
+    partidaId?: SortOrder
+    productoId?: SortOrder
+    mercado?: SortOrderInput | SortOrder
+    cantidadSolicitada?: SortOrder
+    cantidadFinal?: SortOrderInput | SortOrder
+    partida?: PartidaProduccionOrderByWithRelationInput
+    producto?: DepositoProductoOrderByWithRelationInput
+  }
+
+  export type ItemSolicitudWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ItemSolicitudWhereInput | ItemSolicitudWhereInput[]
+    OR?: ItemSolicitudWhereInput[]
+    NOT?: ItemSolicitudWhereInput | ItemSolicitudWhereInput[]
+    partidaId?: StringFilter<"ItemSolicitud"> | string
+    productoId?: StringFilter<"ItemSolicitud"> | string
+    mercado?: EnumMercadoNullableFilter<"ItemSolicitud"> | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFilter<"ItemSolicitud"> | number
+    cantidadFinal?: FloatNullableFilter<"ItemSolicitud"> | number | null
+    partida?: XOR<PartidaProduccionScalarRelationFilter, PartidaProduccionWhereInput>
+    producto?: XOR<DepositoProductoScalarRelationFilter, DepositoProductoWhereInput>
+  }, "id">
+
+  export type ItemSolicitudOrderByWithAggregationInput = {
+    id?: SortOrder
+    partidaId?: SortOrder
+    productoId?: SortOrder
+    mercado?: SortOrderInput | SortOrder
+    cantidadSolicitada?: SortOrder
+    cantidadFinal?: SortOrderInput | SortOrder
+    _count?: ItemSolicitudCountOrderByAggregateInput
+    _avg?: ItemSolicitudAvgOrderByAggregateInput
+    _max?: ItemSolicitudMaxOrderByAggregateInput
+    _min?: ItemSolicitudMinOrderByAggregateInput
+    _sum?: ItemSolicitudSumOrderByAggregateInput
+  }
+
+  export type ItemSolicitudScalarWhereWithAggregatesInput = {
+    AND?: ItemSolicitudScalarWhereWithAggregatesInput | ItemSolicitudScalarWhereWithAggregatesInput[]
+    OR?: ItemSolicitudScalarWhereWithAggregatesInput[]
+    NOT?: ItemSolicitudScalarWhereWithAggregatesInput | ItemSolicitudScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ItemSolicitud"> | string
+    partidaId?: StringWithAggregatesFilter<"ItemSolicitud"> | string
+    productoId?: StringWithAggregatesFilter<"ItemSolicitud"> | string
+    mercado?: EnumMercadoNullableWithAggregatesFilter<"ItemSolicitud"> | $Enums.Mercado | null
+    cantidadSolicitada?: FloatWithAggregatesFilter<"ItemSolicitud"> | number
+    cantidadFinal?: FloatNullableWithAggregatesFilter<"ItemSolicitud"> | number | null
   }
 
   export type PlatformUserCreateInput = {
@@ -56516,6 +60866,8 @@ export namespace Prisma {
     saldos?: SaldoStockCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoUncheckedCreateInput = {
@@ -56532,6 +60884,8 @@ export namespace Prisma {
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxUncheckedCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasUncheckedCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoUpdateInput = {
@@ -56548,6 +60902,8 @@ export namespace Prisma {
     saldos?: SaldoStockUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoUncheckedUpdateInput = {
@@ -56564,6 +60920,8 @@ export namespace Prisma {
     saldos?: SaldoStockUncheckedUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUncheckedUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUncheckedUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoCreateManyInput = {
@@ -56671,6 +61029,8 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     producto: ProductoCreateNestedOneWithoutLotesInput
+    derivedFromLote?: LoteCreateNestedOneWithoutDerivedLotesInput
+    derivedLotes?: LoteCreateNestedManyWithoutDerivedFromLoteInput
     reservas?: ReservaStockCreateNestedManyWithoutLoteInput
     saldos?: SaldoStockCreateNestedManyWithoutLoteInput
   }
@@ -56685,6 +61045,8 @@ export namespace Prisma {
     fechaVencimiento?: Date | string | null
     activo?: boolean
     createdAt?: Date | string
+    derivedFromLoteId?: string | null
+    derivedLotes?: LoteUncheckedCreateNestedManyWithoutDerivedFromLoteInput
     reservas?: ReservaStockUncheckedCreateNestedManyWithoutLoteInput
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutLoteInput
   }
@@ -56699,6 +61061,8 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     producto?: ProductoUpdateOneRequiredWithoutLotesNestedInput
+    derivedFromLote?: LoteUpdateOneWithoutDerivedLotesNestedInput
+    derivedLotes?: LoteUpdateManyWithoutDerivedFromLoteNestedInput
     reservas?: ReservaStockUpdateManyWithoutLoteNestedInput
     saldos?: SaldoStockUpdateManyWithoutLoteNestedInput
   }
@@ -56713,6 +61077,8 @@ export namespace Prisma {
     fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLoteId?: NullableStringFieldUpdateOperationsInput | string | null
+    derivedLotes?: LoteUncheckedUpdateManyWithoutDerivedFromLoteNestedInput
     reservas?: ReservaStockUncheckedUpdateManyWithoutLoteNestedInput
     saldos?: SaldoStockUncheckedUpdateManyWithoutLoteNestedInput
   }
@@ -56727,6 +61093,7 @@ export namespace Prisma {
     fechaVencimiento?: Date | string | null
     activo?: boolean
     createdAt?: Date | string
+    derivedFromLoteId?: string | null
   }
 
   export type LoteUpdateManyMutationInput = {
@@ -56750,6 +61117,89 @@ export namespace Prisma {
     fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLoteId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ProductoTransferRuleCreateInput = {
+    id?: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourceProduct: ProductoCreateNestedOneWithoutSourceTransferRulesInput
+    targetProduct: ProductoCreateNestedOneWithoutTargetTransferRulesInput
+  }
+
+  export type ProductoTransferRuleUncheckedCreateInput = {
+    id?: string
+    sourceProductId: string
+    targetProductId: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProductoTransferRuleUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProduct?: ProductoUpdateOneRequiredWithoutSourceTransferRulesNestedInput
+    targetProduct?: ProductoUpdateOneRequiredWithoutTargetTransferRulesNestedInput
+  }
+
+  export type ProductoTransferRuleUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProductId?: StringFieldUpdateOperationsInput | string
+    targetProductId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProductoTransferRuleCreateManyInput = {
+    id?: string
+    sourceProductId: string
+    targetProductId: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProductoTransferRuleUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProductoTransferRuleUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProductId?: StringFieldUpdateOperationsInput | string
+    targetProductId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ClienteCreateInput = {
@@ -57977,6 +62427,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -57994,6 +62446,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUpdateInput = {
@@ -58011,6 +62465,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -58028,6 +62484,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -58862,7 +63320,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58881,7 +63339,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58910,7 +63368,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58926,7 +63384,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -58961,6 +63419,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateInput = {
@@ -58990,6 +63449,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUpdateInput = {
@@ -59019,6 +63479,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateInput = {
@@ -59048,6 +63509,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateManyInput = {
@@ -59430,6 +63892,146 @@ export namespace Prisma {
     sourceRow?: IntFieldUpdateOperationsInput | number
     cantidad?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartidaProduccionCreateInput = {
+    id?: string
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+    solicitante: UserCreateNestedOneWithoutPartidasSolicitadasInput
+    confirmadoPor?: UserCreateNestedOneWithoutPartidasConfirmadasInput
+    items?: ItemSolicitudCreateNestedManyWithoutPartidaInput
+  }
+
+  export type PartidaProduccionUncheckedCreateInput = {
+    id?: string
+    solicitanteId: string
+    confirmadoPorId?: string | null
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+    items?: ItemSolicitudUncheckedCreateNestedManyWithoutPartidaInput
+  }
+
+  export type PartidaProduccionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    solicitante?: UserUpdateOneRequiredWithoutPartidasSolicitadasNestedInput
+    confirmadoPor?: UserUpdateOneWithoutPartidasConfirmadasNestedInput
+    items?: ItemSolicitudUpdateManyWithoutPartidaNestedInput
+  }
+
+  export type PartidaProduccionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    solicitanteId?: StringFieldUpdateOperationsInput | string
+    confirmadoPorId?: NullableStringFieldUpdateOperationsInput | string | null
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: ItemSolicitudUncheckedUpdateManyWithoutPartidaNestedInput
+  }
+
+  export type PartidaProduccionCreateManyInput = {
+    id?: string
+    solicitanteId: string
+    confirmadoPorId?: string | null
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PartidaProduccionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartidaProduccionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    solicitanteId?: StringFieldUpdateOperationsInput | string
+    confirmadoPorId?: NullableStringFieldUpdateOperationsInput | string | null
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ItemSolicitudCreateInput = {
+    id?: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+    partida: PartidaProduccionCreateNestedOneWithoutItemsInput
+    producto: DepositoProductoCreateNestedOneWithoutItemsSolicitudInput
+  }
+
+  export type ItemSolicitudUncheckedCreateInput = {
+    id?: string
+    partidaId: string
+    productoId: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+  }
+
+  export type ItemSolicitudUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+    partida?: PartidaProduccionUpdateOneRequiredWithoutItemsNestedInput
+    producto?: DepositoProductoUpdateOneRequiredWithoutItemsSolicitudNestedInput
+  }
+
+  export type ItemSolicitudUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partidaId?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type ItemSolicitudCreateManyInput = {
+    id?: string
+    partidaId: string
+    productoId: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+  }
+
+  export type ItemSolicitudUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type ItemSolicitudUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partidaId?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -59989,6 +64591,12 @@ export namespace Prisma {
     none?: ProductAliasWhereInput
   }
 
+  export type ProductoTransferRuleListRelationFilter = {
+    every?: ProductoTransferRuleWhereInput
+    some?: ProductoTransferRuleWhereInput
+    none?: ProductoTransferRuleWhereInput
+  }
+
   export type LoteOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -60006,6 +64614,10 @@ export namespace Prisma {
   }
 
   export type ProductAliasOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProductoTransferRuleOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -60100,6 +64712,11 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type LoteNullableScalarRelationFilter = {
+    is?: LoteWhereInput | null
+    isNot?: LoteWhereInput | null
+  }
+
   export type ReservaStockListRelationFilter = {
     every?: ReservaStockWhereInput
     some?: ReservaStockWhereInput
@@ -60120,6 +64737,11 @@ export namespace Prisma {
     productoId: string
   }
 
+  export type LoteProductoIdDerivedFromLoteIdCompoundUniqueInput = {
+    productoId: string
+    derivedFromLoteId: string
+  }
+
   export type LoteCountOrderByAggregateInput = {
     id?: SortOrder
     numero?: SortOrder
@@ -60130,6 +64752,7 @@ export namespace Prisma {
     fechaVencimiento?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
+    derivedFromLoteId?: SortOrder
   }
 
   export type LoteAvgOrderByAggregateInput = {
@@ -60147,6 +64770,7 @@ export namespace Prisma {
     fechaVencimiento?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
+    derivedFromLoteId?: SortOrder
   }
 
   export type LoteMinOrderByAggregateInput = {
@@ -60159,11 +64783,79 @@ export namespace Prisma {
     fechaVencimiento?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
+    derivedFromLoteId?: SortOrder
   }
 
   export type LoteSumOrderByAggregateInput = {
     cajas?: SortOrder
     sueltos?: SortOrder
+  }
+
+  export type EnumTipoReglaTransferenciaProductoFilter<$PrismaModel = never> = {
+    equals?: $Enums.TipoReglaTransferenciaProducto | EnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    in?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    not?: NestedEnumTipoReglaTransferenciaProductoFilter<$PrismaModel> | $Enums.TipoReglaTransferenciaProducto
+  }
+
+  export type ProductoTransferRuleSourceProductIdTargetProductIdLabelCompoundUniqueInput = {
+    sourceProductId: string
+    targetProductId: string
+    label: string
+  }
+
+  export type ProductoTransferRuleCountOrderByAggregateInput = {
+    id?: SortOrder
+    sourceProductId?: SortOrder
+    targetProductId?: SortOrder
+    label?: SortOrder
+    tipo?: SortOrder
+    activo?: SortOrder
+    orden?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProductoTransferRuleAvgOrderByAggregateInput = {
+    orden?: SortOrder
+  }
+
+  export type ProductoTransferRuleMaxOrderByAggregateInput = {
+    id?: SortOrder
+    sourceProductId?: SortOrder
+    targetProductId?: SortOrder
+    label?: SortOrder
+    tipo?: SortOrder
+    activo?: SortOrder
+    orden?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProductoTransferRuleMinOrderByAggregateInput = {
+    id?: SortOrder
+    sourceProductId?: SortOrder
+    targetProductId?: SortOrder
+    label?: SortOrder
+    tipo?: SortOrder
+    activo?: SortOrder
+    orden?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProductoTransferRuleSumOrderByAggregateInput = {
+    orden?: SortOrder
+  }
+
+  export type EnumTipoReglaTransferenciaProductoWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TipoReglaTransferenciaProducto | EnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    in?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    not?: NestedEnumTipoReglaTransferenciaProductoWithAggregatesFilter<$PrismaModel> | $Enums.TipoReglaTransferenciaProducto
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTipoReglaTransferenciaProductoFilter<$PrismaModel>
+    _max?: NestedEnumTipoReglaTransferenciaProductoFilter<$PrismaModel>
   }
 
   export type EnumEstadoClienteFilter<$PrismaModel = never> = {
@@ -61058,6 +65750,12 @@ export namespace Prisma {
     none?: ImportacionInicialEstucheBatchWhereInput
   }
 
+  export type PartidaProduccionListRelationFilter = {
+    every?: PartidaProduccionWhereInput
+    some?: PartidaProduccionWhereInput
+    none?: PartidaProduccionWhereInput
+  }
+
   export type ActaOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -61079,6 +65777,10 @@ export namespace Prisma {
   }
 
   export type ImportacionInicialEstucheBatchOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PartidaProduccionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -61913,6 +66615,12 @@ export namespace Prisma {
     none?: ImportacionInicialEstucheItemWhereInput
   }
 
+  export type ItemSolicitudListRelationFilter = {
+    every?: ItemSolicitudWhereInput
+    some?: ItemSolicitudWhereInput
+    none?: ItemSolicitudWhereInput
+  }
+
   export type InventarioDrogaOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -61930,6 +66638,10 @@ export namespace Prisma {
   }
 
   export type ImportacionInicialEstucheItemOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ItemSolicitudOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -62242,6 +66954,125 @@ export namespace Prisma {
     cantidad?: SortOrder
   }
 
+  export type EnumEstadoPartidaFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoPartida | EnumEstadoPartidaFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoPartidaFilter<$PrismaModel> | $Enums.EstadoPartida
+  }
+
+  export type PartidaProduccionCountOrderByAggregateInput = {
+    id?: SortOrder
+    solicitanteId?: SortOrder
+    confirmadoPorId?: SortOrder
+    confirmadoAt?: SortOrder
+    estado?: SortOrder
+    notas?: SortOrder
+    motivoRechazo?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartidaProduccionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    solicitanteId?: SortOrder
+    confirmadoPorId?: SortOrder
+    confirmadoAt?: SortOrder
+    estado?: SortOrder
+    notas?: SortOrder
+    motivoRechazo?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type PartidaProduccionMinOrderByAggregateInput = {
+    id?: SortOrder
+    solicitanteId?: SortOrder
+    confirmadoPorId?: SortOrder
+    confirmadoAt?: SortOrder
+    estado?: SortOrder
+    notas?: SortOrder
+    motivoRechazo?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type EnumEstadoPartidaWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoPartida | EnumEstadoPartidaFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoPartidaWithAggregatesFilter<$PrismaModel> | $Enums.EstadoPartida
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoPartidaFilter<$PrismaModel>
+    _max?: NestedEnumEstadoPartidaFilter<$PrismaModel>
+  }
+
+  export type FloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
+  export type PartidaProduccionScalarRelationFilter = {
+    is?: PartidaProduccionWhereInput
+    isNot?: PartidaProduccionWhereInput
+  }
+
+  export type ItemSolicitudCountOrderByAggregateInput = {
+    id?: SortOrder
+    partidaId?: SortOrder
+    productoId?: SortOrder
+    mercado?: SortOrder
+    cantidadSolicitada?: SortOrder
+    cantidadFinal?: SortOrder
+  }
+
+  export type ItemSolicitudAvgOrderByAggregateInput = {
+    cantidadSolicitada?: SortOrder
+    cantidadFinal?: SortOrder
+  }
+
+  export type ItemSolicitudMaxOrderByAggregateInput = {
+    id?: SortOrder
+    partidaId?: SortOrder
+    productoId?: SortOrder
+    mercado?: SortOrder
+    cantidadSolicitada?: SortOrder
+    cantidadFinal?: SortOrder
+  }
+
+  export type ItemSolicitudMinOrderByAggregateInput = {
+    id?: SortOrder
+    partidaId?: SortOrder
+    productoId?: SortOrder
+    mercado?: SortOrder
+    cantidadSolicitada?: SortOrder
+    cantidadFinal?: SortOrder
+  }
+
+  export type ItemSolicitudSumOrderByAggregateInput = {
+    cantidadSolicitada?: SortOrder
+    cantidadFinal?: SortOrder
+  }
+
+  export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
   export type AppAccessCreateNestedManyWithoutUserInput = {
     create?: XOR<AppAccessCreateWithoutUserInput, AppAccessUncheckedCreateWithoutUserInput> | AppAccessCreateWithoutUserInput[] | AppAccessUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AppAccessCreateOrConnectWithoutUserInput | AppAccessCreateOrConnectWithoutUserInput[]
@@ -62429,6 +67260,20 @@ export namespace Prisma {
     connect?: ProductAliasWhereUniqueInput | ProductAliasWhereUniqueInput[]
   }
 
+  export type ProductoTransferRuleCreateNestedManyWithoutSourceProductInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutSourceProductInput, ProductoTransferRuleUncheckedCreateWithoutSourceProductInput> | ProductoTransferRuleCreateWithoutSourceProductInput[] | ProductoTransferRuleUncheckedCreateWithoutSourceProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutSourceProductInput | ProductoTransferRuleCreateOrConnectWithoutSourceProductInput[]
+    createMany?: ProductoTransferRuleCreateManySourceProductInputEnvelope
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+  }
+
+  export type ProductoTransferRuleCreateNestedManyWithoutTargetProductInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutTargetProductInput, ProductoTransferRuleUncheckedCreateWithoutTargetProductInput> | ProductoTransferRuleCreateWithoutTargetProductInput[] | ProductoTransferRuleUncheckedCreateWithoutTargetProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutTargetProductInput | ProductoTransferRuleCreateOrConnectWithoutTargetProductInput[]
+    createMany?: ProductoTransferRuleCreateManyTargetProductInputEnvelope
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+  }
+
   export type LoteUncheckedCreateNestedManyWithoutProductoInput = {
     create?: XOR<LoteCreateWithoutProductoInput, LoteUncheckedCreateWithoutProductoInput> | LoteCreateWithoutProductoInput[] | LoteUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: LoteCreateOrConnectWithoutProductoInput | LoteCreateOrConnectWithoutProductoInput[]
@@ -62462,6 +67307,20 @@ export namespace Prisma {
     connectOrCreate?: ProductAliasCreateOrConnectWithoutProductoInput | ProductAliasCreateOrConnectWithoutProductoInput[]
     createMany?: ProductAliasCreateManyProductoInputEnvelope
     connect?: ProductAliasWhereUniqueInput | ProductAliasWhereUniqueInput[]
+  }
+
+  export type ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutSourceProductInput, ProductoTransferRuleUncheckedCreateWithoutSourceProductInput> | ProductoTransferRuleCreateWithoutSourceProductInput[] | ProductoTransferRuleUncheckedCreateWithoutSourceProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutSourceProductInput | ProductoTransferRuleCreateOrConnectWithoutSourceProductInput[]
+    createMany?: ProductoTransferRuleCreateManySourceProductInputEnvelope
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+  }
+
+  export type ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutTargetProductInput, ProductoTransferRuleUncheckedCreateWithoutTargetProductInput> | ProductoTransferRuleCreateWithoutTargetProductInput[] | ProductoTransferRuleUncheckedCreateWithoutTargetProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutTargetProductInput | ProductoTransferRuleCreateOrConnectWithoutTargetProductInput[]
+    createMany?: ProductoTransferRuleCreateManyTargetProductInputEnvelope
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
   }
 
   export type IntFieldUpdateOperationsInput = {
@@ -62542,6 +67401,34 @@ export namespace Prisma {
     deleteMany?: ProductAliasScalarWhereInput | ProductAliasScalarWhereInput[]
   }
 
+  export type ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutSourceProductInput, ProductoTransferRuleUncheckedCreateWithoutSourceProductInput> | ProductoTransferRuleCreateWithoutSourceProductInput[] | ProductoTransferRuleUncheckedCreateWithoutSourceProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutSourceProductInput | ProductoTransferRuleCreateOrConnectWithoutSourceProductInput[]
+    upsert?: ProductoTransferRuleUpsertWithWhereUniqueWithoutSourceProductInput | ProductoTransferRuleUpsertWithWhereUniqueWithoutSourceProductInput[]
+    createMany?: ProductoTransferRuleCreateManySourceProductInputEnvelope
+    set?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    disconnect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    delete?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    update?: ProductoTransferRuleUpdateWithWhereUniqueWithoutSourceProductInput | ProductoTransferRuleUpdateWithWhereUniqueWithoutSourceProductInput[]
+    updateMany?: ProductoTransferRuleUpdateManyWithWhereWithoutSourceProductInput | ProductoTransferRuleUpdateManyWithWhereWithoutSourceProductInput[]
+    deleteMany?: ProductoTransferRuleScalarWhereInput | ProductoTransferRuleScalarWhereInput[]
+  }
+
+  export type ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutTargetProductInput, ProductoTransferRuleUncheckedCreateWithoutTargetProductInput> | ProductoTransferRuleCreateWithoutTargetProductInput[] | ProductoTransferRuleUncheckedCreateWithoutTargetProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutTargetProductInput | ProductoTransferRuleCreateOrConnectWithoutTargetProductInput[]
+    upsert?: ProductoTransferRuleUpsertWithWhereUniqueWithoutTargetProductInput | ProductoTransferRuleUpsertWithWhereUniqueWithoutTargetProductInput[]
+    createMany?: ProductoTransferRuleCreateManyTargetProductInputEnvelope
+    set?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    disconnect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    delete?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    update?: ProductoTransferRuleUpdateWithWhereUniqueWithoutTargetProductInput | ProductoTransferRuleUpdateWithWhereUniqueWithoutTargetProductInput[]
+    updateMany?: ProductoTransferRuleUpdateManyWithWhereWithoutTargetProductInput | ProductoTransferRuleUpdateManyWithWhereWithoutTargetProductInput[]
+    deleteMany?: ProductoTransferRuleScalarWhereInput | ProductoTransferRuleScalarWhereInput[]
+  }
+
   export type LoteUncheckedUpdateManyWithoutProductoNestedInput = {
     create?: XOR<LoteCreateWithoutProductoInput, LoteUncheckedCreateWithoutProductoInput> | LoteCreateWithoutProductoInput[] | LoteUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: LoteCreateOrConnectWithoutProductoInput | LoteCreateOrConnectWithoutProductoInput[]
@@ -62612,6 +67499,34 @@ export namespace Prisma {
     deleteMany?: ProductAliasScalarWhereInput | ProductAliasScalarWhereInput[]
   }
 
+  export type ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutSourceProductInput, ProductoTransferRuleUncheckedCreateWithoutSourceProductInput> | ProductoTransferRuleCreateWithoutSourceProductInput[] | ProductoTransferRuleUncheckedCreateWithoutSourceProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutSourceProductInput | ProductoTransferRuleCreateOrConnectWithoutSourceProductInput[]
+    upsert?: ProductoTransferRuleUpsertWithWhereUniqueWithoutSourceProductInput | ProductoTransferRuleUpsertWithWhereUniqueWithoutSourceProductInput[]
+    createMany?: ProductoTransferRuleCreateManySourceProductInputEnvelope
+    set?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    disconnect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    delete?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    update?: ProductoTransferRuleUpdateWithWhereUniqueWithoutSourceProductInput | ProductoTransferRuleUpdateWithWhereUniqueWithoutSourceProductInput[]
+    updateMany?: ProductoTransferRuleUpdateManyWithWhereWithoutSourceProductInput | ProductoTransferRuleUpdateManyWithWhereWithoutSourceProductInput[]
+    deleteMany?: ProductoTransferRuleScalarWhereInput | ProductoTransferRuleScalarWhereInput[]
+  }
+
+  export type ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput = {
+    create?: XOR<ProductoTransferRuleCreateWithoutTargetProductInput, ProductoTransferRuleUncheckedCreateWithoutTargetProductInput> | ProductoTransferRuleCreateWithoutTargetProductInput[] | ProductoTransferRuleUncheckedCreateWithoutTargetProductInput[]
+    connectOrCreate?: ProductoTransferRuleCreateOrConnectWithoutTargetProductInput | ProductoTransferRuleCreateOrConnectWithoutTargetProductInput[]
+    upsert?: ProductoTransferRuleUpsertWithWhereUniqueWithoutTargetProductInput | ProductoTransferRuleUpsertWithWhereUniqueWithoutTargetProductInput[]
+    createMany?: ProductoTransferRuleCreateManyTargetProductInputEnvelope
+    set?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    disconnect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    delete?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    connect?: ProductoTransferRuleWhereUniqueInput | ProductoTransferRuleWhereUniqueInput[]
+    update?: ProductoTransferRuleUpdateWithWhereUniqueWithoutTargetProductInput | ProductoTransferRuleUpdateWithWhereUniqueWithoutTargetProductInput[]
+    updateMany?: ProductoTransferRuleUpdateManyWithWhereWithoutTargetProductInput | ProductoTransferRuleUpdateManyWithWhereWithoutTargetProductInput[]
+    deleteMany?: ProductoTransferRuleScalarWhereInput | ProductoTransferRuleScalarWhereInput[]
+  }
+
   export type ProductoCreateNestedOneWithoutAliasesInput = {
     create?: XOR<ProductoCreateWithoutAliasesInput, ProductoUncheckedCreateWithoutAliasesInput>
     connectOrCreate?: ProductoCreateOrConnectWithoutAliasesInput
@@ -62632,6 +67547,19 @@ export namespace Prisma {
     connect?: ProductoWhereUniqueInput
   }
 
+  export type LoteCreateNestedOneWithoutDerivedLotesInput = {
+    create?: XOR<LoteCreateWithoutDerivedLotesInput, LoteUncheckedCreateWithoutDerivedLotesInput>
+    connectOrCreate?: LoteCreateOrConnectWithoutDerivedLotesInput
+    connect?: LoteWhereUniqueInput
+  }
+
+  export type LoteCreateNestedManyWithoutDerivedFromLoteInput = {
+    create?: XOR<LoteCreateWithoutDerivedFromLoteInput, LoteUncheckedCreateWithoutDerivedFromLoteInput> | LoteCreateWithoutDerivedFromLoteInput[] | LoteUncheckedCreateWithoutDerivedFromLoteInput[]
+    connectOrCreate?: LoteCreateOrConnectWithoutDerivedFromLoteInput | LoteCreateOrConnectWithoutDerivedFromLoteInput[]
+    createMany?: LoteCreateManyDerivedFromLoteInputEnvelope
+    connect?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+  }
+
   export type ReservaStockCreateNestedManyWithoutLoteInput = {
     create?: XOR<ReservaStockCreateWithoutLoteInput, ReservaStockUncheckedCreateWithoutLoteInput> | ReservaStockCreateWithoutLoteInput[] | ReservaStockUncheckedCreateWithoutLoteInput[]
     connectOrCreate?: ReservaStockCreateOrConnectWithoutLoteInput | ReservaStockCreateOrConnectWithoutLoteInput[]
@@ -62644,6 +67572,13 @@ export namespace Prisma {
     connectOrCreate?: SaldoStockCreateOrConnectWithoutLoteInput | SaldoStockCreateOrConnectWithoutLoteInput[]
     createMany?: SaldoStockCreateManyLoteInputEnvelope
     connect?: SaldoStockWhereUniqueInput | SaldoStockWhereUniqueInput[]
+  }
+
+  export type LoteUncheckedCreateNestedManyWithoutDerivedFromLoteInput = {
+    create?: XOR<LoteCreateWithoutDerivedFromLoteInput, LoteUncheckedCreateWithoutDerivedFromLoteInput> | LoteCreateWithoutDerivedFromLoteInput[] | LoteUncheckedCreateWithoutDerivedFromLoteInput[]
+    connectOrCreate?: LoteCreateOrConnectWithoutDerivedFromLoteInput | LoteCreateOrConnectWithoutDerivedFromLoteInput[]
+    createMany?: LoteCreateManyDerivedFromLoteInputEnvelope
+    connect?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
   }
 
   export type ReservaStockUncheckedCreateNestedManyWithoutLoteInput = {
@@ -62666,6 +67601,30 @@ export namespace Prisma {
     upsert?: ProductoUpsertWithoutLotesInput
     connect?: ProductoWhereUniqueInput
     update?: XOR<XOR<ProductoUpdateToOneWithWhereWithoutLotesInput, ProductoUpdateWithoutLotesInput>, ProductoUncheckedUpdateWithoutLotesInput>
+  }
+
+  export type LoteUpdateOneWithoutDerivedLotesNestedInput = {
+    create?: XOR<LoteCreateWithoutDerivedLotesInput, LoteUncheckedCreateWithoutDerivedLotesInput>
+    connectOrCreate?: LoteCreateOrConnectWithoutDerivedLotesInput
+    upsert?: LoteUpsertWithoutDerivedLotesInput
+    disconnect?: LoteWhereInput | boolean
+    delete?: LoteWhereInput | boolean
+    connect?: LoteWhereUniqueInput
+    update?: XOR<XOR<LoteUpdateToOneWithWhereWithoutDerivedLotesInput, LoteUpdateWithoutDerivedLotesInput>, LoteUncheckedUpdateWithoutDerivedLotesInput>
+  }
+
+  export type LoteUpdateManyWithoutDerivedFromLoteNestedInput = {
+    create?: XOR<LoteCreateWithoutDerivedFromLoteInput, LoteUncheckedCreateWithoutDerivedFromLoteInput> | LoteCreateWithoutDerivedFromLoteInput[] | LoteUncheckedCreateWithoutDerivedFromLoteInput[]
+    connectOrCreate?: LoteCreateOrConnectWithoutDerivedFromLoteInput | LoteCreateOrConnectWithoutDerivedFromLoteInput[]
+    upsert?: LoteUpsertWithWhereUniqueWithoutDerivedFromLoteInput | LoteUpsertWithWhereUniqueWithoutDerivedFromLoteInput[]
+    createMany?: LoteCreateManyDerivedFromLoteInputEnvelope
+    set?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    disconnect?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    delete?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    connect?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    update?: LoteUpdateWithWhereUniqueWithoutDerivedFromLoteInput | LoteUpdateWithWhereUniqueWithoutDerivedFromLoteInput[]
+    updateMany?: LoteUpdateManyWithWhereWithoutDerivedFromLoteInput | LoteUpdateManyWithWhereWithoutDerivedFromLoteInput[]
+    deleteMany?: LoteScalarWhereInput | LoteScalarWhereInput[]
   }
 
   export type ReservaStockUpdateManyWithoutLoteNestedInput = {
@@ -62696,6 +67655,20 @@ export namespace Prisma {
     deleteMany?: SaldoStockScalarWhereInput | SaldoStockScalarWhereInput[]
   }
 
+  export type LoteUncheckedUpdateManyWithoutDerivedFromLoteNestedInput = {
+    create?: XOR<LoteCreateWithoutDerivedFromLoteInput, LoteUncheckedCreateWithoutDerivedFromLoteInput> | LoteCreateWithoutDerivedFromLoteInput[] | LoteUncheckedCreateWithoutDerivedFromLoteInput[]
+    connectOrCreate?: LoteCreateOrConnectWithoutDerivedFromLoteInput | LoteCreateOrConnectWithoutDerivedFromLoteInput[]
+    upsert?: LoteUpsertWithWhereUniqueWithoutDerivedFromLoteInput | LoteUpsertWithWhereUniqueWithoutDerivedFromLoteInput[]
+    createMany?: LoteCreateManyDerivedFromLoteInputEnvelope
+    set?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    disconnect?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    delete?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    connect?: LoteWhereUniqueInput | LoteWhereUniqueInput[]
+    update?: LoteUpdateWithWhereUniqueWithoutDerivedFromLoteInput | LoteUpdateWithWhereUniqueWithoutDerivedFromLoteInput[]
+    updateMany?: LoteUpdateManyWithWhereWithoutDerivedFromLoteInput | LoteUpdateManyWithWhereWithoutDerivedFromLoteInput[]
+    deleteMany?: LoteScalarWhereInput | LoteScalarWhereInput[]
+  }
+
   export type ReservaStockUncheckedUpdateManyWithoutLoteNestedInput = {
     create?: XOR<ReservaStockCreateWithoutLoteInput, ReservaStockUncheckedCreateWithoutLoteInput> | ReservaStockCreateWithoutLoteInput[] | ReservaStockUncheckedCreateWithoutLoteInput[]
     connectOrCreate?: ReservaStockCreateOrConnectWithoutLoteInput | ReservaStockCreateOrConnectWithoutLoteInput[]
@@ -62722,6 +67695,38 @@ export namespace Prisma {
     update?: SaldoStockUpdateWithWhereUniqueWithoutLoteInput | SaldoStockUpdateWithWhereUniqueWithoutLoteInput[]
     updateMany?: SaldoStockUpdateManyWithWhereWithoutLoteInput | SaldoStockUpdateManyWithWhereWithoutLoteInput[]
     deleteMany?: SaldoStockScalarWhereInput | SaldoStockScalarWhereInput[]
+  }
+
+  export type ProductoCreateNestedOneWithoutSourceTransferRulesInput = {
+    create?: XOR<ProductoCreateWithoutSourceTransferRulesInput, ProductoUncheckedCreateWithoutSourceTransferRulesInput>
+    connectOrCreate?: ProductoCreateOrConnectWithoutSourceTransferRulesInput
+    connect?: ProductoWhereUniqueInput
+  }
+
+  export type ProductoCreateNestedOneWithoutTargetTransferRulesInput = {
+    create?: XOR<ProductoCreateWithoutTargetTransferRulesInput, ProductoUncheckedCreateWithoutTargetTransferRulesInput>
+    connectOrCreate?: ProductoCreateOrConnectWithoutTargetTransferRulesInput
+    connect?: ProductoWhereUniqueInput
+  }
+
+  export type EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput = {
+    set?: $Enums.TipoReglaTransferenciaProducto
+  }
+
+  export type ProductoUpdateOneRequiredWithoutSourceTransferRulesNestedInput = {
+    create?: XOR<ProductoCreateWithoutSourceTransferRulesInput, ProductoUncheckedCreateWithoutSourceTransferRulesInput>
+    connectOrCreate?: ProductoCreateOrConnectWithoutSourceTransferRulesInput
+    upsert?: ProductoUpsertWithoutSourceTransferRulesInput
+    connect?: ProductoWhereUniqueInput
+    update?: XOR<XOR<ProductoUpdateToOneWithWhereWithoutSourceTransferRulesInput, ProductoUpdateWithoutSourceTransferRulesInput>, ProductoUncheckedUpdateWithoutSourceTransferRulesInput>
+  }
+
+  export type ProductoUpdateOneRequiredWithoutTargetTransferRulesNestedInput = {
+    create?: XOR<ProductoCreateWithoutTargetTransferRulesInput, ProductoUncheckedCreateWithoutTargetTransferRulesInput>
+    connectOrCreate?: ProductoCreateOrConnectWithoutTargetTransferRulesInput
+    upsert?: ProductoUpsertWithoutTargetTransferRulesInput
+    connect?: ProductoWhereUniqueInput
+    update?: XOR<XOR<ProductoUpdateToOneWithWhereWithoutTargetTransferRulesInput, ProductoUpdateWithoutTargetTransferRulesInput>, ProductoUncheckedUpdateWithoutTargetTransferRulesInput>
   }
 
   export type PedidoCreateNestedManyWithoutClienteInput = {
@@ -63603,6 +68608,20 @@ export namespace Prisma {
     connect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
   }
 
+  export type PartidaProduccionCreateNestedManyWithoutSolicitanteInput = {
+    create?: XOR<PartidaProduccionCreateWithoutSolicitanteInput, PartidaProduccionUncheckedCreateWithoutSolicitanteInput> | PartidaProduccionCreateWithoutSolicitanteInput[] | PartidaProduccionUncheckedCreateWithoutSolicitanteInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutSolicitanteInput | PartidaProduccionCreateOrConnectWithoutSolicitanteInput[]
+    createMany?: PartidaProduccionCreateManySolicitanteInputEnvelope
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+  }
+
+  export type PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput = {
+    create?: XOR<PartidaProduccionCreateWithoutConfirmadoPorInput, PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput> | PartidaProduccionCreateWithoutConfirmadoPorInput[] | PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput | PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput[]
+    createMany?: PartidaProduccionCreateManyConfirmadoPorInputEnvelope
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+  }
+
   export type ActaUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<ActaCreateWithoutUserInput, ActaUncheckedCreateWithoutUserInput> | ActaCreateWithoutUserInput[] | ActaUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ActaCreateOrConnectWithoutUserInput | ActaCreateOrConnectWithoutUserInput[]
@@ -63650,6 +68669,20 @@ export namespace Prisma {
     connectOrCreate?: ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput | ImportacionInicialEstucheBatchCreateOrConnectWithoutActorInput[]
     createMany?: ImportacionInicialEstucheBatchCreateManyActorInputEnvelope
     connect?: ImportacionInicialEstucheBatchWhereUniqueInput | ImportacionInicialEstucheBatchWhereUniqueInput[]
+  }
+
+  export type PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput = {
+    create?: XOR<PartidaProduccionCreateWithoutSolicitanteInput, PartidaProduccionUncheckedCreateWithoutSolicitanteInput> | PartidaProduccionCreateWithoutSolicitanteInput[] | PartidaProduccionUncheckedCreateWithoutSolicitanteInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutSolicitanteInput | PartidaProduccionCreateOrConnectWithoutSolicitanteInput[]
+    createMany?: PartidaProduccionCreateManySolicitanteInputEnvelope
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+  }
+
+  export type PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput = {
+    create?: XOR<PartidaProduccionCreateWithoutConfirmadoPorInput, PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput> | PartidaProduccionCreateWithoutConfirmadoPorInput[] | PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput | PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput[]
+    createMany?: PartidaProduccionCreateManyConfirmadoPorInputEnvelope
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
   }
 
   export type EnumRoleFieldUpdateOperationsInput = {
@@ -63754,6 +68787,34 @@ export namespace Prisma {
     deleteMany?: ImportacionInicialEstucheBatchScalarWhereInput | ImportacionInicialEstucheBatchScalarWhereInput[]
   }
 
+  export type PartidaProduccionUpdateManyWithoutSolicitanteNestedInput = {
+    create?: XOR<PartidaProduccionCreateWithoutSolicitanteInput, PartidaProduccionUncheckedCreateWithoutSolicitanteInput> | PartidaProduccionCreateWithoutSolicitanteInput[] | PartidaProduccionUncheckedCreateWithoutSolicitanteInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutSolicitanteInput | PartidaProduccionCreateOrConnectWithoutSolicitanteInput[]
+    upsert?: PartidaProduccionUpsertWithWhereUniqueWithoutSolicitanteInput | PartidaProduccionUpsertWithWhereUniqueWithoutSolicitanteInput[]
+    createMany?: PartidaProduccionCreateManySolicitanteInputEnvelope
+    set?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    disconnect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    delete?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    update?: PartidaProduccionUpdateWithWhereUniqueWithoutSolicitanteInput | PartidaProduccionUpdateWithWhereUniqueWithoutSolicitanteInput[]
+    updateMany?: PartidaProduccionUpdateManyWithWhereWithoutSolicitanteInput | PartidaProduccionUpdateManyWithWhereWithoutSolicitanteInput[]
+    deleteMany?: PartidaProduccionScalarWhereInput | PartidaProduccionScalarWhereInput[]
+  }
+
+  export type PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput = {
+    create?: XOR<PartidaProduccionCreateWithoutConfirmadoPorInput, PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput> | PartidaProduccionCreateWithoutConfirmadoPorInput[] | PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput | PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput[]
+    upsert?: PartidaProduccionUpsertWithWhereUniqueWithoutConfirmadoPorInput | PartidaProduccionUpsertWithWhereUniqueWithoutConfirmadoPorInput[]
+    createMany?: PartidaProduccionCreateManyConfirmadoPorInputEnvelope
+    set?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    disconnect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    delete?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    update?: PartidaProduccionUpdateWithWhereUniqueWithoutConfirmadoPorInput | PartidaProduccionUpdateWithWhereUniqueWithoutConfirmadoPorInput[]
+    updateMany?: PartidaProduccionUpdateManyWithWhereWithoutConfirmadoPorInput | PartidaProduccionUpdateManyWithWhereWithoutConfirmadoPorInput[]
+    deleteMany?: PartidaProduccionScalarWhereInput | PartidaProduccionScalarWhereInput[]
+  }
+
   export type ActaUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<ActaCreateWithoutUserInput, ActaUncheckedCreateWithoutUserInput> | ActaCreateWithoutUserInput[] | ActaUncheckedCreateWithoutUserInput[]
     connectOrCreate?: ActaCreateOrConnectWithoutUserInput | ActaCreateOrConnectWithoutUserInput[]
@@ -63850,6 +68911,34 @@ export namespace Prisma {
     update?: ImportacionInicialEstucheBatchUpdateWithWhereUniqueWithoutActorInput | ImportacionInicialEstucheBatchUpdateWithWhereUniqueWithoutActorInput[]
     updateMany?: ImportacionInicialEstucheBatchUpdateManyWithWhereWithoutActorInput | ImportacionInicialEstucheBatchUpdateManyWithWhereWithoutActorInput[]
     deleteMany?: ImportacionInicialEstucheBatchScalarWhereInput | ImportacionInicialEstucheBatchScalarWhereInput[]
+  }
+
+  export type PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput = {
+    create?: XOR<PartidaProduccionCreateWithoutSolicitanteInput, PartidaProduccionUncheckedCreateWithoutSolicitanteInput> | PartidaProduccionCreateWithoutSolicitanteInput[] | PartidaProduccionUncheckedCreateWithoutSolicitanteInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutSolicitanteInput | PartidaProduccionCreateOrConnectWithoutSolicitanteInput[]
+    upsert?: PartidaProduccionUpsertWithWhereUniqueWithoutSolicitanteInput | PartidaProduccionUpsertWithWhereUniqueWithoutSolicitanteInput[]
+    createMany?: PartidaProduccionCreateManySolicitanteInputEnvelope
+    set?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    disconnect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    delete?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    update?: PartidaProduccionUpdateWithWhereUniqueWithoutSolicitanteInput | PartidaProduccionUpdateWithWhereUniqueWithoutSolicitanteInput[]
+    updateMany?: PartidaProduccionUpdateManyWithWhereWithoutSolicitanteInput | PartidaProduccionUpdateManyWithWhereWithoutSolicitanteInput[]
+    deleteMany?: PartidaProduccionScalarWhereInput | PartidaProduccionScalarWhereInput[]
+  }
+
+  export type PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput = {
+    create?: XOR<PartidaProduccionCreateWithoutConfirmadoPorInput, PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput> | PartidaProduccionCreateWithoutConfirmadoPorInput[] | PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput[]
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput | PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput[]
+    upsert?: PartidaProduccionUpsertWithWhereUniqueWithoutConfirmadoPorInput | PartidaProduccionUpsertWithWhereUniqueWithoutConfirmadoPorInput[]
+    createMany?: PartidaProduccionCreateManyConfirmadoPorInputEnvelope
+    set?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    disconnect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    delete?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    connect?: PartidaProduccionWhereUniqueInput | PartidaProduccionWhereUniqueInput[]
+    update?: PartidaProduccionUpdateWithWhereUniqueWithoutConfirmadoPorInput | PartidaProduccionUpdateWithWhereUniqueWithoutConfirmadoPorInput[]
+    updateMany?: PartidaProduccionUpdateManyWithWhereWithoutConfirmadoPorInput | PartidaProduccionUpdateManyWithWhereWithoutConfirmadoPorInput[]
+    deleteMany?: PartidaProduccionScalarWhereInput | PartidaProduccionScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutActasInput = {
@@ -64287,6 +69376,13 @@ export namespace Prisma {
     connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
   }
 
+  export type ItemSolicitudCreateNestedManyWithoutProductoInput = {
+    create?: XOR<ItemSolicitudCreateWithoutProductoInput, ItemSolicitudUncheckedCreateWithoutProductoInput> | ItemSolicitudCreateWithoutProductoInput[] | ItemSolicitudUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutProductoInput | ItemSolicitudCreateOrConnectWithoutProductoInput[]
+    createMany?: ItemSolicitudCreateManyProductoInputEnvelope
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+  }
+
   export type InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput = {
     create?: XOR<InventarioDrogaCreateWithoutProductoInput, InventarioDrogaUncheckedCreateWithoutProductoInput> | InventarioDrogaCreateWithoutProductoInput[] | InventarioDrogaUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: InventarioDrogaCreateOrConnectWithoutProductoInput | InventarioDrogaCreateOrConnectWithoutProductoInput[]
@@ -64348,6 +69444,13 @@ export namespace Prisma {
     connectOrCreate?: ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput | ImportacionInicialEstucheItemCreateOrConnectWithoutProductoInput[]
     createMany?: ImportacionInicialEstucheItemCreateManyProductoInputEnvelope
     connect?: ImportacionInicialEstucheItemWhereUniqueInput | ImportacionInicialEstucheItemWhereUniqueInput[]
+  }
+
+  export type ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput = {
+    create?: XOR<ItemSolicitudCreateWithoutProductoInput, ItemSolicitudUncheckedCreateWithoutProductoInput> | ItemSolicitudCreateWithoutProductoInput[] | ItemSolicitudUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutProductoInput | ItemSolicitudCreateOrConnectWithoutProductoInput[]
+    createMany?: ItemSolicitudCreateManyProductoInputEnvelope
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
   }
 
   export type NullableDecimalFieldUpdateOperationsInput = {
@@ -64497,6 +69600,20 @@ export namespace Prisma {
     deleteMany?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
   }
 
+  export type ItemSolicitudUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<ItemSolicitudCreateWithoutProductoInput, ItemSolicitudUncheckedCreateWithoutProductoInput> | ItemSolicitudCreateWithoutProductoInput[] | ItemSolicitudUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutProductoInput | ItemSolicitudCreateOrConnectWithoutProductoInput[]
+    upsert?: ItemSolicitudUpsertWithWhereUniqueWithoutProductoInput | ItemSolicitudUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: ItemSolicitudCreateManyProductoInputEnvelope
+    set?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    disconnect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    delete?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    update?: ItemSolicitudUpdateWithWhereUniqueWithoutProductoInput | ItemSolicitudUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: ItemSolicitudUpdateManyWithWhereWithoutProductoInput | ItemSolicitudUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
+  }
+
   export type InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput = {
     create?: XOR<InventarioDrogaCreateWithoutProductoInput, InventarioDrogaUncheckedCreateWithoutProductoInput> | InventarioDrogaCreateWithoutProductoInput[] | InventarioDrogaUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: InventarioDrogaCreateOrConnectWithoutProductoInput | InventarioDrogaCreateOrConnectWithoutProductoInput[]
@@ -64621,6 +69738,20 @@ export namespace Prisma {
     update?: ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutProductoInput | ImportacionInicialEstucheItemUpdateWithWhereUniqueWithoutProductoInput[]
     updateMany?: ImportacionInicialEstucheItemUpdateManyWithWhereWithoutProductoInput | ImportacionInicialEstucheItemUpdateManyWithWhereWithoutProductoInput[]
     deleteMany?: ImportacionInicialEstucheItemScalarWhereInput | ImportacionInicialEstucheItemScalarWhereInput[]
+  }
+
+  export type ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<ItemSolicitudCreateWithoutProductoInput, ItemSolicitudUncheckedCreateWithoutProductoInput> | ItemSolicitudCreateWithoutProductoInput[] | ItemSolicitudUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutProductoInput | ItemSolicitudCreateOrConnectWithoutProductoInput[]
+    upsert?: ItemSolicitudUpsertWithWhereUniqueWithoutProductoInput | ItemSolicitudUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: ItemSolicitudCreateManyProductoInputEnvelope
+    set?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    disconnect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    delete?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    update?: ItemSolicitudUpdateWithWhereUniqueWithoutProductoInput | ItemSolicitudUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: ItemSolicitudUpdateManyWithWhereWithoutProductoInput | ItemSolicitudUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutImportacionesInicialesEstucheInput = {
@@ -64807,6 +69938,118 @@ export namespace Prisma {
     delete?: MovimientoWhereInput | boolean
     connect?: MovimientoWhereUniqueInput
     update?: XOR<XOR<MovimientoUpdateToOneWithWhereWithoutImportacionInicialEstucheItemInput, MovimientoUpdateWithoutImportacionInicialEstucheItemInput>, MovimientoUncheckedUpdateWithoutImportacionInicialEstucheItemInput>
+  }
+
+  export type UserCreateNestedOneWithoutPartidasSolicitadasInput = {
+    create?: XOR<UserCreateWithoutPartidasSolicitadasInput, UserUncheckedCreateWithoutPartidasSolicitadasInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPartidasSolicitadasInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutPartidasConfirmadasInput = {
+    create?: XOR<UserCreateWithoutPartidasConfirmadasInput, UserUncheckedCreateWithoutPartidasConfirmadasInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPartidasConfirmadasInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ItemSolicitudCreateNestedManyWithoutPartidaInput = {
+    create?: XOR<ItemSolicitudCreateWithoutPartidaInput, ItemSolicitudUncheckedCreateWithoutPartidaInput> | ItemSolicitudCreateWithoutPartidaInput[] | ItemSolicitudUncheckedCreateWithoutPartidaInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutPartidaInput | ItemSolicitudCreateOrConnectWithoutPartidaInput[]
+    createMany?: ItemSolicitudCreateManyPartidaInputEnvelope
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+  }
+
+  export type ItemSolicitudUncheckedCreateNestedManyWithoutPartidaInput = {
+    create?: XOR<ItemSolicitudCreateWithoutPartidaInput, ItemSolicitudUncheckedCreateWithoutPartidaInput> | ItemSolicitudCreateWithoutPartidaInput[] | ItemSolicitudUncheckedCreateWithoutPartidaInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutPartidaInput | ItemSolicitudCreateOrConnectWithoutPartidaInput[]
+    createMany?: ItemSolicitudCreateManyPartidaInputEnvelope
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+  }
+
+  export type EnumEstadoPartidaFieldUpdateOperationsInput = {
+    set?: $Enums.EstadoPartida
+  }
+
+  export type UserUpdateOneRequiredWithoutPartidasSolicitadasNestedInput = {
+    create?: XOR<UserCreateWithoutPartidasSolicitadasInput, UserUncheckedCreateWithoutPartidasSolicitadasInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPartidasSolicitadasInput
+    upsert?: UserUpsertWithoutPartidasSolicitadasInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPartidasSolicitadasInput, UserUpdateWithoutPartidasSolicitadasInput>, UserUncheckedUpdateWithoutPartidasSolicitadasInput>
+  }
+
+  export type UserUpdateOneWithoutPartidasConfirmadasNestedInput = {
+    create?: XOR<UserCreateWithoutPartidasConfirmadasInput, UserUncheckedCreateWithoutPartidasConfirmadasInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPartidasConfirmadasInput
+    upsert?: UserUpsertWithoutPartidasConfirmadasInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPartidasConfirmadasInput, UserUpdateWithoutPartidasConfirmadasInput>, UserUncheckedUpdateWithoutPartidasConfirmadasInput>
+  }
+
+  export type ItemSolicitudUpdateManyWithoutPartidaNestedInput = {
+    create?: XOR<ItemSolicitudCreateWithoutPartidaInput, ItemSolicitudUncheckedCreateWithoutPartidaInput> | ItemSolicitudCreateWithoutPartidaInput[] | ItemSolicitudUncheckedCreateWithoutPartidaInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutPartidaInput | ItemSolicitudCreateOrConnectWithoutPartidaInput[]
+    upsert?: ItemSolicitudUpsertWithWhereUniqueWithoutPartidaInput | ItemSolicitudUpsertWithWhereUniqueWithoutPartidaInput[]
+    createMany?: ItemSolicitudCreateManyPartidaInputEnvelope
+    set?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    disconnect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    delete?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    update?: ItemSolicitudUpdateWithWhereUniqueWithoutPartidaInput | ItemSolicitudUpdateWithWhereUniqueWithoutPartidaInput[]
+    updateMany?: ItemSolicitudUpdateManyWithWhereWithoutPartidaInput | ItemSolicitudUpdateManyWithWhereWithoutPartidaInput[]
+    deleteMany?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
+  }
+
+  export type ItemSolicitudUncheckedUpdateManyWithoutPartidaNestedInput = {
+    create?: XOR<ItemSolicitudCreateWithoutPartidaInput, ItemSolicitudUncheckedCreateWithoutPartidaInput> | ItemSolicitudCreateWithoutPartidaInput[] | ItemSolicitudUncheckedCreateWithoutPartidaInput[]
+    connectOrCreate?: ItemSolicitudCreateOrConnectWithoutPartidaInput | ItemSolicitudCreateOrConnectWithoutPartidaInput[]
+    upsert?: ItemSolicitudUpsertWithWhereUniqueWithoutPartidaInput | ItemSolicitudUpsertWithWhereUniqueWithoutPartidaInput[]
+    createMany?: ItemSolicitudCreateManyPartidaInputEnvelope
+    set?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    disconnect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    delete?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+    update?: ItemSolicitudUpdateWithWhereUniqueWithoutPartidaInput | ItemSolicitudUpdateWithWhereUniqueWithoutPartidaInput[]
+    updateMany?: ItemSolicitudUpdateManyWithWhereWithoutPartidaInput | ItemSolicitudUpdateManyWithWhereWithoutPartidaInput[]
+    deleteMany?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
+  }
+
+  export type PartidaProduccionCreateNestedOneWithoutItemsInput = {
+    create?: XOR<PartidaProduccionCreateWithoutItemsInput, PartidaProduccionUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutItemsInput
+    connect?: PartidaProduccionWhereUniqueInput
+  }
+
+  export type DepositoProductoCreateNestedOneWithoutItemsSolicitudInput = {
+    create?: XOR<DepositoProductoCreateWithoutItemsSolicitudInput, DepositoProductoUncheckedCreateWithoutItemsSolicitudInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutItemsSolicitudInput
+    connect?: DepositoProductoWhereUniqueInput
+  }
+
+  export type NullableFloatFieldUpdateOperationsInput = {
+    set?: number | null
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type PartidaProduccionUpdateOneRequiredWithoutItemsNestedInput = {
+    create?: XOR<PartidaProduccionCreateWithoutItemsInput, PartidaProduccionUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: PartidaProduccionCreateOrConnectWithoutItemsInput
+    upsert?: PartidaProduccionUpsertWithoutItemsInput
+    connect?: PartidaProduccionWhereUniqueInput
+    update?: XOR<XOR<PartidaProduccionUpdateToOneWithWhereWithoutItemsInput, PartidaProduccionUpdateWithoutItemsInput>, PartidaProduccionUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type DepositoProductoUpdateOneRequiredWithoutItemsSolicitudNestedInput = {
+    create?: XOR<DepositoProductoCreateWithoutItemsSolicitudInput, DepositoProductoUncheckedCreateWithoutItemsSolicitudInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutItemsSolicitudInput
+    upsert?: DepositoProductoUpsertWithoutItemsSolicitudInput
+    connect?: DepositoProductoWhereUniqueInput
+    update?: XOR<XOR<DepositoProductoUpdateToOneWithWhereWithoutItemsSolicitudInput, DepositoProductoUpdateWithoutItemsSolicitudInput>, DepositoProductoUncheckedUpdateWithoutItemsSolicitudInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -65082,6 +70325,23 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatFilter<$PrismaModel> | number
+  }
+
+  export type NestedEnumTipoReglaTransferenciaProductoFilter<$PrismaModel = never> = {
+    equals?: $Enums.TipoReglaTransferenciaProducto | EnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    in?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    not?: NestedEnumTipoReglaTransferenciaProductoFilter<$PrismaModel> | $Enums.TipoReglaTransferenciaProducto
+  }
+
+  export type NestedEnumTipoReglaTransferenciaProductoWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.TipoReglaTransferenciaProducto | EnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    in?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    notIn?: $Enums.TipoReglaTransferenciaProducto[] | ListEnumTipoReglaTransferenciaProductoFieldRefInput<$PrismaModel>
+    not?: NestedEnumTipoReglaTransferenciaProductoWithAggregatesFilter<$PrismaModel> | $Enums.TipoReglaTransferenciaProducto
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumTipoReglaTransferenciaProductoFilter<$PrismaModel>
+    _max?: NestedEnumTipoReglaTransferenciaProductoFilter<$PrismaModel>
   }
 
   export type NestedEnumEstadoClienteFilter<$PrismaModel = never> = {
@@ -65524,6 +70784,39 @@ export namespace Prisma {
     _max?: NestedEnumOrigenProductoCatalogoFilter<$PrismaModel>
   }
 
+  export type NestedEnumEstadoPartidaFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoPartida | EnumEstadoPartidaFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoPartidaFilter<$PrismaModel> | $Enums.EstadoPartida
+  }
+
+  export type NestedEnumEstadoPartidaWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.EstadoPartida | EnumEstadoPartidaFieldRefInput<$PrismaModel>
+    in?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    notIn?: $Enums.EstadoPartida[] | ListEnumEstadoPartidaFieldRefInput<$PrismaModel>
+    not?: NestedEnumEstadoPartidaWithAggregatesFilter<$PrismaModel> | $Enums.EstadoPartida
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumEstadoPartidaFilter<$PrismaModel>
+    _max?: NestedEnumEstadoPartidaFilter<$PrismaModel>
+  }
+
+  export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedFloatNullableFilter<$PrismaModel>
+    _min?: NestedFloatNullableFilter<$PrismaModel>
+    _max?: NestedFloatNullableFilter<$PrismaModel>
+  }
+
   export type AppAccessCreateWithoutUserInput = {
     id?: string
     app: $Enums.AppId
@@ -65791,6 +71084,8 @@ export namespace Prisma {
     fechaVencimiento?: Date | string | null
     activo?: boolean
     createdAt?: Date | string
+    derivedFromLote?: LoteCreateNestedOneWithoutDerivedLotesInput
+    derivedLotes?: LoteCreateNestedManyWithoutDerivedFromLoteInput
     reservas?: ReservaStockCreateNestedManyWithoutLoteInput
     saldos?: SaldoStockCreateNestedManyWithoutLoteInput
   }
@@ -65804,6 +71099,8 @@ export namespace Prisma {
     fechaVencimiento?: Date | string | null
     activo?: boolean
     createdAt?: Date | string
+    derivedFromLoteId?: string | null
+    derivedLotes?: LoteUncheckedCreateNestedManyWithoutDerivedFromLoteInput
     reservas?: ReservaStockUncheckedCreateNestedManyWithoutLoteInput
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutLoteInput
   }
@@ -65934,6 +71231,70 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProductoTransferRuleCreateWithoutSourceProductInput = {
+    id?: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targetProduct: ProductoCreateNestedOneWithoutTargetTransferRulesInput
+  }
+
+  export type ProductoTransferRuleUncheckedCreateWithoutSourceProductInput = {
+    id?: string
+    targetProductId: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProductoTransferRuleCreateOrConnectWithoutSourceProductInput = {
+    where: ProductoTransferRuleWhereUniqueInput
+    create: XOR<ProductoTransferRuleCreateWithoutSourceProductInput, ProductoTransferRuleUncheckedCreateWithoutSourceProductInput>
+  }
+
+  export type ProductoTransferRuleCreateManySourceProductInputEnvelope = {
+    data: ProductoTransferRuleCreateManySourceProductInput | ProductoTransferRuleCreateManySourceProductInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ProductoTransferRuleCreateWithoutTargetProductInput = {
+    id?: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    sourceProduct: ProductoCreateNestedOneWithoutSourceTransferRulesInput
+  }
+
+  export type ProductoTransferRuleUncheckedCreateWithoutTargetProductInput = {
+    id?: string
+    sourceProductId: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProductoTransferRuleCreateOrConnectWithoutTargetProductInput = {
+    where: ProductoTransferRuleWhereUniqueInput
+    create: XOR<ProductoTransferRuleCreateWithoutTargetProductInput, ProductoTransferRuleUncheckedCreateWithoutTargetProductInput>
+  }
+
+  export type ProductoTransferRuleCreateManyTargetProductInputEnvelope = {
+    data: ProductoTransferRuleCreateManyTargetProductInput | ProductoTransferRuleCreateManyTargetProductInput[]
+    skipDuplicates?: boolean
+  }
+
   export type LoteUpsertWithWhereUniqueWithoutProductoInput = {
     where: LoteWhereUniqueInput
     update: XOR<LoteUpdateWithoutProductoInput, LoteUncheckedUpdateWithoutProductoInput>
@@ -65963,6 +71324,7 @@ export namespace Prisma {
     fechaVencimiento?: DateTimeNullableFilter<"Lote"> | Date | string | null
     activo?: BoolFilter<"Lote"> | boolean
     createdAt?: DateTimeFilter<"Lote"> | Date | string
+    derivedFromLoteId?: StringNullableFilter<"Lote"> | string | null
   }
 
   export type ItemPedidoUpsertWithWhereUniqueWithoutProductoInput = {
@@ -66082,6 +71444,53 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ProductAlias"> | Date | string
   }
 
+  export type ProductoTransferRuleUpsertWithWhereUniqueWithoutSourceProductInput = {
+    where: ProductoTransferRuleWhereUniqueInput
+    update: XOR<ProductoTransferRuleUpdateWithoutSourceProductInput, ProductoTransferRuleUncheckedUpdateWithoutSourceProductInput>
+    create: XOR<ProductoTransferRuleCreateWithoutSourceProductInput, ProductoTransferRuleUncheckedCreateWithoutSourceProductInput>
+  }
+
+  export type ProductoTransferRuleUpdateWithWhereUniqueWithoutSourceProductInput = {
+    where: ProductoTransferRuleWhereUniqueInput
+    data: XOR<ProductoTransferRuleUpdateWithoutSourceProductInput, ProductoTransferRuleUncheckedUpdateWithoutSourceProductInput>
+  }
+
+  export type ProductoTransferRuleUpdateManyWithWhereWithoutSourceProductInput = {
+    where: ProductoTransferRuleScalarWhereInput
+    data: XOR<ProductoTransferRuleUpdateManyMutationInput, ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductInput>
+  }
+
+  export type ProductoTransferRuleScalarWhereInput = {
+    AND?: ProductoTransferRuleScalarWhereInput | ProductoTransferRuleScalarWhereInput[]
+    OR?: ProductoTransferRuleScalarWhereInput[]
+    NOT?: ProductoTransferRuleScalarWhereInput | ProductoTransferRuleScalarWhereInput[]
+    id?: StringFilter<"ProductoTransferRule"> | string
+    sourceProductId?: StringFilter<"ProductoTransferRule"> | string
+    targetProductId?: StringFilter<"ProductoTransferRule"> | string
+    label?: StringFilter<"ProductoTransferRule"> | string
+    tipo?: EnumTipoReglaTransferenciaProductoFilter<"ProductoTransferRule"> | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFilter<"ProductoTransferRule"> | boolean
+    orden?: IntFilter<"ProductoTransferRule"> | number
+    createdAt?: DateTimeFilter<"ProductoTransferRule"> | Date | string
+    updatedAt?: DateTimeFilter<"ProductoTransferRule"> | Date | string
+  }
+
+  export type ProductoTransferRuleUpsertWithWhereUniqueWithoutTargetProductInput = {
+    where: ProductoTransferRuleWhereUniqueInput
+    update: XOR<ProductoTransferRuleUpdateWithoutTargetProductInput, ProductoTransferRuleUncheckedUpdateWithoutTargetProductInput>
+    create: XOR<ProductoTransferRuleCreateWithoutTargetProductInput, ProductoTransferRuleUncheckedCreateWithoutTargetProductInput>
+  }
+
+  export type ProductoTransferRuleUpdateWithWhereUniqueWithoutTargetProductInput = {
+    where: ProductoTransferRuleWhereUniqueInput
+    data: XOR<ProductoTransferRuleUpdateWithoutTargetProductInput, ProductoTransferRuleUncheckedUpdateWithoutTargetProductInput>
+  }
+
+  export type ProductoTransferRuleUpdateManyWithWhereWithoutTargetProductInput = {
+    where: ProductoTransferRuleScalarWhereInput
+    data: XOR<ProductoTransferRuleUpdateManyMutationInput, ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductInput>
+  }
+
   export type ProductoCreateWithoutAliasesInput = {
     id?: string
     nombre: string
@@ -66095,6 +71504,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoCreateNestedManyWithoutProductoInput
     saldos?: SaldoStockCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoUncheckedCreateWithoutAliasesInput = {
@@ -66110,6 +71521,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUncheckedCreateNestedManyWithoutProductoInput
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxUncheckedCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoCreateOrConnectWithoutAliasesInput = {
@@ -66141,6 +71554,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUpdateManyWithoutProductoNestedInput
     saldos?: SaldoStockUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoUncheckedUpdateWithoutAliasesInput = {
@@ -66156,6 +71571,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUncheckedUpdateManyWithoutProductoNestedInput
     saldos?: SaldoStockUncheckedUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUncheckedUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoCreateWithoutLotesInput = {
@@ -66171,6 +71588,8 @@ export namespace Prisma {
     saldos?: SaldoStockCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoUncheckedCreateWithoutLotesInput = {
@@ -66186,11 +71605,88 @@ export namespace Prisma {
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxUncheckedCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasUncheckedCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoCreateOrConnectWithoutLotesInput = {
     where: ProductoWhereUniqueInput
     create: XOR<ProductoCreateWithoutLotesInput, ProductoUncheckedCreateWithoutLotesInput>
+  }
+
+  export type LoteCreateWithoutDerivedLotesInput = {
+    id?: string
+    numero: string
+    cajas?: number
+    sueltos?: number
+    fechaProduccion?: Date | string | null
+    fechaVencimiento?: Date | string | null
+    activo?: boolean
+    createdAt?: Date | string
+    producto: ProductoCreateNestedOneWithoutLotesInput
+    derivedFromLote?: LoteCreateNestedOneWithoutDerivedLotesInput
+    reservas?: ReservaStockCreateNestedManyWithoutLoteInput
+    saldos?: SaldoStockCreateNestedManyWithoutLoteInput
+  }
+
+  export type LoteUncheckedCreateWithoutDerivedLotesInput = {
+    id?: string
+    numero: string
+    productoId: string
+    cajas?: number
+    sueltos?: number
+    fechaProduccion?: Date | string | null
+    fechaVencimiento?: Date | string | null
+    activo?: boolean
+    createdAt?: Date | string
+    derivedFromLoteId?: string | null
+    reservas?: ReservaStockUncheckedCreateNestedManyWithoutLoteInput
+    saldos?: SaldoStockUncheckedCreateNestedManyWithoutLoteInput
+  }
+
+  export type LoteCreateOrConnectWithoutDerivedLotesInput = {
+    where: LoteWhereUniqueInput
+    create: XOR<LoteCreateWithoutDerivedLotesInput, LoteUncheckedCreateWithoutDerivedLotesInput>
+  }
+
+  export type LoteCreateWithoutDerivedFromLoteInput = {
+    id?: string
+    numero: string
+    cajas?: number
+    sueltos?: number
+    fechaProduccion?: Date | string | null
+    fechaVencimiento?: Date | string | null
+    activo?: boolean
+    createdAt?: Date | string
+    producto: ProductoCreateNestedOneWithoutLotesInput
+    derivedLotes?: LoteCreateNestedManyWithoutDerivedFromLoteInput
+    reservas?: ReservaStockCreateNestedManyWithoutLoteInput
+    saldos?: SaldoStockCreateNestedManyWithoutLoteInput
+  }
+
+  export type LoteUncheckedCreateWithoutDerivedFromLoteInput = {
+    id?: string
+    numero: string
+    productoId: string
+    cajas?: number
+    sueltos?: number
+    fechaProduccion?: Date | string | null
+    fechaVencimiento?: Date | string | null
+    activo?: boolean
+    createdAt?: Date | string
+    derivedLotes?: LoteUncheckedCreateNestedManyWithoutDerivedFromLoteInput
+    reservas?: ReservaStockUncheckedCreateNestedManyWithoutLoteInput
+    saldos?: SaldoStockUncheckedCreateNestedManyWithoutLoteInput
+  }
+
+  export type LoteCreateOrConnectWithoutDerivedFromLoteInput = {
+    where: LoteWhereUniqueInput
+    create: XOR<LoteCreateWithoutDerivedFromLoteInput, LoteUncheckedCreateWithoutDerivedFromLoteInput>
+  }
+
+  export type LoteCreateManyDerivedFromLoteInputEnvelope = {
+    data: LoteCreateManyDerivedFromLoteInput | LoteCreateManyDerivedFromLoteInput[]
+    skipDuplicates?: boolean
   }
 
   export type ReservaStockCreateWithoutLoteInput = {
@@ -66278,6 +71774,8 @@ export namespace Prisma {
     saldos?: SaldoStockUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoUncheckedUpdateWithoutLotesInput = {
@@ -66293,6 +71791,65 @@ export namespace Prisma {
     saldos?: SaldoStockUncheckedUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUncheckedUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUncheckedUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput
+  }
+
+  export type LoteUpsertWithoutDerivedLotesInput = {
+    update: XOR<LoteUpdateWithoutDerivedLotesInput, LoteUncheckedUpdateWithoutDerivedLotesInput>
+    create: XOR<LoteCreateWithoutDerivedLotesInput, LoteUncheckedCreateWithoutDerivedLotesInput>
+    where?: LoteWhereInput
+  }
+
+  export type LoteUpdateToOneWithWhereWithoutDerivedLotesInput = {
+    where?: LoteWhereInput
+    data: XOR<LoteUpdateWithoutDerivedLotesInput, LoteUncheckedUpdateWithoutDerivedLotesInput>
+  }
+
+  export type LoteUpdateWithoutDerivedLotesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    numero?: StringFieldUpdateOperationsInput | string
+    cajas?: IntFieldUpdateOperationsInput | number
+    sueltos?: IntFieldUpdateOperationsInput | number
+    fechaProduccion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    producto?: ProductoUpdateOneRequiredWithoutLotesNestedInput
+    derivedFromLote?: LoteUpdateOneWithoutDerivedLotesNestedInput
+    reservas?: ReservaStockUpdateManyWithoutLoteNestedInput
+    saldos?: SaldoStockUpdateManyWithoutLoteNestedInput
+  }
+
+  export type LoteUncheckedUpdateWithoutDerivedLotesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    numero?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    cajas?: IntFieldUpdateOperationsInput | number
+    sueltos?: IntFieldUpdateOperationsInput | number
+    fechaProduccion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLoteId?: NullableStringFieldUpdateOperationsInput | string | null
+    reservas?: ReservaStockUncheckedUpdateManyWithoutLoteNestedInput
+    saldos?: SaldoStockUncheckedUpdateManyWithoutLoteNestedInput
+  }
+
+  export type LoteUpsertWithWhereUniqueWithoutDerivedFromLoteInput = {
+    where: LoteWhereUniqueInput
+    update: XOR<LoteUpdateWithoutDerivedFromLoteInput, LoteUncheckedUpdateWithoutDerivedFromLoteInput>
+    create: XOR<LoteCreateWithoutDerivedFromLoteInput, LoteUncheckedCreateWithoutDerivedFromLoteInput>
+  }
+
+  export type LoteUpdateWithWhereUniqueWithoutDerivedFromLoteInput = {
+    where: LoteWhereUniqueInput
+    data: XOR<LoteUpdateWithoutDerivedFromLoteInput, LoteUncheckedUpdateWithoutDerivedFromLoteInput>
+  }
+
+  export type LoteUpdateManyWithWhereWithoutDerivedFromLoteInput = {
+    where: LoteScalarWhereInput
+    data: XOR<LoteUpdateManyMutationInput, LoteUncheckedUpdateManyWithoutDerivedFromLoteInput>
   }
 
   export type ReservaStockUpsertWithWhereUniqueWithoutLoteInput = {
@@ -66341,6 +71898,174 @@ export namespace Prisma {
   export type SaldoStockUpdateManyWithWhereWithoutLoteInput = {
     where: SaldoStockScalarWhereInput
     data: XOR<SaldoStockUpdateManyMutationInput, SaldoStockUncheckedUpdateManyWithoutLoteInput>
+  }
+
+  export type ProductoCreateWithoutSourceTransferRulesInput = {
+    id?: string
+    nombre: string
+    sku: string
+    stockMinimo?: number | null
+    unidadesPorCaja: number
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lotes?: LoteCreateNestedManyWithoutProductoInput
+    itemsPedido?: ItemPedidoCreateNestedManyWithoutProductoInput
+    saldos?: SaldoStockCreateNestedManyWithoutProductoInput
+    projectionOutbox?: StockProjectionOutboxCreateNestedManyWithoutProductoInput
+    aliases?: ProductAliasCreateNestedManyWithoutProductoInput
+    targetTransferRules?: ProductoTransferRuleCreateNestedManyWithoutTargetProductInput
+  }
+
+  export type ProductoUncheckedCreateWithoutSourceTransferRulesInput = {
+    id?: string
+    nombre: string
+    sku: string
+    stockMinimo?: number | null
+    unidadesPorCaja: number
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lotes?: LoteUncheckedCreateNestedManyWithoutProductoInput
+    itemsPedido?: ItemPedidoUncheckedCreateNestedManyWithoutProductoInput
+    saldos?: SaldoStockUncheckedCreateNestedManyWithoutProductoInput
+    projectionOutbox?: StockProjectionOutboxUncheckedCreateNestedManyWithoutProductoInput
+    aliases?: ProductAliasUncheckedCreateNestedManyWithoutProductoInput
+    targetTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput
+  }
+
+  export type ProductoCreateOrConnectWithoutSourceTransferRulesInput = {
+    where: ProductoWhereUniqueInput
+    create: XOR<ProductoCreateWithoutSourceTransferRulesInput, ProductoUncheckedCreateWithoutSourceTransferRulesInput>
+  }
+
+  export type ProductoCreateWithoutTargetTransferRulesInput = {
+    id?: string
+    nombre: string
+    sku: string
+    stockMinimo?: number | null
+    unidadesPorCaja: number
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lotes?: LoteCreateNestedManyWithoutProductoInput
+    itemsPedido?: ItemPedidoCreateNestedManyWithoutProductoInput
+    saldos?: SaldoStockCreateNestedManyWithoutProductoInput
+    projectionOutbox?: StockProjectionOutboxCreateNestedManyWithoutProductoInput
+    aliases?: ProductAliasCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleCreateNestedManyWithoutSourceProductInput
+  }
+
+  export type ProductoUncheckedCreateWithoutTargetTransferRulesInput = {
+    id?: string
+    nombre: string
+    sku: string
+    stockMinimo?: number | null
+    unidadesPorCaja: number
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    lotes?: LoteUncheckedCreateNestedManyWithoutProductoInput
+    itemsPedido?: ItemPedidoUncheckedCreateNestedManyWithoutProductoInput
+    saldos?: SaldoStockUncheckedCreateNestedManyWithoutProductoInput
+    projectionOutbox?: StockProjectionOutboxUncheckedCreateNestedManyWithoutProductoInput
+    aliases?: ProductAliasUncheckedCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput
+  }
+
+  export type ProductoCreateOrConnectWithoutTargetTransferRulesInput = {
+    where: ProductoWhereUniqueInput
+    create: XOR<ProductoCreateWithoutTargetTransferRulesInput, ProductoUncheckedCreateWithoutTargetTransferRulesInput>
+  }
+
+  export type ProductoUpsertWithoutSourceTransferRulesInput = {
+    update: XOR<ProductoUpdateWithoutSourceTransferRulesInput, ProductoUncheckedUpdateWithoutSourceTransferRulesInput>
+    create: XOR<ProductoCreateWithoutSourceTransferRulesInput, ProductoUncheckedCreateWithoutSourceTransferRulesInput>
+    where?: ProductoWhereInput
+  }
+
+  export type ProductoUpdateToOneWithWhereWithoutSourceTransferRulesInput = {
+    where?: ProductoWhereInput
+    data: XOR<ProductoUpdateWithoutSourceTransferRulesInput, ProductoUncheckedUpdateWithoutSourceTransferRulesInput>
+  }
+
+  export type ProductoUpdateWithoutSourceTransferRulesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    sku?: StringFieldUpdateOperationsInput | string
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    unidadesPorCaja?: IntFieldUpdateOperationsInput | number
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lotes?: LoteUpdateManyWithoutProductoNestedInput
+    itemsPedido?: ItemPedidoUpdateManyWithoutProductoNestedInput
+    saldos?: SaldoStockUpdateManyWithoutProductoNestedInput
+    projectionOutbox?: StockProjectionOutboxUpdateManyWithoutProductoNestedInput
+    aliases?: ProductAliasUpdateManyWithoutProductoNestedInput
+    targetTransferRules?: ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput
+  }
+
+  export type ProductoUncheckedUpdateWithoutSourceTransferRulesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    sku?: StringFieldUpdateOperationsInput | string
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    unidadesPorCaja?: IntFieldUpdateOperationsInput | number
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lotes?: LoteUncheckedUpdateManyWithoutProductoNestedInput
+    itemsPedido?: ItemPedidoUncheckedUpdateManyWithoutProductoNestedInput
+    saldos?: SaldoStockUncheckedUpdateManyWithoutProductoNestedInput
+    projectionOutbox?: StockProjectionOutboxUncheckedUpdateManyWithoutProductoNestedInput
+    aliases?: ProductAliasUncheckedUpdateManyWithoutProductoNestedInput
+    targetTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput
+  }
+
+  export type ProductoUpsertWithoutTargetTransferRulesInput = {
+    update: XOR<ProductoUpdateWithoutTargetTransferRulesInput, ProductoUncheckedUpdateWithoutTargetTransferRulesInput>
+    create: XOR<ProductoCreateWithoutTargetTransferRulesInput, ProductoUncheckedCreateWithoutTargetTransferRulesInput>
+    where?: ProductoWhereInput
+  }
+
+  export type ProductoUpdateToOneWithWhereWithoutTargetTransferRulesInput = {
+    where?: ProductoWhereInput
+    data: XOR<ProductoUpdateWithoutTargetTransferRulesInput, ProductoUncheckedUpdateWithoutTargetTransferRulesInput>
+  }
+
+  export type ProductoUpdateWithoutTargetTransferRulesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    sku?: StringFieldUpdateOperationsInput | string
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    unidadesPorCaja?: IntFieldUpdateOperationsInput | number
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lotes?: LoteUpdateManyWithoutProductoNestedInput
+    itemsPedido?: ItemPedidoUpdateManyWithoutProductoNestedInput
+    saldos?: SaldoStockUpdateManyWithoutProductoNestedInput
+    projectionOutbox?: StockProjectionOutboxUpdateManyWithoutProductoNestedInput
+    aliases?: ProductAliasUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput
+  }
+
+  export type ProductoUncheckedUpdateWithoutTargetTransferRulesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    sku?: StringFieldUpdateOperationsInput | string
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    unidadesPorCaja?: IntFieldUpdateOperationsInput | number
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lotes?: LoteUncheckedUpdateManyWithoutProductoNestedInput
+    itemsPedido?: ItemPedidoUncheckedUpdateManyWithoutProductoNestedInput
+    saldos?: SaldoStockUncheckedUpdateManyWithoutProductoNestedInput
+    projectionOutbox?: StockProjectionOutboxUncheckedUpdateManyWithoutProductoNestedInput
+    aliases?: ProductAliasUncheckedUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
   }
 
   export type PedidoCreateWithoutClienteInput = {
@@ -67042,6 +72767,8 @@ export namespace Prisma {
     saldos?: SaldoStockCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoUncheckedCreateWithoutItemsPedidoInput = {
@@ -67057,6 +72784,8 @@ export namespace Prisma {
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxUncheckedCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasUncheckedCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoCreateOrConnectWithoutItemsPedidoInput = {
@@ -67181,6 +72910,8 @@ export namespace Prisma {
     saldos?: SaldoStockUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoUncheckedUpdateWithoutItemsPedidoInput = {
@@ -67196,6 +72927,8 @@ export namespace Prisma {
     saldos?: SaldoStockUncheckedUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUncheckedUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUncheckedUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ReservaStockUpsertWithWhereUniqueWithoutItemPedidoInput = {
@@ -67420,6 +73153,8 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     producto: ProductoCreateNestedOneWithoutLotesInput
+    derivedFromLote?: LoteCreateNestedOneWithoutDerivedLotesInput
+    derivedLotes?: LoteCreateNestedManyWithoutDerivedFromLoteInput
     saldos?: SaldoStockCreateNestedManyWithoutLoteInput
   }
 
@@ -67433,6 +73168,8 @@ export namespace Prisma {
     fechaVencimiento?: Date | string | null
     activo?: boolean
     createdAt?: Date | string
+    derivedFromLoteId?: string | null
+    derivedLotes?: LoteUncheckedCreateNestedManyWithoutDerivedFromLoteInput
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutLoteInput
   }
 
@@ -67577,6 +73314,8 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     producto?: ProductoUpdateOneRequiredWithoutLotesNestedInput
+    derivedFromLote?: LoteUpdateOneWithoutDerivedLotesNestedInput
+    derivedLotes?: LoteUpdateManyWithoutDerivedFromLoteNestedInput
     saldos?: SaldoStockUpdateManyWithoutLoteNestedInput
   }
 
@@ -67590,6 +73329,8 @@ export namespace Prisma {
     fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLoteId?: NullableStringFieldUpdateOperationsInput | string | null
+    derivedLotes?: LoteUncheckedUpdateManyWithoutDerivedFromLoteNestedInput
     saldos?: SaldoStockUncheckedUpdateManyWithoutLoteNestedInput
   }
 
@@ -67864,6 +73605,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoUncheckedCreateWithoutSaldosInput = {
@@ -67879,6 +73622,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUncheckedCreateNestedManyWithoutProductoInput
     projectionOutbox?: StockProjectionOutboxUncheckedCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasUncheckedCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoCreateOrConnectWithoutSaldosInput = {
@@ -67896,6 +73641,8 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     producto: ProductoCreateNestedOneWithoutLotesInput
+    derivedFromLote?: LoteCreateNestedOneWithoutDerivedLotesInput
+    derivedLotes?: LoteCreateNestedManyWithoutDerivedFromLoteInput
     reservas?: ReservaStockCreateNestedManyWithoutLoteInput
   }
 
@@ -67909,6 +73656,8 @@ export namespace Prisma {
     fechaVencimiento?: Date | string | null
     activo?: boolean
     createdAt?: Date | string
+    derivedFromLoteId?: string | null
+    derivedLotes?: LoteUncheckedCreateNestedManyWithoutDerivedFromLoteInput
     reservas?: ReservaStockUncheckedCreateNestedManyWithoutLoteInput
   }
 
@@ -67968,6 +73717,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoUncheckedUpdateWithoutSaldosInput = {
@@ -67983,6 +73734,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUncheckedUpdateManyWithoutProductoNestedInput
     projectionOutbox?: StockProjectionOutboxUncheckedUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUncheckedUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput
   }
 
   export type LoteUpsertWithoutSaldosInput = {
@@ -68006,6 +73759,8 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     producto?: ProductoUpdateOneRequiredWithoutLotesNestedInput
+    derivedFromLote?: LoteUpdateOneWithoutDerivedLotesNestedInput
+    derivedLotes?: LoteUpdateManyWithoutDerivedFromLoteNestedInput
     reservas?: ReservaStockUpdateManyWithoutLoteNestedInput
   }
 
@@ -68019,6 +73774,8 @@ export namespace Prisma {
     fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLoteId?: NullableStringFieldUpdateOperationsInput | string | null
+    derivedLotes?: LoteUncheckedUpdateManyWithoutDerivedFromLoteNestedInput
     reservas?: ReservaStockUncheckedUpdateManyWithoutLoteNestedInput
   }
 
@@ -68292,6 +74049,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoCreateNestedManyWithoutProductoInput
     saldos?: SaldoStockCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoUncheckedCreateWithoutProjectionOutboxInput = {
@@ -68307,6 +74066,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUncheckedCreateNestedManyWithoutProductoInput
     saldos?: SaldoStockUncheckedCreateNestedManyWithoutProductoInput
     aliases?: ProductAliasUncheckedCreateNestedManyWithoutProductoInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutSourceProductInput
+    targetTransferRules?: ProductoTransferRuleUncheckedCreateNestedManyWithoutTargetProductInput
   }
 
   export type ProductoCreateOrConnectWithoutProjectionOutboxInput = {
@@ -68338,6 +74099,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUpdateManyWithoutProductoNestedInput
     saldos?: SaldoStockUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUpdateManyWithoutTargetProductNestedInput
   }
 
   export type ProductoUncheckedUpdateWithoutProjectionOutboxInput = {
@@ -68353,6 +74116,8 @@ export namespace Prisma {
     itemsPedido?: ItemPedidoUncheckedUpdateManyWithoutProductoNestedInput
     saldos?: SaldoStockUncheckedUpdateManyWithoutProductoNestedInput
     aliases?: ProductAliasUncheckedUpdateManyWithoutProductoNestedInput
+    sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
+    targetTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductNestedInput
   }
 
   export type RemitoCreateWithoutTransportistaInput = {
@@ -68835,6 +74600,70 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type PartidaProduccionCreateWithoutSolicitanteInput = {
+    id?: string
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+    confirmadoPor?: UserCreateNestedOneWithoutPartidasConfirmadasInput
+    items?: ItemSolicitudCreateNestedManyWithoutPartidaInput
+  }
+
+  export type PartidaProduccionUncheckedCreateWithoutSolicitanteInput = {
+    id?: string
+    confirmadoPorId?: string | null
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+    items?: ItemSolicitudUncheckedCreateNestedManyWithoutPartidaInput
+  }
+
+  export type PartidaProduccionCreateOrConnectWithoutSolicitanteInput = {
+    where: PartidaProduccionWhereUniqueInput
+    create: XOR<PartidaProduccionCreateWithoutSolicitanteInput, PartidaProduccionUncheckedCreateWithoutSolicitanteInput>
+  }
+
+  export type PartidaProduccionCreateManySolicitanteInputEnvelope = {
+    data: PartidaProduccionCreateManySolicitanteInput | PartidaProduccionCreateManySolicitanteInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PartidaProduccionCreateWithoutConfirmadoPorInput = {
+    id?: string
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+    solicitante: UserCreateNestedOneWithoutPartidasSolicitadasInput
+    items?: ItemSolicitudCreateNestedManyWithoutPartidaInput
+  }
+
+  export type PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput = {
+    id?: string
+    solicitanteId: string
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+    items?: ItemSolicitudUncheckedCreateNestedManyWithoutPartidaInput
+  }
+
+  export type PartidaProduccionCreateOrConnectWithoutConfirmadoPorInput = {
+    where: PartidaProduccionWhereUniqueInput
+    create: XOR<PartidaProduccionCreateWithoutConfirmadoPorInput, PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput>
+  }
+
+  export type PartidaProduccionCreateManyConfirmadoPorInputEnvelope = {
+    data: PartidaProduccionCreateManyConfirmadoPorInput | PartidaProduccionCreateManyConfirmadoPorInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ActaUpsertWithWhereUniqueWithoutUserInput = {
     where: ActaWhereUniqueInput
     update: XOR<ActaUpdateWithoutUserInput, ActaUncheckedUpdateWithoutUserInput>
@@ -68962,7 +74791,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
-    cantidad?: IntFilter<"OrdenProduccion"> | number
+    cantidad?: FloatFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
@@ -69045,6 +74874,52 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ImportacionInicialEstucheBatch"> | Date | string
   }
 
+  export type PartidaProduccionUpsertWithWhereUniqueWithoutSolicitanteInput = {
+    where: PartidaProduccionWhereUniqueInput
+    update: XOR<PartidaProduccionUpdateWithoutSolicitanteInput, PartidaProduccionUncheckedUpdateWithoutSolicitanteInput>
+    create: XOR<PartidaProduccionCreateWithoutSolicitanteInput, PartidaProduccionUncheckedCreateWithoutSolicitanteInput>
+  }
+
+  export type PartidaProduccionUpdateWithWhereUniqueWithoutSolicitanteInput = {
+    where: PartidaProduccionWhereUniqueInput
+    data: XOR<PartidaProduccionUpdateWithoutSolicitanteInput, PartidaProduccionUncheckedUpdateWithoutSolicitanteInput>
+  }
+
+  export type PartidaProduccionUpdateManyWithWhereWithoutSolicitanteInput = {
+    where: PartidaProduccionScalarWhereInput
+    data: XOR<PartidaProduccionUpdateManyMutationInput, PartidaProduccionUncheckedUpdateManyWithoutSolicitanteInput>
+  }
+
+  export type PartidaProduccionScalarWhereInput = {
+    AND?: PartidaProduccionScalarWhereInput | PartidaProduccionScalarWhereInput[]
+    OR?: PartidaProduccionScalarWhereInput[]
+    NOT?: PartidaProduccionScalarWhereInput | PartidaProduccionScalarWhereInput[]
+    id?: StringFilter<"PartidaProduccion"> | string
+    solicitanteId?: StringFilter<"PartidaProduccion"> | string
+    confirmadoPorId?: StringNullableFilter<"PartidaProduccion"> | string | null
+    confirmadoAt?: DateTimeNullableFilter<"PartidaProduccion"> | Date | string | null
+    estado?: EnumEstadoPartidaFilter<"PartidaProduccion"> | $Enums.EstadoPartida
+    notas?: StringNullableFilter<"PartidaProduccion"> | string | null
+    motivoRechazo?: StringNullableFilter<"PartidaProduccion"> | string | null
+    createdAt?: DateTimeFilter<"PartidaProduccion"> | Date | string
+  }
+
+  export type PartidaProduccionUpsertWithWhereUniqueWithoutConfirmadoPorInput = {
+    where: PartidaProduccionWhereUniqueInput
+    update: XOR<PartidaProduccionUpdateWithoutConfirmadoPorInput, PartidaProduccionUncheckedUpdateWithoutConfirmadoPorInput>
+    create: XOR<PartidaProduccionCreateWithoutConfirmadoPorInput, PartidaProduccionUncheckedCreateWithoutConfirmadoPorInput>
+  }
+
+  export type PartidaProduccionUpdateWithWhereUniqueWithoutConfirmadoPorInput = {
+    where: PartidaProduccionWhereUniqueInput
+    data: XOR<PartidaProduccionUpdateWithoutConfirmadoPorInput, PartidaProduccionUncheckedUpdateWithoutConfirmadoPorInput>
+  }
+
+  export type PartidaProduccionUpdateManyWithWhereWithoutConfirmadoPorInput = {
+    where: PartidaProduccionScalarWhereInput
+    data: XOR<PartidaProduccionUpdateManyMutationInput, PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorInput>
+  }
+
   export type UserCreateWithoutActasInput = {
     id?: string
     email: string
@@ -69059,6 +74934,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateWithoutActasInput = {
@@ -69075,6 +74952,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserCreateOrConnectWithoutActasInput = {
@@ -69151,6 +75030,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutActasInput = {
@@ -69167,6 +75048,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type ActaItemUpsertWithWhereUniqueWithoutActaInput = {
@@ -69257,6 +75140,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutActaItemsInput = {
@@ -69285,6 +75169,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutActaItemsInput = {
@@ -69360,6 +75245,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutActaItemsInput = {
@@ -69388,6 +75274,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutAuditoriasCatalogoInput = {
@@ -69416,6 +75303,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutAuditoriasCatalogoInput = {
@@ -69444,6 +75332,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutAuditoriasCatalogoInput = {
@@ -69465,6 +75354,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateWithoutAuditoriasCatalogoInput = {
@@ -69481,6 +75372,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserCreateOrConnectWithoutAuditoriasCatalogoInput = {
@@ -69525,6 +75418,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutAuditoriasCatalogoInput = {
@@ -69553,6 +75447,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type UserUpsertWithoutAuditoriasCatalogoInput = {
@@ -69580,6 +75475,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditoriasCatalogoInput = {
@@ -69596,6 +75493,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioDrogasInput = {
@@ -69624,6 +75523,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioDrogasInput = {
@@ -69652,6 +75552,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioDrogasInput = {
@@ -69696,6 +75597,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioDrogasInput = {
@@ -69724,6 +75626,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioEstuchesInput = {
@@ -69752,6 +75655,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioEstuchesInput = {
@@ -69780,6 +75684,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioEstuchesInput = {
@@ -69853,6 +75758,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioEstuchesInput = {
@@ -69881,6 +75787,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type ImportacionInicialEstucheItemUpsertWithoutInventarioInput = {
@@ -69944,6 +75851,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioEtiquetasInput = {
@@ -69972,6 +75880,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioEtiquetasInput = {
@@ -70016,6 +75925,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioEtiquetasInput = {
@@ -70044,6 +75954,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioFrascosInput = {
@@ -70072,6 +75983,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioFrascosInput = {
@@ -70100,6 +76012,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioFrascosInput = {
@@ -70144,6 +76057,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioFrascosInput = {
@@ -70172,6 +76086,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type UserCreateWithoutMovimientosInput = {
@@ -70188,6 +76103,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateWithoutMovimientosInput = {
@@ -70204,6 +76121,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserCreateOrConnectWithoutMovimientosInput = {
@@ -70237,6 +76156,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutMovimientosInput = {
@@ -70265,6 +76185,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutMovimientosInput = {
@@ -70326,6 +76247,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMovimientosInput = {
@@ -70342,6 +76265,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type DepositoProductoUpsertWithoutMovimientosInput = {
@@ -70381,6 +76306,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutMovimientosInput = {
@@ -70409,6 +76335,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type ImportacionInicialEstucheItemUpsertWithoutMovimientoInput = {
@@ -70460,6 +76387,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateWithoutInsumoPendientesInput = {
@@ -70476,6 +76405,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserCreateOrConnectWithoutInsumoPendientesInput = {
@@ -70508,6 +76439,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutInsumoPendientesInput = {
@@ -70524,6 +76457,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserCreateWithoutOrdenesComoSolicitanteInput = {
@@ -70540,6 +76475,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateWithoutOrdenesComoSolicitanteInput = {
@@ -70556,6 +76493,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserCreateOrConnectWithoutOrdenesComoSolicitanteInput = {
@@ -70577,6 +76516,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateWithoutOrdenesComoAprobadorInput = {
@@ -70593,6 +76534,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserCreateOrConnectWithoutOrdenesComoAprobadorInput = {
@@ -70626,6 +76569,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutOrdenesInput = {
@@ -70654,6 +76598,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutOrdenesInput = {
@@ -70686,6 +76631,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOrdenesComoSolicitanteInput = {
@@ -70702,6 +76649,8 @@ export namespace Prisma {
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUpsertWithoutOrdenesComoAprobadorInput = {
@@ -70729,6 +76678,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOrdenesComoAprobadorInput = {
@@ -70745,6 +76696,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type DepositoProductoUpsertWithoutOrdenesInput = {
@@ -70784,6 +76737,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutOrdenesInput = {
@@ -70812,6 +76766,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type InventarioDrogaCreateWithoutProductoInput = {
@@ -71114,6 +77069,32 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ItemSolicitudCreateWithoutProductoInput = {
+    id?: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+    partida: PartidaProduccionCreateNestedOneWithoutItemsInput
+  }
+
+  export type ItemSolicitudUncheckedCreateWithoutProductoInput = {
+    id?: string
+    partidaId: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+  }
+
+  export type ItemSolicitudCreateOrConnectWithoutProductoInput = {
+    where: ItemSolicitudWhereUniqueInput
+    create: XOR<ItemSolicitudCreateWithoutProductoInput, ItemSolicitudUncheckedCreateWithoutProductoInput>
+  }
+
+  export type ItemSolicitudCreateManyProductoInputEnvelope = {
+    data: ItemSolicitudCreateManyProductoInput | ItemSolicitudCreateManyProductoInput[]
+    skipDuplicates?: boolean
+  }
+
   export type InventarioDrogaUpsertWithWhereUniqueWithoutProductoInput = {
     where: InventarioDrogaWhereUniqueInput
     update: XOR<InventarioDrogaUpdateWithoutProductoInput, InventarioDrogaUncheckedUpdateWithoutProductoInput>
@@ -71324,6 +77305,34 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ImportacionInicialEstucheItem"> | Date | string
   }
 
+  export type ItemSolicitudUpsertWithWhereUniqueWithoutProductoInput = {
+    where: ItemSolicitudWhereUniqueInput
+    update: XOR<ItemSolicitudUpdateWithoutProductoInput, ItemSolicitudUncheckedUpdateWithoutProductoInput>
+    create: XOR<ItemSolicitudCreateWithoutProductoInput, ItemSolicitudUncheckedCreateWithoutProductoInput>
+  }
+
+  export type ItemSolicitudUpdateWithWhereUniqueWithoutProductoInput = {
+    where: ItemSolicitudWhereUniqueInput
+    data: XOR<ItemSolicitudUpdateWithoutProductoInput, ItemSolicitudUncheckedUpdateWithoutProductoInput>
+  }
+
+  export type ItemSolicitudUpdateManyWithWhereWithoutProductoInput = {
+    where: ItemSolicitudScalarWhereInput
+    data: XOR<ItemSolicitudUpdateManyMutationInput, ItemSolicitudUncheckedUpdateManyWithoutProductoInput>
+  }
+
+  export type ItemSolicitudScalarWhereInput = {
+    AND?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
+    OR?: ItemSolicitudScalarWhereInput[]
+    NOT?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
+    id?: StringFilter<"ItemSolicitud"> | string
+    partidaId?: StringFilter<"ItemSolicitud"> | string
+    productoId?: StringFilter<"ItemSolicitud"> | string
+    mercado?: EnumMercadoNullableFilter<"ItemSolicitud"> | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFilter<"ItemSolicitud"> | number
+    cantidadFinal?: FloatNullableFilter<"ItemSolicitud"> | number | null
+  }
+
   export type UserCreateWithoutImportacionesInicialesEstucheInput = {
     id?: string
     email: string
@@ -71338,6 +77347,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserUncheckedCreateWithoutImportacionesInicialesEstucheInput = {
@@ -71354,6 +77365,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
   }
 
   export type UserCreateOrConnectWithoutImportacionesInicialesEstucheInput = {
@@ -71442,6 +77455,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutImportacionesInicialesEstucheInput = {
@@ -71458,6 +77473,8 @@ export namespace Prisma {
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
   }
 
   export type ImportacionInicialEstucheItemUpsertWithWhereUniqueWithoutBatchInput = {
@@ -71621,6 +77638,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutImportacionesInicialesEstucheInput = {
@@ -71649,6 +77667,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutImportacionesInicialesEstucheInput = {
@@ -71788,6 +77807,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutImportacionesInicialesEstucheInput = {
@@ -71816,6 +77836,7 @@ export namespace Prisma {
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type InventarioEstucheUpsertWithoutImportacionInicialItemInput = {
@@ -71888,6 +77909,416 @@ export namespace Prisma {
     justificacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserCreateWithoutPartidasSolicitadasInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
+  }
+
+  export type UserUncheckedCreateWithoutPartidasSolicitadasInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaUncheckedCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
+  }
+
+  export type UserCreateOrConnectWithoutPartidasSolicitadasInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutPartidasSolicitadasInput, UserUncheckedCreateWithoutPartidasSolicitadasInput>
+  }
+
+  export type UserCreateWithoutPartidasConfirmadasInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+  }
+
+  export type UserUncheckedCreateWithoutPartidasConfirmadasInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaUncheckedCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+  }
+
+  export type UserCreateOrConnectWithoutPartidasConfirmadasInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutPartidasConfirmadasInput, UserUncheckedCreateWithoutPartidasConfirmadasInput>
+  }
+
+  export type ItemSolicitudCreateWithoutPartidaInput = {
+    id?: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+    producto: DepositoProductoCreateNestedOneWithoutItemsSolicitudInput
+  }
+
+  export type ItemSolicitudUncheckedCreateWithoutPartidaInput = {
+    id?: string
+    productoId: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+  }
+
+  export type ItemSolicitudCreateOrConnectWithoutPartidaInput = {
+    where: ItemSolicitudWhereUniqueInput
+    create: XOR<ItemSolicitudCreateWithoutPartidaInput, ItemSolicitudUncheckedCreateWithoutPartidaInput>
+  }
+
+  export type ItemSolicitudCreateManyPartidaInputEnvelope = {
+    data: ItemSolicitudCreateManyPartidaInput | ItemSolicitudCreateManyPartidaInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithoutPartidasSolicitadasInput = {
+    update: XOR<UserUpdateWithoutPartidasSolicitadasInput, UserUncheckedUpdateWithoutPartidasSolicitadasInput>
+    create: XOR<UserCreateWithoutPartidasSolicitadasInput, UserUncheckedCreateWithoutPartidasSolicitadasInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutPartidasSolicitadasInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutPartidasSolicitadasInput, UserUncheckedUpdateWithoutPartidasSolicitadasInput>
+  }
+
+  export type UserUpdateWithoutPartidasSolicitadasInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutPartidasSolicitadasInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
+  }
+
+  export type UserUpsertWithoutPartidasConfirmadasInput = {
+    update: XOR<UserUpdateWithoutPartidasConfirmadasInput, UserUncheckedUpdateWithoutPartidasConfirmadasInput>
+    create: XOR<UserCreateWithoutPartidasConfirmadasInput, UserUncheckedCreateWithoutPartidasConfirmadasInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutPartidasConfirmadasInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutPartidasConfirmadasInput, UserUncheckedUpdateWithoutPartidasConfirmadasInput>
+  }
+
+  export type UserUpdateWithoutPartidasConfirmadasInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutPartidasConfirmadasInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+  }
+
+  export type ItemSolicitudUpsertWithWhereUniqueWithoutPartidaInput = {
+    where: ItemSolicitudWhereUniqueInput
+    update: XOR<ItemSolicitudUpdateWithoutPartidaInput, ItemSolicitudUncheckedUpdateWithoutPartidaInput>
+    create: XOR<ItemSolicitudCreateWithoutPartidaInput, ItemSolicitudUncheckedCreateWithoutPartidaInput>
+  }
+
+  export type ItemSolicitudUpdateWithWhereUniqueWithoutPartidaInput = {
+    where: ItemSolicitudWhereUniqueInput
+    data: XOR<ItemSolicitudUpdateWithoutPartidaInput, ItemSolicitudUncheckedUpdateWithoutPartidaInput>
+  }
+
+  export type ItemSolicitudUpdateManyWithWhereWithoutPartidaInput = {
+    where: ItemSolicitudScalarWhereInput
+    data: XOR<ItemSolicitudUpdateManyMutationInput, ItemSolicitudUncheckedUpdateManyWithoutPartidaInput>
+  }
+
+  export type PartidaProduccionCreateWithoutItemsInput = {
+    id?: string
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+    solicitante: UserCreateNestedOneWithoutPartidasSolicitadasInput
+    confirmadoPor?: UserCreateNestedOneWithoutPartidasConfirmadasInput
+  }
+
+  export type PartidaProduccionUncheckedCreateWithoutItemsInput = {
+    id?: string
+    solicitanteId: string
+    confirmadoPorId?: string | null
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PartidaProduccionCreateOrConnectWithoutItemsInput = {
+    where: PartidaProduccionWhereUniqueInput
+    create: XOR<PartidaProduccionCreateWithoutItemsInput, PartidaProduccionUncheckedCreateWithoutItemsInput>
+  }
+
+  export type DepositoProductoCreateWithoutItemsSolicitudInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    stockMinimo?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: $Enums.Mercado | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoUncheckedCreateWithoutItemsSolicitudInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    stockMinimo?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: $Enums.Mercado | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoCreateOrConnectWithoutItemsSolicitudInput = {
+    where: DepositoProductoWhereUniqueInput
+    create: XOR<DepositoProductoCreateWithoutItemsSolicitudInput, DepositoProductoUncheckedCreateWithoutItemsSolicitudInput>
+  }
+
+  export type PartidaProduccionUpsertWithoutItemsInput = {
+    update: XOR<PartidaProduccionUpdateWithoutItemsInput, PartidaProduccionUncheckedUpdateWithoutItemsInput>
+    create: XOR<PartidaProduccionCreateWithoutItemsInput, PartidaProduccionUncheckedCreateWithoutItemsInput>
+    where?: PartidaProduccionWhereInput
+  }
+
+  export type PartidaProduccionUpdateToOneWithWhereWithoutItemsInput = {
+    where?: PartidaProduccionWhereInput
+    data: XOR<PartidaProduccionUpdateWithoutItemsInput, PartidaProduccionUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type PartidaProduccionUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    solicitante?: UserUpdateOneRequiredWithoutPartidasSolicitadasNestedInput
+    confirmadoPor?: UserUpdateOneWithoutPartidasConfirmadasNestedInput
+  }
+
+  export type PartidaProduccionUncheckedUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    solicitanteId?: StringFieldUpdateOperationsInput | string
+    confirmadoPorId?: NullableStringFieldUpdateOperationsInput | string | null
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DepositoProductoUpsertWithoutItemsSolicitudInput = {
+    update: XOR<DepositoProductoUpdateWithoutItemsSolicitudInput, DepositoProductoUncheckedUpdateWithoutItemsSolicitudInput>
+    create: XOR<DepositoProductoCreateWithoutItemsSolicitudInput, DepositoProductoUncheckedCreateWithoutItemsSolicitudInput>
+    where?: DepositoProductoWhereInput
+  }
+
+  export type DepositoProductoUpdateToOneWithWhereWithoutItemsSolicitudInput = {
+    where?: DepositoProductoWhereInput
+    data: XOR<DepositoProductoUpdateWithoutItemsSolicitudInput, DepositoProductoUncheckedUpdateWithoutItemsSolicitudInput>
+  }
+
+  export type DepositoProductoUpdateWithoutItemsSolicitudInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+  }
+
+  export type DepositoProductoUncheckedUpdateWithoutItemsSolicitudInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type AppAccessCreateManyUserInput = {
@@ -71971,6 +78402,7 @@ export namespace Prisma {
     fechaVencimiento?: Date | string | null
     activo?: boolean
     createdAt?: Date | string
+    derivedFromLoteId?: string | null
   }
 
   export type ItemPedidoCreateManyProductoInput = {
@@ -72010,6 +78442,28 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type ProductoTransferRuleCreateManySourceProductInput = {
+    id?: string
+    targetProductId: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProductoTransferRuleCreateManyTargetProductInput = {
+    id?: string
+    sourceProductId: string
+    label: string
+    tipo: $Enums.TipoReglaTransferenciaProducto
+    activo?: boolean
+    orden?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type LoteUpdateWithoutProductoInput = {
     id?: StringFieldUpdateOperationsInput | string
     numero?: StringFieldUpdateOperationsInput | string
@@ -72019,6 +78473,8 @@ export namespace Prisma {
     fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLote?: LoteUpdateOneWithoutDerivedLotesNestedInput
+    derivedLotes?: LoteUpdateManyWithoutDerivedFromLoteNestedInput
     reservas?: ReservaStockUpdateManyWithoutLoteNestedInput
     saldos?: SaldoStockUpdateManyWithoutLoteNestedInput
   }
@@ -72032,6 +78488,8 @@ export namespace Prisma {
     fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLoteId?: NullableStringFieldUpdateOperationsInput | string | null
+    derivedLotes?: LoteUncheckedUpdateManyWithoutDerivedFromLoteNestedInput
     reservas?: ReservaStockUncheckedUpdateManyWithoutLoteNestedInput
     saldos?: SaldoStockUncheckedUpdateManyWithoutLoteNestedInput
   }
@@ -72045,6 +78503,7 @@ export namespace Prisma {
     fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedFromLoteId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ItemPedidoUpdateWithoutProductoInput = {
@@ -72160,6 +78619,84 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProductoTransferRuleUpdateWithoutSourceProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targetProduct?: ProductoUpdateOneRequiredWithoutTargetTransferRulesNestedInput
+  }
+
+  export type ProductoTransferRuleUncheckedUpdateWithoutSourceProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    targetProductId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    targetProductId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProductoTransferRuleUpdateWithoutTargetProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    sourceProduct?: ProductoUpdateOneRequiredWithoutSourceTransferRulesNestedInput
+  }
+
+  export type ProductoTransferRuleUncheckedUpdateWithoutTargetProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProductId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProductoTransferRuleUncheckedUpdateManyWithoutTargetProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    sourceProductId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    tipo?: EnumTipoReglaTransferenciaProductoFieldUpdateOperationsInput | $Enums.TipoReglaTransferenciaProducto
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    orden?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LoteCreateManyDerivedFromLoteInput = {
+    id?: string
+    numero: string
+    productoId: string
+    cajas?: number
+    sueltos?: number
+    fechaProduccion?: Date | string | null
+    fechaVencimiento?: Date | string | null
+    activo?: boolean
+    createdAt?: Date | string
+  }
+
   export type ReservaStockCreateManyLoteInput = {
     id?: string
     pedidoId: string
@@ -72178,6 +78715,48 @@ export namespace Prisma {
     cantidad: number
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type LoteUpdateWithoutDerivedFromLoteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    numero?: StringFieldUpdateOperationsInput | string
+    cajas?: IntFieldUpdateOperationsInput | number
+    sueltos?: IntFieldUpdateOperationsInput | number
+    fechaProduccion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    producto?: ProductoUpdateOneRequiredWithoutLotesNestedInput
+    derivedLotes?: LoteUpdateManyWithoutDerivedFromLoteNestedInput
+    reservas?: ReservaStockUpdateManyWithoutLoteNestedInput
+    saldos?: SaldoStockUpdateManyWithoutLoteNestedInput
+  }
+
+  export type LoteUncheckedUpdateWithoutDerivedFromLoteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    numero?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    cajas?: IntFieldUpdateOperationsInput | number
+    sueltos?: IntFieldUpdateOperationsInput | number
+    fechaProduccion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    derivedLotes?: LoteUncheckedUpdateManyWithoutDerivedFromLoteNestedInput
+    reservas?: ReservaStockUncheckedUpdateManyWithoutLoteNestedInput
+    saldos?: SaldoStockUncheckedUpdateManyWithoutLoteNestedInput
+  }
+
+  export type LoteUncheckedUpdateManyWithoutDerivedFromLoteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    numero?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    cajas?: IntFieldUpdateOperationsInput | number
+    sueltos?: IntFieldUpdateOperationsInput | number
+    fechaProduccion?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    fechaVencimiento?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ReservaStockUpdateWithoutLoteInput = {
@@ -72966,6 +79545,26 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type PartidaProduccionCreateManySolicitanteInput = {
+    id?: string
+    confirmadoPorId?: string | null
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+  }
+
+  export type PartidaProduccionCreateManyConfirmadoPorInput = {
+    id?: string
+    solicitanteId: string
+    confirmadoAt?: Date | string | null
+    estado?: $Enums.EstadoPartida
+    notas?: string | null
+    motivoRechazo?: string | null
+    createdAt?: Date | string
+  }
+
   export type ActaUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     fecha?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -73093,7 +79692,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73110,7 +79709,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73125,7 +79724,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73138,7 +79737,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73155,7 +79754,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73170,7 +79769,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73237,6 +79836,70 @@ export namespace Prisma {
     result?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartidaProduccionUpdateWithoutSolicitanteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    confirmadoPor?: UserUpdateOneWithoutPartidasConfirmadasNestedInput
+    items?: ItemSolicitudUpdateManyWithoutPartidaNestedInput
+  }
+
+  export type PartidaProduccionUncheckedUpdateWithoutSolicitanteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    confirmadoPorId?: NullableStringFieldUpdateOperationsInput | string | null
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: ItemSolicitudUncheckedUpdateManyWithoutPartidaNestedInput
+  }
+
+  export type PartidaProduccionUncheckedUpdateManyWithoutSolicitanteInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    confirmadoPorId?: NullableStringFieldUpdateOperationsInput | string | null
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PartidaProduccionUpdateWithoutConfirmadoPorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    solicitante?: UserUpdateOneRequiredWithoutPartidasSolicitadasNestedInput
+    items?: ItemSolicitudUpdateManyWithoutPartidaNestedInput
+  }
+
+  export type PartidaProduccionUncheckedUpdateWithoutConfirmadoPorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    solicitanteId?: StringFieldUpdateOperationsInput | string
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: ItemSolicitudUncheckedUpdateManyWithoutPartidaNestedInput
+  }
+
+  export type PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    solicitanteId?: StringFieldUpdateOperationsInput | string
+    confirmadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    estado?: EnumEstadoPartidaFieldUpdateOperationsInput | $Enums.EstadoPartida
+    notas?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ActaItemCreateManyActaInput = {
@@ -73410,6 +80073,14 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type ItemSolicitudCreateManyProductoInput = {
+    id?: string
+    partidaId: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+  }
+
   export type InventarioDrogaUpdateWithoutProductoInput = {
     id?: StringFieldUpdateOperationsInput | string
     nombre?: StringFieldUpdateOperationsInput | string
@@ -73573,7 +80244,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73590,7 +80261,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73605,7 +80276,7 @@ export namespace Prisma {
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
-    cantidad?: IntFieldUpdateOperationsInput | number
+    cantidad?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -73723,6 +80394,30 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ItemSolicitudUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+    partida?: PartidaProduccionUpdateOneRequiredWithoutItemsNestedInput
+  }
+
+  export type ItemSolicitudUncheckedUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partidaId?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type ItemSolicitudUncheckedUpdateManyWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    partidaId?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
   export type ImportacionInicialEstucheItemCreateManyBatchInput = {
     id?: string
     productoId: string
@@ -73791,6 +80486,38 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ItemSolicitudCreateManyPartidaInput = {
+    id?: string
+    productoId: string
+    mercado?: $Enums.Mercado | null
+    cantidadSolicitada: number
+    cantidadFinal?: number | null
+  }
+
+  export type ItemSolicitudUpdateWithoutPartidaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+    producto?: DepositoProductoUpdateOneRequiredWithoutItemsSolicitudNestedInput
+  }
+
+  export type ItemSolicitudUncheckedUpdateWithoutPartidaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type ItemSolicitudUncheckedUpdateManyWithoutPartidaInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
+    cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
   }
 
 

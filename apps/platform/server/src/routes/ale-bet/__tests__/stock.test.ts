@@ -288,7 +288,7 @@ describe('Ale-Bet Stock', () => {
       ]))
     })
 
-    it('aggregates real balances by lot and location, including zero-balance lots', async () => {
+    it('hides zero-balance lots from the operational listing without changing totals', async () => {
       const date = new Date()
       mockDb.producto.findMany.mockResolvedValue([
         {
@@ -360,9 +360,17 @@ describe('Ale-Bet Stock', () => {
         expect.objectContaining({ id: 'lote-deposito', stockTotal: 7, stockDeposito: 7, stockAcondicionado: 0 }),
         expect.objectContaining({ id: 'lote-acondicionado', stockTotal: 4, stockDeposito: 0, stockAcondicionado: 4 }),
         expect.objectContaining({ id: 'lote-repartido', stockTotal: 8, stockDeposito: 3, stockAcondicionado: 5 }),
-        expect.objectContaining({ id: 'lote-cero', stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 }),
       ]))
+      expect(product.lotes).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: 'lote-cero' })]))
       expect(product.lotes.reduce((total: number, lote: { stockTotal: number }) => total + lote.stockTotal, 0)).toBe(product.stockTotal)
+
+      const archived = await request(app)
+        .get('/api/ale-bet/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+      expect(archived.body.productos[0].lotes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'lote-cero', stockTotal: 0 }),
+      ]))
     })
 
     it('returns empty arrays when no data exists', async () => {
@@ -476,6 +484,32 @@ describe('Ale-Bet Stock', () => {
 
       const allowedQuery = mockDb.producto.findUnique.mock.calls.at(-1)?.[0]
       expect(allowedQuery.select.lotes.where).toBeUndefined()
+    })
+
+    it('keeps a zero lot persisted and shows it again automatically after stock is received', async () => {
+      const zeroLot = {
+        id: 'lote-zero', numero: 'CB0094', activo: true, fechaProduccion: null, fechaVencimiento: null,
+        saldos: [{ cantidad: 0, ubicacion: { id: 'deposito', codigo: 'DEPOSITO' } }],
+      }
+      mockDb.producto.findUnique.mockResolvedValueOnce({ id: 'prod-1', nombre: 'Producto A', lotes: [zeroLot] })
+      mockDb.ubicacionStock.findMany.mockResolvedValue([{ id: 'deposito', codigo: 'DEPOSITO', nombre: 'Depósito' }])
+      const app = await createTestApp()
+
+      const hidden = await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+      expect(hidden.body.lotes).toEqual([])
+
+      mockDb.producto.findUnique.mockResolvedValueOnce({
+        id: 'prod-1', nombre: 'Producto A', lotes: [{ ...zeroLot, saldos: [{ cantidad: 12, ubicacion: { id: 'deposito', codigo: 'DEPOSITO' } }] }],
+      })
+      const visibleAgain = await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      expect(visibleAgain.body.lotes).toEqual([expect.objectContaining({ id: 'lote-zero', stockTotal: 12, stockDeposito: 12 })])
     })
   })
 

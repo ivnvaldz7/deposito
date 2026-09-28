@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, FlaskConical, Package, Tag, Box, BookOpen,
-  ArrowLeftRight, BarChart2, LogOut, Users,
+  ArrowLeftRight, BarChart2, LogOut, Users
 } from 'lucide-react'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'

@@ -17,7 +17,7 @@ function formatLocation(movimiento: MovimientoStock): string {
 }
 
 function formatMovementType(tipo: MovimientoStock['tipo']): string {
-  return tipo === 'SALDO_APERTURA' ? 'SALDO DE APERTURA' : tipo
+  return tipo === 'SALDO_APERTURA' ? 'MOVIMIENTO HISTÓRICO INICIAL' : tipo
 }
 
 export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalProps) {

@@ -17,6 +17,6 @@ export interface CatalogoProducto {
 export async function fetchCatalogoProductos(
   categoria: CategoriaProducto
 ): Promise<CatalogoProducto[]> {
-  const productos = await api.get<CatalogoProducto[]>(`/productos?categoria=${categoria}`)
+  const productos = await api.get<CatalogoProducto[]>(`/productos?categoria=${categoria}&activo=true`)
   return sortProductsByNaturalPresentation(productos, (producto) => producto.nombreCompleto)
 }

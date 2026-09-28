@@ -177,6 +177,68 @@ describe('AutomationPage', () => {
     ))
   })
 
+  it('ofrece descartar explícitamente una línea sin coincidencia', async () => {
+    ;(aleBetApi.automation.createDraft as any).mockResolvedValue({ id: 'draft-discard' })
+    ;(aleBetApi.automation.getDraft as any).mockResolvedValue({
+      draft: { id: 'draft-discard', estado: 'DRAFT', version: 1 },
+      effectiveSnapshot: {
+        customerCandidate: { customerId: 'c1', nombre: 'Veterinaria Centro', confidence: 1 },
+        requiresReview: true,
+        warnings: [],
+        lines: [
+          { lineId: 'line-valid-a', originalText: '2 Olivitasan', lineState: 'VALID', productCandidate: { productId: 'p1', nombre: 'Olivitasan 500 ML', confidence: 1 }, warnings: [], requiresReview: false, quantity: { mode: 'UNITS', totalUnits: 2 } },
+          { lineId: 'line-unresolved', originalText: 'Sin cargo', lineState: 'NEEDS_REVIEW', productCandidate: null, warnings: ['PRODUCT_UNRESOLVED'], requiresReview: true, quantity: { mode: 'AMBIGUOUS', totalUnits: null } },
+        ],
+      },
+      availability: [{ productId: 'p1', availableUnits: 340, status: 'DISPONIBLE' }],
+    })
+    ;(aleBetApi.automation.updateDraft as any).mockResolvedValue({ id: 'draft-discard', estado: 'READY', version: 2 })
+
+    render(<AutomationPage />, { wrapper: createWrapper() })
+    fireEvent.change(screen.getByPlaceholderText(/Veterinaria Centro/), { target: { value: '2 Olivitasan\nSin cargo' } })
+    fireEvent.click(screen.getByText('Interpretar pedido'))
+
+    const discard = await screen.findByRole('button', { name: 'No es un producto' })
+    expect(screen.getByText('Desconocido · Sin cargo')).toBeInTheDocument()
+    expect(screen.getByText('Confirmar pedido')).toBeDisabled()
+    fireEvent.click(discard)
+    await waitFor(() => expect(aleBetApi.automation.updateDraft).toHaveBeenCalledWith(
+      'draft-discard',
+      { expectedVersion: 1, line: { lineId: 'line-unresolved', action: 'DISCARD' } },
+    ))
+  })
+
+  it('muestra una línea descartada fuera de los warnings y permite deshacerla', async () => {
+    ;(aleBetApi.automation.createDraft as any).mockResolvedValue({ id: 'draft-undiscard' })
+    ;(aleBetApi.automation.getDraft as any).mockResolvedValue({
+      draft: { id: 'draft-undiscard', estado: 'READY', version: 2 },
+      effectiveSnapshot: {
+        customerCandidate: { customerId: 'c1', nombre: 'Veterinaria Centro', confidence: 1 },
+        requiresReview: false,
+        warnings: [],
+        lines: [
+          { lineId: 'line-valid-a', originalText: '2 Olivitasan', lineState: 'VALID', productCandidate: { productId: 'p1', nombre: 'Olivitasan 500 ML', confidence: 1 }, warnings: [], requiresReview: false, quantity: { mode: 'UNITS', totalUnits: 2 } },
+          { lineId: 'line-unresolved', originalText: 'Sin cargo', lineState: 'DISCARDED', productCandidate: null, warnings: ['PRODUCT_UNRESOLVED'], requiresReview: true, quantity: { mode: 'AMBIGUOUS', totalUnits: null } },
+        ],
+      },
+      availability: [{ productId: 'p1', availableUnits: 340, status: 'DISPONIBLE' }],
+    })
+    ;(aleBetApi.automation.updateDraft as any).mockResolvedValue({ id: 'draft-undiscard', estado: 'DRAFT', version: 3 })
+
+    render(<AutomationPage />, { wrapper: createWrapper() })
+    fireEvent.change(screen.getByPlaceholderText(/Veterinaria Centro/), { target: { value: '2 Olivitasan\nSin cargo' } })
+    fireEvent.click(screen.getByText('Interpretar pedido'))
+
+    expect(await screen.findByText('Línea desestimada · Sin cargo')).toBeInTheDocument()
+    expect(screen.queryByText('PRODUCT_UNRESOLVED')).not.toBeInTheDocument()
+    expect(screen.getByText('Confirmar pedido')).not.toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }))
+    await waitFor(() => expect(aleBetApi.automation.updateDraft).toHaveBeenCalledWith(
+      'draft-undiscard',
+      { expectedVersion: 2, line: { lineId: 'line-unresolved', action: 'RESTORE' } },
+    ))
+  })
+
   it('resume el effectiveSnapshot actual y confirma con su versión', async () => {
     ;(aleBetApi.automation.createDraft as any).mockResolvedValue({ id: 'draft-summary' })
     ;(aleBetApi.automation.getDraft as any).mockResolvedValue({

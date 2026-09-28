@@ -6,7 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { platformDb as prisma } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
 import { createAleBetRoutes } from '../../routes/ale-bet'
-import { syncStockProjectionNow } from '../../routes/ale-bet/stock-projection/direct-sync'
+import { STOCK_PROJECTION_SYNC_FAILURE_LOG, syncStockProjectionNow } from '../../routes/ale-bet/stock-projection/direct-sync'
 import type { StockProjectionSnapshot } from '../../routes/ale-bet/stock-projection/snapshot'
 import type { StockProjectionSheetAdapter } from '../../routes/ale-bet/stock-projection/sheet-adapter'
 import { truncateDb } from '../utils/db-cleaner'
@@ -165,7 +165,7 @@ describe('SDD-01 direct Automation sync', () => {
     })).cantidad).toBe(108)
     expect(await prisma.movimientoStock.count({ where: { pedidoId: response.body.pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
     expect(syncLogger.error).toHaveBeenCalledOnce()
-    expect(syncLogger.error).toHaveBeenCalledWith('[stock-projection] Google Sheets sync failed after Automation confirmation')
+    expect(syncLogger.error).toHaveBeenCalledWith(STOCK_PROJECTION_SYNC_FAILURE_LOG)
     expect(JSON.stringify(syncLogger.error.mock.calls)).not.toContain('private_key')
   })
 

@@ -10,6 +10,7 @@ import { canCancelOrder, canConfirmDispatch, canEditOrder, canTransitionOrder, c
 import { consumeActiveReservations, releaseActiveReservations, reserveFefo, StockConflictError } from './reservas-service'
 import { getOrderAvailability, InventoryConflictError, transferInternal } from './inventory-service'
 import { sseManager } from './sse-manager'
+import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
 
 const router = Router()
 const itemSchema = z.object({ productoId: z.string().min(1), cantidad: z.number().int().positive() })
@@ -267,6 +268,7 @@ router.put('/:id/aprobar', requirePermission('ale-bet', 'pedidos.approve'), asyn
       await audit(tx, updated.id, user.sub, 'PEDIDO_APROBADO', { estado: pedido.estado }, { estado: updated.estado })
       return updated
     })
+    await syncStockProjectionAfterCommit()
     if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
     res.json(result.body)
     if (!result.replayed) sseManager.emitToRole('armador', 'pedido:aprobado', { pedidoId: String(req.params.id), timestamp: new Date().toISOString() })
@@ -413,6 +415,7 @@ router.post('/:id/despachar', requirePermission('ale-bet', 'pedidos.dispatch'), 
       await audit(tx, updated.id, user.sub, 'PEDIDO_DESPACHADO', { estado: pedido.estado }, { estado: updated.estado })
       return updated
     })
+    await syncStockProjectionAfterCommit()
     if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
     res.json(result.body)
   } catch (error) { errorResponse(error, res) }

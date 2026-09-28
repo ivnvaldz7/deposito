@@ -98,6 +98,10 @@ const mocks = vi.hoisted(() => {
         return producto
       }),
     },
+    inventarioDroga: { findMany: vi.fn(async () => []) },
+    inventarioEstuche: { findMany: vi.fn(async () => []) },
+    inventarioEtiqueta: { findMany: vi.fn(async () => []) },
+    inventarioFrasco: { findMany: vi.fn(async () => []) },
   }
 
   function reset() {
@@ -105,6 +109,10 @@ const mocks = vi.hoisted(() => {
     prisma.depositoProducto.findMany.mockClear()
     prisma.depositoProducto.findUnique.mockClear()
     prisma.depositoProducto.create.mockClear()
+    prisma.inventarioDroga.findMany.mockClear()
+    prisma.inventarioEstuche.findMany.mockClear()
+    prisma.inventarioEtiqueta.findMany.mockClear()
+    prisma.inventarioFrasco.findMany.mockClear()
   }
 
   return { prisma, state, reset }
@@ -212,6 +220,22 @@ describe('Catálogo de productos', () => {
     expect(res.status).toBe(200)
     expect(res.body.length).toBeGreaterThan(0)
     expect(res.body.every((producto: any) => producto.categoria === 'frasco')).toBe(true)
+  })
+
+  it('GET /api/productos con incluirStock devuelve el inventario real', async () => {
+    mocks.prisma.inventarioEtiqueta.findMany.mockResolvedValueOnce([
+      { productoId: 'prod-5', mercado: 'argentina', cantidad: 740 },
+    ])
+
+    const res = await request(app)
+      .get('/api/productos?categoria=etiqueta&activo=true&incluirStock=true')
+      .set('x-test-role', 'encargado')
+
+    expect(res.status).toBe(200)
+    expect(res.body.find((producto: { id: string }) => producto.id === 'prod-5')).toMatchObject({
+      stockActual: 740,
+      stockPorMercado: { argentina: 740 },
+    })
   })
 
   it('GET /api/productos conserva stockMinimo null en las cuatro categorías', async () => {

@@ -1,8 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
+import type { Mercado } from '../components/inventory-shared/mercados'
+
+export type { Mercado } from '../components/inventory-shared/mercados'
 
 export type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
-export type Mercado = 'argentina' | 'colombia' | 'mexico' | 'ecuador' | 'bolivia' | 'paraguay' | 'no_exportable'
 export type EstadoOrden = 'solicitada' | 'aprobada' | 'ejecutada' | 'completada' | 'rechazada'
 export type Urgencia = 'normal' | 'urgente'
 
@@ -39,7 +41,7 @@ export function useOrdenes(filters?: { estado?: string }) {
 export function useCreateOrden() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { categoria: Categoria; productoNombre: string; cantidad: number; mercado?: Mercado; urgencia?: Urgencia; productoId?: string }) =>
+    mutationFn: (data: { categoria: Categoria; productoId: string; cantidad: number; mercado?: Mercado; urgencia?: Urgencia }) =>
       api.post<OrdenProduccion>('/ordenes', data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
   })
@@ -48,7 +50,7 @@ export function useCreateOrden() {
 export function useAprobarOrden() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => api.put(`/ordenes/${id}/aprobar`),
+    mutationFn: (id: string) => api.post(`/ordenes/${id}/aprobar`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
   })
 }
@@ -56,24 +58,8 @@ export function useAprobarOrden() {
 export function useRechazarOrden() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, motivo }: { id: string; motivo: string }) =>
-      api.put(`/ordenes/${id}/rechazar`, { motivoRechazo: motivo }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
-  })
-}
-
-export function useEjecutarOrden() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => api.post(`/ordenes/${id}/ejecutar`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
-  })
-}
-
-export function useCompletarOrden() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => api.put(`/ordenes/${id}/completar`),
+    mutationFn: ({ id, motivo }: { id: string; motivo?: string }) =>
+      api.put(`/ordenes/${id}/rechazar`, motivo ? { motivoRechazo: motivo } : {}),
     onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
   })
 }

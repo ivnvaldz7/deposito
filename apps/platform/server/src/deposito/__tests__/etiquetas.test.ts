@@ -34,6 +34,7 @@ vi.mock('../middleware/auth', () => ({
 
 interface EtiquetaMock {
   id: string
+  productoId?: string
   articulo: string
   mercado: string
   cantidad: number
@@ -51,6 +52,7 @@ const prismaMock = vi.hoisted(() => {
   return {
     state,
     reset,
+    depositoProducto: { findMany: vi.fn(async () => state.etiquetas.map((row) => ({ id: row.productoId ?? row.id, nombreCompleto: row.articulo, mercadosHabilitados: [row.mercado], mercado: row.mercado, updatedAt: new Date() })).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto))) },
     inventarioEtiqueta: {
       findMany: vi.fn(async ({ where }: any = {}) => {
         let result = [...state.etiquetas]
@@ -88,8 +90,10 @@ const prismaMock = vi.hoisted(() => {
         )
       }),
       create: vi.fn(async ({ data }: any) => {
+        const id = `etiqueta-${idCounter++}`
         const etiqueta: EtiquetaMock = {
-          id: `etiqueta-${idCounter++}`,
+          id,
+          productoId: data.productoId ?? id,
           articulo: data.articulo,
           mercado: data.mercado,
           cantidad: data.cantidad,

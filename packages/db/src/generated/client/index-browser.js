@@ -222,7 +222,20 @@ exports.Prisma.LoteScalarFieldEnum = {
   fechaProduccion: 'fechaProduccion',
   fechaVencimiento: 'fechaVencimiento',
   activo: 'activo',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  derivedFromLoteId: 'derivedFromLoteId'
+};
+
+exports.Prisma.ProductoTransferRuleScalarFieldEnum = {
+  id: 'id',
+  sourceProductId: 'sourceProductId',
+  targetProductId: 'targetProductId',
+  label: 'label',
+  tipo: 'tipo',
+  activo: 'activo',
+  orden: 'orden',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ClienteScalarFieldEnum = {
@@ -594,6 +607,26 @@ exports.Prisma.ImportacionInicialEstucheItemScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.PartidaProduccionScalarFieldEnum = {
+  id: 'id',
+  solicitanteId: 'solicitanteId',
+  confirmadoPorId: 'confirmadoPorId',
+  confirmadoAt: 'confirmadoAt',
+  estado: 'estado',
+  notas: 'notas',
+  motivoRechazo: 'motivoRechazo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItemSolicitudScalarFieldEnum = {
+  id: 'id',
+  partidaId: 'partidaId',
+  productoId: 'productoId',
+  mercado: 'mercado',
+  cantidadSolicitada: 'cantidadSolicitada',
+  cantidadFinal: 'cantidadFinal'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -633,6 +666,11 @@ exports.AppId = exports.$Enums.AppId = {
 exports.IdempotencyStatus = exports.$Enums.IdempotencyStatus = {
   PROCESSING: 'PROCESSING',
   COMPLETED: 'COMPLETED'
+};
+
+exports.TipoReglaTransferenciaProducto = exports.$Enums.TipoReglaTransferenciaProducto = {
+  SAME_PRODUCT: 'SAME_PRODUCT',
+  PRESENTATION: 'PRESENTATION'
 };
 
 exports.EstadoCliente = exports.$Enums.EstadoCliente = {
@@ -738,13 +776,15 @@ exports.TipoAuditoriaCatalogo = exports.$Enums.TipoAuditoriaCatalogo = {
 exports.DepositoTipoMovimiento = exports.$Enums.DepositoTipoMovimiento = {
   ingreso_acta: 'ingreso_acta',
   egreso_orden: 'egreso_orden',
+  egreso_partida: 'egreso_partida',
   ajuste_manual: 'ajuste_manual',
   stock_inicial: 'stock_inicial'
 };
 
 exports.RefTipo = exports.$Enums.RefTipo = {
   acta_item: 'acta_item',
-  orden: 'orden'
+  orden: 'orden',
+  partida: 'partida'
 };
 
 exports.EstadoPendiente = exports.$Enums.EstadoPendiente = {
@@ -778,6 +818,12 @@ exports.OrigenProductoCatalogo = exports.$Enums.OrigenProductoCatalogo = {
   MIGRACION: 'MIGRACION'
 };
 
+exports.EstadoPartida = exports.$Enums.EstadoPartida = {
+  SOLICITADO: 'SOLICITADO',
+  CONFIRMADO: 'CONFIRMADO',
+  RECHAZADO: 'RECHAZADO'
+};
+
 exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
   AppAccess: 'AppAccess',
@@ -788,6 +834,7 @@ exports.Prisma.ModelName = {
   Producto: 'Producto',
   ProductAlias: 'ProductAlias',
   Lote: 'Lote',
+  ProductoTransferRule: 'ProductoTransferRule',
   Cliente: 'Cliente',
   ClientAlias: 'ClientAlias',
   Pedido: 'Pedido',
@@ -818,7 +865,9 @@ exports.Prisma.ModelName = {
   SecuenciaCodigoFrasco: 'SecuenciaCodigoFrasco',
   ImportacionInicialEstucheBatch: 'ImportacionInicialEstucheBatch',
   ImportacionInicialEstucheIdempotencyKey: 'ImportacionInicialEstucheIdempotencyKey',
-  ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem'
+  ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem',
+  PartidaProduccion: 'PartidaProduccion',
+  ItemSolicitud: 'ItemSolicitud'
 };
 
 /**

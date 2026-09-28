@@ -9,9 +9,6 @@ import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { useProductFocus } from '../hooks/use-product-focus'
 import { DrugStatus, getDrugLotStatus, getDrugStatusDescription } from '../lib/drug-status'
-import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
-import { useAuthStore } from '@/stores/auth-store'
-import { can } from '@/lib/permissions'
 import { StockChip } from '../components/inventory-shared/stock-chip'
 import { compareProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
@@ -84,7 +81,9 @@ function DrugStatusBadge({ status }: { status: DrugStatus }) {
 
 function formatDate(isoDate: string | null | undefined): string {
   if (!isoDate) return '-'
-  return new Date(isoDate).toLocaleDateString('es-AR', {
+  const parsed = new Date(isoDate)
+  if (Number.isNaN(parsed.getTime())) return '-'
+  return parsed.toLocaleDateString('es-AR', {
     day: '2-digit', month: '2-digit', year: 'numeric'
   })
 }
@@ -117,9 +116,6 @@ export default function DrogasPage() {
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [searchQuery, setSearchQuery] = useState('')
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
-  const user = useAuthStore((s) => s.user)
-  const canManage = can(user, 'deposito', 'ingresos.create')
-  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
     fetchCatalogoProductos('droga')
@@ -138,6 +134,7 @@ export default function DrogasPage() {
       ),
     [records, catalogMap]
   )
+  const activeProductCount = new Set(records.map((record) => record.productoId ?? normalizeProducto(record.nombre))).size
 
   const productoFiltro = searchParams.get('producto') ?? ''
   const productoIdFiltro = searchParams.get('productoId')
@@ -163,7 +160,7 @@ export default function DrogasPage() {
       return groups.filter(
         (g) =>
           g.nombre.toLowerCase().includes(q) ||
-          g.lotes.some((l) => l.lote?.toLowerCase().includes(q))
+          g.lotes.some((l) => l.lote?.toLowerCase().includes(q) || l.codigo?.toLowerCase().includes(q))
       )
     }
     return groups
@@ -185,10 +182,10 @@ export default function DrogasPage() {
             Drogas
           </h1>
           <span className="bg-surface-variant text-on-surface-variant text-xs px-2 py-1 rounded-md border border-white/5">
-            {groups.length} activas
+            {activeProductCount} activas
           </span>
         </div>
-        <div className="flex items-center gap-3"><button type="button" className="btn-secondary" onClick={() => setAperturaOpen(true)} disabled={!canManage}>Carga inicial</button><div className="relative group">
+        <div className="flex items-center gap-3"><div className="relative group">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" />
           <input
             type="text"
@@ -199,7 +196,6 @@ export default function DrogasPage() {
           />
         </div></div>
       </header>
-      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="droga" items={Object.entries(catalogMap).map(([id, label]) => ({ id, label }))} />}
 
       {filteredGroups.length === 0 ? (
         searchQuery ? (
@@ -268,7 +264,7 @@ export default function DrogasPage() {
                           {lote.lote ?? <span className="italic text-on-surface-variant">Sin lote</span>}
                         </div>
                         <div className="col-span-2 text-right text-sm text-on-surface font-medium tabular-nums">
-                          {lote.cantidad}
+                          <span>{lote.cantidad}</span>
                         </div>
                         <div className="col-span-3 flex items-center justify-center">
                           <div className="flex items-center gap-2">
@@ -354,7 +350,7 @@ export default function DrogasPage() {
                           {lote.productoId ? (catalogMap[lote.productoId] ?? group.nombre) : group.nombre}
                         </span>
                         <span className="text-xs text-on-surface-variant shrink-0">
-                          {lote.lote ?? '-'}
+                          {lote.lote ?? 'Sin lotes'}
                         </span>
                       </div>
                       <span className="text-sm font-bold text-on-surface tabular-nums shrink-0">

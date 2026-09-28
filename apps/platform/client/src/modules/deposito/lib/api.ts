@@ -1,4 +1,4 @@
-import { apiClient, ApiError } from '@/lib/api-client'
+import { apiClient, ApiError, type ApiRequestOptions } from '@/lib/api-client'
 
 const BASE = '/deposito'
 
@@ -27,8 +27,8 @@ export const api = {
   put: <T>(path: string, body?: unknown, token?: string | null): Promise<T> =>
     apiClient.put<T>(dep(path), body, token),
 
-  patch: <T>(path: string, body?: unknown, token?: string | null): Promise<T> =>
-    apiClient.patch<T>(dep(path), body, token),
+  patch: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions): Promise<T> =>
+    apiClient.patch<T>(dep(path), body, token, options),
 
   del: <T>(path: string, token?: string | null): Promise<T> =>
     apiClient.del<T>(dep(path), token),

@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => {
   const tx = {
     acta: { create: vi.fn(async () => ({ id: 'acta-1' })), update: vi.fn(async () => ({ id: 'acta-1' })) },
     actaItem: { create: vi.fn(async () => ({ id: 'item-1' })) },
+    inventarioEstuche: { findUnique: vi.fn(async () => ({ id: 'stock-estuche' })), update: vi.fn(async () => ({})) },
     movimiento: { create: vi.fn(async () => ({})) },
   }
   const prisma = {
@@ -74,5 +75,28 @@ describe('POST /api/deposito/ingresos', () => {
     const response = await request(app).post('/api/deposito/ingresos').send(validPayload)
     expect(response.status).toBe(500)
     expect(response.body.message).toBe('No se pudo registrar el ingreso. Intentá nuevamente.')
+  })
+
+  it('keeps an operator-defined packaging lot as the starting reference', async () => {
+    mocks.prisma.depositoProducto.findUnique.mockResolvedValueOnce({
+      id: validPayload.productoId,
+      categoria: 'estuche',
+      estado: 'ACTIVO',
+      mercadosHabilitados: ['argentina'],
+      nombreCompleto: 'ESTUCHE ATP',
+    })
+
+    const response = await request(app).post('/api/deposito/ingresos').send({
+      fecha: validPayload.fecha,
+      productoId: validPayload.productoId,
+      lote: '500',
+      mercado: 'argentina',
+      cantidad: 10,
+    })
+
+    expect(response.status).toBe(201)
+    expect(mocks.tx.actaItem.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lote: '500' }),
+    }))
   })
 })

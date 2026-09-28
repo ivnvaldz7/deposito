@@ -45,6 +45,7 @@ if (-not (Test-Path -LiteralPath $clientIndexPath -PathType Leaf)) { throw "Falt
 
 $logDirectory = if ($env:ALEBET_LOG_DIR) { $env:ALEBET_LOG_DIR } else { Join-Path $RuntimeRoot 'logs' }
 $pidFile = if ($env:ALEBET_PID_FILE) { $env:ALEBET_PID_FILE } else { Join-Path $RuntimeRoot 'platform.pid' }
+$ownerFile = "$pidFile.owner.json"
 New-Item -ItemType Directory -Force -Path $logDirectory | Out-Null
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $pidFile) | Out-Null
 
@@ -56,7 +57,7 @@ if (Test-Path -LiteralPath $pidFile -PathType Leaf) {
     }
     $recordedProcess = Get-Process -Id $recordedProcessId -ErrorAction SilentlyContinue
     if ($recordedProcess) {
-        if (Test-AleBetOwnedNodeProcess -ProcessId $recordedProcessId -EntryPath $entryPath) {
+        if (Test-AleBetOwnedNodeProcess -ProcessId $recordedProcessId -EntryPath $entryPath -OwnerFile $ownerFile) {
             throw "ALE-BET ya está ejecutándose con PID $recordedProcessId."
         }
         throw "El PID file apunta a un proceso ajeno ($recordedProcessId); no se modificó ni terminó."
@@ -64,10 +65,8 @@ if (Test-Path -LiteralPath $pidFile -PathType Leaf) {
     Remove-Item -LiteralPath $pidFile
 }
 
-$portOwners = @(Get-AleBetListeningProcessIds -Port $listenPort)
-if ($portOwners.Count -gt 0) {
-    throw "El puerto $listenPort está ocupado por PID(s) $($portOwners -join ', '). No se terminó ningún proceso."
-}
+Assert-AleBetPortAvailable -Port $listenPort
+if (Test-Path -LiteralPath $ownerFile -PathType Leaf) { Remove-Item -LiteralPath $ownerFile -Force }
 
 $nodeCommand = Get-Command node -ErrorAction Stop
 $timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
@@ -75,6 +74,7 @@ $stdoutPath = Join-Path $logDirectory "platform_$timestamp.out.log"
 $stderrPath = Join-Path $logDirectory "platform_$timestamp.err.log"
 $startedProcess = Start-Process -FilePath $nodeCommand.Source -ArgumentList ('"{0}"' -f $entryPath) -WorkingDirectory $repoRoot -WindowStyle Hidden -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -PassThru
 Set-Content -LiteralPath $pidFile -Value $startedProcess.Id -Encoding ascii
+Write-AleBetProcessOwnerProof -Process $startedProcess -ExecutablePath $nodeCommand.Source -EntryPath $entryPath -OwnerFile $ownerFile
 
 $deadline = (Get-Date).AddSeconds($StartupTimeoutSeconds)
 $healthy = $false
@@ -82,15 +82,19 @@ while ((Get-Date) -lt $deadline) {
     if ($startedProcess.HasExited) { break }
     try {
         $response = Invoke-WebRequest -UseBasicParsing -Uri "http://127.0.0.1:$listenPort/api/health" -TimeoutSec 2
-        if ($response.StatusCode -eq 200) { $healthy = $true; break }
+        $health = $response.Content | ConvertFrom-Json
+        if ($response.StatusCode -eq 200 -and $health.status -eq 'ok' -and $health.app -eq 'platform' -and $health.db -eq 'connected') { $healthy = $true; break }
     } catch { Start-Sleep -Milliseconds 500 }
 }
 
 if (-not $healthy) {
-    if (-not $startedProcess.HasExited -and (Test-AleBetOwnedNodeProcess -ProcessId $startedProcess.Id -EntryPath $entryPath)) {
-        Stop-Process -Id $startedProcess.Id -ErrorAction SilentlyContinue
+    if (Get-Process -Id $startedProcess.Id -ErrorAction SilentlyContinue) {
+        Stop-AleBetOwnedNodeProcess -ProcessId $startedProcess.Id -EntryPath $entryPath -OwnerFile $ownerFile -GracefulTimeoutSeconds 30 -ForcedTimeoutSeconds 10
     }
-    Remove-Item -LiteralPath $pidFile -ErrorAction SilentlyContinue
+    if (-not (Get-Process -Id $startedProcess.Id -ErrorAction SilentlyContinue)) {
+        Remove-Item -LiteralPath $pidFile -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $ownerFile -Force -ErrorAction SilentlyContinue
+    }
     throw "El servidor no alcanzó health 200. Revisar logs: $stdoutPath y $stderrPath"
 }
 

@@ -7,7 +7,7 @@
 - Proyectar exclusivamente desde PostgreSQL hacia una hoja nueva de Google Sheets un snapshot completo e idempotente del stock físico Ale-Bet por `Producto + Lote + UbicacionStock`.
 - Reutilizar `StockProjectionOutbox`; no crear un segundo outbox.
 - Publicar dos tablas de valores administrados, con encabezados `PRODUCTO | LOTE | TOTAL`, una para “PRODUCTO TERMINADO” y otra para “SIN ACONDICIONAR”, según el mapping autoritativo aprobado.
-- Generar la proyección automática únicamente tras una confirmación efectiva de Automation.
+- Generar la proyección automática tras cada mutación física de stock confirmada.
 - Ejecutar la escritura después del commit de negocio; una falla de Google no revierte pedidos, movimientos ni saldos.
 - Conservar `StockProjectionOutbox` como infraestructura existente sin consumidor activo en el MVP actual.
 
@@ -40,21 +40,21 @@
 ## Arquitectura final MVP
 
 ```text
-Automation confirm
+Mutación física confirmada
 → transacción PostgreSQL
-→ descuento físico + movimientos + señal de outbox
+→ saldo físico + movimientos + señal de outbox
 → COMMIT
 → snapshot autoritativo completo
 → Google Sheets STOCK APP
 ```
 
 - PostgreSQL y `SaldoStock` siguen siendo la única fuente de verdad; Google Sheets es una proyección outbound.
-- `syncStockProjectionNow()` se ejecuta en la capa HTTP inmediatamente exterior al `await prisma.$transaction(...)` de confirmación Automation.
-- Google no participa en la transacción. Si configuración, autenticación, red o escritura fallan, el pedido continúa confirmado, el stock permanece descontado y la API conserva la respuesta exitosa de PostgreSQL; solo se emite un log constante saneado.
+- `syncStockProjectionAfterCommit()` se ejecuta en la capa HTTP inmediatamente exterior a cada `await prisma.$transaction(...)` que modifica stock físico: apertura, ajuste, ingreso, transferencia, aprobación con transferencia, despacho y confirmación Automation.
+- Google no participa en la transacción. Si configuración, autenticación, red o escritura fallan, el cambio de stock permanece confirmado y la API conserva la respuesta exitosa de PostgreSQL; solo se emite un log constante saneado.
 - `GOOGLE_SHEETS_ENABLED=false` omite snapshot, credenciales, cliente y llamadas Google sin afectar la confirmación.
 - El adapter escribe un snapshot absoluto e idempotente; un replay puede volver a sincronizar sin duplicar filas ni volver a descontar stock.
 - `StockProjectionOutbox` se conserva y continúa recibiendo señales transaccionales de los writers ya instrumentados. No tiene worker consumidor en el MVP actual y no se desarrolla más salvo necesidad futura.
-- La sincronización automática vigente se limita a confirmación Automation. Ajustes, transferencias, aperturas, remitos y otros writers no disparan el helper directo.
+- Las sincronizaciones post-commit se serializan en el proceso para impedir que un snapshot anterior termine sobrescribiendo uno posterior. Remitos y cambios sin mutación física no disparan el helper directo.
 
 ## Diseño anterior reemplazado
 
@@ -85,13 +85,13 @@ La ambigüedad del nombre técnico `ACONDICIONADO` no autoriza a cambiar el domi
 - [ ] 5. Si hay lotes positivos para producto/ubicación, solo se publican esos lotes; los lotes cero no se borran de PostgreSQL.
 - [ ] 6. Si todos los lotes del producto/ubicación están en cero, se publica una única fila cero: el lote activo más reciente por `createdAt`/`id`, o el lote más reciente total si ninguno está activo.
 - [ ] 7. La repetición del snapshot produce los mismos valores, sin filas duplicadas ni mutaciones de stock.
-- [ ] 8. Confirmar Automation persiste stock, movimiento, pedido y outbox dentro de una transacción; solo después de su commit construye el snapshot y llama al adapter una vez.
+- [ ] 8. Toda mutación física confirmada persiste stock, movimiento y outbox dentro de una transacción; solo después de su commit construye el snapshot y llama al adapter una vez.
 - [ ] 9. El snapshot post-commit refleja el saldo definitivo (por ejemplo, `120 - 12 = 108`) y nunca el estado anterior.
 - [ ] 10. `GOOGLE_SHEETS_ENABLED=false` confirma y descuenta normalmente sin construir snapshot ni instanciar Google.
-- [ ] 11. Una falla de Google se captura fuera de la transacción, registra únicamente `[stock-projection] Google Sheets sync failed after Automation confirmation` y no altera la respuesta exitosa ni el estado persistido.
+- [ ] 11. Una falla de Google se captura fuera de la transacción, registra únicamente `[stock-projection] Google Sheets sync failed after physical stock mutation` y no altera la respuesta exitosa ni el estado persistido.
 - [ ] 12. El replay idempotente de confirmación no vuelve a descontar ni crea otro movimiento; un segundo sync del snapshot absoluto es aceptable.
 - [ ] 13. Emitir, anular o reemitir remitos no dispara el helper directo, no modifica stock y no crea otro movimiento físico.
-- [ ] 14. Ajustes, transferencias, aperturas y otros writers conservan sus señales de `StockProjectionOutbox`, pero no sincronizan Google automáticamente en el MVP actual.
+- [ ] 14. Ajustes, ingresos, aperturas, transferencias y consumos/despachos conservan sus señales de `StockProjectionOutbox` y sincronizan Google automáticamente después de commit; remitos no sincronizan.
 - [ ] 15. La escritura limpia y reemplaza únicamente valores de rangos administrados y conserva el formato manual.
 - [ ] 16. El UAT final requiere una confirmación Automation manual autorizada; no se fabrica un pedido ni se modifica stock mediante script.
 
@@ -102,8 +102,8 @@ La ambigüedad del nombre técnico `ACONDICIONADO` no autoriza a cambiar el domi
 - Cero: para cada producto/ubicación, emitir todas las filas positivas; si no hay ninguna, elegir un solo lote priorizando `activo`, luego `createdAt DESC`, `id DESC`. Un producto sin lotes no puede producir una fila sin inventar un lote.
 - Outbox: extraer un helper transaccional idempotente y llamarlo desde los servicios que mutan `SaldoStock` o cambian la selección de fila cero. Los eventos son señales de suciedad; el payload no contiene deltas ni cantidades.
 - Sheets: crear solo la pestaña configurada si no existe; declarar rangos/columnas exclusivos para ambas tablas; usar `values.clear`/`values.batchUpdate` sobre esos rangos para eliminar valores obsoletos y escribir encabezados/filas completas sin tocar formato.
-- Sync directo: después del commit de confirmación Automation, construir un snapshot global actual y escribirlo una vez. `GOOGLE_SHEETS_ENABLED=false` retorna sin credenciales ni llamadas externas.
-- Fallo externo: capturar el error exclusivamente alrededor del sync post-commit, no propagarlo como fallo de confirmación y no incluir el mensaje original en logs.
+- Sync directo: después de cada commit de mutación física, construir un snapshot global actual y escribirlo una vez. `GOOGLE_SHEETS_ENABLED=false` retorna sin credenciales ni llamadas externas.
+- Fallo externo: capturar el error exclusivamente alrededor del sync post-commit, no propagarlo como fallo de negocio y no incluir el mensaje original en logs. Serializar esos syncs en proceso para preservar el orden de los snapshots.
 - Outbox inactivo: no consultar, consumir ni cambiar estados del outbox desde este flujo directo.
 
 ### Política de visibilidad física implementada en Slice 1
@@ -186,10 +186,10 @@ Slices 1–3 quedan como checkpoints históricos verificados. El alcance activo 
 - [x] **CP3.1** Reviewer inspecciona que ninguna request recree spreadsheet, borre hoja completa o modifique formato.
 - [x] **CP3.2** Tester/Verify confirman configuración cerrada, credenciales externas, rangos exclusivos e idempotencia con fake.
 
-### Cierre simplificado — Direct Automation Sync
+### Cierre simplificado — Direct Stock Sync
 
 - [x] **DAS.1 — Helper directo.** Construir el snapshot autoritativo actual y escribirlo mediante `StockProjectionSheetAdapter`; salir sin trabajo cuando Google está deshabilitado.
-- [x] **DAS.2 — Hook post-commit.** Ejecutar el helper inmediatamente después de que finaliza con éxito la transacción de confirmación Automation.
+- [x] **DAS.2 — Hook post-commit.** Ejecutar el helper inmediatamente después de que finaliza con éxito cada transacción de mutación física.
 - [x] **DAS.3 — Fail-open externo.** Capturar fallas de Google, emitir un log constante saneado y preservar respuesta/estado de negocio.
 - [x] **DAS.4 — Tests focalizados.** Cubrir enabled, disabled, falla, snapshot `108` post-commit, replay sin doble descuento y remitos sin sync.
 - [ ] **DAS.5 — Review/Verify independiente.** Revisar límite transaccional, seguridad del log, alcance exclusivo y evidencia focalizada.

@@ -268,7 +268,7 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
         categoria: 'droga',
         productoNombre: 'Droga E',
         cantidad: 10,
-        estado: 'aprobada'
+        estado: 'solicitada'
       }
     })
 
@@ -278,12 +278,12 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
         categoria: 'droga',
         productoNombre: 'Droga E',
         cantidad: 10,
-        estado: 'aprobada'
+        estado: 'solicitada'
       }
     })
 
-    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
 
@@ -300,9 +300,9 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     const finalOrden1 = await prisma.ordenProduccion.findUnique({ where: { id: orden1.id } })
     const finalOrden2 = await prisma.ordenProduccion.findUnique({ where: { id: orden2.id } })
 
-    // Una orden completada/ejecutada, una en aprobada
+    // Una orden aprobada y la otra permanece solicitada por stock insuficiente.
     const estados = [finalOrden1?.estado, finalOrden2?.estado].sort()
-    expect(estados).toEqual(['aprobada', 'ejecutada'])
+    expect(estados).toEqual(['aprobada', 'solicitada'])
   })
 
   // Test F
@@ -316,14 +316,14 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     })
 
     const orden1 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'droga', productoNombre: 'Droga F', cantidad: 10, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'droga', productoNombre: 'Droga F', cantidad: 10, estado: 'solicitada' }
     })
     const orden2 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'droga', productoNombre: 'Droga F', cantidad: 15, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'droga', productoNombre: 'Droga F', cantidad: 15, estado: 'solicitada' }
     })
 
-    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
 
@@ -339,8 +339,8 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
 
     const finalOrden1 = await prisma.ordenProduccion.findUnique({ where: { id: orden1.id } })
     const finalOrden2 = await prisma.ordenProduccion.findUnique({ where: { id: orden2.id } })
-    expect(finalOrden1?.estado).toBe('ejecutada')
-    expect(finalOrden2?.estado).toBe('ejecutada')
+    expect(finalOrden1?.estado).toBe('aprobada')
+    expect(finalOrden2?.estado).toBe('aprobada')
   })
 
   // Test G
@@ -355,25 +355,25 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     })
 
     const orden1 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco G', cantidad: 10, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco G', cantidad: 10, estado: 'solicitada' }
     })
     const orden2 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco G', cantidad: 10, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco G', cantidad: 10, estado: 'solicitada' }
     })
 
-    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
     const codes = [res1.status, res2.status].sort()
-    expect(codes).toEqual([200, 409]) // Solo alcanza para una (15 < 20)
+    expect(codes).toEqual([200, 200])
 
     const finalFrasco = await prisma.inventarioFrasco.findUnique({ where: { id: frasco.id } })
-    expect(finalFrasco?.cantidadCajas).toBe(5)
-    expect(finalFrasco?.total).toBe(250)
+    expect(finalFrasco?.cantidadCajas).toBe(14)
+    expect(finalFrasco?.total).toBe(730)
 
     const movs = await prisma.movimiento.findMany({ where: { referenciaId: { in: [orden1.id, orden2.id] } } })
-    expect(movs).toHaveLength(1)
+    expect(movs).toHaveLength(2)
   })
 
   // Test H - Multiproducto es impracticable por diseño porque OrdenProduccion solo consume 1 tipo a la vez.
@@ -383,15 +383,15 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     const frasco = await prisma.inventarioFrasco.create({ data: { articulo: 'Frasco H', unidadesPorCaja: 10, cantidadCajas: 20, total: 200 } })
 
     const orden1 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'droga', productoNombre: 'Droga H', cantidad: 10, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'droga', productoNombre: 'Droga H', cantidad: 10, estado: 'solicitada' }
     })
     const orden2 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco H', cantidad: 10, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco H', cantidad: 10, estado: 'solicitada' }
     })
 
     const start = Date.now()
-    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const p2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([p1, p2])
     const end = Date.now()
@@ -404,12 +404,7 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     const finalFrasco = await prisma.inventarioFrasco.findUnique({ where: { id: frasco.id } })
 
     expect(finalDroga?.cantidad).toBe(10)
-    expect(finalFrasco?.cantidadCajas).toBe(10)
-  })
-
-  // Test I - Test conceptualmente análogo
-  it('Test I — Multiproducto con stock insuficiente (no aplicable a modelo single-item, ver Test E y G)', async () => {
-    expect(true).toBe(true)
+    expect(finalFrasco?.cantidadCajas).toBe(19)
   })
 
   // Test J - Rollback Forzado (sobre Frascos)
@@ -419,7 +414,7 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
     })
 
     const orden = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco J', cantidad: 20, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco J', cantidad: 20, estado: 'solicitada' }
     })
 
     // Setup Trigger to force failure AFTER stock update but BEFORE commit
@@ -441,7 +436,7 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
 
     try {
       const res = await request(app)
-        .post(`/api/deposito/ordenes/${orden.id}/ejecutar`)
+        .post(`/api/deposito/ordenes/${orden.id}/aprobar`)
         .set('Authorization', `Bearer ${tokenEncargado}`)
 
       expect(res.status).toBe(500)
@@ -451,7 +446,7 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
       expect(finalFrasco?.total).toBe(500)
 
       const finalOrden = await prisma.ordenProduccion.findUnique({ where: { id: orden.id } })
-      expect(finalOrden?.estado).toBe('aprobada') // Rollback preservó estado de orden!
+      expect(finalOrden?.estado).toBe('solicitada') // Rollback preservó estado de orden!
 
       const movs = await prisma.movimiento.findMany({ where: { referenciaId: orden.id } })
       expect(movs).toHaveLength(0) // Nada insertado
@@ -476,25 +471,22 @@ describe('Concurrencia Deposito (PR-B2B)', () => {
 
     // Dos órdenes que piden 6 cajas (60 unidades) cada una. Solo hay 10 cajas disponibles.
     const orden1 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco K Rev', cantidad: 6, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco K Rev', cantidad: 6, estado: 'solicitada' }
     })
     const orden2 = await prisma.ordenProduccion.create({
-      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco K Rev', cantidad: 6, estado: 'aprobada' }
+      data: { solicitanteId: encargadoId, categoria: 'frasco', productoNombre: 'Frasco K Rev', cantidad: 6, estado: 'solicitada' }
     })
 
-    const req1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
-    const req2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/ejecutar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const req1 = request(app).post(`/api/deposito/ordenes/${orden1.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
+    const req2 = request(app).post(`/api/deposito/ordenes/${orden2.id}/aprobar`).set('Authorization', `Bearer ${tokenEncargado}`)
 
     const [res1, res2] = await Promise.all([req1, req2])
 
-    const successRes = res1.status === 200 ? res1 : res2
-    const failRes = res1.status === 409 ? res1 : res2
-
-    expect(successRes.status).toBe(200)
-    expect(failRes.status).toBe(409)
+    expect(res1.status).toBe(200)
+    expect(res2.status).toBe(200)
 
     const finalFrasco = await prisma.inventarioFrasco.findUnique({ where: { id: frasco.id } })
-    expect(finalFrasco?.cantidadCajas).toBe(4) // 10 - 6
-    expect(finalFrasco?.total).toBe(40) // 100 - 60
+    expect(finalFrasco?.cantidadCajas).toBe(8)
+    expect(finalFrasco?.total).toBe(88)
   })
 })

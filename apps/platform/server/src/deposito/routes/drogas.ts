@@ -13,11 +13,12 @@ router.get('/', authenticate, requirePermission('deposito', 'drogas.read'), asyn
     const products = await prisma.depositoProducto.findMany({
       where: {
         categoria: 'droga',
-        estado: 'ACTIVO',
+        activo: true,
         ...(nombre ? { nombreCompleto: { contains: nombre, mode: 'insensitive' } } : {}),
       },
       select: {
         id: true,
+        codigo: true,
         nombreCompleto: true,
         stockMinimo: true,
         inventarioDrogas: {
@@ -66,6 +67,14 @@ router.get('/por-vencer', authenticate, requirePermission('deposito', 'drogas.re
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
   }
+})
+
+// Kept as an explicit, authenticated compatibility boundary. Historic opening
+// data stays available from inventory and traceability reads, but cannot change.
+router.patch('/:productoId/apertura/:inventarioId', authenticate, requirePermission('deposito', 'ingresos.create'), async (_req: Request, res: Response): Promise<void> => {
+  res.status(410).json({
+    error: 'La edición de apertura está cerrada para la operación normal. Usá un ajuste de stock; el historial existente no se modifica.',
+  })
 })
 
 export default router

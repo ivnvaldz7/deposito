@@ -108,15 +108,21 @@ router.put(
       }
 
       const newUnidades = unidadesPorCaja ?? existing.unidadesPorCaja
-      const newCajas = cantidadCajas ?? existing.cantidadCajas
+      const restoAnterior = existing.total % newUnidades
+      const newCajas = cantidadCajas ?? (unidadesPorCaja !== undefined
+        ? Math.floor(existing.total / newUnidades)
+        : existing.cantidadCajas)
+      const newTotal = cantidadCajas !== undefined
+        ? newUnidades * newCajas + restoAnterior
+        : existing.total
 
       const frasco = await prisma.inventarioFrasco.update({
         where: { id },
         data: {
           ...(articulo !== undefined ? { articulo } : {}),
           ...(unidadesPorCaja !== undefined ? { unidadesPorCaja } : {}),
-          ...(cantidadCajas !== undefined ? { cantidadCajas } : {}),
-          total: newUnidades * newCajas,
+          ...(cantidadCajas !== undefined || unidadesPorCaja !== undefined ? { cantidadCajas: newCajas } : {}),
+          total: newTotal,
         },
       })
       res.json(frasco)

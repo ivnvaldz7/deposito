@@ -9,7 +9,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { useEstuches, useCreateEstuche, useUpdateEstuche, useDeleteEstuche } from '../queries/use-estuches'
 import { toast } from '../lib/toast'
-import { fetchCatalogoProductos, type CatalogoProducto } from '../lib/catalogo-productos'
+import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { sortByArticulo } from '../lib/sort-utils'
 import { InlineNumberEditor } from '../components/inventory-shared/inline-number-editor'
 import { MercadoChip } from '../components/inventory-shared/mercado-chip'
@@ -35,7 +35,6 @@ import {
 } from '../components/ui/Dialog'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
-import { SaldoAperturaModal } from '../components/SaldoAperturaModal'
 
 import type { Estuche } from '../queries/use-estuches'
 // ─── Sort ─────────────────────────────────────────────────────────────────────
@@ -364,14 +363,11 @@ export default function EstuchesPage() {
   const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
   const [editingEstuche, setEditingEstuche] = useState<Estuche | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
-  const [catalogProducts, setCatalogProducts] = useState<CatalogoProducto[]>([])
   const [agregarOpen, setAgregarOpen] = useState(false)
-  const [aperturaOpen, setAperturaOpen] = useState(false)
 
   useEffect(() => {
     fetchCatalogoProductos('estuche')
       .then((productos) => {
-        setCatalogProducts(productos)
         setCatalogMap(
           Object.fromEntries(productos.map((producto) => [producto.id, producto.nombreCompleto]))
         )
@@ -471,7 +467,6 @@ export default function EstuchesPage() {
               }
             : undefined
         }
-        secondaryActions={canManage ? [{ label: 'Carga inicial', onClick: () => setAperturaOpen(true) }] : undefined}
       >
         <MercadoFilter
           mercadoActivo={mercadoFiltro}
@@ -487,7 +482,6 @@ export default function EstuchesPage() {
           onOpenChange={setAgregarOpen}
         />
       ) : null}
-      {canManage && <SaldoAperturaModal open={aperturaOpen} onOpenChange={setAperturaOpen} categoria="estuche" items={catalogProducts.length > 0 ? catalogProducts.flatMap((p) => (p.mercadosHabilitados ?? (p.mercado ? [p.mercado] : [])).map((mercado) => ({ id: `${p.id}:${mercado}`, productoId: p.id, label: p.nombreCompleto, mercado }))) : allEstuches.map((item) => ({ id: item.id, productoId: item.productoId ?? item.id, label: getDisplayName(item), mercado: item.mercado }))} />}
 
       {editingEstuche && (
         <EditarEstucheModal

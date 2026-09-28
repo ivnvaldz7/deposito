@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { platformDb as db, Prisma } from '@platform/db'
 
-type CatalogProduct = Readonly<{ nombre: string; unidadesPorCaja: number }>
+type CatalogProduct = Readonly<{ id?: string; nombre: string; sku?: string; unidadesPorCaja: number }>
 type SourceRow = Readonly<{
   sourceRow: string
   sourceProductName: string
@@ -11,6 +11,68 @@ type SourceRow = Readonly<{
   location: 'DEPOSITO' | 'ACONDICIONADO'
   quantity: number
 }>
+
+const TARGET_DATABASE = process.env.PROD_02_TARGET_DATABASE ?? 'platform_prod'
+const ALLOWED_TARGET_DATABASES = new Set(['platform_prod', 'platform_uat'])
+
+if (!ALLOWED_TARGET_DATABASES.has(TARGET_DATABASE)) {
+  throw new Error(`Target PROD-02 no autorizado: ${TARGET_DATABASE}`)
+}
+
+// PROD-02B is content-addressed by product ID. Persist these identities in the
+// catalog source so a new UAT replica is bit-for-bit compatible with the
+// approved manifest instead of depending on generated CUID timing.
+const MANIFEST_PRODUCT_IDS: Readonly<Record<string, string>> = {
+  'AMANTINA 250 ML': 'cmtx1uj0a0000v4ojji8orf8n',
+  'AMANTINA 500 ML': 'cmtx1uj0b0001v4oj4jkfmyyy',
+  'AMANTINA PREMIUM 100 ML': 'cmtx1uj0b0002v4oj1l2wg5v8',
+  'AMANTINA PREMIUM 250 ML': 'cmtx1uj0b0003v4ojppmdz0a1',
+  'AMANTINA PREMIUM 500 ML': 'cmtx1uj0b0004v4ojv2vj50mj',
+  'AMINOÁCIDOS 1 L': 'cmtx1uj0b0005v4ojbzmb3mg1',
+  'AMINOÁCIDOS 1 L AVES': 'cmtx1uj0b0006v4ojhylnmm8y',
+  'AMINOÁCIDOS 20 ML': 'cmtx1uj0b0007v4oj4c3wnnl5',
+  'AMINOÁCIDOS 5 L': 'cmtx1uj0b0008v4oj6w6ngumu',
+  'AMINOÁCIDOS 50 ML AVES': 'cmtx1uj0b0009v4oj442qiqsj',
+  'AMINOÁCIDOS 50 ML MASCOTA': 'cmtx1uj0b000av4ojlitjj9z7',
+  'AMINOÁCIDOS INYECTABLE 100 ML': 'cmtx1uj0b000bv4ojii6vi6t8',
+  'AMINOÁCIDOS INYECTABLE 250 ML': 'cmtx1uj0b000cv4ojvlf1796h',
+  'ANTITÉRMICO 1 L': 'cmtx1uj0b000dv4ojmma4l21c',
+  'CALCITROVIT 500 ML': 'cmtx1uj0b000ev4ojrpgld1lt',
+  'CETRI-AMON 1 L': 'cmtx1uj0b000fv4oj93i3jt3d',
+  'CETRI-AMON 5 L': 'cmtx1uj0b000gv4ojo2chv9d2',
+  'COMPLEJO B B12 B15 100 ML': 'cmtx1uj0b000hv4ojybthyaux',
+  'COMPLEJO B B12 B15 20 ML': 'cmtx1uj0b000iv4ojp9prcnol',
+  'COMPLEJO B B12 B15 250 ML': 'cmtx1uj0b000jv4oj9edlbnee',
+  'COMPLEJO B HIERRO 100 ML': 'cmtx1uj0b000kv4ojahkig0z8',
+  'COMPLEJO B HIERRO 25 ML': 'cmtx1uj0b000lv4ojvyr9787s',
+  'COMPLEJO B HIERRO CERDOS 100 ML': 'cmtx1uj0b000mv4oj79p15ycx',
+  'COMPLEJO B HIERRO CERDOS 25 ML': 'cmtx1uj0b000nv4ojd54pcz1d',
+  'COMPLEJO B HIERRO EQUINO 100 ML': 'cmtx1uj0b000ov4oj9pot2rl9',
+  'COMPLEJO B HIERRO EQUINO 25 ML': 'cmtx1uj0c000pv4ojz15e8sdg',
+  'ENERGIZANTE 100 ML': 'cmtx1uj0c000qv4ojj1tqba8u',
+  'ENERGIZANTE 25 ML': 'cmtx1uj0c000rv4ojhi7tow0m',
+  'ENERGIZANTE 250 ML': 'cmtx1uj0c000sv4oj2iwf25tv',
+  'ENERGIZANTE 250 ML VACAS': 'cmtx1uj0c000tv4ojvz40odvf',
+  'ENERGIZANTE 500 ML': 'cmtx1uj0c000uv4ojg1186lsv',
+  'IVERSAN 500 ML': 'cmtx1uj0c000vv4ojx9skdhrf',
+  'JERINGA ATP 35 GR': 'cmtx1uj0c000wv4oj9mkwpjj0',
+  'OLIFAMISOL 500 ML': 'cmtx1uj0c000xv4ojjnggfzk1',
+  'OLIVITASAN 100 ML': 'cmtx1uj0c000yv4ojdfw801g7',
+  'OLIVITASAN 25 ML': 'cmtx1uj0c000zv4ojsqnev0dy',
+  'OLIVITASAN 300 ML': 'cmtx1uj0c0010v4ojyjgr8bns',
+  'OLIVITASAN 500 ML': 'cmtx1uj0c0011v4oj9hh1wr2d',
+  'OLIVITASAN PLUS 250 ML': 'cmtx1uj0c0012v4ojl6s5dksy',
+  'OLIVITASAN PLUS 50 ML': 'cmtx1uj0c0013v4ojd0bb6rzl',
+  'OLIVITASAN PLUS 500 ML': 'cmtx1uj0c0014v4oj0fyb2l8e',
+  'SUPERCOMPLEJO B 1 L': 'cmtx1uj0c0015v4ojiyfwzbi5',
+  'SUPERCOMPLEJO B 1 L AVES': 'cmtx1uj0c0016v4ojtgpvujbn',
+  'SUPERCOMPLEJO B 1 L EQUINO': 'cmtx1uj0c0017v4oj81rap46n',
+  'TILCOSAN 100 ML': 'cmtx1uj0c0018v4oj1hgkyorc',
+  'TILCOSAN 250 ML': 'cmtx1uj0c0019v4oj3kpcww9l',
+  'VITAMINA B1 100 ML': 'cmtx1uj0c001av4ojiz0l0xj0',
+  'VITAMINA B12 100 ML': 'cmtx1uj0c001bv4ojhzbc93m5',
+  'VITAMINA B12 50 ML': 'cmtx1uj0c001cv4oj8gmbwj7f',
+}
 
 const CATALOG: readonly CatalogProduct[] = [
   { nombre: 'AMANTINA 250 ML', unidadesPorCaja: 15 },
@@ -20,9 +82,15 @@ const CATALOG: readonly CatalogProduct[] = [
   { nombre: 'AMANTINA PREMIUM 500 ML', unidadesPorCaja: 20 },
   { nombre: 'AMINOÁCIDOS 1 L', unidadesPorCaja: 12 },
   { nombre: 'AMINOÁCIDOS 1 L AVES', unidadesPorCaja: 12 },
+  { id: 'cprodaminol1equino0000001', nombre: 'AMINOÁCIDOS 1 L EQUINO', sku: 'LOG-7EA9922C837C111A', unidadesPorCaja: 12 },
+  { id: 'cprodaminol1cerdos0000001', nombre: 'AMINOÁCIDOS 1 L CERDOS', sku: 'LOG-8CB0C424D18E1D65', unidadesPorCaja: 12 },
   { nombre: 'AMINOÁCIDOS 20 ML', unidadesPorCaja: 15 },
   { nombre: 'AMINOÁCIDOS 5 L', unidadesPorCaja: 4 },
-  { nombre: 'AMINOÁCIDOS 50 ML GALLO', unidadesPorCaja: 40 },
+  { id: 'cprodaminobase50ml0000001', nombre: 'AMINOÁCIDOS 50 ML', sku: 'LOG-CD3520C476B6F5C6', unidadesPorCaja: 40 },
+  // The SKU remains the established GALLO identity while the operational
+  // canonical name is normalized to AVES. Existing production rows keep ID,
+  // SKU, lots and balances through the additive catalog patch.
+  { nombre: 'AMINOÁCIDOS 50 ML AVES', sku: 'LOG-D8C1A70AF2FDD426', unidadesPorCaja: 40 },
   { nombre: 'AMINOÁCIDOS 50 ML MASCOTA', unidadesPorCaja: 40 },
   { nombre: 'AMINOÁCIDOS INYECTABLE 100 ML', unidadesPorCaja: 24 },
   { nombre: 'AMINOÁCIDOS INYECTABLE 250 ML', unidadesPorCaja: 24 },
@@ -74,7 +142,7 @@ const SOURCE_ROWS: readonly SourceRow[] = [
   ['D07', 'AMINOÁCIDOS 1 L AVES', 'AO0282', 'DEPOSITO', 0],
   ['D08', 'AMINOÁCIDOS 20 ML', 'AO0248', 'DEPOSITO', 0],
   ['D09', 'AMINOÁCIDOS 5 L', 'AO0296', 'DEPOSITO', 0],
-  ['D10', 'AMINOÁCIDOS 50 ML GALLO', 'AO0297', 'DEPOSITO', 379],
+  ['D10', 'AMINOÁCIDOS 50 ML AVES', 'AO0297', 'DEPOSITO', 379],
   ['D11', 'AMINOÁCIDOS 50 ML MASCOTA', 'AO0297', 'DEPOSITO', 406],
   ['D12', 'ANTITÉRMICO 1 L', 'AT0017', 'DEPOSITO', 60],
   ['D13', 'CALCITROVIT 500 ML', 'CV0018', 'DEPOSITO', 0],
@@ -152,17 +220,21 @@ function correctedLot(row: SourceRow): string {
 }
 
 function validateStaticData(): void {
-  if (CATALOG.length !== 49) throw new Error(`Catálogo inválido: ${CATALOG.length} productos`)
+  if (CATALOG.length !== 52) throw new Error(`Catálogo inválido: ${CATALOG.length} productos`)
   if (SOURCE_ROWS.length !== 56) throw new Error(`Fuente inválida: ${SOURCE_ROWS.length} filas`)
 
   const names = new Set(CATALOG.map((product) => product.nombre))
-  const skus = new Set(CATALOG.map((product) => buildTechnicalSku(product.nombre)))
+  const skus = new Set(CATALOG.map((product) => product.sku ?? buildTechnicalSku(product.nombre)))
   const keys = new Set(CATALOG.map((product) => normalizedProductKey(product.nombre)))
-  if (names.size !== 49) throw new Error('Hay nombres canónicos duplicados')
-  if (skus.size !== 49) throw new Error('Hay SKU técnicos duplicados')
-  if (keys.size !== 49) throw new Error('Hay nombres canónicos ambiguos después de normalizar')
+  if (names.size !== 52) throw new Error('Hay nombres canónicos duplicados')
+  if (skus.size !== 52) throw new Error('Hay SKU técnicos duplicados')
+  if (keys.size !== 52) throw new Error('Hay nombres canónicos ambiguos después de normalizar')
   if (CATALOG.some((product) => !Number.isInteger(product.unidadesPorCaja) || product.unidadesPorCaja <= 0)) {
     throw new Error('Hay unidadesPorCaja inválidas')
+  }
+  const catalogIds = CATALOG.map((product) => product.id ?? MANIFEST_PRODUCT_IDS[product.nombre])
+  if (catalogIds.some((id) => !id) || new Set(catalogIds).size !== 52) {
+    throw new Error('Hay IDs de catálogo faltantes o duplicados')
   }
 
   const totals = summarizeSource()
@@ -197,7 +269,13 @@ async function readCounts(client: Prisma.TransactionClient | typeof db) {
 
 async function assertTarget(client: Prisma.TransactionClient | typeof db): Promise<void> {
   const [target] = await client.$queryRaw<Array<{ database: string }>>`SELECT current_database() AS database`
-  if (target?.database !== 'platform_prod') throw new Error(`Target rechazado: ${target?.database ?? 'UNKNOWN'}`)
+  if (target?.database !== TARGET_DATABASE) throw new Error(`Target rechazado: ${target?.database ?? 'UNKNOWN'}`)
+}
+
+function catalogProductId(product: CatalogProduct): string {
+  const id = product.id ?? MANIFEST_PRODUCT_IDS[product.nombre]
+  if (!id) throw new Error(`ID estable faltante: ${product.nombre}`)
+  return id
 }
 
 async function applyCatalog(): Promise<void> {
@@ -210,8 +288,9 @@ async function applyCatalog(): Promise<void> {
 
     await tx.producto.createMany({
       data: CATALOG.map((product) => ({
+        id: catalogProductId(product),
         nombre: product.nombre,
-        sku: buildTechnicalSku(product.nombre),
+        sku: product.sku ?? buildTechnicalSku(product.nombre),
         unidadesPorCaja: product.unidadesPorCaja,
         activo: true,
       })),
@@ -225,7 +304,7 @@ async function applyCatalog(): Promise<void> {
     return products.length
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
-  console.log(JSON.stringify({ target: 'platform_prod', productsCreated: created }))
+  console.log(JSON.stringify({ target: TARGET_DATABASE, productsCreated: created }))
 }
 
 type StoredProduct = Readonly<{
@@ -237,24 +316,25 @@ type StoredProduct = Readonly<{
 }>
 
 function assertExactCatalog(products: readonly StoredProduct[]): void {
-  if (products.length !== 49) throw new Error(`Product count inválido: ${products.length}`)
+  if (products.length !== 52) throw new Error(`Product count inválido: ${products.length}`)
   const actual = new Map(products.map((product) => [product.nombre, product]))
   for (const expected of CATALOG) {
     const product = actual.get(expected.nombre)
     if (!product) throw new Error(`Falta producto: ${expected.nombre}`)
-    if (product.sku !== buildTechnicalSku(expected.nombre)) throw new Error(`SKU inválido: ${expected.nombre}`)
+    if (product.id !== catalogProductId(expected)) throw new Error(`ID inválido: ${expected.nombre}`)
+    if (product.sku !== (expected.sku ?? buildTechnicalSku(expected.nombre))) throw new Error(`SKU inválido: ${expected.nombre}`)
     if (product.unidadesPorCaja !== expected.unidadesPorCaja) throw new Error(`unidadesPorCaja inválidas: ${expected.nombre}`)
     if (!product.activo) throw new Error(`Producto inactivo: ${expected.nombre}`)
   }
-  if (new Set(products.map((product) => product.sku)).size !== 49) throw new Error('Los SKU persistidos no son únicos')
-  if (new Set(products.map((product) => product.nombre)).size !== 49) throw new Error('Los nombres persistidos no son únicos')
+  if (new Set(products.map((product) => product.sku)).size !== 52) throw new Error('Los SKU persistidos no son únicos')
+  if (new Set(products.map((product) => product.nombre)).size !== 52) throw new Error('Los nombres persistidos no son únicos')
 }
 
 async function readAndVerifyProducts(): Promise<StoredProduct[]> {
   await assertTarget(db)
   const counts = await readCounts(db)
   if (
-    counts.product !== 49 || counts.lot !== 0 || counts.balance !== 0 || counts.movement !== 0
+    counts.product !== 52 || counts.lot !== 0 || counts.balance !== 0 || counts.movement !== 0
     || counts.order !== 0 || counts.reservation !== 0 || counts.outbox !== 0
   ) throw new Error(`Postcondition rechazada: ${JSON.stringify(counts)}`)
 
@@ -304,7 +384,12 @@ async function generateManifest(): Promise<void> {
     targetDatabase: 'platform_prod',
     authoritativeSource: 'PROD-02A user-supplied initial stock',
     applyStatus: 'NOT_APPLIED',
-    corrections: { vitaminB12Lot: 'BB0005', syringeAtpLot: 'EA0116', equineVariant: 'EQUINO' },
+    corrections: {
+      vitaminB12Lot: 'BB0005',
+      syringeAtpLot: 'EA0116',
+      equineVariant: 'EQUINO',
+      legacyAmino50Presentation: 'AVES',
+    },
     summary: {
       sourceRows: rows.length,
       resolvedRows: rows.length,
@@ -326,7 +411,7 @@ async function main(): Promise<void> {
   validateStaticData()
   const command = process.argv[2]
   if (command === 'validate-data') {
-    console.log(JSON.stringify({ catalogProducts: 49, uniqueSku: 49, ...summarizeSource() }))
+    console.log(JSON.stringify({ catalogProducts: 52, uniqueSku: 52, ...summarizeSource() }))
     return
   }
   if (command === 'apply') {
@@ -335,7 +420,7 @@ async function main(): Promise<void> {
   }
   if (command === 'verify') {
     const products = await readAndVerifyProducts()
-    console.log(JSON.stringify({ target: 'platform_prod', products }))
+    console.log(JSON.stringify({ target: TARGET_DATABASE, products }))
     return
   }
   if (command === 'manifest') {
