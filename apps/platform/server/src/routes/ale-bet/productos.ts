@@ -396,7 +396,8 @@ router.post('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 's
 router.get('/:id/stock', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (req, res) => {
   const user = req.user as JwtPayload
   const includeArchived = req.query.includeArchived === 'true' && hasPermission(user, 'ale-bet', 'stock.read.archived')
-  const result = await getManagedProductStock(String(req.params.id), prisma, includeArchived)
+  const includeZero = req.query.includeZero === 'true'
+  const result = await getManagedProductStock(String(req.params.id), prisma, includeArchived, includeZero)
   res.json(result)
 })
 

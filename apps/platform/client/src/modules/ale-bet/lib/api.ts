@@ -418,7 +418,13 @@ export const aleBetApi = {
         apiClient.put<Lote>(`${BASE}/productos/${id}/lotes/${loteId}`, data),
     },
     stock: {
-      get: (id: string, options?: { includeArchived?: boolean }) => apiClient.get<ProductoAdminStock>(`${BASE}/productos/${id}/stock${options?.includeArchived ? '?includeArchived=true' : ''}`),
+      get: (id: string, options?: { includeArchived?: boolean; includeZero?: boolean }) => {
+        const params = new URLSearchParams()
+        if (options?.includeArchived) params.set('includeArchived', 'true')
+        if (options?.includeZero) params.set('includeZero', 'true')
+        const query = params.toString()
+        return apiClient.get<ProductoAdminStock>(`${BASE}/productos/${id}/stock${query ? `?${query}` : ''}`)
+      },
       lotes: {
         create: (id: string, data: { numero: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null }, options?: MutationOptions) =>
           apiClient.post<{ id: string; numero: string; fechaProduccion: string | null; fechaVencimiento: string | null; activo: boolean; stockTotal: number; stockDeposito: number; stockAcondicionado: number }>(`${BASE}/productos/${id}/stock/lotes`, data, undefined, mutationOptions(options)),

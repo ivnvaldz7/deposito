@@ -98,11 +98,12 @@ export function useUpdateLote() {
 
 // ─── Admin Stock ─────────────────────────────────────────────────────────────
 
-export function useProductoAdminStock(productoId: string, options?: { includeArchived?: boolean }) {
+export function useProductoAdminStock(productoId: string, options?: { includeArchived?: boolean; includeZero?: boolean }) {
   const includeArchived = options?.includeArchived ?? false
+  const includeZero = options?.includeZero ?? false
   return useQuery({
-    queryKey: [...productosKeys.all, 'admin-stock', productoId, { includeArchived }] as const,
-    queryFn: () => aleBetApi.productos.stock.get(productoId, { includeArchived }),
+    queryKey: [...productosKeys.all, 'admin-stock', productoId, { includeArchived, includeZero }] as const,
+    queryFn: () => aleBetApi.productos.stock.get(productoId, { includeArchived, includeZero }),
     enabled: !!productoId,
   })
 }

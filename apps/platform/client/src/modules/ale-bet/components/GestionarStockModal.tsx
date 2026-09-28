@@ -11,9 +11,9 @@ interface GestionarStockModalProps {
 }
 
 export function GestionarStockModal({ producto, onClose }: GestionarStockModalProps) {
-  // This modal is operational. Historical lots have their own read-only view,
-  // so an operator never receives zero or archived lots here by permission.
-  const { data: stockData, isLoading, error } = useProductoAdminStock(producto.id)
+  // A zero balance does not make an active lot historical. Keep it operable so
+  // the operator can correct or replenish it without creating a duplicate lot.
+  const { data: stockData, isLoading, error } = useProductoAdminStock(producto.id, { includeZero: true })
   const transferRulesQuery = useProductTransferRules(producto.id, true)
   
   const [ajusteModal, setAjusteModal] = useState<{ loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; activo: boolean } | null>(null)
@@ -43,7 +43,7 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
   }
 
   const { lotes, ubicaciones } = stockData
-  const operationalLotes = lotes.filter((lote) => lote.stockTotal > 0)
+  const operationalLotes = lotes.filter((lote) => lote.activo)
   const depositoUbicacion = ubicaciones.find(u => u.codigo === 'DEPOSITO')
   const acondicionadoUbicacion = ubicaciones.find(u => u.codigo === 'ACONDICIONADO')
   const stockTotal = operationalLotes.reduce((acc, lote) => acc + lote.stockTotal, 0)

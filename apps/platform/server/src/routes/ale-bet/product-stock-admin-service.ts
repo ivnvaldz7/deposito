@@ -161,7 +161,7 @@ export async function evaluateLotLifecycle(
   return { loteId, action, stockTotal, activeReservations }
 }
 
-export async function getManagedProductStock(productoId: string, db: typeof platformDb, includeArchived?: boolean) {
+export async function getManagedProductStock(productoId: string, db: typeof platformDb, includeArchived?: boolean, includeZero?: boolean) {
   const [producto, ubicaciones] = await Promise.all([
     db.producto.findUnique({
       where: { id: productoId },
@@ -185,11 +185,11 @@ export async function getManagedProductStock(productoId: string, db: typeof plat
     const stockTotal = lote.saldos.reduce((sum, saldo) => sum + saldo.cantidad, 0)
     return { id: lote.id, numero: lote.numero, fechaProduccion: lote.fechaProduccion, fechaVencimiento: lote.fechaVencimiento, activo: lote.activo, stockTotal, stockDeposito, stockAcondicionado }
   })
-  // Operational lists hide zero balances; archive/history access preserves
-  // those physical lot records for audit and later reactivation.
+  // The stock overview hides zero balances. The management modal can opt in to
+  // active zero-balance lots so they can be corrected or replenished in place.
   return {
     producto: { id: producto.id, nombre: producto.nombre },
-    lotes: includeArchived ? lotes : lotes.filter((lote) => lote.stockTotal > 0),
+    lotes: includeArchived || includeZero ? lotes : lotes.filter((lote) => lote.stockTotal > 0),
     ubicaciones,
   }
 }

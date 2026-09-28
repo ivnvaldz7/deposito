@@ -233,5 +233,28 @@ describe('Lot Lifecycle Tests', () => {
       expect(result.lotes).toHaveLength(2)
       expect(result.lotes.map(l => l.activo)).toEqual([true, false])
     })
+
+    it('L. With includeZero=true, includes active zero-balance lots for management', async () => {
+      const mockDb = {
+        producto: {
+          findUnique: vi.fn().mockResolvedValue({
+            id: 'p1',
+            nombre: 'Prod 1',
+            lotes: [
+              { id: '1', numero: 'L1', activo: true, saldos: [] },
+            ]
+          }),
+        },
+        ubicacionStock: {
+          findMany: vi.fn().mockResolvedValue([]),
+        }
+      } as any
+
+      const { getManagedProductStock } = await import('../product-stock-admin-service')
+      const result = await getManagedProductStock('p1', mockDb, false, true)
+
+      expect(result.lotes).toHaveLength(1)
+      expect(result.lotes[0]).toMatchObject({ numero: 'L1', stockTotal: 0 })
+    })
   })
 })

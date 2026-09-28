@@ -53,7 +53,7 @@ describe('GestionarStockModal', () => {
     } as any)
   })
 
-  it('hides a zero-stock lot from the operational modal', async () => {
+  it('shows an active zero-stock lot so it can be adjusted or replenished', async () => {
     vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue({
       lotes: [
         { id: 'l1', numero: 'EN0124', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 }
@@ -66,24 +66,9 @@ describe('GestionarStockModal', () => {
     vi.mocked(aleBetApi.stock.transferRules).mockResolvedValue({ rules: [] })
 
     renderComponent()
-    await waitFor(() => expect(screen.getByText('Sin lotes registrados')).toBeInTheDocument())
-    expect(screen.queryByText(/EN0124/)).not.toBeInTheDocument()
-  })
-
-  it('hides an inactive zero-stock lot from the operational modal', async () => {
-    vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue({
-      lotes: [
-        { id: 'l1', numero: 'L-INACTIVE', fechaProduccion: null, fechaVencimiento: null, activo: false, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 }
-      ],
-      ubicaciones: [
-        { id: 'u1', codigo: 'DEPOSITO', nombre: 'Depósito' },
-        { id: 'u2', codigo: 'ACONDICIONADO', nombre: 'Acondicionado' }
-      ]
-    } as any)
-
-    renderComponent()
-    await waitFor(() => expect(screen.getByText('Sin lotes registrados')).toBeInTheDocument())
-    expect(screen.queryByText(/L-INACTIVE/)).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText(/EN0124/)).toBeInTheDocument())
+    expect(screen.getAllByRole('button', { name: 'Ajustar' })).toHaveLength(2)
+    expect(aleBetApi.productos.stock.get).toHaveBeenCalledWith('p1', { includeArchived: false, includeZero: true })
   })
 
   it('ingreso flow: adds delta to existing stock atomically', async () => {
