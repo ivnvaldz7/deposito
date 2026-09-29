@@ -37,6 +37,7 @@ const CATEGORIA_LABELS: Record<CategoriaProducto, string> = {
   estuche: 'Estuche',
   etiqueta: 'Etiqueta',
   frasco:  'Frasco',
+  material_empaque: 'Material de empaque',
 }
 
 const ACCEPTED_EXTENSIONS = '.xls,.xlsx,.csv'
@@ -48,7 +49,7 @@ const mercadoSchema = z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bol
 const formSchema = z.object({
   nombreBase: z.string().min(1, 'El nombre es requerido').max(200),
   codigo: z.string().max(50).optional().or(z.literal('')),
-  categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+  categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco', 'material_empaque']),
   presentacion: z.string().optional().or(z.literal('')),
   mercadosHabilitados: z.array(mercadoSchema).optional(),
   stockMinimo: z.string().refine((value) => value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0), 'Debe ser entero no negativo').optional(),
@@ -59,7 +60,7 @@ type FormValues = z.infer<typeof formSchema>
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function normalizeFormData(values: FormValues): ProductoFormData {
-  const requiresPresentacion = values.categoria !== 'droga'
+  const requiresPresentacion = values.categoria === 'etiqueta' || values.categoria === 'estuche' || values.categoria === 'frasco'
   const requiresMercados = values.categoria === 'etiqueta' || values.categoria === 'estuche'
 
   const data: ProductoFormData = {
@@ -124,7 +125,7 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
   const categoria = useWatch({ control, name: 'categoria' })
   const selectedMercados = useWatch({ control, name: 'mercadosHabilitados' }) ?? []
   const requiresMercados = categoria === 'etiqueta' || categoria === 'estuche'
-  const requiresPresentacion = categoria !== 'droga'
+  const requiresPresentacion = categoria === 'etiqueta' || categoria === 'estuche' || categoria === 'frasco'
 
   async function onSubmit(values: FormValues) {
     setServerError(null)
@@ -166,7 +167,7 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           <div className="space-y-1">
             <label className="label-field">¿Qué es el producto?</label>
             <div className="flex flex-wrap gap-2">
-              {(['droga', 'estuche', 'etiqueta', 'frasco'] as const).map((cat) => (
+              {(['droga', 'estuche', 'etiqueta', 'frasco', 'material_empaque'] as const).map((cat) => (
                 <button
                   key={cat}
                   type="button"
@@ -192,7 +193,7 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <input id="create-nombre" {...register('nombreBase')} type="text" placeholder="Ej: AMANTINA" className="input-field" autoFocus />
             {errors.nombreBase && <p className="field-error">{errors.nombreBase.message}</p>}
           </div>
-          <div className="space-y-1"><label htmlFor="create-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : ''}</label><input id="create-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
+          <div className="space-y-1"><label htmlFor="create-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : categoria === 'material_empaque' ? '(unidades)' : ''}</label><input id="create-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
 
           {/* C. Presentación (conditional) */}
           {requiresPresentacion && (
@@ -290,7 +291,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
   const categoria = useWatch({ control, name: 'categoria' })
   const selectedMercados = useWatch({ control, name: 'mercadosHabilitados' }) ?? []
   const requiresMercados = (categoria === 'etiqueta' || categoria === 'estuche') && canEditMercados
-  const requiresPresentacion = categoria !== 'droga'
+  const requiresPresentacion = categoria === 'etiqueta' || categoria === 'estuche' || categoria === 'frasco'
 
   async function onSubmit(values: FormValues) {
     setServerError(null)
@@ -374,7 +375,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
               <input id="edit-presentacion" {...register('presentacion')} type="number" min="1" className="input-field" />
             </div>
           )}
-          <div className="space-y-1"><label htmlFor="edit-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : ''}</label><input id="edit-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
+          <div className="space-y-1"><label htmlFor="edit-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : categoria === 'material_empaque' ? '(unidades)' : ''}</label><input id="edit-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
 
           {/* D. Mercados (conditional) */}
           {requiresMercados && (
@@ -1072,7 +1073,7 @@ export default function ProductosPage() {
                         : <span className="italic text-on-surface-variant">—</span>
                       }
                     </TableCell>
-                    <TableCell className="text-sm">{p.stockMinimo == null ? <span className="rounded-full bg-surface-variant px-2 py-1 text-on-surface-variant">Sin configurar</span> : <span>{p.stockMinimo}{p.categoria === 'frasco' ? ' cajas' : ''}</span>}</TableCell>
+                    <TableCell className="text-sm">{p.stockMinimo == null ? <span className="rounded-full bg-surface-variant px-2 py-1 text-on-surface-variant">Sin configurar</span> : <span>{p.stockMinimo}{p.categoria === 'frasco' ? ' cajas' : p.categoria === 'material_empaque' ? ' unidades' : ''}</span>}</TableCell>
                     <TableCell>
                       {p.mercadosHabilitados.length > 0 ? (
                         <div className="flex flex-wrap gap-1">

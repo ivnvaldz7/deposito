@@ -611,6 +611,7 @@ enum Categoria {
   estuche
   etiqueta
   frasco
+  material_empaque
 
   @@schema("deposito")
 }
@@ -772,6 +773,23 @@ model InventarioFrasco {
 }
 
 // ============================================================
+// INVENTARIO MATERIALES AUXILIARES DE EMPAQUE
+// ============================================================
+model InventarioMaterialEmpaque {
+  id         String   @id @default(uuid())
+  productoId String?  @unique @map("producto_id")
+  articulo   String
+  cantidad   Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  producto DepositoProducto? @relation(fields: [productoId], references: [id])
+
+  @@index([productoId])
+  @@map("inventario_materiales_empaque")
+  @@schema("deposito")
+}
+
+// ============================================================
 // MOVIMIENTOS (auditoría)
 // ============================================================
 model Movimiento {
@@ -918,6 +936,7 @@ model DepositoProducto {
   inventarioEstuches            InventarioEstuche[]
   inventarioEtiquetas           InventarioEtiqueta[]
   inventarioFrascos             InventarioFrasco[]
+  inventarioMaterialesEmpaque   InventarioMaterialEmpaque[]
   actaItems                     ActaItem[]
   ordenes                       OrdenProduccion[]
   auditoriasCatalogo            AuditoriaCatalogoProducto[]

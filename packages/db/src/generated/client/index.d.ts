@@ -169,6 +169,11 @@ export type InventarioEtiqueta = $Result.DefaultSelection<Prisma.$InventarioEtiq
  */
 export type InventarioFrasco = $Result.DefaultSelection<Prisma.$InventarioFrascoPayload>
 /**
+ * Model InventarioMaterialEmpaque
+ * 
+ */
+export type InventarioMaterialEmpaque = $Result.DefaultSelection<Prisma.$InventarioMaterialEmpaquePayload>
+/**
  * Model Movimiento
  * 
  */
@@ -356,7 +361,8 @@ export const Categoria: {
   droga: 'droga',
   estuche: 'estuche',
   etiqueta: 'etiqueta',
-  frasco: 'frasco'
+  frasco: 'frasco',
+  material_empaque: 'material_empaque'
 };
 
 export type Categoria = (typeof Categoria)[keyof typeof Categoria]
@@ -1009,6 +1015,16 @@ export class PrismaClient<
   get inventarioFrasco(): Prisma.InventarioFrascoDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.inventarioMaterialEmpaque`: Exposes CRUD operations for the **InventarioMaterialEmpaque** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more InventarioMaterialEmpaques
+    * const inventarioMaterialEmpaques = await prisma.inventarioMaterialEmpaque.findMany()
+    * ```
+    */
+  get inventarioMaterialEmpaque(): Prisma.InventarioMaterialEmpaqueDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.movimiento`: Exposes CRUD operations for the **Movimiento** model.
     * Example usage:
     * ```ts
@@ -1592,6 +1608,7 @@ export namespace Prisma {
     InventarioEstuche: 'InventarioEstuche',
     InventarioEtiqueta: 'InventarioEtiqueta',
     InventarioFrasco: 'InventarioFrasco',
+    InventarioMaterialEmpaque: 'InventarioMaterialEmpaque',
     Movimiento: 'Movimiento',
     InsumoPendiente: 'InsumoPendiente',
     OrdenProduccion: 'OrdenProduccion',
@@ -1619,7 +1636,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "productoTransferRule" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem" | "partidaProduccion" | "itemSolicitud"
+      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "productoTransferRule" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "inventarioMaterialEmpaque" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem" | "partidaProduccion" | "itemSolicitud"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3917,6 +3934,80 @@ export namespace Prisma {
           }
         }
       }
+      InventarioMaterialEmpaque: {
+        payload: Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>
+        fields: Prisma.InventarioMaterialEmpaqueFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.InventarioMaterialEmpaqueFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.InventarioMaterialEmpaqueFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>
+          }
+          findFirst: {
+            args: Prisma.InventarioMaterialEmpaqueFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.InventarioMaterialEmpaqueFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>
+          }
+          findMany: {
+            args: Prisma.InventarioMaterialEmpaqueFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>[]
+          }
+          create: {
+            args: Prisma.InventarioMaterialEmpaqueCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>
+          }
+          createMany: {
+            args: Prisma.InventarioMaterialEmpaqueCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.InventarioMaterialEmpaqueCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>[]
+          }
+          delete: {
+            args: Prisma.InventarioMaterialEmpaqueDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>
+          }
+          update: {
+            args: Prisma.InventarioMaterialEmpaqueUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>
+          }
+          deleteMany: {
+            args: Prisma.InventarioMaterialEmpaqueDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.InventarioMaterialEmpaqueUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.InventarioMaterialEmpaqueUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>[]
+          }
+          upsert: {
+            args: Prisma.InventarioMaterialEmpaqueUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$InventarioMaterialEmpaquePayload>
+          }
+          aggregate: {
+            args: Prisma.InventarioMaterialEmpaqueAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateInventarioMaterialEmpaque>
+          }
+          groupBy: {
+            args: Prisma.InventarioMaterialEmpaqueGroupByArgs<ExtArgs>
+            result: $Utils.Optional<InventarioMaterialEmpaqueGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.InventarioMaterialEmpaqueCountArgs<ExtArgs>
+            result: $Utils.Optional<InventarioMaterialEmpaqueCountAggregateOutputType> | number
+          }
+        }
+      }
       Movimiento: {
         payload: Prisma.$MovimientoPayload<ExtArgs>
         fields: Prisma.MovimientoFieldRefs
@@ -4944,6 +5035,7 @@ export namespace Prisma {
     inventarioEstuche?: InventarioEstucheOmit
     inventarioEtiqueta?: InventarioEtiquetaOmit
     inventarioFrasco?: InventarioFrascoOmit
+    inventarioMaterialEmpaque?: InventarioMaterialEmpaqueOmit
     movimiento?: MovimientoOmit
     insumoPendiente?: InsumoPendienteOmit
     ordenProduccion?: OrdenProduccionOmit
@@ -5566,6 +5658,7 @@ export namespace Prisma {
     inventarioEstuches: number
     inventarioEtiquetas: number
     inventarioFrascos: number
+    inventarioMaterialesEmpaque: number
     actaItems: number
     ordenes: number
     auditoriasCatalogo: number
@@ -5579,6 +5672,7 @@ export namespace Prisma {
     inventarioEstuches?: boolean | DepositoProductoCountOutputTypeCountInventarioEstuchesArgs
     inventarioEtiquetas?: boolean | DepositoProductoCountOutputTypeCountInventarioEtiquetasArgs
     inventarioFrascos?: boolean | DepositoProductoCountOutputTypeCountInventarioFrascosArgs
+    inventarioMaterialesEmpaque?: boolean | DepositoProductoCountOutputTypeCountInventarioMaterialesEmpaqueArgs
     actaItems?: boolean | DepositoProductoCountOutputTypeCountActaItemsArgs
     ordenes?: boolean | DepositoProductoCountOutputTypeCountOrdenesArgs
     auditoriasCatalogo?: boolean | DepositoProductoCountOutputTypeCountAuditoriasCatalogoArgs
@@ -5624,6 +5718,13 @@ export namespace Prisma {
    */
   export type DepositoProductoCountOutputTypeCountInventarioFrascosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: InventarioFrascoWhereInput
+  }
+
+  /**
+   * DepositoProductoCountOutputType without action
+   */
+  export type DepositoProductoCountOutputTypeCountInventarioMaterialesEmpaqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InventarioMaterialEmpaqueWhereInput
   }
 
   /**
@@ -41861,6 +41962,1122 @@ export namespace Prisma {
 
 
   /**
+   * Model InventarioMaterialEmpaque
+   */
+
+  export type AggregateInventarioMaterialEmpaque = {
+    _count: InventarioMaterialEmpaqueCountAggregateOutputType | null
+    _avg: InventarioMaterialEmpaqueAvgAggregateOutputType | null
+    _sum: InventarioMaterialEmpaqueSumAggregateOutputType | null
+    _min: InventarioMaterialEmpaqueMinAggregateOutputType | null
+    _max: InventarioMaterialEmpaqueMaxAggregateOutputType | null
+  }
+
+  export type InventarioMaterialEmpaqueAvgAggregateOutputType = {
+    cantidad: number | null
+  }
+
+  export type InventarioMaterialEmpaqueSumAggregateOutputType = {
+    cantidad: number | null
+  }
+
+  export type InventarioMaterialEmpaqueMinAggregateOutputType = {
+    id: string | null
+    productoId: string | null
+    articulo: string | null
+    cantidad: number | null
+    updatedAt: Date | null
+  }
+
+  export type InventarioMaterialEmpaqueMaxAggregateOutputType = {
+    id: string | null
+    productoId: string | null
+    articulo: string | null
+    cantidad: number | null
+    updatedAt: Date | null
+  }
+
+  export type InventarioMaterialEmpaqueCountAggregateOutputType = {
+    id: number
+    productoId: number
+    articulo: number
+    cantidad: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type InventarioMaterialEmpaqueAvgAggregateInputType = {
+    cantidad?: true
+  }
+
+  export type InventarioMaterialEmpaqueSumAggregateInputType = {
+    cantidad?: true
+  }
+
+  export type InventarioMaterialEmpaqueMinAggregateInputType = {
+    id?: true
+    productoId?: true
+    articulo?: true
+    cantidad?: true
+    updatedAt?: true
+  }
+
+  export type InventarioMaterialEmpaqueMaxAggregateInputType = {
+    id?: true
+    productoId?: true
+    articulo?: true
+    cantidad?: true
+    updatedAt?: true
+  }
+
+  export type InventarioMaterialEmpaqueCountAggregateInputType = {
+    id?: true
+    productoId?: true
+    articulo?: true
+    cantidad?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type InventarioMaterialEmpaqueAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InventarioMaterialEmpaque to aggregate.
+     */
+    where?: InventarioMaterialEmpaqueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InventarioMaterialEmpaques to fetch.
+     */
+    orderBy?: InventarioMaterialEmpaqueOrderByWithRelationInput | InventarioMaterialEmpaqueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: InventarioMaterialEmpaqueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InventarioMaterialEmpaques from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InventarioMaterialEmpaques.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned InventarioMaterialEmpaques
+    **/
+    _count?: true | InventarioMaterialEmpaqueCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: InventarioMaterialEmpaqueAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: InventarioMaterialEmpaqueSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: InventarioMaterialEmpaqueMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: InventarioMaterialEmpaqueMaxAggregateInputType
+  }
+
+  export type GetInventarioMaterialEmpaqueAggregateType<T extends InventarioMaterialEmpaqueAggregateArgs> = {
+        [P in keyof T & keyof AggregateInventarioMaterialEmpaque]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateInventarioMaterialEmpaque[P]>
+      : GetScalarType<T[P], AggregateInventarioMaterialEmpaque[P]>
+  }
+
+
+
+
+  export type InventarioMaterialEmpaqueGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: InventarioMaterialEmpaqueWhereInput
+    orderBy?: InventarioMaterialEmpaqueOrderByWithAggregationInput | InventarioMaterialEmpaqueOrderByWithAggregationInput[]
+    by: InventarioMaterialEmpaqueScalarFieldEnum[] | InventarioMaterialEmpaqueScalarFieldEnum
+    having?: InventarioMaterialEmpaqueScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: InventarioMaterialEmpaqueCountAggregateInputType | true
+    _avg?: InventarioMaterialEmpaqueAvgAggregateInputType
+    _sum?: InventarioMaterialEmpaqueSumAggregateInputType
+    _min?: InventarioMaterialEmpaqueMinAggregateInputType
+    _max?: InventarioMaterialEmpaqueMaxAggregateInputType
+  }
+
+  export type InventarioMaterialEmpaqueGroupByOutputType = {
+    id: string
+    productoId: string | null
+    articulo: string
+    cantidad: number
+    updatedAt: Date
+    _count: InventarioMaterialEmpaqueCountAggregateOutputType | null
+    _avg: InventarioMaterialEmpaqueAvgAggregateOutputType | null
+    _sum: InventarioMaterialEmpaqueSumAggregateOutputType | null
+    _min: InventarioMaterialEmpaqueMinAggregateOutputType | null
+    _max: InventarioMaterialEmpaqueMaxAggregateOutputType | null
+  }
+
+  type GetInventarioMaterialEmpaqueGroupByPayload<T extends InventarioMaterialEmpaqueGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<InventarioMaterialEmpaqueGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof InventarioMaterialEmpaqueGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], InventarioMaterialEmpaqueGroupByOutputType[P]>
+            : GetScalarType<T[P], InventarioMaterialEmpaqueGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type InventarioMaterialEmpaqueSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    productoId?: boolean
+    articulo?: boolean
+    cantidad?: boolean
+    updatedAt?: boolean
+    producto?: boolean | InventarioMaterialEmpaque$productoArgs<ExtArgs>
+  }, ExtArgs["result"]["inventarioMaterialEmpaque"]>
+
+  export type InventarioMaterialEmpaqueSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    productoId?: boolean
+    articulo?: boolean
+    cantidad?: boolean
+    updatedAt?: boolean
+    producto?: boolean | InventarioMaterialEmpaque$productoArgs<ExtArgs>
+  }, ExtArgs["result"]["inventarioMaterialEmpaque"]>
+
+  export type InventarioMaterialEmpaqueSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    productoId?: boolean
+    articulo?: boolean
+    cantidad?: boolean
+    updatedAt?: boolean
+    producto?: boolean | InventarioMaterialEmpaque$productoArgs<ExtArgs>
+  }, ExtArgs["result"]["inventarioMaterialEmpaque"]>
+
+  export type InventarioMaterialEmpaqueSelectScalar = {
+    id?: boolean
+    productoId?: boolean
+    articulo?: boolean
+    cantidad?: boolean
+    updatedAt?: boolean
+  }
+
+  export type InventarioMaterialEmpaqueOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "productoId" | "articulo" | "cantidad" | "updatedAt", ExtArgs["result"]["inventarioMaterialEmpaque"]>
+  export type InventarioMaterialEmpaqueInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    producto?: boolean | InventarioMaterialEmpaque$productoArgs<ExtArgs>
+  }
+  export type InventarioMaterialEmpaqueIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    producto?: boolean | InventarioMaterialEmpaque$productoArgs<ExtArgs>
+  }
+  export type InventarioMaterialEmpaqueIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    producto?: boolean | InventarioMaterialEmpaque$productoArgs<ExtArgs>
+  }
+
+  export type $InventarioMaterialEmpaquePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "InventarioMaterialEmpaque"
+    objects: {
+      producto: Prisma.$DepositoProductoPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      productoId: string | null
+      articulo: string
+      cantidad: number
+      updatedAt: Date
+    }, ExtArgs["result"]["inventarioMaterialEmpaque"]>
+    composites: {}
+  }
+
+  type InventarioMaterialEmpaqueGetPayload<S extends boolean | null | undefined | InventarioMaterialEmpaqueDefaultArgs> = $Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload, S>
+
+  type InventarioMaterialEmpaqueCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<InventarioMaterialEmpaqueFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: InventarioMaterialEmpaqueCountAggregateInputType | true
+    }
+
+  export interface InventarioMaterialEmpaqueDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['InventarioMaterialEmpaque'], meta: { name: 'InventarioMaterialEmpaque' } }
+    /**
+     * Find zero or one InventarioMaterialEmpaque that matches the filter.
+     * @param {InventarioMaterialEmpaqueFindUniqueArgs} args - Arguments to find a InventarioMaterialEmpaque
+     * @example
+     * // Get one InventarioMaterialEmpaque
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends InventarioMaterialEmpaqueFindUniqueArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueFindUniqueArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one InventarioMaterialEmpaque that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {InventarioMaterialEmpaqueFindUniqueOrThrowArgs} args - Arguments to find a InventarioMaterialEmpaque
+     * @example
+     * // Get one InventarioMaterialEmpaque
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends InventarioMaterialEmpaqueFindUniqueOrThrowArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueFindUniqueOrThrowArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first InventarioMaterialEmpaque that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InventarioMaterialEmpaqueFindFirstArgs} args - Arguments to find a InventarioMaterialEmpaque
+     * @example
+     * // Get one InventarioMaterialEmpaque
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends InventarioMaterialEmpaqueFindFirstArgs>(args?: SelectSubset<T, InventarioMaterialEmpaqueFindFirstArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first InventarioMaterialEmpaque that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InventarioMaterialEmpaqueFindFirstOrThrowArgs} args - Arguments to find a InventarioMaterialEmpaque
+     * @example
+     * // Get one InventarioMaterialEmpaque
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends InventarioMaterialEmpaqueFindFirstOrThrowArgs>(args?: SelectSubset<T, InventarioMaterialEmpaqueFindFirstOrThrowArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more InventarioMaterialEmpaques that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InventarioMaterialEmpaqueFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all InventarioMaterialEmpaques
+     * const inventarioMaterialEmpaques = await prisma.inventarioMaterialEmpaque.findMany()
+     * 
+     * // Get first 10 InventarioMaterialEmpaques
+     * const inventarioMaterialEmpaques = await prisma.inventarioMaterialEmpaque.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const inventarioMaterialEmpaqueWithIdOnly = await prisma.inventarioMaterialEmpaque.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends InventarioMaterialEmpaqueFindManyArgs>(args?: SelectSubset<T, InventarioMaterialEmpaqueFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a InventarioMaterialEmpaque.
+     * @param {InventarioMaterialEmpaqueCreateArgs} args - Arguments to create a InventarioMaterialEmpaque.
+     * @example
+     * // Create one InventarioMaterialEmpaque
+     * const InventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.create({
+     *   data: {
+     *     // ... data to create a InventarioMaterialEmpaque
+     *   }
+     * })
+     * 
+     */
+    create<T extends InventarioMaterialEmpaqueCreateArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueCreateArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many InventarioMaterialEmpaques.
+     * @param {InventarioMaterialEmpaqueCreateManyArgs} args - Arguments to create many InventarioMaterialEmpaques.
+     * @example
+     * // Create many InventarioMaterialEmpaques
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends InventarioMaterialEmpaqueCreateManyArgs>(args?: SelectSubset<T, InventarioMaterialEmpaqueCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many InventarioMaterialEmpaques and returns the data saved in the database.
+     * @param {InventarioMaterialEmpaqueCreateManyAndReturnArgs} args - Arguments to create many InventarioMaterialEmpaques.
+     * @example
+     * // Create many InventarioMaterialEmpaques
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many InventarioMaterialEmpaques and only return the `id`
+     * const inventarioMaterialEmpaqueWithIdOnly = await prisma.inventarioMaterialEmpaque.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends InventarioMaterialEmpaqueCreateManyAndReturnArgs>(args?: SelectSubset<T, InventarioMaterialEmpaqueCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a InventarioMaterialEmpaque.
+     * @param {InventarioMaterialEmpaqueDeleteArgs} args - Arguments to delete one InventarioMaterialEmpaque.
+     * @example
+     * // Delete one InventarioMaterialEmpaque
+     * const InventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.delete({
+     *   where: {
+     *     // ... filter to delete one InventarioMaterialEmpaque
+     *   }
+     * })
+     * 
+     */
+    delete<T extends InventarioMaterialEmpaqueDeleteArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueDeleteArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one InventarioMaterialEmpaque.
+     * @param {InventarioMaterialEmpaqueUpdateArgs} args - Arguments to update one InventarioMaterialEmpaque.
+     * @example
+     * // Update one InventarioMaterialEmpaque
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends InventarioMaterialEmpaqueUpdateArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueUpdateArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more InventarioMaterialEmpaques.
+     * @param {InventarioMaterialEmpaqueDeleteManyArgs} args - Arguments to filter InventarioMaterialEmpaques to delete.
+     * @example
+     * // Delete a few InventarioMaterialEmpaques
+     * const { count } = await prisma.inventarioMaterialEmpaque.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends InventarioMaterialEmpaqueDeleteManyArgs>(args?: SelectSubset<T, InventarioMaterialEmpaqueDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more InventarioMaterialEmpaques.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InventarioMaterialEmpaqueUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many InventarioMaterialEmpaques
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends InventarioMaterialEmpaqueUpdateManyArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more InventarioMaterialEmpaques and returns the data updated in the database.
+     * @param {InventarioMaterialEmpaqueUpdateManyAndReturnArgs} args - Arguments to update many InventarioMaterialEmpaques.
+     * @example
+     * // Update many InventarioMaterialEmpaques
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more InventarioMaterialEmpaques and only return the `id`
+     * const inventarioMaterialEmpaqueWithIdOnly = await prisma.inventarioMaterialEmpaque.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends InventarioMaterialEmpaqueUpdateManyAndReturnArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one InventarioMaterialEmpaque.
+     * @param {InventarioMaterialEmpaqueUpsertArgs} args - Arguments to update or create a InventarioMaterialEmpaque.
+     * @example
+     * // Update or create a InventarioMaterialEmpaque
+     * const inventarioMaterialEmpaque = await prisma.inventarioMaterialEmpaque.upsert({
+     *   create: {
+     *     // ... data to create a InventarioMaterialEmpaque
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the InventarioMaterialEmpaque we want to update
+     *   }
+     * })
+     */
+    upsert<T extends InventarioMaterialEmpaqueUpsertArgs>(args: SelectSubset<T, InventarioMaterialEmpaqueUpsertArgs<ExtArgs>>): Prisma__InventarioMaterialEmpaqueClient<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of InventarioMaterialEmpaques.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InventarioMaterialEmpaqueCountArgs} args - Arguments to filter InventarioMaterialEmpaques to count.
+     * @example
+     * // Count the number of InventarioMaterialEmpaques
+     * const count = await prisma.inventarioMaterialEmpaque.count({
+     *   where: {
+     *     // ... the filter for the InventarioMaterialEmpaques we want to count
+     *   }
+     * })
+    **/
+    count<T extends InventarioMaterialEmpaqueCountArgs>(
+      args?: Subset<T, InventarioMaterialEmpaqueCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], InventarioMaterialEmpaqueCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a InventarioMaterialEmpaque.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InventarioMaterialEmpaqueAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends InventarioMaterialEmpaqueAggregateArgs>(args: Subset<T, InventarioMaterialEmpaqueAggregateArgs>): Prisma.PrismaPromise<GetInventarioMaterialEmpaqueAggregateType<T>>
+
+    /**
+     * Group by InventarioMaterialEmpaque.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {InventarioMaterialEmpaqueGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends InventarioMaterialEmpaqueGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: InventarioMaterialEmpaqueGroupByArgs['orderBy'] }
+        : { orderBy?: InventarioMaterialEmpaqueGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, InventarioMaterialEmpaqueGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetInventarioMaterialEmpaqueGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the InventarioMaterialEmpaque model
+   */
+  readonly fields: InventarioMaterialEmpaqueFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for InventarioMaterialEmpaque.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__InventarioMaterialEmpaqueClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    producto<T extends InventarioMaterialEmpaque$productoArgs<ExtArgs> = {}>(args?: Subset<T, InventarioMaterialEmpaque$productoArgs<ExtArgs>>): Prisma__DepositoProductoClient<$Result.GetResult<Prisma.$DepositoProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the InventarioMaterialEmpaque model
+   */
+  interface InventarioMaterialEmpaqueFieldRefs {
+    readonly id: FieldRef<"InventarioMaterialEmpaque", 'String'>
+    readonly productoId: FieldRef<"InventarioMaterialEmpaque", 'String'>
+    readonly articulo: FieldRef<"InventarioMaterialEmpaque", 'String'>
+    readonly cantidad: FieldRef<"InventarioMaterialEmpaque", 'Int'>
+    readonly updatedAt: FieldRef<"InventarioMaterialEmpaque", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * InventarioMaterialEmpaque findUnique
+   */
+  export type InventarioMaterialEmpaqueFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * Filter, which InventarioMaterialEmpaque to fetch.
+     */
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+  }
+
+  /**
+   * InventarioMaterialEmpaque findUniqueOrThrow
+   */
+  export type InventarioMaterialEmpaqueFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * Filter, which InventarioMaterialEmpaque to fetch.
+     */
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+  }
+
+  /**
+   * InventarioMaterialEmpaque findFirst
+   */
+  export type InventarioMaterialEmpaqueFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * Filter, which InventarioMaterialEmpaque to fetch.
+     */
+    where?: InventarioMaterialEmpaqueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InventarioMaterialEmpaques to fetch.
+     */
+    orderBy?: InventarioMaterialEmpaqueOrderByWithRelationInput | InventarioMaterialEmpaqueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InventarioMaterialEmpaques.
+     */
+    cursor?: InventarioMaterialEmpaqueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InventarioMaterialEmpaques from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InventarioMaterialEmpaques.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InventarioMaterialEmpaques.
+     */
+    distinct?: InventarioMaterialEmpaqueScalarFieldEnum | InventarioMaterialEmpaqueScalarFieldEnum[]
+  }
+
+  /**
+   * InventarioMaterialEmpaque findFirstOrThrow
+   */
+  export type InventarioMaterialEmpaqueFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * Filter, which InventarioMaterialEmpaque to fetch.
+     */
+    where?: InventarioMaterialEmpaqueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InventarioMaterialEmpaques to fetch.
+     */
+    orderBy?: InventarioMaterialEmpaqueOrderByWithRelationInput | InventarioMaterialEmpaqueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for InventarioMaterialEmpaques.
+     */
+    cursor?: InventarioMaterialEmpaqueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InventarioMaterialEmpaques from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InventarioMaterialEmpaques.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InventarioMaterialEmpaques.
+     */
+    distinct?: InventarioMaterialEmpaqueScalarFieldEnum | InventarioMaterialEmpaqueScalarFieldEnum[]
+  }
+
+  /**
+   * InventarioMaterialEmpaque findMany
+   */
+  export type InventarioMaterialEmpaqueFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * Filter, which InventarioMaterialEmpaques to fetch.
+     */
+    where?: InventarioMaterialEmpaqueWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of InventarioMaterialEmpaques to fetch.
+     */
+    orderBy?: InventarioMaterialEmpaqueOrderByWithRelationInput | InventarioMaterialEmpaqueOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing InventarioMaterialEmpaques.
+     */
+    cursor?: InventarioMaterialEmpaqueWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` InventarioMaterialEmpaques from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` InventarioMaterialEmpaques.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of InventarioMaterialEmpaques.
+     */
+    distinct?: InventarioMaterialEmpaqueScalarFieldEnum | InventarioMaterialEmpaqueScalarFieldEnum[]
+  }
+
+  /**
+   * InventarioMaterialEmpaque create
+   */
+  export type InventarioMaterialEmpaqueCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * The data needed to create a InventarioMaterialEmpaque.
+     */
+    data: XOR<InventarioMaterialEmpaqueCreateInput, InventarioMaterialEmpaqueUncheckedCreateInput>
+  }
+
+  /**
+   * InventarioMaterialEmpaque createMany
+   */
+  export type InventarioMaterialEmpaqueCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many InventarioMaterialEmpaques.
+     */
+    data: InventarioMaterialEmpaqueCreateManyInput | InventarioMaterialEmpaqueCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * InventarioMaterialEmpaque createManyAndReturn
+   */
+  export type InventarioMaterialEmpaqueCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * The data used to create many InventarioMaterialEmpaques.
+     */
+    data: InventarioMaterialEmpaqueCreateManyInput | InventarioMaterialEmpaqueCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * InventarioMaterialEmpaque update
+   */
+  export type InventarioMaterialEmpaqueUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * The data needed to update a InventarioMaterialEmpaque.
+     */
+    data: XOR<InventarioMaterialEmpaqueUpdateInput, InventarioMaterialEmpaqueUncheckedUpdateInput>
+    /**
+     * Choose, which InventarioMaterialEmpaque to update.
+     */
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+  }
+
+  /**
+   * InventarioMaterialEmpaque updateMany
+   */
+  export type InventarioMaterialEmpaqueUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update InventarioMaterialEmpaques.
+     */
+    data: XOR<InventarioMaterialEmpaqueUpdateManyMutationInput, InventarioMaterialEmpaqueUncheckedUpdateManyInput>
+    /**
+     * Filter which InventarioMaterialEmpaques to update
+     */
+    where?: InventarioMaterialEmpaqueWhereInput
+    /**
+     * Limit how many InventarioMaterialEmpaques to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * InventarioMaterialEmpaque updateManyAndReturn
+   */
+  export type InventarioMaterialEmpaqueUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * The data used to update InventarioMaterialEmpaques.
+     */
+    data: XOR<InventarioMaterialEmpaqueUpdateManyMutationInput, InventarioMaterialEmpaqueUncheckedUpdateManyInput>
+    /**
+     * Filter which InventarioMaterialEmpaques to update
+     */
+    where?: InventarioMaterialEmpaqueWhereInput
+    /**
+     * Limit how many InventarioMaterialEmpaques to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * InventarioMaterialEmpaque upsert
+   */
+  export type InventarioMaterialEmpaqueUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * The filter to search for the InventarioMaterialEmpaque to update in case it exists.
+     */
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+    /**
+     * In case the InventarioMaterialEmpaque found by the `where` argument doesn't exist, create a new InventarioMaterialEmpaque with this data.
+     */
+    create: XOR<InventarioMaterialEmpaqueCreateInput, InventarioMaterialEmpaqueUncheckedCreateInput>
+    /**
+     * In case the InventarioMaterialEmpaque was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<InventarioMaterialEmpaqueUpdateInput, InventarioMaterialEmpaqueUncheckedUpdateInput>
+  }
+
+  /**
+   * InventarioMaterialEmpaque delete
+   */
+  export type InventarioMaterialEmpaqueDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    /**
+     * Filter which InventarioMaterialEmpaque to delete.
+     */
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+  }
+
+  /**
+   * InventarioMaterialEmpaque deleteMany
+   */
+  export type InventarioMaterialEmpaqueDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which InventarioMaterialEmpaques to delete
+     */
+    where?: InventarioMaterialEmpaqueWhereInput
+    /**
+     * Limit how many InventarioMaterialEmpaques to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * InventarioMaterialEmpaque.producto
+   */
+  export type InventarioMaterialEmpaque$productoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DepositoProducto
+     */
+    select?: DepositoProductoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DepositoProducto
+     */
+    omit?: DepositoProductoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: DepositoProductoInclude<ExtArgs> | null
+    where?: DepositoProductoWhereInput
+  }
+
+  /**
+   * InventarioMaterialEmpaque without action
+   */
+  export type InventarioMaterialEmpaqueDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model Movimiento
    */
 
@@ -45886,6 +47103,7 @@ export namespace Prisma {
     inventarioEstuches?: boolean | DepositoProducto$inventarioEstuchesArgs<ExtArgs>
     inventarioEtiquetas?: boolean | DepositoProducto$inventarioEtiquetasArgs<ExtArgs>
     inventarioFrascos?: boolean | DepositoProducto$inventarioFrascosArgs<ExtArgs>
+    inventarioMaterialesEmpaque?: boolean | DepositoProducto$inventarioMaterialesEmpaqueArgs<ExtArgs>
     actaItems?: boolean | DepositoProducto$actaItemsArgs<ExtArgs>
     ordenes?: boolean | DepositoProducto$ordenesArgs<ExtArgs>
     auditoriasCatalogo?: boolean | DepositoProducto$auditoriasCatalogoArgs<ExtArgs>
@@ -45961,6 +47179,7 @@ export namespace Prisma {
     inventarioEstuches?: boolean | DepositoProducto$inventarioEstuchesArgs<ExtArgs>
     inventarioEtiquetas?: boolean | DepositoProducto$inventarioEtiquetasArgs<ExtArgs>
     inventarioFrascos?: boolean | DepositoProducto$inventarioFrascosArgs<ExtArgs>
+    inventarioMaterialesEmpaque?: boolean | DepositoProducto$inventarioMaterialesEmpaqueArgs<ExtArgs>
     actaItems?: boolean | DepositoProducto$actaItemsArgs<ExtArgs>
     ordenes?: boolean | DepositoProducto$ordenesArgs<ExtArgs>
     auditoriasCatalogo?: boolean | DepositoProducto$auditoriasCatalogoArgs<ExtArgs>
@@ -45979,6 +47198,7 @@ export namespace Prisma {
       inventarioEstuches: Prisma.$InventarioEstuchePayload<ExtArgs>[]
       inventarioEtiquetas: Prisma.$InventarioEtiquetaPayload<ExtArgs>[]
       inventarioFrascos: Prisma.$InventarioFrascoPayload<ExtArgs>[]
+      inventarioMaterialesEmpaque: Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>[]
       actaItems: Prisma.$ActaItemPayload<ExtArgs>[]
       ordenes: Prisma.$OrdenProduccionPayload<ExtArgs>[]
       auditoriasCatalogo: Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>[]
@@ -46402,6 +47622,7 @@ export namespace Prisma {
     inventarioEstuches<T extends DepositoProducto$inventarioEstuchesArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$inventarioEstuchesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventarioEstuchePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     inventarioEtiquetas<T extends DepositoProducto$inventarioEtiquetasArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$inventarioEtiquetasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventarioEtiquetaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     inventarioFrascos<T extends DepositoProducto$inventarioFrascosArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$inventarioFrascosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventarioFrascoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    inventarioMaterialesEmpaque<T extends DepositoProducto$inventarioMaterialesEmpaqueArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$inventarioMaterialesEmpaqueArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InventarioMaterialEmpaquePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     actaItems<T extends DepositoProducto$actaItemsArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$actaItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ActaItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ordenes<T extends DepositoProducto$ordenesArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$ordenesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrdenProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditoriasCatalogo<T extends DepositoProducto$auditoriasCatalogoArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$auditoriasCatalogoArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -46940,6 +48161,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: InventarioFrascoScalarFieldEnum | InventarioFrascoScalarFieldEnum[]
+  }
+
+  /**
+   * DepositoProducto.inventarioMaterialesEmpaque
+   */
+  export type DepositoProducto$inventarioMaterialesEmpaqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the InventarioMaterialEmpaque
+     */
+    select?: InventarioMaterialEmpaqueSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the InventarioMaterialEmpaque
+     */
+    omit?: InventarioMaterialEmpaqueOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: InventarioMaterialEmpaqueInclude<ExtArgs> | null
+    where?: InventarioMaterialEmpaqueWhereInput
+    orderBy?: InventarioMaterialEmpaqueOrderByWithRelationInput | InventarioMaterialEmpaqueOrderByWithRelationInput[]
+    cursor?: InventarioMaterialEmpaqueWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: InventarioMaterialEmpaqueScalarFieldEnum | InventarioMaterialEmpaqueScalarFieldEnum[]
   }
 
   /**
@@ -56249,6 +57494,17 @@ export namespace Prisma {
   export type InventarioFrascoScalarFieldEnum = (typeof InventarioFrascoScalarFieldEnum)[keyof typeof InventarioFrascoScalarFieldEnum]
 
 
+  export const InventarioMaterialEmpaqueScalarFieldEnum: {
+    id: 'id',
+    productoId: 'productoId',
+    articulo: 'articulo',
+    cantidad: 'cantidad',
+    updatedAt: 'updatedAt'
+  };
+
+  export type InventarioMaterialEmpaqueScalarFieldEnum = (typeof InventarioMaterialEmpaqueScalarFieldEnum)[keyof typeof InventarioMaterialEmpaqueScalarFieldEnum]
+
+
   export const MovimientoScalarFieldEnum: {
     id: 'id',
     tipo: 'tipo',
@@ -59411,6 +60667,63 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"InventarioFrasco"> | Date | string
   }
 
+  export type InventarioMaterialEmpaqueWhereInput = {
+    AND?: InventarioMaterialEmpaqueWhereInput | InventarioMaterialEmpaqueWhereInput[]
+    OR?: InventarioMaterialEmpaqueWhereInput[]
+    NOT?: InventarioMaterialEmpaqueWhereInput | InventarioMaterialEmpaqueWhereInput[]
+    id?: StringFilter<"InventarioMaterialEmpaque"> | string
+    productoId?: StringNullableFilter<"InventarioMaterialEmpaque"> | string | null
+    articulo?: StringFilter<"InventarioMaterialEmpaque"> | string
+    cantidad?: IntFilter<"InventarioMaterialEmpaque"> | number
+    updatedAt?: DateTimeFilter<"InventarioMaterialEmpaque"> | Date | string
+    producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
+  }
+
+  export type InventarioMaterialEmpaqueOrderByWithRelationInput = {
+    id?: SortOrder
+    productoId?: SortOrderInput | SortOrder
+    articulo?: SortOrder
+    cantidad?: SortOrder
+    updatedAt?: SortOrder
+    producto?: DepositoProductoOrderByWithRelationInput
+  }
+
+  export type InventarioMaterialEmpaqueWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    productoId?: string
+    AND?: InventarioMaterialEmpaqueWhereInput | InventarioMaterialEmpaqueWhereInput[]
+    OR?: InventarioMaterialEmpaqueWhereInput[]
+    NOT?: InventarioMaterialEmpaqueWhereInput | InventarioMaterialEmpaqueWhereInput[]
+    articulo?: StringFilter<"InventarioMaterialEmpaque"> | string
+    cantidad?: IntFilter<"InventarioMaterialEmpaque"> | number
+    updatedAt?: DateTimeFilter<"InventarioMaterialEmpaque"> | Date | string
+    producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
+  }, "id" | "productoId">
+
+  export type InventarioMaterialEmpaqueOrderByWithAggregationInput = {
+    id?: SortOrder
+    productoId?: SortOrderInput | SortOrder
+    articulo?: SortOrder
+    cantidad?: SortOrder
+    updatedAt?: SortOrder
+    _count?: InventarioMaterialEmpaqueCountOrderByAggregateInput
+    _avg?: InventarioMaterialEmpaqueAvgOrderByAggregateInput
+    _max?: InventarioMaterialEmpaqueMaxOrderByAggregateInput
+    _min?: InventarioMaterialEmpaqueMinOrderByAggregateInput
+    _sum?: InventarioMaterialEmpaqueSumOrderByAggregateInput
+  }
+
+  export type InventarioMaterialEmpaqueScalarWhereWithAggregatesInput = {
+    AND?: InventarioMaterialEmpaqueScalarWhereWithAggregatesInput | InventarioMaterialEmpaqueScalarWhereWithAggregatesInput[]
+    OR?: InventarioMaterialEmpaqueScalarWhereWithAggregatesInput[]
+    NOT?: InventarioMaterialEmpaqueScalarWhereWithAggregatesInput | InventarioMaterialEmpaqueScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"InventarioMaterialEmpaque"> | string
+    productoId?: StringNullableWithAggregatesFilter<"InventarioMaterialEmpaque"> | string | null
+    articulo?: StringWithAggregatesFilter<"InventarioMaterialEmpaque"> | string
+    cantidad?: IntWithAggregatesFilter<"InventarioMaterialEmpaque"> | number
+    updatedAt?: DateTimeWithAggregatesFilter<"InventarioMaterialEmpaque"> | Date | string
+  }
+
   export type MovimientoWhereInput = {
     AND?: MovimientoWhereInput | MovimientoWhereInput[]
     OR?: MovimientoWhereInput[]
@@ -59744,6 +61057,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheListRelationFilter
     inventarioEtiquetas?: InventarioEtiquetaListRelationFilter
     inventarioFrascos?: InventarioFrascoListRelationFilter
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueListRelationFilter
     actaItems?: ActaItemListRelationFilter
     ordenes?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
@@ -59774,6 +61088,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheOrderByRelationAggregateInput
     inventarioEtiquetas?: InventarioEtiquetaOrderByRelationAggregateInput
     inventarioFrascos?: InventarioFrascoOrderByRelationAggregateInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueOrderByRelationAggregateInput
     actaItems?: ActaItemOrderByRelationAggregateInput
     ordenes?: OrdenProduccionOrderByRelationAggregateInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoOrderByRelationAggregateInput
@@ -59808,6 +61123,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheListRelationFilter
     inventarioEtiquetas?: InventarioEtiquetaListRelationFilter
     inventarioFrascos?: InventarioFrascoListRelationFilter
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueListRelationFilter
     actaItems?: ActaItemListRelationFilter
     ordenes?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
@@ -63056,6 +64372,61 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type InventarioMaterialEmpaqueCreateInput = {
+    id?: string
+    articulo: string
+    cantidad?: number
+    updatedAt?: Date | string
+    producto?: DepositoProductoCreateNestedOneWithoutInventarioMaterialesEmpaqueInput
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedCreateInput = {
+    id?: string
+    productoId?: string | null
+    articulo: string
+    cantidad?: number
+    updatedAt?: Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    articulo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    producto?: DepositoProductoUpdateOneWithoutInventarioMaterialesEmpaqueNestedInput
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    articulo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InventarioMaterialEmpaqueCreateManyInput = {
+    id?: string
+    productoId?: string | null
+    articulo: string
+    cantidad?: number
+    updatedAt?: Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    articulo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    articulo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type MovimientoCreateInput = {
     id?: string
     tipo: $Enums.DepositoTipoMovimiento
@@ -63414,6 +64785,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -63444,6 +64816,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -63474,6 +64847,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -63504,6 +64878,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -66291,6 +67666,38 @@ export namespace Prisma {
     total?: SortOrder
   }
 
+  export type InventarioMaterialEmpaqueCountOrderByAggregateInput = {
+    id?: SortOrder
+    productoId?: SortOrder
+    articulo?: SortOrder
+    cantidad?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InventarioMaterialEmpaqueAvgOrderByAggregateInput = {
+    cantidad?: SortOrder
+  }
+
+  export type InventarioMaterialEmpaqueMaxOrderByAggregateInput = {
+    id?: SortOrder
+    productoId?: SortOrder
+    articulo?: SortOrder
+    cantidad?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InventarioMaterialEmpaqueMinOrderByAggregateInput = {
+    id?: SortOrder
+    productoId?: SortOrder
+    articulo?: SortOrder
+    cantidad?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type InventarioMaterialEmpaqueSumOrderByAggregateInput = {
+    cantidad?: SortOrder
+  }
+
   export type EnumDepositoTipoMovimientoFilter<$PrismaModel = never> = {
     equals?: $Enums.DepositoTipoMovimiento | EnumDepositoTipoMovimientoFieldRefInput<$PrismaModel>
     in?: $Enums.DepositoTipoMovimiento[] | ListEnumDepositoTipoMovimientoFieldRefInput<$PrismaModel>
@@ -66609,6 +68016,12 @@ export namespace Prisma {
     none?: InventarioFrascoWhereInput
   }
 
+  export type InventarioMaterialEmpaqueListRelationFilter = {
+    every?: InventarioMaterialEmpaqueWhereInput
+    some?: InventarioMaterialEmpaqueWhereInput
+    none?: InventarioMaterialEmpaqueWhereInput
+  }
+
   export type ImportacionInicialEstucheItemListRelationFilter = {
     every?: ImportacionInicialEstucheItemWhereInput
     some?: ImportacionInicialEstucheItemWhereInput
@@ -66634,6 +68047,10 @@ export namespace Prisma {
   }
 
   export type InventarioFrascoOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type InventarioMaterialEmpaqueOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -69183,6 +70600,22 @@ export namespace Prisma {
     update?: XOR<XOR<DepositoProductoUpdateToOneWithWhereWithoutInventarioFrascosInput, DepositoProductoUpdateWithoutInventarioFrascosInput>, DepositoProductoUncheckedUpdateWithoutInventarioFrascosInput>
   }
 
+  export type DepositoProductoCreateNestedOneWithoutInventarioMaterialesEmpaqueInput = {
+    create?: XOR<DepositoProductoCreateWithoutInventarioMaterialesEmpaqueInput, DepositoProductoUncheckedCreateWithoutInventarioMaterialesEmpaqueInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutInventarioMaterialesEmpaqueInput
+    connect?: DepositoProductoWhereUniqueInput
+  }
+
+  export type DepositoProductoUpdateOneWithoutInventarioMaterialesEmpaqueNestedInput = {
+    create?: XOR<DepositoProductoCreateWithoutInventarioMaterialesEmpaqueInput, DepositoProductoUncheckedCreateWithoutInventarioMaterialesEmpaqueInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutInventarioMaterialesEmpaqueInput
+    upsert?: DepositoProductoUpsertWithoutInventarioMaterialesEmpaqueInput
+    disconnect?: DepositoProductoWhereInput | boolean
+    delete?: DepositoProductoWhereInput | boolean
+    connect?: DepositoProductoWhereUniqueInput
+    update?: XOR<XOR<DepositoProductoUpdateToOneWithWhereWithoutInventarioMaterialesEmpaqueInput, DepositoProductoUpdateWithoutInventarioMaterialesEmpaqueInput>, DepositoProductoUncheckedUpdateWithoutInventarioMaterialesEmpaqueInput>
+  }
+
   export type UserCreateNestedOneWithoutMovimientosInput = {
     create?: XOR<UserCreateWithoutMovimientosInput, UserUncheckedCreateWithoutMovimientosInput>
     connectOrCreate?: UserCreateOrConnectWithoutMovimientosInput
@@ -69341,6 +70774,13 @@ export namespace Prisma {
     connect?: InventarioFrascoWhereUniqueInput | InventarioFrascoWhereUniqueInput[]
   }
 
+  export type InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput = {
+    create?: XOR<InventarioMaterialEmpaqueCreateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput> | InventarioMaterialEmpaqueCreateWithoutProductoInput[] | InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput | InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput[]
+    createMany?: InventarioMaterialEmpaqueCreateManyProductoInputEnvelope
+    connect?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+  }
+
   export type ActaItemCreateNestedManyWithoutProductoInput = {
     create?: XOR<ActaItemCreateWithoutProductoInput, ActaItemUncheckedCreateWithoutProductoInput> | ActaItemCreateWithoutProductoInput[] | ActaItemUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: ActaItemCreateOrConnectWithoutProductoInput | ActaItemCreateOrConnectWithoutProductoInput[]
@@ -69409,6 +70849,13 @@ export namespace Prisma {
     connectOrCreate?: InventarioFrascoCreateOrConnectWithoutProductoInput | InventarioFrascoCreateOrConnectWithoutProductoInput[]
     createMany?: InventarioFrascoCreateManyProductoInputEnvelope
     connect?: InventarioFrascoWhereUniqueInput | InventarioFrascoWhereUniqueInput[]
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput = {
+    create?: XOR<InventarioMaterialEmpaqueCreateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput> | InventarioMaterialEmpaqueCreateWithoutProductoInput[] | InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput | InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput[]
+    createMany?: InventarioMaterialEmpaqueCreateManyProductoInputEnvelope
+    connect?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
   }
 
   export type ActaItemUncheckedCreateNestedManyWithoutProductoInput = {
@@ -69528,6 +70975,20 @@ export namespace Prisma {
     update?: InventarioFrascoUpdateWithWhereUniqueWithoutProductoInput | InventarioFrascoUpdateWithWhereUniqueWithoutProductoInput[]
     updateMany?: InventarioFrascoUpdateManyWithWhereWithoutProductoInput | InventarioFrascoUpdateManyWithWhereWithoutProductoInput[]
     deleteMany?: InventarioFrascoScalarWhereInput | InventarioFrascoScalarWhereInput[]
+  }
+
+  export type InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<InventarioMaterialEmpaqueCreateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput> | InventarioMaterialEmpaqueCreateWithoutProductoInput[] | InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput | InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput[]
+    upsert?: InventarioMaterialEmpaqueUpsertWithWhereUniqueWithoutProductoInput | InventarioMaterialEmpaqueUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: InventarioMaterialEmpaqueCreateManyProductoInputEnvelope
+    set?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    disconnect?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    delete?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    connect?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    update?: InventarioMaterialEmpaqueUpdateWithWhereUniqueWithoutProductoInput | InventarioMaterialEmpaqueUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: InventarioMaterialEmpaqueUpdateManyWithWhereWithoutProductoInput | InventarioMaterialEmpaqueUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: InventarioMaterialEmpaqueScalarWhereInput | InventarioMaterialEmpaqueScalarWhereInput[]
   }
 
   export type ActaItemUpdateManyWithoutProductoNestedInput = {
@@ -69668,6 +71129,20 @@ export namespace Prisma {
     update?: InventarioFrascoUpdateWithWhereUniqueWithoutProductoInput | InventarioFrascoUpdateWithWhereUniqueWithoutProductoInput[]
     updateMany?: InventarioFrascoUpdateManyWithWhereWithoutProductoInput | InventarioFrascoUpdateManyWithWhereWithoutProductoInput[]
     deleteMany?: InventarioFrascoScalarWhereInput | InventarioFrascoScalarWhereInput[]
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<InventarioMaterialEmpaqueCreateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput> | InventarioMaterialEmpaqueCreateWithoutProductoInput[] | InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput | InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput[]
+    upsert?: InventarioMaterialEmpaqueUpsertWithWhereUniqueWithoutProductoInput | InventarioMaterialEmpaqueUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: InventarioMaterialEmpaqueCreateManyProductoInputEnvelope
+    set?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    disconnect?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    delete?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    connect?: InventarioMaterialEmpaqueWhereUniqueInput | InventarioMaterialEmpaqueWhereUniqueInput[]
+    update?: InventarioMaterialEmpaqueUpdateWithWhereUniqueWithoutProductoInput | InventarioMaterialEmpaqueUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: InventarioMaterialEmpaqueUpdateManyWithWhereWithoutProductoInput | InventarioMaterialEmpaqueUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: InventarioMaterialEmpaqueScalarWhereInput | InventarioMaterialEmpaqueScalarWhereInput[]
   }
 
   export type ActaItemUncheckedUpdateManyWithoutProductoNestedInput = {
@@ -75136,6 +76611,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
@@ -75165,6 +76641,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
@@ -75241,6 +76718,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
@@ -75270,6 +76748,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
@@ -75299,6 +76778,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
@@ -75328,6 +76808,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
@@ -75414,6 +76895,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
@@ -75443,6 +76925,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
@@ -75518,6 +77001,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -75547,6 +77031,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -75592,6 +77077,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -75621,6 +77107,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -75650,6 +77137,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -75679,6 +77167,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -75753,6 +77242,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -75782,6 +77272,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -75846,6 +77337,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -75875,6 +77367,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -75920,6 +77413,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -75949,6 +77443,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -75978,6 +77473,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -76007,6 +77503,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -76052,6 +77549,7 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -76081,6 +77579,143 @@ export namespace Prisma {
     inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+  }
+
+  export type DepositoProductoCreateWithoutInventarioMaterialesEmpaqueInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    stockMinimo?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: $Enums.Mercado | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoUncheckedCreateWithoutInventarioMaterialesEmpaqueInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    stockMinimo?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: $Enums.Mercado | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoCreateOrConnectWithoutInventarioMaterialesEmpaqueInput = {
+    where: DepositoProductoWhereUniqueInput
+    create: XOR<DepositoProductoCreateWithoutInventarioMaterialesEmpaqueInput, DepositoProductoUncheckedCreateWithoutInventarioMaterialesEmpaqueInput>
+  }
+
+  export type DepositoProductoUpsertWithoutInventarioMaterialesEmpaqueInput = {
+    update: XOR<DepositoProductoUpdateWithoutInventarioMaterialesEmpaqueInput, DepositoProductoUncheckedUpdateWithoutInventarioMaterialesEmpaqueInput>
+    create: XOR<DepositoProductoCreateWithoutInventarioMaterialesEmpaqueInput, DepositoProductoUncheckedCreateWithoutInventarioMaterialesEmpaqueInput>
+    where?: DepositoProductoWhereInput
+  }
+
+  export type DepositoProductoUpdateToOneWithWhereWithoutInventarioMaterialesEmpaqueInput = {
+    where?: DepositoProductoWhereInput
+    data: XOR<DepositoProductoUpdateWithoutInventarioMaterialesEmpaqueInput, DepositoProductoUncheckedUpdateWithoutInventarioMaterialesEmpaqueInput>
+  }
+
+  export type DepositoProductoUpdateWithoutInventarioMaterialesEmpaqueInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+  }
+
+  export type DepositoProductoUncheckedUpdateWithoutInventarioMaterialesEmpaqueInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -76152,6 +77787,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -76181,6 +77817,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -76302,6 +77939,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -76331,6 +77969,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -76565,6 +78204,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
@@ -76594,6 +78234,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
@@ -76733,6 +78374,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
@@ -76762,6 +78404,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
@@ -76878,6 +78521,30 @@ export namespace Prisma {
 
   export type InventarioFrascoCreateManyProductoInputEnvelope = {
     data: InventarioFrascoCreateManyProductoInput | InventarioFrascoCreateManyProductoInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type InventarioMaterialEmpaqueCreateWithoutProductoInput = {
+    id?: string
+    articulo: string
+    cantidad?: number
+    updatedAt?: Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput = {
+    id?: string
+    articulo: string
+    cantidad?: number
+    updatedAt?: Date | string
+  }
+
+  export type InventarioMaterialEmpaqueCreateOrConnectWithoutProductoInput = {
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+    create: XOR<InventarioMaterialEmpaqueCreateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput>
+  }
+
+  export type InventarioMaterialEmpaqueCreateManyProductoInputEnvelope = {
+    data: InventarioMaterialEmpaqueCreateManyProductoInput | InventarioMaterialEmpaqueCreateManyProductoInput[]
     skipDuplicates?: boolean
   }
 
@@ -77208,6 +78875,33 @@ export namespace Prisma {
     cantidadCajas?: IntFilter<"InventarioFrasco"> | number
     total?: IntFilter<"InventarioFrasco"> | number
     updatedAt?: DateTimeFilter<"InventarioFrasco"> | Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUpsertWithWhereUniqueWithoutProductoInput = {
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+    update: XOR<InventarioMaterialEmpaqueUpdateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedUpdateWithoutProductoInput>
+    create: XOR<InventarioMaterialEmpaqueCreateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedCreateWithoutProductoInput>
+  }
+
+  export type InventarioMaterialEmpaqueUpdateWithWhereUniqueWithoutProductoInput = {
+    where: InventarioMaterialEmpaqueWhereUniqueInput
+    data: XOR<InventarioMaterialEmpaqueUpdateWithoutProductoInput, InventarioMaterialEmpaqueUncheckedUpdateWithoutProductoInput>
+  }
+
+  export type InventarioMaterialEmpaqueUpdateManyWithWhereWithoutProductoInput = {
+    where: InventarioMaterialEmpaqueScalarWhereInput
+    data: XOR<InventarioMaterialEmpaqueUpdateManyMutationInput, InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoInput>
+  }
+
+  export type InventarioMaterialEmpaqueScalarWhereInput = {
+    AND?: InventarioMaterialEmpaqueScalarWhereInput | InventarioMaterialEmpaqueScalarWhereInput[]
+    OR?: InventarioMaterialEmpaqueScalarWhereInput[]
+    NOT?: InventarioMaterialEmpaqueScalarWhereInput | InventarioMaterialEmpaqueScalarWhereInput[]
+    id?: StringFilter<"InventarioMaterialEmpaque"> | string
+    productoId?: StringNullableFilter<"InventarioMaterialEmpaque"> | string | null
+    articulo?: StringFilter<"InventarioMaterialEmpaque"> | string
+    cantidad?: IntFilter<"InventarioMaterialEmpaque"> | number
+    updatedAt?: DateTimeFilter<"InventarioMaterialEmpaque"> | Date | string
   }
 
   export type ActaItemUpsertWithWhereUniqueWithoutProductoInput = {
@@ -77634,6 +79328,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -77663,6 +79358,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -77803,6 +79499,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -77832,6 +79529,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -78178,6 +79876,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
@@ -78207,6 +79906,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
     inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
     actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
     ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
@@ -78285,6 +79985,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
@@ -78314,6 +80015,7 @@ export namespace Prisma {
     inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
     inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
     inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
     actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
     ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
@@ -80005,6 +81707,13 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type InventarioMaterialEmpaqueCreateManyProductoInput = {
+    id?: string
+    articulo: string
+    cantidad?: number
+    updatedAt?: Date | string
+  }
+
   export type ActaItemCreateManyProductoInput = {
     id?: string
     actaId: string
@@ -80185,6 +81894,27 @@ export namespace Prisma {
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    articulo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    articulo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    articulo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

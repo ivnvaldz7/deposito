@@ -110,6 +110,12 @@ const baseSchema = z.discriminatedUnion('categoria', [
     presentacion: positivePresentation.nullable().optional(),
     mercadosHabilitados: z.array(z.enum(mercados)).max(0).optional().default([]),
   }),
+  commonCatalogSchema.extend({
+    categoria: z.literal('material_empaque'),
+    codigo: z.string().trim().max(100).nullable().optional().transform(v => v || null),
+    presentacion: positivePresentation.nullable().optional(),
+    mercadosHabilitados: z.array(z.enum(mercados)).max(0).optional().default([]),
+  }),
 ])
 const editSchema = z.object({
   nombreBase: z.string().trim().min(2).max(100).transform(normalizeName).optional(),
@@ -374,14 +380,16 @@ router.get('/', authenticate, requirePermission('deposito', 'productos_catalogo.
 
     const productos = await prisma.depositoProducto.findMany({ where, orderBy: { nombreCompleto: 'asc' } })
     const productoIds = productos.map((producto) => producto.id)
-    const [drogas, estuches, etiquetas, frascos] = await Promise.all([
+    const [drogas, estuches, etiquetas, frascos, materialesEmpaque] = await Promise.all([
       prisma.inventarioDroga.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, cantidad: true } }),
       prisma.inventarioEstuche.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, mercado: true, cantidad: true } }),
       prisma.inventarioEtiqueta.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, mercado: true, cantidad: true } }),
       prisma.inventarioFrasco.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, total: true } }),
+      prisma.inventarioMaterialEmpaque.findMany({ where: { productoId: { in: productoIds } }, select: { productoId: true, cantidad: true } }),
     ])
     const stockDrogas = new Map<string, number>()
     const stockFrascos = new Map<string, number>()
+    const stockMaterialesEmpaque = new Map<string, number>()
     const stockPorMercado = new Map<string, Record<string, number>>()
     for (const inventario of drogas) {
       if (!inventario.productoId) continue
@@ -390,6 +398,10 @@ router.get('/', authenticate, requirePermission('deposito', 'productos_catalogo.
     for (const inventario of frascos) {
       if (!inventario.productoId) continue
       stockFrascos.set(inventario.productoId, (stockFrascos.get(inventario.productoId) ?? 0) + inventario.total)
+    }
+    for (const inventario of materialesEmpaque) {
+      if (!inventario.productoId) continue
+      stockMaterialesEmpaque.set(inventario.productoId, (stockMaterialesEmpaque.get(inventario.productoId) ?? 0) + inventario.cantidad)
     }
     for (const inventario of [...estuches, ...etiquetas]) {
       if (!inventario.productoId) continue
@@ -404,6 +416,8 @@ router.get('/', authenticate, requirePermission('deposito', 'productos_catalogo.
         ? stockDrogas.get(producto.id) ?? 0
         : producto.categoria === 'frasco'
           ? stockFrascos.get(producto.id) ?? 0
+          : producto.categoria === 'material_empaque'
+            ? stockMaterialesEmpaque.get(producto.id) ?? 0
           : Object.values(stockDelProducto).reduce((total, cantidad) => total + cantidad, 0)
 
       return { ...producto, stockActual, stockPorMercado: stockDelProducto }

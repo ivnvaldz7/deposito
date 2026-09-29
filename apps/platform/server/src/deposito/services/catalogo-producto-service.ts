@@ -171,6 +171,12 @@ async function seedInitialInventory(
       skipDuplicates: true,
     })
   }
+  if (producto.categoria === 'material_empaque') {
+    await tx.inventarioMaterialEmpaque.createMany({
+      data: [{ productoId: producto.id, articulo: producto.nombreCompleto, cantidad: 0 }],
+      skipDuplicates: true,
+    })
+  }
 }
 
 export class CatalogoProductoService {
@@ -318,15 +324,16 @@ export class CatalogoProductoService {
       const producto = await tx.depositoProducto.findUnique({ where: { id: productoId } })
       if (!producto) throw new CatalogoError('NOT_FOUND', 'Producto no encontrado')
       if (producto.estado !== 'PENDIENTE_REVISION') throw new CatalogoError('CONFLICT', 'Solo se puede eliminar un producto pendiente de revisión')
-      const [drogas, estuches, etiquetas, frascos, actas, ordenes] = await Promise.all([
+      const [drogas, estuches, etiquetas, frascos, materialesEmpaque, actas, ordenes] = await Promise.all([
         tx.inventarioDroga.count({ where: { productoId } }),
         tx.inventarioEstuche.count({ where: { productoId } }),
         tx.inventarioEtiqueta.count({ where: { productoId } }),
         tx.inventarioFrasco.count({ where: { productoId } }),
+        tx.inventarioMaterialEmpaque.count({ where: { productoId } }),
         tx.actaItem.count({ where: { productoId } }),
         tx.ordenProduccion.count({ where: { productoId } }),
       ])
-      if (drogas + estuches + etiquetas + frascos + actas + ordenes > 0) {
+      if (drogas + estuches + etiquetas + frascos + materialesEmpaque + actas + ordenes > 0) {
         throw new CatalogoError('CONFLICT', 'El producto tiene historial o relaciones operativas')
       }
       // A pending import only has catalog audit records. They are not operational history

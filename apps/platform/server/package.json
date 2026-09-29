@@ -20,6 +20,7 @@
     "db:seed-ale-bet": "tsx src/seed/seed-ale-bet.ts",
     "db:seed-ale-bet-demo": "tsx src/seed/seed-ale-bet-demo.ts",
     "db:seed-product-transfer-rules": "tsx src/scripts/seed-product-transfer-rules.ts",
+    "db:seed-materiales-empaque": "tsx src/scripts/cargar-materiales-empaque.ts",
     "db:sanitize-logistics": "tsx src/scripts/sanear-logistica.ts",
     "db:setup": "npm run db:migrate && npm run db:generate && npm run db:seed-deposito && npm run db:seed-ale-bet && npm run db:create-superadmin"
   },

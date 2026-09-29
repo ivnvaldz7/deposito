@@ -493,6 +493,14 @@ exports.Prisma.InventarioFrascoScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.InventarioMaterialEmpaqueScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  articulo: 'articulo',
+  cantidad: 'cantidad',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.MovimientoScalarFieldEnum = {
   id: 'id',
   tipo: 'tipo',
@@ -740,7 +748,8 @@ exports.Categoria = exports.$Enums.Categoria = {
   droga: 'droga',
   estuche: 'estuche',
   etiqueta: 'etiqueta',
-  frasco: 'frasco'
+  frasco: 'frasco',
+  material_empaque: 'material_empaque'
 };
 
 exports.CondicionEmbalaje = exports.$Enums.CondicionEmbalaje = {
@@ -856,6 +865,7 @@ exports.Prisma.ModelName = {
   InventarioEstuche: 'InventarioEstuche',
   InventarioEtiqueta: 'InventarioEtiqueta',
   InventarioFrasco: 'InventarioFrasco',
+  InventarioMaterialEmpaque: 'InventarioMaterialEmpaque',
   Movimiento: 'Movimiento',
   InsumoPendiente: 'InsumoPendiente',
   OrdenProduccion: 'OrdenProduccion',

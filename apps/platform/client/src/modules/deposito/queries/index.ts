@@ -32,6 +32,13 @@ export {
 export type { Frasco } from './use-frascos'
 
 export {
+  useMaterialesEmpaque,
+  useUpdateMaterialEmpaque,
+  materialesEmpaqueKeys,
+} from './use-materiales-empaque'
+export type { MaterialEmpaque } from './use-materiales-empaque'
+
+export {
   useActas,
   useActa,
   useCreateActa,

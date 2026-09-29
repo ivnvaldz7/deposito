@@ -2,7 +2,7 @@ import { api } from './api'
 import type { Mercado } from '../components/inventory-shared/mercados'
 import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
-export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco' | 'material_empaque'
 
 export interface CatalogoProducto {
   id: string

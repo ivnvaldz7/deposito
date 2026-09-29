@@ -552,6 +552,7 @@ describe('catalogo product rules', () => {
       inventarioEstuche: { count: async () => 0 },
       inventarioEtiqueta: { count: async () => 0 },
       inventarioFrasco: { count: async () => 0 },
+      inventarioMaterialEmpaque: { count: async () => 0 },
       actaItem: { count: async () => 0 },
       ordenProduccion: { count: async () => 0 },
       auditoriaCatalogoProducto: {

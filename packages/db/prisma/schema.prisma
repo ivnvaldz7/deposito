@@ -128,21 +128,21 @@ model IdempotencyRecord {
 // ─── Ale-Bet schema ──────────────────────────────────────────────────────────
 
 model Producto {
-  id               String                  @id @default(cuid())
-  nombre           String
-  sku              String                  @unique
-  stockMinimo      Int?
-  unidadesPorCaja  Int
-  activo           Boolean                 @default(true)
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
-  lotes            Lote[]
-  itemsPedido      ItemPedido[]
-  saldos           SaldoStock[]
-  projectionOutbox StockProjectionOutbox[]
-  aliases          ProductAlias[]
-  sourceTransferRules ProductoTransferRule[] @relation("TransferRuleSource")
-  targetTransferRules ProductoTransferRule[] @relation("TransferRuleTarget")
+  id                  String                  @id @default(cuid())
+  nombre              String
+  sku                 String                  @unique
+  stockMinimo         Int?
+  unidadesPorCaja     Int
+  activo              Boolean                 @default(true)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  lotes               Lote[]
+  itemsPedido         ItemPedido[]
+  saldos              SaldoStock[]
+  projectionOutbox    StockProjectionOutbox[]
+  aliases             ProductAlias[]
+  sourceTransferRules ProductoTransferRule[]  @relation("TransferRuleSource")
+  targetTransferRules ProductoTransferRule[]  @relation("TransferRuleTarget")
 
   @@schema("ale_bet")
 }
@@ -161,21 +161,21 @@ model ProductAlias {
 }
 
 model Lote {
-  id               String         @id @default(cuid())
-  numero           String
-  productoId       String
-  producto         Producto       @relation(fields: [productoId], references: [id])
-  cajas            Int            @default(0)
-  sueltos          Int            @default(0)
-  fechaProduccion  DateTime?
-  fechaVencimiento DateTime?
-  activo           Boolean        @default(true)
-  createdAt        DateTime       @default(now())
+  id                String         @id @default(cuid())
+  numero            String
+  productoId        String
+  producto          Producto       @relation(fields: [productoId], references: [id])
+  cajas             Int            @default(0)
+  sueltos           Int            @default(0)
+  fechaProduccion   DateTime?
+  fechaVencimiento  DateTime?
+  activo            Boolean        @default(true)
+  createdAt         DateTime       @default(now())
   derivedFromLoteId String?
   derivedFromLote   Lote?          @relation("DerivedLote", fields: [derivedFromLoteId], references: [id], onDelete: Restrict)
   derivedLotes      Lote[]         @relation("DerivedLote")
-  reservas         ReservaStock[]
-  saldos           SaldoStock[]
+  reservas          ReservaStock[]
+  saldos            SaldoStock[]
 
   @@unique([numero, productoId])
   @@unique([id, productoId])
@@ -191,17 +191,17 @@ enum TipoReglaTransferenciaProducto {
 }
 
 model ProductoTransferRule {
-  id              String                          @id @default(cuid())
+  id              String                         @id @default(cuid())
   sourceProductId String
   targetProductId String
   label           String
   tipo            TipoReglaTransferenciaProducto
-  activo          Boolean                         @default(true)
-  orden           Int                             @default(0)
-  createdAt       DateTime                        @default(now())
-  updatedAt       DateTime                        @updatedAt
-  sourceProduct   Producto                        @relation("TransferRuleSource", fields: [sourceProductId], references: [id], onDelete: Restrict)
-  targetProduct   Producto                        @relation("TransferRuleTarget", fields: [targetProductId], references: [id], onDelete: Restrict)
+  activo          Boolean                        @default(true)
+  orden           Int                            @default(0)
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  sourceProduct   Producto                       @relation("TransferRuleSource", fields: [sourceProductId], references: [id], onDelete: Restrict)
+  targetProduct   Producto                       @relation("TransferRuleTarget", fields: [targetProductId], references: [id], onDelete: Restrict)
 
   @@unique([sourceProductId, targetProductId, label])
   @@index([sourceProductId, activo, orden])
@@ -537,7 +537,7 @@ model User {
   auditoriasCatalogo            AuditoriaCatalogoProducto[]
   importacionesInicialesEstuche ImportacionInicialEstucheBatch[]
   partidasSolicitadas           PartidaProduccion[]
-  partidasConfirmadas           PartidaProduccion[]             @relation("PartidasConfirmadas")
+  partidasConfirmadas           PartidaProduccion[]              @relation("PartidasConfirmadas")
 
   @@map("users")
   @@schema("deposito")
@@ -611,6 +611,7 @@ enum Categoria {
   estuche
   etiqueta
   frasco
+  material_empaque
 
   @@schema("deposito")
 }
@@ -772,6 +773,23 @@ model InventarioFrasco {
 }
 
 // ============================================================
+// INVENTARIO MATERIALES AUXILIARES DE EMPAQUE
+// ============================================================
+model InventarioMaterialEmpaque {
+  id         String   @id @default(uuid())
+  productoId String?  @unique @map("producto_id")
+  articulo   String
+  cantidad   Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  producto DepositoProducto? @relation(fields: [productoId], references: [id])
+
+  @@index([productoId])
+  @@map("inventario_materiales_empaque")
+  @@schema("deposito")
+}
+
+// ============================================================
 // MOVIMIENTOS (auditoría)
 // ============================================================
 model Movimiento {
@@ -918,6 +936,7 @@ model DepositoProducto {
   inventarioEstuches            InventarioEstuche[]
   inventarioEtiquetas           InventarioEtiqueta[]
   inventarioFrascos             InventarioFrasco[]
+  inventarioMaterialesEmpaque   InventarioMaterialEmpaque[]
   actaItems                     ActaItem[]
   ordenes                       OrdenProduccion[]
   auditoriasCatalogo            AuditoriaCatalogoProducto[]
@@ -1027,8 +1046,8 @@ model PartidaProduccion {
   motivoRechazo   String?       @map("motivo_rechazo")
   createdAt       DateTime      @default(now()) @map("created_at")
 
-  solicitante   User             @relation(fields: [solicitanteId], references: [id])
-  confirmadoPor User?            @relation("PartidasConfirmadas", fields: [confirmadoPorId], references: [id])
+  solicitante   User            @relation(fields: [solicitanteId], references: [id])
+  confirmadoPor User?           @relation("PartidasConfirmadas", fields: [confirmadoPorId], references: [id])
   items         ItemSolicitud[]
 
   @@index([solicitanteId])

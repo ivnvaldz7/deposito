@@ -35,6 +35,10 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
   const producto = await prisma.depositoProducto.findUnique({ where: { id: data.productoId } })
   if (!producto) { invalid(res, 'Producto no encontrado en el catálogo'); return }
   if (producto.estado !== EstadoProductoCatalogo.ACTIVO) { res.status(409).json({ message: 'El producto debe estar activo para registrar ingresos' }); return }
+  if (producto.categoria === 'material_empaque') {
+    res.status(409).json({ message: 'El material de empaque se gestiona por cantidad desde su hoja de inventario' })
+    return
+  }
 
   const materialConMercado = producto.categoria === 'etiqueta' || producto.categoria === 'estuche'
   try {

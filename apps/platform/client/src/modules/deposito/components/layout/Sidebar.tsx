@@ -16,6 +16,7 @@ const navItems: NavItemDef[] = [
   { path: '/deposito/estuches',    label: 'Estuches',     icon: Package },
   { path: '/deposito/etiquetas',   label: 'Etiquetas',    icon: Tag },
   { path: '/deposito/frascos',     label: 'Frascos',      icon: Box },
+  { path: '/deposito/materiales-empaque', label: 'Material de empaque', icon: Package },
   { path: '/deposito/actas',       label: 'Actas',        icon: BookOpen },
   { path: '/deposito/movimientos', label: 'Movimientos',  icon: ArrowLeftRight },
 ]
@@ -51,6 +52,7 @@ export function Sidebar() {
       case '/deposito/estuches': return can(user, 'deposito', 'estuches.read')
       case '/deposito/etiquetas': return can(user, 'deposito', 'etiquetas.read')
       case '/deposito/frascos': return can(user, 'deposito', 'frascos.read')
+      case '/deposito/materiales-empaque': return can(user, 'deposito', 'productos_catalogo.read')
       case '/deposito/actas': return can(user, 'deposito', 'actas.read')
       case '/deposito/ingresos': return can(user, 'deposito', 'ingresos.create')
       case '/deposito/movimientos': return can(user, 'deposito', 'movimientos.read')

@@ -9,6 +9,7 @@ const DrogasPage = lazy(() => import('./pages/DrogasPage'))
 const EstuchesPage = lazy(() => import('./pages/EstuchesPage'))
 const EtiquetasPage = lazy(() => import('./pages/EtiquetasPage'))
 const FrascosPage = lazy(() => import('./pages/FrascosPage'))
+const MaterialesEmpaquePage = lazy(() => import('./pages/MaterialesEmpaquePage'))
 const ActasPage = lazy(() => import('./pages/ActasPage'))
 const ActaNuevaPage = lazy(() => import('./pages/ActaNuevaPage'))
 
@@ -38,6 +39,7 @@ export default function DepositoModule() {
           <Route path="etiquetas" element={<PermissionRoute app="deposito" permission="etiquetas.read"><EtiquetasPage /></PermissionRoute>} />
           <Route path="productos" element={<PermissionRoute app="deposito" permission="productos_catalogo.read"><ProductosPage /></PermissionRoute>} />
           <Route path="frascos" element={<PermissionRoute app="deposito" permission="frascos.read"><FrascosPage /></PermissionRoute>} />
+          <Route path="materiales-empaque" element={<PermissionRoute app="deposito" permission="productos_catalogo.read"><MaterialesEmpaquePage /></PermissionRoute>} />
           <Route path="actas" element={<PermissionRoute app="deposito" permission="actas.read"><ActasPage /></PermissionRoute>} />
 
           <Route path="ingresos" element={<PermissionRoute app="deposito" permission="ingresos.create"><ActaNuevaPage /></PermissionRoute>} />

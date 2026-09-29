@@ -6,6 +6,7 @@ import movimientosRoutes from './movimientos'
 import estuchesRoutes from './estuches'
 import etiquetasRoutes from './etiquetas'
 import frascosRoutes from './frascos'
+import materialesEmpaqueRoutes from './materiales-empaque'
 import pendientesRoutes from './pendientes'
 import usersRoutes from './users'
 import ordenesRoutes from './ordenes'
@@ -27,6 +28,7 @@ export function createDepositoRoutes(): Router {
   router.use('/estuches', estuchesRoutes)
   router.use('/etiquetas', etiquetasRoutes)
   router.use('/frascos', frascosRoutes)
+  router.use('/materiales-empaque', materialesEmpaqueRoutes)
   router.use('/pendientes', pendientesRoutes)
   router.use('/users', usersRoutes)
   router.use('/ordenes', ordenesRoutes)

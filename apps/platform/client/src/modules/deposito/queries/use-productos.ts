@@ -6,12 +6,13 @@ import { drogasKeys } from './use-drogas'
 import { estuchesKeys } from './use-estuches'
 import { etiquetasKeys } from './use-etiquetas'
 import { frascosKeys } from './use-frascos'
+import { materialesEmpaqueKeys } from './use-materiales-empaque'
 import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type EstadoProducto = 'PENDIENTE_REVISION' | 'ACTIVO' | 'INACTIVO'
-export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco' | 'material_empaque'
 
 export interface Producto {
   id: string
@@ -112,6 +113,7 @@ export function useUpdateProducto() {
       void qc.invalidateQueries({ queryKey: estuchesKeys.all })
       void qc.invalidateQueries({ queryKey: etiquetasKeys.all })
       void qc.invalidateQueries({ queryKey: frascosKeys.all })
+      void qc.invalidateQueries({ queryKey: materialesEmpaqueKeys.all })
     },
   })
 }
