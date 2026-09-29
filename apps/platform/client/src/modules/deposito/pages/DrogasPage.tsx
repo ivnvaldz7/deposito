@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, Pill, FlaskConical, Syringe
 } from 'lucide-react'
@@ -105,6 +106,107 @@ function DrugIcon({ nombre }: { nombre: string }) {
   if (lower.includes('vacuna') || lower.includes('vaccine')) return <Syringe size={18} />
   if (lower.includes('reagent') || lower.includes('reactivo')) return <FlaskConical size={18} />
   return <Pill size={18} />
+}
+
+function DrugQuantityAdjustment({ lote }: { lote: DrogaRecord }) {
+  const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [cantidad, setCantidad] = useState(String(lote.cantidad))
+  const [motivo, setMotivo] = useState('')
+
+  const adjustment = useMutation({
+    mutationFn: (data: { cantidad: number; motivo: string }) =>
+      api.patch(`/drogas/${lote.id}/cantidad`, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['deposito'] })
+      setEditing(false)
+      setMotivo('')
+    },
+  })
+
+  // Catalog-only zero rows do not identify a real lot. They must be entered
+  // through an Acta so lote and vencimiento remain mandatory for drugs.
+  if (lote.id.startsWith('catalog:')) return null
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          setCantidad(String(lote.cantidad))
+          setEditing(true)
+        }}
+        className="rounded-lg border border-primary/60 px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+      >
+        Ajustar cantidad
+      </button>
+    )
+  }
+
+  const cantidadNumerica = Number(cantidad)
+  const cantidadInvalida = cantidad.trim() === '' || !Number.isFinite(cantidadNumerica) || cantidadNumerica < 0
+
+  return (
+    <form
+      onClick={(event) => event.stopPropagation()}
+      onSubmit={(event) => {
+        event.preventDefault()
+        if (cantidadInvalida || motivo.trim().length < 3) return
+        adjustment.mutate({ cantidad: cantidadNumerica, motivo: motivo.trim() })
+      }}
+      className="mt-4 rounded-lg border border-primary/30 bg-surface-container p-3"
+    >
+      <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Ajustar cantidad del lote</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[160px_1fr_auto] sm:items-end">
+        <label className="block text-xs text-on-surface-variant">
+          Cantidad final
+          <input
+            aria-label="Cantidad final"
+            type="number"
+            min="0"
+            step="any"
+            value={cantidad}
+            onChange={(event) => setCantidad(event.target.value)}
+            className="input-field mt-1 w-full"
+          />
+        </label>
+        <label className="block text-xs text-on-surface-variant">
+          Motivo del ajuste
+          <input
+            aria-label="Motivo del ajuste"
+            value={motivo}
+            onChange={(event) => setMotivo(event.target.value)}
+            placeholder="Ej.: recuento físico"
+            maxLength={500}
+            className="input-field mt-1 w-full"
+          />
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => { setEditing(false); setMotivo('') }}
+            disabled={adjustment.isPending}
+            className="rounded-lg border border-outline-variant px-3 py-2 text-xs font-semibold text-on-surface-variant"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={cantidadInvalida || motivo.trim().length < 3 || adjustment.isPending}
+            className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {adjustment.isPending ? 'Guardando…' : 'Guardar ajuste'}
+          </button>
+        </div>
+      </div>
+      {adjustment.error && (
+        <p role="alert" className="mt-2 text-xs text-error">
+          {adjustment.error instanceof ApiError ? adjustment.error.message : 'No se pudo guardar el ajuste.'}
+        </p>
+      )}
+    </form>
+  )
 }
 
 // ─── Main page ─────────────────────────────────────────────────────────────────
@@ -301,6 +403,9 @@ export default function DrogasPage() {
                               {getDrugStatusDescription(status)}
                             </p>
                           </div>
+                          <div className="mt-4">
+                            <DrugQuantityAdjustment lote={lote} />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -388,6 +493,9 @@ export default function DrogasPage() {
                           <p className="text-on-surface-variant text-sm">
                             {getDrugStatusDescription(status)}
                           </p>
+                        </div>
+                        <div className="mt-4">
+                          <DrugQuantityAdjustment lote={lote} />
                         </div>
                       </div>
                     )}

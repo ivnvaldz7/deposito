@@ -1,10 +1,16 @@
 import { Request, Response, Router } from 'express'
+import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requirePermission } from '../../middlewares/require-permission'
 import { aggregateDrugCatalog } from '../services/droga-inventory-service'
 
 const router = Router()
+
+const ajustarCantidadSchema = z.object({
+  cantidad: z.number().finite().min(0, 'La cantidad no puede ser negativa'),
+  motivo: z.string().trim().min(3, 'Indicá el motivo del ajuste').max(500),
+})
 
 router.get('/', authenticate, requirePermission('deposito', 'drogas.read'), async (req: Request, res: Response): Promise<void> => {
   const nombre = typeof req.query['nombre'] === 'string' ? req.query['nombre'].trim() : ''
@@ -66,6 +72,59 @@ router.get('/por-vencer', authenticate, requirePermission('deposito', 'drogas.re
     res.json(aggregateDrugCatalog(products).filter((product) => product.lotes.length > 0))
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
+  }
+})
+
+// An adjustment never rewrites the original ingress. It changes only the
+// current lot balance and creates an auditable delta in Movimientos.
+router.patch('/:inventarioId/cantidad', authenticate, requirePermission('deposito', 'ingresos.create'), async (req: Request, res: Response): Promise<void> => {
+  const parsedId = z.string().uuid().safeParse(req.params.inventarioId)
+  const parsedBody = ajustarCantidadSchema.safeParse(req.body)
+  if (!parsedId.success || !parsedBody.success) {
+    res.status(400).json({ message: 'Datos de ajuste inválidos', errors: parsedBody.success ? undefined : parsedBody.error.flatten() })
+    return
+  }
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const inventario = await tx.inventarioDroga.findUnique({
+        where: { id: parsedId.data },
+        select: { id: true, productoId: true, nombre: true, lote: true, cantidad: true },
+      })
+      if (!inventario) return null
+
+      const cantidadAnterior = inventario.cantidad
+      const cantidadNueva = parsedBody.data.cantidad
+      const diferencia = cantidadNueva - cantidadAnterior
+      if (diferencia === 0) return { inventario, diferencia: 0 }
+
+      const actualizado = await tx.inventarioDroga.update({
+        where: { id: inventario.id },
+        data: { cantidad: cantidadNueva },
+      })
+      await tx.movimiento.create({
+        data: {
+          tipo: 'ajuste_manual',
+          categoria: 'droga',
+          productoNombre: inventario.nombre,
+          productoId: inventario.productoId,
+          lote: inventario.lote,
+          cantidad: diferencia,
+          referenciaId: inventario.id,
+          justificacion: parsedBody.data.motivo,
+          createdBy: req.depositoUser!.id,
+        },
+      })
+      return { inventario: actualizado, diferencia }
+    })
+
+    if (!result) {
+      res.status(404).json({ message: 'Lote de droga no encontrado' })
+      return
+    }
+    res.json(result)
+  } catch {
+    res.status(500).json({ message: 'No se pudo ajustar la cantidad' })
   }
 })
 
