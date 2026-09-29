@@ -47,6 +47,7 @@ export default function DepositoModule() {
           <Route path="movimientos" element={<PermissionRoute app="deposito" permission="movimientos.read"><MovimientosPage /></PermissionRoute>} />
           <Route path="pendientes" element={<PermissionRoute app="deposito" permission="pendientes.read"><PendientesPage /></PermissionRoute>} />
           <Route path="ordenes" element={<PermissionRoute app="deposito" permission="ordenes.read"><OrdenesPage /></PermissionRoute>} />
+          <Route path="ordenes/archivadas" element={<PermissionRoute app="deposito" permission="ordenes.read"><OrdenesPage archivadas /></PermissionRoute>} />
           <Route path="usuarios" element={<PermissionRoute app="deposito" permission="usuarios_deposito.read"><UsuariosPage /></PermissionRoute>} />
           <Route path="metricas" element={<PermissionRoute app="deposito" permission="metricas.read"><MetricasPage /></PermissionRoute>} />
           <Route path="*" element={<Navigate to="/deposito/dashboard" replace />} />

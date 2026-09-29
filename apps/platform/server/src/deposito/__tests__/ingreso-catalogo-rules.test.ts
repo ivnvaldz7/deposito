@@ -16,4 +16,9 @@ describe('ingreso catalog rules', () => {
     expect(() => validateIngresoCatalogo({ categoria: 'frasco', estado: 'INACTIVO', mercadosHabilitados: [], cantidadCajas: 1, unidadesPorCaja: 12 })).toThrow('activo')
     expect(() => validateIngresoCatalogo({ categoria: 'droga', estado: 'ACTIVO', mercadosHabilitados: [], mercado: 'argentina', cantidad: 1, lote: 'L-1' })).toThrow('mercado')
   })
+
+  it('accepts material auxiliar as unit-based inventory without market, lot, or expiry', () => {
+    expect(() => validateIngresoCatalogo({ categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], cantidad: 3 })).not.toThrow()
+    expect(() => validateIngresoCatalogo({ categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], cantidad: 1.5 })).toThrow('cantidad entera')
+  })
 })

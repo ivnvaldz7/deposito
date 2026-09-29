@@ -34,6 +34,7 @@ const UUID_B = '550e8400-e29b-41d4-a716-446655440001'
 const PRODUCTOS_MOCK = [
   { id: UUID_A, nombreBase: 'AMOXICILINA', volumen: '500', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'AMOXICILINA 500 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
   { id: UUID_B, nombreBase: 'VITAMINA B12', volumen: '100', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'VITAMINA B12 100 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
+  { id: '550e8400-e29b-41d4-a716-446655440002', nombreBase: 'CAJA N°1', volumen: null, unidad: 'UN', variante: null, categoria: 'material_empaque', nombreCompleto: 'CAJA N°1', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -82,18 +83,17 @@ describe('ActaNuevaPage', () => {
       expect(screen.getByText('Nuevo Ingreso')).toBeInTheDocument()
     })
 
-    // Header (h2)
-    expect(screen.getByRole('heading', { name: 'Registrar ingreso' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Nuevo Ingreso' })).toBeInTheDocument()
 
     // Toggle buttons
-    expect(screen.getByText('Drogas')).toBeInTheDocument()
+    expect(screen.getByText('Materia Prima')).toBeInTheDocument()
     expect(screen.getByText('Material de Empaque')).toBeInTheDocument()
 
     // Form fields
-    expect(screen.getByText('Fecha')).toBeInTheDocument()
-    expect(screen.getByText('Producto')).toBeInTheDocument()
-    expect(screen.getByText('Lote')).toBeInTheDocument()
-    expect(screen.getByText('Cantidad')).toBeInTheDocument()
+    expect(screen.getByText('Fecha del acta')).toBeInTheDocument()
+    expect(screen.getByText(/Producto/)).toBeInTheDocument()
+    expect(screen.getByText(/Lote/)).toBeInTheDocument()
+    expect(screen.getByText(/Cantidad/)).toBeInTheDocument()
     expect(screen.getByText('Observaciones')).toBeInTheDocument()
 
     // Actions
@@ -121,10 +121,21 @@ describe('ActaNuevaPage', () => {
       expect(screen.getByText('Estuche')).toBeInTheDocument()
       expect(screen.getByText('Frasco')).toBeInTheDocument()
       expect(screen.getByText('Etiqueta')).toBeInTheDocument()
+      expect(screen.getByText('Material auxiliar')).toBeInTheDocument()
     })
 
     // Placeholder should change for the active subcategory
     expect(screen.getByPlaceholderText('Buscá un estuche del catálogo...')).toBeInTheDocument()
+  })
+
+  it('lets material auxiliar enter by quantity without market or lote fields', async () => {
+    render(<ActaNuevaPage />)
+    fireEvent.click(screen.getByText('Material de Empaque'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Material auxiliar' }))
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Buscá un material auxiliar del catálogo...')).toBeInTheDocument())
+    expect(screen.queryByLabelText('Mercado *')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Lote sugerido')).not.toBeInTheDocument()
   })
 
   it('switches subcategories in ME mode and updates placeholder', async () => {
@@ -166,18 +177,18 @@ describe('ActaNuevaPage', () => {
   it('requires lote and vencimiento for MP', async () => {
     render(<ActaNuevaPage />)
     await waitFor(() => {
-      expect(screen.getByLabelText('Lote')).toBeInTheDocument()
-      expect(screen.getByLabelText('Vencimiento')).toBeInTheDocument()
+      expect(screen.getByLabelText(/Lote/)).toBeInTheDocument()
+      expect(screen.getByLabelText('Mes de vencimiento')).toBeInTheDocument()
     })
   })
 
-  it('does not generate a lote for packaging categories', async () => {
+  it('uses the packaging reference only for estuches, frascos and etiquetas', async () => {
     render(<ActaNuevaPage />)
     fireEvent.click(screen.getByText('Material de Empaque'))
 
     await waitFor(() => {
-      expect(screen.queryByLabelText('Lote')).not.toBeInTheDocument()
-      expect(screen.getByLabelText('Mercado')).toBeInTheDocument()
+      expect(screen.queryByLabelText(/^Lote \*$/)).not.toBeInTheDocument()
+      expect(screen.getByLabelText(/Mercado/)).toBeInTheDocument()
     })
   })
 
@@ -216,6 +227,7 @@ describe('ActaNuevaPage', () => {
 
     // Select product
     const productoInput = screen.getByPlaceholderText('Buscá una droga del catálogo...')
+    fireEvent.focus(productoInput)
     fireEvent.change(productoInput, { target: { value: 'AMOXICILINA' } })
 
     await waitFor(() => {
@@ -224,10 +236,11 @@ describe('ActaNuevaPage', () => {
     fireEvent.mouseDown(screen.getByText('AMOXICILINA 500 ML'))
 
     // Fill cantidad
-    const cantidadInput = screen.getByPlaceholderText('0')
+    const cantidadInput = screen.getByLabelText(/Cantidad/)
     fireEvent.change(cantidadInput, { target: { value: '100' } })
-    fireEvent.change(screen.getByLabelText('Lote'), { target: { value: 'MP-001' } })
-    fireEvent.change(screen.getByLabelText('Vencimiento'), { target: { value: '2027-07-23' } })
+    fireEvent.change(screen.getByLabelText(/Lote/), { target: { value: 'MP-001' } })
+    fireEvent.change(screen.getByLabelText('Mes de vencimiento'), { target: { value: '07' } })
+    fireEvent.change(screen.getByLabelText('Año de vencimiento'), { target: { value: '2027' } })
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))
@@ -237,14 +250,14 @@ describe('ActaNuevaPage', () => {
         fecha: '2026-07-23',
         productoId: UUID_A,
         lote: 'MP-001',
-        vencimiento: '2027-07-23',
+        vencimientoMes: '2027-07',
         mercado: undefined,
-        cantidad: 100,
+        cantidad: 100000,
         cantidadCajas: undefined,
         unidadesPorCaja: undefined,
         observaciones: undefined,
       })
-      expect(mockNavigate).toHaveBeenCalledWith('/deposito/actas')
+      expect(mockNavigate).toHaveBeenCalledWith('/deposito/dashboard')
     })
   })
 
@@ -282,6 +295,7 @@ describe('ActaNuevaPage', () => {
 
     // Select product
     const productoInput = screen.getByPlaceholderText('Buscá una droga del catálogo...')
+    fireEvent.focus(productoInput)
     fireEvent.change(productoInput, { target: { value: 'AMOXICILINA' } })
     await waitFor(() => {
       expect(screen.getByText('AMOXICILINA 500 ML')).toBeInTheDocument()
@@ -289,9 +303,10 @@ describe('ActaNuevaPage', () => {
     fireEvent.mouseDown(screen.getByText('AMOXICILINA 500 ML'))
 
     // Fill cantidad
-    fireEvent.change(screen.getByPlaceholderText('0'), { target: { value: '100' } })
-    fireEvent.change(screen.getByLabelText('Lote'), { target: { value: 'MP-001' } })
-    fireEvent.change(screen.getByLabelText('Vencimiento'), { target: { value: '2027-07-23' } })
+    fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText(/Lote/), { target: { value: 'MP-001' } })
+    fireEvent.change(screen.getByLabelText('Mes de vencimiento'), { target: { value: '07' } })
+    fireEvent.change(screen.getByLabelText('Año de vencimiento'), { target: { value: '2027' } })
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))

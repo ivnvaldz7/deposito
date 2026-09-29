@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
     acta: { create: vi.fn(async () => ({ id: 'acta-1' })), update: vi.fn(async () => ({ id: 'acta-1' })) },
     actaItem: { create: vi.fn(async () => ({ id: 'item-1' })) },
     inventarioEstuche: { findUnique: vi.fn(async () => ({ id: 'stock-estuche' })), update: vi.fn(async () => ({})) },
+    inventarioMaterialEmpaque: { findUnique: vi.fn(async () => ({ id: 'stock-material' })), update: vi.fn(async () => ({})), create: vi.fn(async () => ({})) },
     movimiento: { create: vi.fn(async () => ({})) },
   }
   const prisma = {
@@ -97,6 +98,30 @@ describe('POST /api/deposito/ingresos', () => {
     expect(response.status).toBe(201)
     expect(mocks.tx.actaItem.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({ lote: '500' }),
+    }))
+  })
+
+  it('adds material auxiliar by units without requiring market, expiry, or a user-entered lote', async () => {
+    mocks.prisma.depositoProducto.findUnique.mockResolvedValueOnce({
+      id: validPayload.productoId,
+      categoria: 'material_empaque',
+      estado: 'ACTIVO',
+      mercadosHabilitados: [],
+      nombreCompleto: 'CAJA N°1',
+    })
+
+    const response = await request(app).post('/api/deposito/ingresos').send({
+      fecha: validPayload.fecha,
+      productoId: validPayload.productoId,
+      cantidad: 24,
+    })
+
+    expect(response.status).toBe(201)
+    expect(mocks.tx.inventarioMaterialEmpaque.update).toHaveBeenCalledWith(expect.objectContaining({
+      data: { cantidad: { increment: 24 } },
+    }))
+    expect(mocks.tx.actaItem.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ lote: 'SIN-LOTE', mercado: null, cantidadIngresada: 24 }),
     }))
   })
 })

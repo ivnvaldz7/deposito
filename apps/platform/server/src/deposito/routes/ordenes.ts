@@ -14,6 +14,14 @@ import { descontarStockOrden, OrdenStockError } from '../services/orden-stock-se
 const router = Router()
 
 const MERCADOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
+const ESTADOS_ARCHIVABLES = ['aprobada', 'rechazada'] as const
+const DIAS_VISIBLES_ORDEN_CONFIRMADA = 7
+
+function archiveCutoff(): Date {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - DIAS_VISIBLES_ORDEN_CONFIRMADA)
+  return cutoff
+}
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -165,9 +173,10 @@ router.get(
   authenticate,
   requirePermission('deposito', 'ordenes.read'),
   async (req: Request, res: Response): Promise<void> => {
-    const { estado } = req.query
+    const { estado, archivadas } = req.query
 
     const estadoFilter = typeof estado === 'string' ? estado : undefined
+    const includeArchived = archivadas === 'true'
 
     // Solicitante solo ve sus propias órdenes
     const roleFilter =
@@ -176,10 +185,14 @@ router.get(
         : {}
 
     const estadoWhere = estadoFilter ? { estado: estadoFilter as never } : {}
+    const cutoff = archiveCutoff()
+    const archiveWhere = includeArchived
+      ? { estado: { in: [...ESTADOS_ARCHIVABLES] }, updatedAt: { lt: cutoff } }
+      : { NOT: { AND: [{ estado: { in: [...ESTADOS_ARCHIVABLES] } }, { updatedAt: { lt: cutoff } }] } }
 
     try {
       const ordenes = await prisma.ordenProduccion.findMany({
-        where: { ...roleFilter, ...estadoWhere },
+        where: { AND: [roleFilter, estadoWhere, archiveWhere] },
         orderBy: [{ createdAt: 'desc' }],
         include: {
           solicitante: { select: { id: true, name: true, role: true } },

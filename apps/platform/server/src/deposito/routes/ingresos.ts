@@ -35,11 +35,6 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
   const producto = await prisma.depositoProducto.findUnique({ where: { id: data.productoId } })
   if (!producto) { invalid(res, 'Producto no encontrado en el catálogo'); return }
   if (producto.estado !== EstadoProductoCatalogo.ACTIVO) { res.status(409).json({ message: 'El producto debe estar activo para registrar ingresos' }); return }
-  if (producto.categoria === 'material_empaque') {
-    res.status(409).json({ message: 'El material de empaque se gestiona por cantidad desde su hoja de inventario' })
-    return
-  }
-
   const materialConMercado = producto.categoria === 'etiqueta' || producto.categoria === 'estuche'
   try {
     validateIngresoCatalogo({
@@ -66,7 +61,9 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
     return
   }
 
-  const loteFinal = data.lote?.trim() || await generarLote()
+  const loteFinal = producto.categoria === 'material_empaque'
+    ? 'SIN-LOTE'
+    : data.lote?.trim() || await generarLote()
   const cantidad = producto.categoria === 'frasco' ? data.cantidadCajas! * data.unidadesPorCaja! : data.cantidad!
   try {
     const currentUser = await prisma.user.findUnique({ where: { id: req.depositoUser!.id }, select: { id: true, name: true } })
@@ -92,6 +89,13 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
         const existing = await tx.inventarioEtiqueta.findUnique({ where: { productoId_mercado: { productoId: producto.id, mercado: data.mercado! } } })
         if (!existing) throw new Error('Falta el inventario inicial del mercado habilitado')
         await tx.inventarioEtiqueta.update({ where: { id: existing.id }, data: { cantidad: { increment: cantidad } } })
+      } else if (producto.categoria === 'material_empaque') {
+        const existing = await tx.inventarioMaterialEmpaque.findUnique({ where: { productoId: producto.id } })
+        if (existing) {
+          await tx.inventarioMaterialEmpaque.update({ where: { id: existing.id }, data: { cantidad: { increment: cantidad } } })
+        } else {
+          await tx.inventarioMaterialEmpaque.create({ data: { productoId: producto.id, articulo: producto.nombreCompleto, cantidad } })
+        }
       } else {
         const existing = await tx.inventarioFrasco.findUnique({ where: { productoId: producto.id } })
         if (existing) {

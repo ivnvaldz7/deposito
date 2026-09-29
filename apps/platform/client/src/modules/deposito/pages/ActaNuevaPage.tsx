@@ -21,7 +21,7 @@ const ingresoSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
   productoId: z.string().uuid('Seleccioná un producto del catálogo'),
   productoNombre: z.string().min(1),
-  categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
+  categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco', 'material_empaque']),
   lote: z.string().max(50).optional(),
   vencimientoMes: z.string().optional(),
   vencimientoAnio: z.string().optional(),
@@ -78,6 +78,7 @@ const CATEGORIAS_ME: { label: string; value: CategoriaProducto }[] = [
   { label: 'Estuche', value: 'estuche' },
   { label: 'Frasco', value: 'frasco' },
   { label: 'Etiqueta', value: 'etiqueta' },
+  { label: 'Material auxiliar', value: 'material_empaque' },
 ]
 
 export default function ActaNuevaPage() {
@@ -94,10 +95,11 @@ export default function ActaNuevaPage() {
   const resolvedCategoria: CategoriaProducto = tipoIngreso === 'MP' ? 'droga' : mercadoCat
   const esME = tipoIngreso === 'ME'
   const frascosQuery = useFrascos()
+  const usaLoteDeReferencia = esME && resolvedCategoria !== 'material_empaque'
   const nextLoteQuery = useQuery({
     queryKey: ['deposito', 'lotes', 'siguiente'],
     queryFn: () => api.get<{ lote: string }>('/lotes/siguiente'),
-    enabled: esME,
+    enabled: usaLoteDeReferencia,
   })
 
   const {
@@ -163,10 +165,10 @@ export default function ActaNuevaPage() {
 
   useEffect(() => {
     const suggestedLote = nextLoteQuery.data?.lote
-    if (esME && suggestedLote && !getValues('lote')) {
+    if (usaLoteDeReferencia && suggestedLote && !getValues('lote')) {
       setValue('lote', suggestedLote, { shouldDirty: false, shouldValidate: true })
     }
-  }, [esME, getValues, nextLoteQuery.data?.lote, resolvedCategoria, setValue])
+  }, [getValues, nextLoteQuery.data?.lote, resolvedCategoria, setValue, usaLoteDeReferencia])
 
   useEffect(() => {
     if (categoria === 'frasco' && productoId) {
@@ -188,7 +190,7 @@ export default function ActaNuevaPage() {
       const acta = await api.post<{ id: string }>('/ingresos', {
         fecha: data.fecha,
         productoId: data.productoId,
-        lote: data.lote?.trim() || undefined,
+        lote: data.categoria === 'material_empaque' ? undefined : data.lote?.trim() || undefined,
         vencimientoMes: data.categoria === 'droga' ? `${data.vencimientoAnio}-${data.vencimientoMes}` : undefined,
         mercado: data.categoria === 'etiqueta' || data.categoria === 'estuche' ? data.mercado : undefined,
         cantidad: data.categoria === 'frasco' 
@@ -298,7 +300,7 @@ export default function ActaNuevaPage() {
                   </div>
 
                   {esME && (
-                    <div className="grid grid-cols-3 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
                       {CATEGORIAS_ME.map((cat) => (
                         <button
                           key={cat.value}
@@ -450,7 +452,7 @@ export default function ActaNuevaPage() {
                     </>
                   )}
 
-                  {esME && (
+                  {usaLoteDeReferencia && (
                     <div className="space-y-1">
                       <label htmlFor="ingreso-lote-sugerido" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                         Lote sugerido

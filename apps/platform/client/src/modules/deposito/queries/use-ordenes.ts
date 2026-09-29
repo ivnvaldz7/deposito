@@ -28,9 +28,10 @@ export const ordenesKeys = {
   list: (filters?: Record<string, string>) => [...ordenesKeys.all, 'list', filters] as const,
 }
 
-export function useOrdenes(filters?: { estado?: string }) {
+export function useOrdenes(filters?: { estado?: string; archivadas?: boolean }) {
   const params = new URLSearchParams()
   if (filters?.estado) params.set('estado', filters.estado)
+  if (filters?.archivadas) params.set('archivadas', 'true')
   const qs = params.toString()
   return useQuery({
     queryKey: ordenesKeys.list(filters),

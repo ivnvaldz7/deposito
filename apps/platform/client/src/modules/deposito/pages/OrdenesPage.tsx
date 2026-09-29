@@ -479,16 +479,17 @@ function FiltroEstado({
 
 import { can } from '@/lib/permissions'
 
-export default function OrdenesPage() {
+export default function OrdenesPage({ archivadas = false }: { archivadas?: boolean }) {
   const user = useAuthStore((s) => s.user)
   const canCreate = can(user, 'deposito', 'ordenes.create')
 
   const [filtroEstado, setFiltroEstado] = useState<EstadoOrden | 'todas'>('todas')
   const [nuevaOrdenOpen, setNuevaOrdenOpen] = useState(false)
 
-  const { data: ordenes = [], isLoading, error } = useOrdenes(
-    filtroEstado !== 'todas' ? { estado: filtroEstado } : undefined
-  )
+  const { data: ordenes = [], isLoading, error } = useOrdenes({
+    ...(filtroEstado !== 'todas' ? { estado: filtroEstado } : {}),
+    ...(archivadas ? { archivadas: true } : {}),
+  })
 
   const urgentes = ordenes.filter((o) => o.urgencia === 'urgente')
   const pendientesAprobacion = ordenes.filter((o) => o.estado === 'solicitada').length
@@ -504,14 +505,14 @@ export default function OrdenesPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="ÓRDENES"
+        title={archivadas ? 'ÓRDENES ARCHIVADAS' : 'ÓRDENES'}
         stats={[
           { label: 'órdenes', value: isLoading ? '...' : ordenes.length },
           { label: 'urgentes', value: isLoading ? '...' : urgentes.length, warning: urgentes.length > 0 && !isLoading },
           { label: 'por aprobar', value: isLoading ? '...' : pendientesAprobacion, warning: pendientesAprobacion > 0 && !isLoading },
         ]}
         primaryAction={
-          canCreate
+          canCreate && !archivadas
             ? {
                 label: 'Nueva orden',
                 onClick: () => setNuevaOrdenOpen(true),
@@ -523,7 +524,7 @@ export default function OrdenesPage() {
         <FiltroEstado value={filtroEstado} onChange={setFiltroEstado} />
       </PageHeader>
 
-      {canCreate ? (
+      {canCreate && !archivadas ? (
         <NuevaOrdenModal
           open={nuevaOrdenOpen}
           onOpenChange={setNuevaOrdenOpen}
@@ -543,8 +544,8 @@ export default function OrdenesPage() {
         <div className="flex items-center justify-center py-20">
           <p className="font-body text-on-surface-variant text-sm">
             {filtroEstado !== 'todas'
-              ? `No hay órdenes en estado "${ESTADO_LABELS[filtroEstado]}".`
-              : 'No hay órdenes registradas.'}
+              ? `No hay órdenes archivadas en estado "${ESTADO_LABELS[filtroEstado]}".`
+              : archivadas ? 'No hay órdenes archivadas.' : 'No hay órdenes registradas.'}
           </p>
         </div>
       ) : (

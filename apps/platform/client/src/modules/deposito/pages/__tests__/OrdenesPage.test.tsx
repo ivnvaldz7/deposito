@@ -54,6 +54,15 @@ describe('OrdenesPage', () => {
     await waitFor(() => expect(screen.getByText('No hay órdenes registradas.')).toBeInTheDocument())
   })
 
+  it('requests and labels the archive view separately', async () => {
+    vi.mocked(api.get).mockResolvedValue([])
+    render(<MemoryRouter><OrdenesPage archivadas /></MemoryRouter>)
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/ordenes?archivadas=true'))
+    expect(screen.getByText('ÓRDENES ARCHIVADAS')).toBeInTheDocument()
+    expect(await screen.findByText('No hay órdenes archivadas.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nueva orden' })).not.toBeInTheDocument()
+  })
+
   it('muestra loading y éxito real al aprobar', async () => {
     vi.mocked(api.get).mockResolvedValue([createOrdenList()[0]])
     let resolveApproval!: (order: unknown) => void
@@ -108,7 +117,7 @@ describe('OrdenesPage', () => {
     expect(screen.queryByPlaceholderText(/Buscá un/)).not.toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Material de Empaque' }))
     fireEvent.click(screen.getByRole('button', { name: 'estuche' }))
-    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/productos?categoria=estuche&activo=true'))
+    await waitFor(() => expect(api.get).toHaveBeenCalledWith('/productos?categoria=estuche&activo=true&incluirStock=true'))
     expect(screen.getByPlaceholderText('Buscá un estuche...')).toBeInTheDocument()
     expect(screen.getByLabelText('Mercado')).toBeInTheDocument()
     expect(screen.getByRole('option', { name: 'Venezuela' })).toBeInTheDocument()

@@ -1,4 +1,4 @@
-export type IngresoCategoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type IngresoCategoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco' | 'material_empaque'
 export type IngresoEstado = 'PENDIENTE_REVISION' | 'ACTIVO' | 'INACTIVO'
 
 export interface IngresoCatalogoInput {
@@ -27,4 +27,7 @@ export function validateIngresoCatalogo(input: IngresoCatalogoInput): void {
   if (input.categoria === 'droga' && !input.vencimiento) throw new Error('El vencimiento es obligatorio para materia prima')
   if (input.categoria === 'droga' && !input.cantidad) throw new Error('La cantidad es obligatoria')
   if (input.categoria === 'frasco' && (!input.cantidadCajas || !input.unidadesPorCaja)) throw new Error('Frasco requiere cantidadCajas y unidadesPorCaja')
+  if (input.categoria === 'material_empaque' && (!Number.isInteger(input.cantidad) || !input.cantidad || input.cantidad <= 0)) {
+    throw new Error('La cantidad entera es obligatoria para material auxiliar')
+  }
 }

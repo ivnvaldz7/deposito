@@ -87,8 +87,21 @@ const mocks = vi.hoisted(() => {
     }),
     findMany: vi.fn(async ({ where, include }: any) => {
       const filtered = state.ordenes.filter((orden) => {
-        if (where?.solicitanteId && orden.solicitanteId !== where.solicitanteId) return false
-        if (where?.estado && orden.estado !== where.estado) return false
+        const clauses = where?.AND ?? [where ?? {}]
+        for (const clause of clauses) {
+          if (clause.solicitanteId && orden.solicitanteId !== clause.solicitanteId) return false
+          if (typeof clause.estado === 'string' && orden.estado !== clause.estado) return false
+          if (clause.estado?.in && !clause.estado.in.includes(orden.estado)) return false
+          if (clause.updatedAt?.lt && !(orden.updatedAt < clause.updatedAt.lt)) return false
+          if (clause.NOT?.AND) {
+            const isOldTerminal = clause.NOT.AND.every((condition: any) => {
+              if (condition.estado?.in) return condition.estado.in.includes(orden.estado)
+              if (condition.updatedAt?.lt) return orden.updatedAt < condition.updatedAt.lt
+              return false
+            })
+            if (isOldTerminal) return false
+          }
+        }
         return true
       })
       return include ? filtered.map(includeOrden) : filtered
@@ -550,6 +563,21 @@ describe('Órdenes de producción críticas', () => {
 
     expect(res.status).toBe(403)
     expect(mocks.prisma.ordenProduccion.findMany).not.toHaveBeenCalled()
+  })
+
+  it('keeps approved and rejected orders in the archive after seven days', async () => {
+    mocks.state.ordenes.push({
+      id: 'orden-antigua', solicitanteId: 'solicitante-1', aprobadoPor: 'encargado-1', productoId: null,
+      categoria: 'estuche', productoNombre: 'ESTUCHE HISTÓRICO', mercado: 'argentina', cantidad: 2,
+      urgencia: 'normal', estado: 'aprobada', motivoRechazo: null,
+      createdAt: new Date('2026-01-01T00:00:00.000Z'), updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+    })
+
+    const active = await request(app).get('/api/ordenes').set('x-test-role', 'encargado')
+    const archived = await request(app).get('/api/ordenes?archivadas=true').set('x-test-role', 'encargado')
+
+    expect(active.body.map((orden: { id: string }) => orden.id)).not.toContain('orden-antigua')
+    expect(archived.body.map((orden: { id: string }) => orden.id)).toContain('orden-antigua')
   })
 
   it('ejecuta ordenes.read antes de consultar el detalle', async () => {

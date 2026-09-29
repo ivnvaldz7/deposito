@@ -7,7 +7,7 @@ import { compareProductsByNaturalPresentation, sortProductsByNaturalPresentation
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco' | 'material_empaque'
 
 export interface Producto {
   id: string
@@ -42,6 +42,7 @@ const PLACEHOLDERS: Record<CategoriaProducto, string> = {
   estuche:  'Buscá un estuche del catálogo...',
   etiqueta: 'Buscá una etiqueta del catálogo...',
   frasco:   'Buscá un frasco del catálogo...',
+  material_empaque: 'Buscá un material auxiliar del catálogo...',
 }
 
 export const MARKET_ABBR: Record<string, string> = {

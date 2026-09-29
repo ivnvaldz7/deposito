@@ -41,6 +41,7 @@ export function Sidebar() {
     ...navItems,
     { path: '/deposito/pendientes', label: 'Pendientes', icon: ArrowLeftRight },
     { path: '/deposito/ordenes', label: 'Órdenes', icon: BookOpen },
+    { path: '/deposito/ordenes/archivadas', label: 'Órdenes archivadas', icon: BookOpen },
     { path: '/deposito/metricas', label: 'Métricas', icon: BarChart2 },
   ]
 
@@ -58,6 +59,7 @@ export function Sidebar() {
       case '/deposito/movimientos': return can(user, 'deposito', 'movimientos.read')
       case '/deposito/pendientes': return can(user, 'deposito', 'pendientes.read')
       case '/deposito/ordenes': return can(user, 'deposito', 'ordenes.read')
+      case '/deposito/ordenes/archivadas': return can(user, 'deposito', 'ordenes.read')
       case '/deposito/metricas': return can(user, 'deposito', 'metricas.read')
       default: return true
     }
