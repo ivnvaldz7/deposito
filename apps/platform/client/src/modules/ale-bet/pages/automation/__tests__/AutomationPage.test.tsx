@@ -272,6 +272,42 @@ describe('AutomationPage', () => {
       })
     })
 
+    it('exige elegir una presentación configurada y envía solo el destino elegido', async () => {
+      vi.mocked(useDraft).mockReturnValue({
+        data: {
+          draft: { id: 'd1', estado: 'DRAFT', version: 1 },
+          effectiveSnapshot: {
+            customerCandidate: { customerId: 'c1', nombre: 'Cliente 1' },
+            lines: [{
+              lineId: 'line-amino', originalText: '12 AMINOÁCIDOS 1 L', productCandidate: { productId: 'p1' },
+              warnings: ['PRESENTATION_REQUIRED'], requiresReview: true, lineState: 'NEEDS_REVIEW',
+              quantity: { totalUnits: 12, mode: 'UNITS' },
+            }],
+            warnings: [], requiresReview: true,
+          },
+          presentationOptions: [
+            { sourceProductId: 'p1', targetProductId: 'p-aves', label: 'Aves', targetProductName: 'AMINOÁCIDOS 1 L AVES' },
+            { sourceProductId: 'p1', targetProductId: 'p-equino', label: 'Equino', targetProductName: 'AMINOÁCIDOS 1 L EQUINO' },
+            { sourceProductId: 'p1', targetProductId: 'p-cerdos', label: 'Cerdos', targetProductName: 'AMINOÁCIDOS 1 L CERDOS' },
+          ],
+          availability: [],
+        },
+        refetch: vi.fn(),
+      } as never)
+
+      const user = userEvent.setup()
+      renderComponent()
+      await triggerDraftCreation(user)
+
+      expect(await screen.findByText('Preparar como')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Confirmar pedido' })).toBeDisabled()
+      await user.click(screen.getByRole('button', { name: 'Equino' }))
+      await waitFor(() => expect(updateDraftMock).toHaveBeenCalledWith({
+        id: 'd1',
+        data: { expectedVersion: 1, line: { lineId: 'line-amino', presentationProductId: 'p-equino' } },
+      }))
+    })
+
     it('muestra que no quedan productos cuando todas las líneas fueron desestimadas', async () => {
       vi.mocked(useDraft).mockReturnValue({
         data: {

@@ -138,6 +138,61 @@ describe('AUTOMATION-01 Slice 1', () => {
     return { auth: `Bearer ${adminToken()}`, customer, product100, product250 }
   }
 
+  async function seedPresentationProduct() {
+    const suffix = crypto.randomUUID()
+    const customer = await prisma.cliente.create({ data: { nombre: `Veterinaria Presentación ${suffix}`, cuit: '30-12345678-9', condicionIva: 'RI', direccion: 'Ruta 2 km 50' } })
+    const source = await prisma.producto.create({ data: { nombre: 'AMINOÁCIDOS 1 L', sku: `AMINO-BASE-${suffix}`, unidadesPorCaja: 12 } })
+    const aves = await prisma.producto.create({ data: { nombre: 'AMINOÁCIDOS 1 L AVES', sku: `AMINO-AVES-${suffix}`, unidadesPorCaja: 12 } })
+    const equino = await prisma.producto.create({ data: { nombre: 'AMINOÁCIDOS 1 L EQUINO', sku: `AMINO-EQUINO-${suffix}`, unidadesPorCaja: 12 } })
+    await prisma.productoTransferRule.createMany({ data: [
+      { sourceProductId: source.id, targetProductId: aves.id, label: 'Aves', tipo: 'PRESENTATION', orden: 1 },
+      { sourceProductId: source.id, targetProductId: equino.id, label: 'Equino', tipo: 'PRESENTATION', orden: 2 },
+    ] })
+    const deposito = await prisma.ubicacionStock.create({ data: { codigo: 'DEPOSITO', nombre: 'Depósito' } })
+    const lote = await prisma.lote.create({ data: { numero: `AMINO-EQUINO-${suffix}`, productoId: equino.id, cajas: 2, fechaVencimiento: new Date(Date.now() + 86_400_000) } })
+    await prisma.saldoStock.create({ data: { productoId: equino.id, loteId: lote.id, ubicacionId: deposito.id, cantidad: 24 } })
+    return { auth: `Bearer ${adminToken()}`, customer, source, aves, equino, lote, deposito }
+  }
+
+  it('exige elegir la presentación configurada y descuenta el destino seleccionado', async () => {
+    const fixture = await seedPresentationProduct()
+    const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', fixture.auth)
+      .send({ originalText: '12 AMINOÁCIDOS 1 L' }).expect(201)
+    expect(created.body.estado).toBe('DRAFT')
+
+    const customer = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: created.body.version, clienteId: fixture.customer.id }).expect(200)
+    const reviewed = await getEffective(created.body.id, fixture.auth)
+    const line = reviewed.effectiveSnapshot.lines[0]
+    expect(line).toMatchObject({ productCandidate: { productId: fixture.source.id }, requiresReview: true, warnings: ['PRESENTATION_REQUIRED'] })
+    expect(reviewed.presentationOptions).toEqual([
+      expect.objectContaining({ sourceProductId: fixture.source.id, targetProductId: fixture.aves.id, label: 'Aves' }),
+      expect.objectContaining({ sourceProductId: fixture.source.id, targetProductId: fixture.equino.id, label: 'Equino' }),
+    ])
+
+    await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: customer.body.version, line: { lineId: line.lineId, productId: fixture.source.id, unidades: 12 } })
+      .expect(409)
+
+    const selected = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: customer.body.version, line: { lineId: line.lineId, presentationProductId: fixture.equino.id } })
+      .expect(200)
+    const ready = await getEffective(created.body.id, fixture.auth)
+    expect(selected.body.estado).toBe('READY')
+    expect(ready.effectiveSnapshot.lines[0]).toMatchObject({
+      productCandidate: { productId: fixture.equino.id },
+      requiresReview: false,
+      warnings: [],
+      quantity: { totalUnits: 12 },
+    })
+    expect(ready.availability).toEqual([expect.objectContaining({ productId: fixture.equino.id, requestedUnits: 12, status: 'DISPONIBLE' })])
+
+    const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${created.body.id}/confirm`).set('Authorization', fixture.auth)
+      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: selected.body.version }).expect(200)
+    expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.equino.id, cantidad: 12 })])
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.equino.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })).cantidad).toBe(12)
+  })
+
   it('A: corregir cliente conserva el producto unresolved', async () => {
     const fixture = await createPartialDraft()
     await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)

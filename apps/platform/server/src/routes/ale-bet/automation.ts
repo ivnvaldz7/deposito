@@ -17,6 +17,7 @@ const editSchema = z.object({
     lineId: z.string().min(1),
     action: z.enum(['DISCARD', 'RESTORE']).optional(),
     productId: z.string().min(1).optional(),
+    presentationProductId: z.string().min(1).optional(),
     cajas: z.number().int().nonnegative().optional(),
     unidades: z.number().int().nonnegative().optional(),
     mode: z.enum(['BOXES', 'UNITS', 'MIXED']).optional(),

@@ -68,6 +68,11 @@ function isNeedsReviewLine(line: any): boolean {
   return !isDiscardedLine(line) && !isValidIncludedLine(line)
 }
 
+function reviewWarningText(warning: string): string {
+  if (warning === 'PRESENTATION_REQUIRED') return 'Elegí la presentación antes de confirmar el pedido.'
+  return warning
+}
+
 function InlineCreateClientModal({
   open,
   onClose,
@@ -272,6 +277,7 @@ export default function AutomationPage() {
     const needsReviewLines = includedLines.filter((line: any) => isNeedsReviewLine(line))
     const customer = effectiveSnapshot.customerCandidate
     const resolvedCustomer = customer ? clientes.find(c => c.id === customer.customerId) : null
+    const presentationOptions = draftData.presentationOptions ?? []
 
     const handleEditCustomer = async (c: Cliente, rememberAlias: boolean): Promise<boolean> => {
       setIsProcessing(true)
@@ -346,6 +352,25 @@ export default function AutomationPage() {
       } catch (error) {
         if (error instanceof Error && error.message.includes('versión')) refetchDraft()
         toast.error(error instanceof Error ? error.message : 'No se pudo actualizar la línea')
+      } finally {
+        setIsProcessing(false)
+      }
+    }
+
+    const handleChoosePresentation = async (line: any, presentationProductId: string) => {
+      setIsProcessing(true)
+      setConfirmError(null)
+      try {
+        await updateDraft.mutateAsync({
+          id: draft.id,
+          data: {
+            expectedVersion: draft.version,
+            line: { lineId: line.lineId, presentationProductId },
+          },
+        })
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('versión')) refetchDraft()
+        toast.error(error instanceof Error ? error.message : 'No se pudo elegir la presentación')
       } finally {
         setIsProcessing(false)
       }
@@ -458,6 +483,10 @@ export default function AutomationPage() {
                 const isWarning = line.requiresReview || line.warnings.length > 0 || !line.productCandidate
                 const product = line.productCandidate ? productos.find(p => p.id === line.productCandidate.productId) : null
                 const avail = line.productCandidate ? availability.find((a: any) => a.productId === line.productCandidate.productId) : null
+                const linePresentationOptions = line.productCandidate
+                  ? presentationOptions.filter((option: any) => option.sourceProductId === line.productCandidate.productId)
+                  : []
+                const needsPresentation = line.warnings.includes('PRESENTATION_REQUIRED') && linePresentationOptions.length > 0
 
                 return (
                   <div key={index} className={cn("rounded-xl border bg-surface-container p-4", isWarning ? "border-[#D5B4B5]" : "border-white/10")}>
@@ -529,28 +558,52 @@ export default function AutomationPage() {
 
                     {line.warnings && line.warnings.length > 0 && (
                       <ul className="mb-3 list-disc pl-4 text-xs" style={{ color: '#A06869' }}>
-                        {line.warnings.map((w: string, idx: number) => <li key={idx}>{w}</li>)}
+                        {line.warnings.map((w: string, idx: number) => <li key={idx}>{reviewWarningText(w)}</li>)}
                       </ul>
                     )}
                     {product && (
                       <div className="mt-4 border-t border-white/5 pt-4">
-                        <AutomationQuantityEditor
-                          cajas={line.quantity.normalizedBoxes ?? 0}
-                          sueltos={line.quantity.normalizedLooseUnits ?? (line.quantity.totalUnits ?? 0)}
-                          unidadesPorCaja={product.unidadesPorCaja}
-                          totalUnits={line.quantity.totalUnits ?? 0}
-                          originalExpression={line.quantity.originalExpression}
-                          onChange={(c, s) => handleChangeQuantity(index, c, s)}
-                        />
-                        {avail && (
-                          
-                          <div className={cn("mt-3 text-[13px]", avail.status === 'INSUFICIENTE' ? "text-error" : "text-[#5A7A5A]")}>
-                            {avail.status === 'INSUFICIENTE' ? (
-                              <span>⚠ Sin stock ({avail.availableUnits} disponibles)</span>
-                            ) : (
-                              <span>✓ Disponible: {avail.availableUnits} unidades</span>
-                            )}
+                        {needsPresentation ? (
+                          <div className="space-y-3" aria-label={`Presentación de ${product.nombre}`}>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wider text-outline">Preparar como</p>
+                              <p className="mt-1 text-sm text-on-surface-variant">Elegí la presentación que se entregará. La cantidad pedida se conserva.</p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {linePresentationOptions.map((option: any) => (
+                                <Button
+                                  key={option.targetProductId}
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => void handleChoosePresentation(line, option.targetProductId)}
+                                >
+                                  {option.label}
+                                </Button>
+                              ))}
+                            </div>
+                            <p className="text-xs text-outline">Después se verificará el stock de la presentación elegida.</p>
                           </div>
+                        ) : (
+                          <>
+                            <AutomationQuantityEditor
+                              cajas={line.quantity.normalizedBoxes ?? 0}
+                              sueltos={line.quantity.normalizedLooseUnits ?? (line.quantity.totalUnits ?? 0)}
+                              unidadesPorCaja={product.unidadesPorCaja}
+                              totalUnits={line.quantity.totalUnits ?? 0}
+                              originalExpression={line.quantity.originalExpression}
+                              onChange={(c, s) => handleChangeQuantity(index, c, s)}
+                            />
+                            {avail && (
+                          
+                              <div className={cn("mt-3 text-[13px]", avail.status === 'INSUFICIENTE' ? "text-error" : "text-[#5A7A5A]")}>
+                                {avail.status === 'INSUFICIENTE' ? (
+                                  <span>⚠ Sin stock ({avail.availableUnits} disponibles)</span>
+                                ) : (
+                                  <span>✓ Disponible: {avail.availableUnits} unidades</span>
+                                )}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     )}

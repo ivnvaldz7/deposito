@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { Prisma, platformDb as prisma } from '@platform/db'
+import { Prisma, TipoReglaTransferenciaProducto, platformDb as prisma } from '@platform/db'
 import { descomponerUnidades } from '../constants'
 import { getProductAvailability } from '../inventory-service'
 import { consumeActiveReservations, reserveFefo, StockConflictError } from '../reservas-service'
@@ -13,6 +13,7 @@ type DraftLineEdit = {
   lineId: string
   action?: 'DISCARD' | 'RESTORE'
   productId?: string
+  presentationProductId?: string
   cajas?: number
   unidades?: number
   mode?: 'BOXES' | 'UNITS' | 'MIXED'
@@ -23,6 +24,15 @@ type DraftLineEdit = {
 // replacement snapshot.
 type LegacyDraftLineInput = { productId: string; cajas?: number; unidades?: number; mode?: 'BOXES' | 'UNITS' | 'MIXED'; rememberAlias?: boolean }
 type DraftEditInput = { clienteId?: string; rememberClientAlias?: boolean; line?: DraftLineEdit; lines?: LegacyDraftLineInput[] }
+
+export type PresentationOption = {
+  sourceProductId: string
+  targetProductId: string
+  label: string
+  targetProductName: string
+}
+
+const PRESENTATION_REQUIRED = 'PRESENTATION_REQUIRED'
 
 function json(value: unknown): Prisma.InputJsonValue { return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue }
 function parsed(value: Prisma.JsonValue): ParsedOrder { return JSON.parse(JSON.stringify(value)) as ParsedOrder }
@@ -39,11 +49,15 @@ function assertQuantity(value: number | undefined, field: string): number {
 }
 
 export async function interpretAndPersistDraft(originalText: string, actorId: string, inspectCatalog?: (products: MatchProduct[]) => void) {
-  const [products, customers, productAliases, clientAliases] = await Promise.all([
+  const [products, customers, productAliases, clientAliases, presentationRules] = await Promise.all([
     prisma.producto.findMany({ where: { activo: true }, select: { id: true, nombre: true, sku: true, unidadesPorCaja: true } }),
     prisma.cliente.findMany({ where: { activo: true }, select: { id: true, nombre: true } }),
     prisma.productAlias.findMany(),
-    prisma.clientAlias.findMany()
+    prisma.clientAlias.findMany(),
+    prisma.productoTransferRule.findMany({
+      where: { activo: true, tipo: TipoReglaTransferenciaProducto.PRESENTATION, targetProduct: { activo: true } },
+      select: { sourceProductId: true },
+    }),
   ])
   const mappedProducts: MatchProduct[] = products.map((p) => ({
     ...p,
@@ -60,7 +74,10 @@ export async function interpretAndPersistDraft(originalText: string, actorId: st
     ...c,
     aliases: clientAliases.filter((a) => a.clientId === c.id).map((a) => a.alias)
   }))
-  const proposal = interpretOrder(originalText, mappedProducts, mappedCustomers)
+  const proposal = requirePresentationSelection(
+    interpretOrder(originalText, mappedProducts, mappedCustomers),
+    new Set(presentationRules.map((rule) => rule.sourceProductId)),
+  )
   inspectCatalog?.(mappedProducts)
   return prisma.orderInterpretationDraft.create({
     data: { originalText, proposedSnapshot: json(proposal), estado: proposal.requiresReview || !hasIncludedValidLine(proposal) ? 'DRAFT' : 'READY', createdBy: actorId },
@@ -111,6 +128,68 @@ function refreshReviewState(snapshot: ParsedOrder): ParsedOrder {
     requiresReview:
       snapshot.warnings.some((warning) => !HISTORICAL_LINE_WARNING_CODES.has(warning)) ||
       includedLines(snapshot).some((line) => lineState(line) === 'NEEDS_REVIEW'),
+  }
+}
+
+function requirePresentationSelection(snapshot: ParsedOrder, sourceProductIds: ReadonlySet<string>): ParsedOrder {
+  let requiresReview = snapshot.requiresReview
+  const lines = snapshot.lines.map((line) => {
+    if (
+      line.lineState === 'DISCARDED' ||
+      !line.productCandidate ||
+      !sourceProductIds.has(line.productCandidate.productId) ||
+      line.warnings.includes(PRESENTATION_REQUIRED)
+    ) return line
+
+    requiresReview = true
+    return {
+      ...line,
+      requiresReview: true,
+      lineState: 'NEEDS_REVIEW' as const,
+      warnings: [...line.warnings, PRESENTATION_REQUIRED],
+    }
+  })
+  return { ...snapshot, lines, requiresReview }
+}
+
+async function presentationOptionsForSnapshot(
+  tx: Prisma.TransactionClient | typeof prisma,
+  snapshot: ParsedOrder,
+): Promise<PresentationOption[]> {
+  const sourceProductIds = [...new Set(snapshot.lines.flatMap((line) => line.productCandidate ? [line.productCandidate.productId] : []))]
+  if (sourceProductIds.length === 0) return []
+
+  const rules = await tx.productoTransferRule.findMany({
+    where: {
+      sourceProductId: { in: sourceProductIds },
+      tipo: TipoReglaTransferenciaProducto.PRESENTATION,
+      activo: true,
+      targetProduct: { activo: true },
+    },
+    select: {
+      sourceProductId: true,
+      targetProductId: true,
+      label: true,
+      targetProduct: { select: { nombre: true } },
+    },
+    orderBy: [{ sourceProductId: 'asc' }, { orden: 'asc' }, { label: 'asc' }],
+  })
+  return rules.map((rule) => ({
+    sourceProductId: rule.sourceProductId,
+    targetProductId: rule.targetProductId,
+    label: rule.label,
+    targetProductName: rule.targetProduct.nombre,
+  }))
+}
+
+async function withPresentationRequirements(
+  tx: Prisma.TransactionClient | typeof prisma,
+  snapshot: ParsedOrder,
+): Promise<{ snapshot: ParsedOrder; presentationOptions: PresentationOption[] }> {
+  const presentationOptions = await presentationOptionsForSnapshot(tx, snapshot)
+  return {
+    snapshot: requirePresentationSelection(snapshot, new Set(presentationOptions.map((option) => option.sourceProductId))),
+    presentationOptions,
   }
 }
 
@@ -175,16 +254,29 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
             }
         edited = { ...edited, lines }
       } else {
-      const productId = input.line.productId ?? currentLine.productCandidate?.productId
+      const sourceProductId = currentLine.productCandidate?.productId
+      const presentationOptions = sourceProductId
+        ? await presentationOptionsForSnapshot(tx, { ...source, lines: [currentLine] })
+        : []
+      if (presentationOptions.length > 0 && !input.line.presentationProductId) {
+        throw new AutomationConflictError('Elegí una presentación antes de continuar con este producto')
+      }
+      if (input.line.presentationProductId && !presentationOptions.some((option) => option.targetProductId === input.line!.presentationProductId)) {
+        throw new AutomationConflictError('La presentación elegida no está configurada para este producto')
+      }
+      const selectingPresentation = Boolean(input.line.presentationProductId)
+      const productId = input.line.presentationProductId ?? input.line.productId ?? currentLine.productCandidate?.productId
       if (!productId) throw new AutomationConflictError('Seleccioná un producto para esta línea')
       const product = await tx.producto.findFirst({ where: { id: productId, activo: true } })
       if (!product) throw new AutomationConflictError('El producto no existe o está inactivo')
-      const cajas = assertQuantity(input.line.cajas ?? currentLine.quantity.explicitBoxes ?? 0, 'cajas')
-      const unidades = assertQuantity(input.line.unidades ?? currentLine.quantity.explicitUnits ?? 0, 'unidades')
+      // A presentation changes the SKU, never the number requested by the customer.
+      // Rebuild its box/loose representation using the destination's box size.
+      const cajas = assertQuantity(selectingPresentation ? 0 : input.line.cajas ?? currentLine.quantity.explicitBoxes ?? 0, 'cajas')
+      const unidades = assertQuantity(selectingPresentation ? currentLine.quantity.totalUnits ?? 0 : input.line.unidades ?? currentLine.quantity.explicitUnits ?? 0, 'unidades')
       const totalUnits = cajas * product.unidadesPorCaja + unidades
       if (totalUnits <= 0) throw new AutomationConflictError('Cada línea debe solicitar al menos una unidad')
       const normalized = descomponerUnidades(totalUnits, product.unidadesPorCaja)
-      const mode = input.line.mode ?? currentLine.quantity.mode ?? (cajas > 0 && unidades > 0 ? 'MIXED' : cajas > 0 ? 'BOXES' : 'UNITS')
+      const mode = selectingPresentation ? 'UNITS' : input.line.mode ?? currentLine.quantity.mode ?? (cajas > 0 && unidades > 0 ? 'MIXED' : cajas > 0 ? 'BOXES' : 'UNITS')
       const { extractQuantityAndProduct } = await import('./interpreter')
       const parsedLine = extractQuantityAndProduct(currentLine.originalText)
       if (input.line.rememberAlias && parsedLine.productText) {
@@ -246,7 +338,13 @@ export async function getDraftAvailability(snapshot: ParsedOrder) {
 export async function getDraft(id: string) {
   const draft = await prisma.orderInterpretationDraft.findUnique({ where: { id } })
   if (!draft) throw new AutomationNotFoundError('Borrador de interpretación no encontrado')
-  return { draft, effectiveSnapshot: effectiveSnapshot(draft), availability: await getDraftAvailability(effectiveSnapshot(draft)) }
+  const presentation = await withPresentationRequirements(prisma, effectiveSnapshot(draft))
+  return {
+    draft,
+    effectiveSnapshot: presentation.snapshot,
+    presentationOptions: presentation.presentationOptions,
+    availability: await getDraftAvailability(presentation.snapshot),
+  }
 }
 
 function consolidate(snapshot: ParsedOrder): Array<{ productId: string; cantidad: number }> {
@@ -265,7 +363,8 @@ export async function confirmDraftInTransaction(tx: Prisma.TransactionClient, in
   if (!draft) throw new AutomationNotFoundError('Borrador de interpretación no encontrado')
   if (draft.estado !== 'READY') throw new AutomationConflictError('El borrador debe estar READY antes de confirmar')
   if (draft.version !== input.expectedVersion) throw new AutomationConflictError('La versión del borrador cambió; actualizá antes de confirmar')
-  const snapshot = effectiveSnapshot(draft)
+  const presentation = await withPresentationRequirements(tx, effectiveSnapshot(draft))
+  const snapshot = presentation.snapshot
   if (!snapshot.customerCandidate || snapshot.requiresReview) throw new AutomationConflictError('Cliente o líneas pendientes de revisión')
   const items = consolidate(snapshot)
   const [customer, products] = await Promise.all([
