@@ -35,6 +35,7 @@ const PRODUCTOS_MOCK = [
   { id: UUID_A, nombreBase: 'AMOXICILINA', volumen: '500', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'AMOXICILINA 500 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
   { id: UUID_B, nombreBase: 'VITAMINA B12', volumen: '100', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'VITAMINA B12 100 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
   { id: '550e8400-e29b-41d4-a716-446655440002', nombreBase: 'CAJA N°1', volumen: null, unidad: 'UN', variante: null, categoria: 'material_empaque', nombreCompleto: 'CAJA N°1', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
+  { id: '550e8400-e29b-41d4-a716-446655440003', nombreBase: 'TAPA VERDE', volumen: null, unidad: 'UN', variante: null, categoria: 'material_empaque', nombreCompleto: 'TAPA VERDE', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -136,6 +137,19 @@ describe('ActaNuevaPage', () => {
     await waitFor(() => expect(screen.getByPlaceholderText('Buscá un material auxiliar del catálogo...')).toBeInTheDocument())
     expect(screen.queryByLabelText('Mercado *')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Lote sugerido')).not.toBeInTheDocument()
+  })
+
+  it('requires a lot reference after selecting a tapa or prospecto', async () => {
+    render(<ActaNuevaPage />)
+    fireEvent.click(screen.getByText('Material de Empaque'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Material auxiliar' }))
+    const productoInput = await screen.findByPlaceholderText('Buscá un material auxiliar del catálogo...')
+    fireEvent.focus(productoInput)
+    fireEvent.change(productoInput, { target: { value: 'TAPA VERDE' } })
+    fireEvent.mouseDown(await screen.findByText('TAPA VERDE'))
+
+    expect(await screen.findByLabelText(/Lote/)).toHaveValue('500')
+    expect(screen.getByText('El lote es obligatorio para Tapas y Prospectos.')).toBeInTheDocument()
   })
 
   it('switches subcategories in ME mode and updates placeholder', async () => {

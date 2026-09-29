@@ -124,4 +124,24 @@ describe('POST /api/deposito/ingresos', () => {
       data: expect.objectContaining({ lote: 'SIN-LOTE', mercado: null, cantidadIngresada: 24 }),
     }))
   })
+
+  it('requires and persists the lote for tapas and prospectos', async () => {
+    mocks.prisma.depositoProducto.findUnique.mockResolvedValueOnce({
+      id: validPayload.productoId,
+      categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], nombreCompleto: 'TAPA VERDE',
+    })
+
+    const missingLote = await request(app).post('/api/deposito/ingresos').send({ fecha: validPayload.fecha, productoId: validPayload.productoId, cantidad: 10 })
+    expect(missingLote.status).toBe(400)
+    expect(missingLote.body.message).toContain('lote')
+
+    mocks.prisma.depositoProducto.findUnique.mockResolvedValueOnce({
+      id: validPayload.productoId,
+      categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], nombreCompleto: 'TAPA VERDE',
+    })
+    const withLote = await request(app).post('/api/deposito/ingresos').send({ fecha: validPayload.fecha, productoId: validPayload.productoId, lote: '3500', cantidad: 10 })
+    expect(withLote.status).toBe(201)
+    expect(mocks.tx.actaItem.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ lote: '3500' }) }))
+    expect(mocks.tx.movimiento.create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ lote: '3500' }) }))
+  })
 })

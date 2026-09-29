@@ -61,6 +61,10 @@ const ingresoSchema = z.object({
     if (!positiveInteger(value.cantidad)) ctx.addIssue({ code: 'custom', path: ['cantidad'], message: 'La cantidad es obligatoria y debe ser un número entero' })
   }
 
+  if (value.categoria === 'material_empaque' && materialEmpaqueRequiereLote(value.productoNombre) && !value.lote?.trim()) {
+    ctx.addIssue({ code: 'custom', path: ['lote'], message: 'El lote es obligatorio para Tapas y Prospectos' })
+  }
+
   if ((value.categoria === 'etiqueta' || value.categoria === 'estuche') && !value.mercado) {
     ctx.addIssue({ code: 'custom', path: ['mercado'], message: 'El mercado es obligatorio' })
   }
@@ -81,6 +85,10 @@ const CATEGORIAS_ME: { label: string; value: CategoriaProducto }[] = [
   { label: 'Material auxiliar', value: 'material_empaque' },
 ]
 
+function materialEmpaqueRequiereLote(nombre: string): boolean {
+  return /^(TAPA|PROSPECTO)\b/i.test(nombre.trim())
+}
+
 export default function ActaNuevaPage() {
   const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
@@ -95,12 +103,6 @@ export default function ActaNuevaPage() {
   const resolvedCategoria: CategoriaProducto = tipoIngreso === 'MP' ? 'droga' : mercadoCat
   const esME = tipoIngreso === 'ME'
   const frascosQuery = useFrascos()
-  const usaLoteDeReferencia = esME && resolvedCategoria !== 'material_empaque'
-  const nextLoteQuery = useQuery({
-    queryKey: ['deposito', 'lotes', 'siguiente'],
-    queryFn: () => api.get<{ lote: string }>('/lotes/siguiente'),
-    enabled: usaLoteDeReferencia,
-  })
 
   const {
     register,
@@ -138,6 +140,13 @@ export default function ActaNuevaPage() {
   const cantidadCajas = Number(useWatch({ control, name: 'cantidadCajas' })) || 0
   const unidadesPorCaja = Number(useWatch({ control, name: 'unidadesPorCaja' })) || 0
   const cantidadManual = Number(useWatch({ control, name: 'cantidad' })) || 0
+  const requiereLoteMaterial = resolvedCategoria === 'material_empaque' && materialEmpaqueRequiereLote(productoNombre)
+  const usaLoteDeReferencia = esME && (resolvedCategoria !== 'material_empaque' || requiereLoteMaterial)
+  const nextLoteQuery = useQuery({
+    queryKey: ['deposito', 'lotes', 'siguiente'],
+    queryFn: () => api.get<{ lote: string }>('/lotes/siguiente'),
+    enabled: usaLoteDeReferencia,
+  })
   
   const currentYear = new Date().getUTCFullYear()
   const currentMonth = new Date().getUTCMonth() + 1
@@ -190,7 +199,7 @@ export default function ActaNuevaPage() {
       const acta = await api.post<{ id: string }>('/ingresos', {
         fecha: data.fecha,
         productoId: data.productoId,
-        lote: data.categoria === 'material_empaque' ? undefined : data.lote?.trim() || undefined,
+        lote: data.lote?.trim() || undefined,
         vencimientoMes: data.categoria === 'droga' ? `${data.vencimientoAnio}-${data.vencimientoMes}` : undefined,
         mercado: data.categoria === 'etiqueta' || data.categoria === 'estuche' ? data.mercado : undefined,
         cantidad: data.categoria === 'frasco' 
@@ -455,7 +464,7 @@ export default function ActaNuevaPage() {
                   {usaLoteDeReferencia && (
                     <div className="space-y-1">
                       <label htmlFor="ingreso-lote-sugerido" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
-                        Lote sugerido
+                        {requiereLoteMaterial ? <>Lote <span className="text-error">*</span></> : 'Lote sugerido'}
                       </label>
                       <div className="relative">
                         <Hash size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant opacity-50" />
@@ -467,7 +476,7 @@ export default function ActaNuevaPage() {
                           {...register('lote')}
                         />
                       </div>
-                      <p className="font-body text-xs text-on-surface-variant/60">Podés editarlo para indicar desde qué número comienza la referencia. Si lo dejás vacío, se asignará el correlativo disponible.</p>
+                      <p className="font-body text-xs text-on-surface-variant/60">{requiereLoteMaterial ? 'El lote es obligatorio para Tapas y Prospectos.' : 'Podés editarlo para indicar desde qué número comienza la referencia. Si lo dejás vacío, se asignará el correlativo disponible.'}</p>
                       {errors.lote && <p className="font-body text-error text-xs">{errors.lote.message}</p>}
                     </div>
                   )}

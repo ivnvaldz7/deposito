@@ -14,6 +14,10 @@ import { ExpiryMonthValidationError, parseExpiryMonth } from '../services/expiry
 const router = Router()
 const mercados = Object.values(Mercado) as [Mercado, ...Mercado[]]
 
+function materialEmpaqueRequiereLote(nombre: string): boolean {
+  return /^(TAPA|PROSPECTO)\b/i.test(nombre.trim())
+}
+
 const crearIngresoSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
   productoId: z.string().uuid(),
@@ -36,6 +40,7 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
   if (!producto) { invalid(res, 'Producto no encontrado en el catálogo'); return }
   if (producto.estado !== EstadoProductoCatalogo.ACTIVO) { res.status(409).json({ message: 'El producto debe estar activo para registrar ingresos' }); return }
   const materialConMercado = producto.categoria === 'etiqueta' || producto.categoria === 'estuche'
+  const requiereLoteMaterial = producto.categoria === 'material_empaque' && materialEmpaqueRequiereLote(producto.nombreCompleto)
   try {
     validateIngresoCatalogo({
       categoria: producto.categoria,
@@ -47,6 +52,7 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
       unidadesPorCaja: data.unidadesPorCaja,
       lote: data.lote,
       vencimiento: data.vencimientoMes,
+      requiereLote: requiereLoteMaterial,
     })
   } catch (error) {
     invalid(res, error instanceof Error ? error.message : 'Datos de ingreso inválidos')
@@ -61,9 +67,8 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
     return
   }
 
-  const loteFinal = producto.categoria === 'material_empaque'
-    ? 'SIN-LOTE'
-    : data.lote?.trim() || await generarLote()
+  const loteFinal = data.lote?.trim()
+    || (producto.categoria === 'material_empaque' ? 'SIN-LOTE' : await generarLote())
   const cantidad = producto.categoria === 'frasco' ? data.cantidadCajas! * data.unidadesPorCaja! : data.cantidad!
   try {
     const currentUser = await prisma.user.findUnique({ where: { id: req.depositoUser!.id }, select: { id: true, name: true } })
@@ -104,7 +109,7 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
         } else await tx.inventarioFrasco.create({ data: { productoId: producto.id, articulo: producto.nombreCompleto, unidadesPorCaja: data.unidadesPorCaja!, cantidadCajas: data.cantidadCajas!, total: cantidad } })
       }
       await tx.acta.update({ where: { id: actaRecord.id }, data: { estado: 'completada' } })
-      await tx.movimiento.create({ data: { tipo: 'ingreso_acta', categoria: producto.categoria, productoNombre: producto.nombreCompleto, lote: producto.categoria === 'droga' ? loteFinal : null, cantidad, referenciaId: item.id, referenciaTipo: 'acta_item', createdBy: currentUser.id } })
+      await tx.movimiento.create({ data: { tipo: 'ingreso_acta', categoria: producto.categoria, productoNombre: producto.nombreCompleto, lote: producto.categoria === 'droga' || requiereLoteMaterial ? loteFinal : null, cantidad, referenciaId: item.id, referenciaTipo: 'acta_item', createdBy: currentUser.id } })
       return actaRecord
     })
     sseManager.broadcastGlobal({ tipo: 'ingreso_creado', mensaje: `Nuevo ingreso de ${producto.nombreCompleto} por ${currentUser.name}`, datos: { actaId: acta.id, fecha: data.fecha, producto: producto.nombreCompleto, cantidad }, timestamp: new Date().toISOString() })

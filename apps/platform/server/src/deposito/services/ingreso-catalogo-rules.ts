@@ -11,6 +11,7 @@ export interface IngresoCatalogoInput {
   unidadesPorCaja?: number
   lote?: string
   vencimiento?: string
+  requiereLote?: boolean
 }
 
 export function validateIngresoCatalogo(input: IngresoCatalogoInput): void {
@@ -29,5 +30,8 @@ export function validateIngresoCatalogo(input: IngresoCatalogoInput): void {
   if (input.categoria === 'frasco' && (!input.cantidadCajas || !input.unidadesPorCaja)) throw new Error('Frasco requiere cantidadCajas y unidadesPorCaja')
   if (input.categoria === 'material_empaque' && (!Number.isInteger(input.cantidad) || !input.cantidad || input.cantidad <= 0)) {
     throw new Error('La cantidad entera es obligatoria para material auxiliar')
+  }
+  if (input.categoria === 'material_empaque' && input.requiereLote && !input.lote?.trim()) {
+    throw new Error('El lote es obligatorio para tapas y prospectos')
   }
 }

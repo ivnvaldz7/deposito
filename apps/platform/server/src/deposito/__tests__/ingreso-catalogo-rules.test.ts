@@ -20,5 +20,7 @@ describe('ingreso catalog rules', () => {
   it('accepts material auxiliar as unit-based inventory without market, lot, or expiry', () => {
     expect(() => validateIngresoCatalogo({ categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], cantidad: 3 })).not.toThrow()
     expect(() => validateIngresoCatalogo({ categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], cantidad: 1.5 })).toThrow('cantidad entera')
+    expect(() => validateIngresoCatalogo({ categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], cantidad: 3, requiereLote: true })).toThrow('lote')
+    expect(() => validateIngresoCatalogo({ categoria: 'material_empaque', estado: 'ACTIVO', mercadosHabilitados: [], cantidad: 3, requiereLote: true, lote: '3500' })).not.toThrow()
   })
 })
