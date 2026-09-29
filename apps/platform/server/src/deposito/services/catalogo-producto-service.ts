@@ -12,6 +12,17 @@ const MARKET_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche']
 const PRESENTATION_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche', 'frasco']
 const CODE_REQUIRED_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche']
 
+function canonicalManualProductName(input: CatalogoCreateInput): string {
+  const nombreBase = input.nombreBase.trim().replace(/\s+/g, ' ').toUpperCase()
+  const nombreCompleto = input.nombreCompleto.trim().replace(/\s+/g, ' ').toUpperCase()
+  const hasVolume = /\b\d+(?:[.,]\d+)?\s*(?:ML|L)\b/i.test(nombreCompleto)
+  const requiresVolumeInName = input.categoria === 'etiqueta' || input.categoria === 'estuche'
+  if (requiresVolumeInName && input.presentacion && nombreCompleto === nombreBase && !hasVolume) {
+    return `${nombreBase} ${input.presentacion} ML`
+  }
+  return nombreCompleto
+}
+
 type TransactionClient = Prisma.TransactionClient
 
 export interface CatalogoValidationInput {
@@ -183,28 +194,29 @@ export class CatalogoProductoService {
   constructor(private readonly db: PrismaClient) {}
 
   async createManual(input: CatalogoCreateInput, usuarioId: string) {
-    validateCatalogoInput(input)
-    const codigo = normalizeCodigo(input.codigo)
-    validateCodigoPrefix(input.categoria, codigo)
-    validateTransition(null, 'ACTIVO', codigo, input.categoria)
+    const canonicalInput = { ...input, nombreCompleto: canonicalManualProductName(input) }
+    validateCatalogoInput(canonicalInput)
+    const codigo = normalizeCodigo(canonicalInput.codigo)
+    validateCodigoPrefix(canonicalInput.categoria, codigo)
+    validateTransition(null, 'ACTIVO', codigo, canonicalInput.categoria)
     try {
       return await this.db.$transaction(async (tx) => {
         const producto = await tx.depositoProducto.create({
           data: {
-            nombreBase: input.nombreBase,
-            nombreCompleto: input.nombreCompleto,
-            categoria: input.categoria,
+            nombreBase: canonicalInput.nombreBase,
+            nombreCompleto: canonicalInput.nombreCompleto,
+            categoria: canonicalInput.categoria,
             codigo,
             estado: 'ACTIVO',
             activo: true,
             origen: 'MANUAL',
-            presentacion: input.presentacion ?? null,
-            mercadosHabilitados: input.mercadosHabilitados ?? [],
-            mercado: input.categoria === 'estuche' ? input.mercadosHabilitados?.[0] : null,
-            volumen: input.volumen ?? null,
-            unidad: input.unidad ?? null,
-            variante: input.variante ?? null,
-            stockMinimo: input.stockMinimo ?? null,
+            presentacion: canonicalInput.presentacion ?? null,
+            mercadosHabilitados: canonicalInput.mercadosHabilitados ?? [],
+            mercado: canonicalInput.categoria === 'estuche' ? canonicalInput.mercadosHabilitados?.[0] : null,
+            volumen: canonicalInput.volumen ?? null,
+            unidad: canonicalInput.unidad ?? null,
+            variante: canonicalInput.variante ?? null,
+            stockMinimo: canonicalInput.stockMinimo ?? null,
           },
         })
         await seedInitialInventory(tx, producto)

@@ -520,7 +520,7 @@ describe('ProductosPage', () => {
       await waitFor(() => {
         expect(api.post).toHaveBeenCalledWith('/productos', expect.objectContaining({
           nombreBase: 'AMANTINA PREMIUM',
-          nombreCompleto: 'AMANTINA PREMIUM',
+          nombreCompleto: 'AMANTINA PREMIUM 250 ML',
           codigo: 'IGET-001',
         }))
       })

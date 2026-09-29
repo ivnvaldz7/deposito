@@ -125,6 +125,34 @@ describe('catalogo product rules', () => {
     expect(created).toEqual([{ codigo: 'IGET-001' }])
   })
 
+  it('adds the presentation to a manually created label name when only the base name is supplied', async () => {
+    const created: Array<{ nombreCompleto: string }> = []
+    const tx = {
+      depositoProducto: {
+        create: async ({ data }: { data: { nombreCompleto: string; mercadosHabilitados: string[] } }) => {
+          created.push({ nombreCompleto: data.nombreCompleto })
+          return { id: 'nuevo-250', ...data, estado: 'ACTIVO', activo: true, origen: 'MANUAL', categoria: 'etiqueta', codigo: 'IGETEC005' }
+        },
+      },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }) },
+      inventarioEstuche: { createMany: async () => ({ count: 0 }) },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    await service.createManual({
+      nombreBase: 'OLIVITASAN PREMIUM',
+      nombreCompleto: 'OLIVITASAN PREMIUM',
+      categoria: 'etiqueta',
+      codigo: 'IGETEC005',
+      presentacion: 250,
+      mercadosHabilitados: ['ecuador'],
+    }, 'enc-1')
+
+    expect(created).toEqual([{ nombreCompleto: 'OLIVITASAN PREMIUM 250 ML' }])
+  })
+
   it('rejects a PATCH that omits or clears the code of a pending etiqueta/estuche', async () => {
     const producto = {
       id: 'pendiente-1',

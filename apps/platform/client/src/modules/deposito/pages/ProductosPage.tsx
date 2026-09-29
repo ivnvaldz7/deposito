@@ -63,16 +63,23 @@ function normalizeFormData(values: FormValues): ProductoFormData {
   const requiresPresentacion = values.categoria === 'etiqueta' || values.categoria === 'estuche' || values.categoria === 'frasco'
   const requiresMercados = values.categoria === 'etiqueta' || values.categoria === 'estuche'
 
+  const nombreBase = values.nombreBase.trim().replace(/\s+/g, ' ').toUpperCase()
+  const presentacion = values.presentacion ? Number(values.presentacion) : null
+  const includesVolume = /\b\d+(?:[.,]\d+)?\s*(?:ML|L)\b/i.test(nombreBase)
+  const nombreCompleto = (values.categoria === 'etiqueta' || values.categoria === 'estuche') && presentacion && !includesVolume
+    ? `${nombreBase} ${presentacion} ML`
+    : nombreBase
+
   const data: ProductoFormData = {
-    nombreBase: values.nombreBase.toUpperCase().trim(),
-    nombreCompleto: values.nombreBase.trim().toUpperCase(),
+    nombreBase,
+    nombreCompleto,
     categoria: values.categoria,
     codigo: values.codigo?.trim().toUpperCase() || undefined,
     stockMinimo: values.stockMinimo === '' || values.stockMinimo === undefined ? null : Number(values.stockMinimo),
   }
 
   if (requiresPresentacion) {
-    data.presentacion = values.presentacion ? Number(values.presentacion) : null
+    data.presentacion = presentacion
   }
 
   if (requiresMercados) {
@@ -313,9 +320,10 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
     }
 
     try {
+      const normalized = normalizeFormData(values)
       const payload: Partial<ProductoFormData> = {
-        nombreBase: values.nombreBase.toUpperCase().trim(),
-        nombreCompleto: values.nombreBase.trim().toUpperCase(),
+        nombreBase: normalized.nombreBase,
+        nombreCompleto: normalized.nombreCompleto,
       }
       if (canEditCodigo) payload.codigo = values.codigo?.trim().toUpperCase() || undefined
       if (canEditCategoria) payload.categoria = values.categoria
