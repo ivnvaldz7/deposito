@@ -11,14 +11,17 @@ import type { NavItemDef } from '@/components/layout/AppSidebar'
 
 const navItems: NavItemDef[] = [
   { path: '/deposito/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
-  { path: '/deposito/productos',   label: 'Productos',   icon: Package },
-  { path: '/deposito/drogas',      label: 'Drogas',       icon: FlaskConical },
+  { path: '/deposito/actas',       label: 'Actas',        icon: BookOpen },
+  { path: '/deposito/ordenes',     label: 'Órdenes',      icon: BookOpen },
   { path: '/deposito/estuches',    label: 'Estuches',     icon: Package },
   { path: '/deposito/etiquetas',   label: 'Etiquetas',    icon: Tag },
   { path: '/deposito/frascos',     label: 'Frascos',      icon: Box },
+  { path: '/deposito/drogas',      label: 'Drogas',       icon: FlaskConical },
   { path: '/deposito/materiales-empaque', label: 'Material de empaque', icon: Package },
-  { path: '/deposito/actas',       label: 'Actas',        icon: BookOpen },
   { path: '/deposito/movimientos', label: 'Movimientos',  icon: ArrowLeftRight },
+  { path: '/deposito/pendientes', label: 'Pendientes', icon: ArrowLeftRight },
+  { path: '/deposito/ordenes/archivadas', label: 'Órdenes archivadas', icon: BookOpen },
+  { path: '/deposito/metricas', label: 'Métricas', icon: BarChart2 },
 ]
 
 export function Sidebar() {
@@ -39,10 +42,6 @@ export function Sidebar() {
   
   const allItems = [
     ...navItems,
-    { path: '/deposito/pendientes', label: 'Pendientes', icon: ArrowLeftRight },
-    { path: '/deposito/ordenes', label: 'Órdenes', icon: BookOpen },
-    { path: '/deposito/ordenes/archivadas', label: 'Órdenes archivadas', icon: BookOpen },
-    { path: '/deposito/metricas', label: 'Métricas', icon: BarChart2 },
   ]
 
   const items = allItems.filter(item => {

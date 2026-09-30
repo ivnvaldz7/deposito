@@ -37,7 +37,7 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
 
   it('marks current route as active', () => {
     render(
-      <MemoryRouter initialEntries={['/deposito/productos']}>
+      <MemoryRouter initialEntries={['/deposito/actas']}>
         <Routes>
           <Route path="*" element={<Sidebar />} />
         </Routes>
@@ -45,8 +45,8 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
     )
 
     // The Active Link should have "bg-surface-variant/30 text-on-surface font-semibold"
-    const productosLink = screen.getByRole('link', { name: /Productos/i })
-    expect(productosLink).toHaveClass('font-semibold')
+    const actasLink = screen.getByRole('link', { name: /Actas/i })
+    expect(actasLink).toHaveClass('font-semibold')
     
     const dashboardLink = screen.getByRole('link', { name: /Dashboard/i })
     expect(dashboardLink).not.toHaveClass('font-semibold')
@@ -55,5 +55,25 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
   it('does not render Usuarios link in the sidebar', () => {
     render(<MemoryRouter><Sidebar /></MemoryRouter>)
     expect(screen.queryByRole('link', { name: /Usuarios/i })).not.toBeInTheDocument()
+  })
+
+  it('uses the operational navigation order and keeps Productos out of the visible menu', () => {
+    render(<MemoryRouter><Sidebar /></MemoryRouter>)
+
+    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+      '/deposito/dashboard',
+      '/deposito/actas',
+      '/deposito/ordenes',
+      '/deposito/estuches',
+      '/deposito/etiquetas',
+      '/deposito/frascos',
+      '/deposito/drogas',
+      '/deposito/materiales-empaque',
+      '/deposito/movimientos',
+      '/deposito/pendientes',
+      '/deposito/ordenes/archivadas',
+      '/deposito/metricas',
+    ])
+    expect(screen.queryByRole('link', { name: 'Productos' })).not.toBeInTheDocument()
   })
 })
