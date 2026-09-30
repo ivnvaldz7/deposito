@@ -108,6 +108,38 @@ describe('AutomationPage', () => {
     expect(screen.getByText('Prod 1')).toBeInTheDocument()
   })
 
+  it('permite editar y reinterpretar el mensaje desde una revisión abierta', async () => {
+    localStorage.setItem(AUTOMATION_WORK_STORAGE_KEY, JSON.stringify({
+      version: 1,
+      originalText: 'VET STORE\nAMINOÁCIDOS ORAL EQUINO X1LITRO - 12',
+      draftId: 'draft-original',
+    }))
+    const recreateDraft = vi.fn().mockResolvedValue({ id: 'draft-editado' })
+    ;(useCreateDraft as any).mockReturnValue({ mutateAsync: recreateDraft })
+    ;(useDraft as any).mockReturnValue({
+      data: {
+        draft: { id: 'draft-original', estado: 'DRAFT', version: 1 },
+        effectiveSnapshot: {
+          customerCandidate: { customerId: 'c1', nombre: 'VET STORE' },
+          lines: [{ lineId: 'line-1', originalText: 'AMINOÁCIDOS ORAL EQUINO X1LITRO - 12', productCandidate: null, warnings: ['PRODUCT_UNRESOLVED'], requiresReview: true, quantity: { totalUnits: 12, mode: 'UNITS' } }],
+          warnings: [], requiresReview: true,
+        },
+        availability: [],
+      },
+      refetch: vi.fn(),
+    } as never)
+
+    const user = userEvent.setup()
+    renderComponent()
+    await user.click(screen.getByRole('button', { name: 'Editar mensaje' }))
+    const editor = screen.getByLabelText('Mensaje a reinterpretar')
+    await user.clear(editor)
+    await user.type(editor, 'VET STORE\n12 AMINOÁCIDOS 1 L EQUINO')
+    await user.click(screen.getByRole('button', { name: 'Reinterpretar cambios' }))
+
+    await waitFor(() => expect(recreateDraft).toHaveBeenCalledWith('VET STORE\n12 AMINOÁCIDOS 1 L EQUINO'))
+  })
+
   it('Limpiar elimina el mensaje persistido', async () => {
     const user = userEvent.setup()
     const first = renderComponent()

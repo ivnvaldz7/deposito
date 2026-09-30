@@ -6,7 +6,8 @@ export function normalizeForMatch(value: string): string {
   return value
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toUpperCase()
-    .replace(/(\d+)\s*(ML|LT|L)\b/g, (_match, amount: string, unit: string) => `${amount} ${unit === 'LT' ? 'L' : unit}`)
+    .replace(/\bX\s*(?=\d+\s*(?:ML|LT|L|LITROS?)\b)/g, '')
+    .replace(/(\d+)\s*(ML|LT|L|LITROS?)\b/g, (_match, amount: string, unit: string) => `${amount} ${unit === 'ML' ? 'ML' : 'L'}`)
     .replace(/[.,;:()[\]{}!¿?"'\-]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -106,10 +107,18 @@ export function extractQuantityAndProduct(line: string): { originalExpression: s
   let mode: QuantityMode = 'AMBIGUOUS'
 
   const normalized = normalizeForMatch(line)
+  // También se acepta la forma habitual "Producto - cantidad". Requerimos
+  // espacio después del guion para no confundir identificadores como B-12.
+  const trailingUnitsMatch = line.match(/\s*[-–—]\s+(\d+)\s*$/)
   
-  // Extraer cajas
-  const boxesMatch = normalized.match(/^(\d+)\s*CAJAS?\b/)
-  if (boxesMatch) {
+  if (trailingUnitsMatch) {
+    explicitUnits = Number(trailingUnitsMatch[1])
+    productText = line.slice(0, trailingUnitsMatch.index).trim()
+    mode = 'UNITS'
+  } else {
+    // Extraer cajas
+    const boxesMatch = normalized.match(/^(\d+)\s*CAJAS?\b/)
+    if (boxesMatch) {
     explicitBoxes = Number(boxesMatch[1])
     productText = productText.replace(new RegExp(`^\\s*${boxesMatch[1]}\\s*cajas?\\b`, 'i'), '').trim()
     mode = 'BOXES'
@@ -121,22 +130,23 @@ export function extractQuantityAndProduct(line: string): { originalExpression: s
       productText = productText.replace(new RegExp(`^(?:y|mas|más)\\s*${extraUnitsMatch[1]}\\s*(?:unidades?|sueltos?)?\\b`, 'i'), '').trim()
       mode = 'MIXED'
     }
-  } else {
-    // Si empieza con un número y NO son cajas, son unidades
-    const unitsMatch = normalized.match(/^(\d+)\s+(?!CAJAS?\b)/)
-    if (unitsMatch) {
-      explicitUnits = Number(unitsMatch[1])
-      // Only remove the number if we are sure it's quantity.
-      // E.g., "12 cetri 1lt" -> "12" is units, "cetri 1lt" is product.
-      productText = productText.replace(new RegExp(`^\\s*${unitsMatch[1]}\\s+`), '').trim()
-      mode = 'UNITS'
     } else {
-      // Buscar X unidades al final
-      const xUnitsMatch = normalized.match(/\bX\s*(\d+)\b/)
-      if (xUnitsMatch) {
-        explicitUnits = Number(xUnitsMatch[1])
-        productText = productText.replace(new RegExp(`\\bx\\s*${xUnitsMatch[1]}\\b`, 'i'), '').trim()
+      // Si empieza con un número y NO son cajas, son unidades
+      const unitsMatch = normalized.match(/^(\d+)\s+(?!CAJAS?\b)/)
+      if (unitsMatch) {
+        explicitUnits = Number(unitsMatch[1])
+        // Only remove the number if we are sure it's quantity.
+        // E.g., "12 cetri 1lt" -> "12" is units, "cetri 1lt" is product.
+        productText = productText.replace(new RegExp(`^\\s*${unitsMatch[1]}\\s+`), '').trim()
         mode = 'UNITS'
+      } else {
+        // Buscar X unidades al final
+        const xUnitsMatch = normalized.match(/\bX\s*(\d+)\b/)
+        if (xUnitsMatch) {
+          explicitUnits = Number(xUnitsMatch[1])
+          productText = productText.replace(new RegExp(`\\bx\\s*${xUnitsMatch[1]}\\b`, 'i'), '').trim()
+          mode = 'UNITS'
+        }
       }
     }
   }

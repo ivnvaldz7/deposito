@@ -158,6 +158,8 @@ export default function AutomationPage() {
   const [originalText, setOriginalText] = useState(initialWork.originalText)
   const [draftId, setDraftId] = useState<string | null>(initialWork.draftId)
   const [showOriginal, setShowOriginal] = useState(false)
+  const [editingMessage, setEditingMessage] = useState(false)
+  const [editedMessageText, setEditedMessageText] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isInterpreting, setIsInterpreting] = useState(false)
   const [deleteAliasPrompt, setDeleteAliasPrompt] = useState<{type: 'product' | 'client', id: string, alias: string} | null>(null)
@@ -192,17 +194,33 @@ export default function AutomationPage() {
     }
   }, [draftData?.draft.estado])
 
-  const handleInterpret = async () => {
-    if (!originalText.trim()) return
+  const interpretText = async (text: string) => {
+    if (!text.trim()) return
     setIsInterpreting(true)
     try {
-      const draft = await createDraft.mutateAsync(originalText)
+      const draft = await createDraft.mutateAsync(text)
       setDraftId(draft.id)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al interpretar')
     } finally {
       setIsInterpreting(false)
     }
+  }
+
+  const handleInterpret = async () => interpretText(originalText)
+
+  const handleEditMessage = () => {
+    setEditedMessageText(originalText)
+    setEditingMessage(true)
+    setShowOriginal(true)
+  }
+
+  const handleReinterpretEditedMessage = async () => {
+    const nextText = editedMessageText.trim()
+    if (!nextText) return
+    setOriginalText(nextText)
+    setEditingMessage(false)
+    await interpretText(nextText)
   }
 
   const handleDeleteAlias = async () => {
@@ -651,15 +669,33 @@ export default function AutomationPage() {
             </div>
             
             <div className="rounded-xl border border-white/10 bg-surface-container p-4">
-              <button 
-                onClick={() => setShowOriginal(!showOriginal)}
-                className="w-full text-left text-sm font-semibold text-outline hover:text-on-surface"
-              >
-                {showOriginal ? '▼ Ocultar mensaje original' : '▶ Ver mensaje original'}
-              </button>
+              <div className="flex items-center justify-between gap-3">
+                <button
+                  onClick={() => setShowOriginal(!showOriginal)}
+                  className="text-left text-sm font-semibold text-outline hover:text-on-surface"
+                >
+                  {showOriginal ? '▼ Ocultar mensaje original' : '▶ Ver mensaje original'}
+                </button>
+                <Button type="button" variant="outline" onClick={handleEditMessage}>Editar mensaje</Button>
+              </div>
               {showOriginal && (
                 <div className="mt-3 whitespace-pre-wrap rounded bg-surface p-3 font-mono text-xs text-on-surface-variant">
                   {originalText}
+                </div>
+              )}
+              {editingMessage && (
+                <div className="mt-3 space-y-3 border-t border-white/10 pt-3">
+                  <label htmlFor="automation-edit-message" className="font-body text-xs font-semibold uppercase tracking-wider text-outline">Mensaje a reinterpretar</label>
+                  <textarea
+                    id="automation-edit-message"
+                    value={editedMessageText}
+                    onChange={(event) => setEditedMessageText(event.target.value)}
+                    className="h-36 w-full resize-y rounded-lg border border-white/10 bg-surface p-3 font-body text-sm text-on-surface focus:border-primary focus:outline-none"
+                  />
+                  <div className="flex justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={() => setEditingMessage(false)}>Cancelar</Button>
+                    <Button type="button" onClick={() => void handleReinterpretEditedMessage()} disabled={!editedMessageText.trim()}>Reinterpretar cambios</Button>
+                  </div>
                 </div>
               )}
             </div>

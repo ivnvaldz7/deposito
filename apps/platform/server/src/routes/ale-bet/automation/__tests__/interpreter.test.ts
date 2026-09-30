@@ -15,6 +15,19 @@ describe('automation deterministic interpreter', () => {
     expect(interpretOrder('Cliente: Veterinaria Norte\n3 cajas y 5 Olivitasan 500', product(20), customer).lines[0].quantity).toMatchObject({ mode: 'MIXED', explicitBoxes: 3, explicitUnits: 5, totalUnits: 65 })
   })
 
+  it('interpreta producto - cantidad y conserva la presentación escrita como x1 litro', () => {
+    const aminoCatalog = [{
+      id: 'amino-equino', nombre: 'AMINOÁCIDOS 1 L EQUINO', sku: 'AMINO-1L-EQ', unidadesPorCaja: 12,
+      aliases: ['AMINOÁCIDOS ORAL EQUINO 1 L'],
+    }]
+    const parsed = interpretOrder('Cliente: Veterinaria Norte\nAminoácidos oral equino x1litro - 12', aminoCatalog, customer)
+    expect(parsed.lines[0]).toMatchObject({
+      productCandidate: { productId: 'amino-equino' },
+      quantity: { mode: 'UNITS', explicitUnits: 12, totalUnits: 12 },
+      requiresReview: false,
+    })
+  })
+
   it('normaliza presentación y resuelve el alias conocido sin confundir PLUS', () => {
     expect(interpretOrder('Cliente: Veterinaria Norte\n3 cajas OLIVITA 500', product(20), customer).lines[0]).toMatchObject({ productCandidate: { productId: 'p1' }, quantity: { mode: 'BOXES', totalUnits: 60 } })
     const ambiguous = interpretOrder('Cliente: Veterinaria Norte\n60 Olivitasan', [{ id: 'plain', nombre: 'Olivitasan 500 ML', sku: 'OLI-500', unidadesPorCaja: 20, aliases: [] }, { id: 'plus', nombre: 'Olivitasan Plus 500 ML', sku: 'OLI-PLUS-500', unidadesPorCaja: 20, aliases: [] }], customer)
