@@ -241,6 +241,24 @@ describe('GestionarStockModal', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
+  it('permite transferir el total disponible del lote con un solo click', async () => {
+    const onClose = renderComponent()
+    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+    fireEvent.click(screen.getAllByRole('button', { name: 'Transferir' })[1])
+
+    fireEvent.click(screen.getByRole('button', { name: 'Transferir todo (20)' }))
+    expect(screen.getByLabelText('Cantidad a transferir')).toHaveValue(20)
+
+    vi.mocked(aleBetApi.stock.transferir).mockResolvedValue({ movimientoId: 'm-total' })
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar transferencia' }))
+
+    await waitFor(() => expect(aleBetApi.stock.transferir).toHaveBeenCalledWith(
+      expect.objectContaining({ origen: 'ACONDICIONADO', destino: 'DEPOSITO', cantidad: 20 }),
+      expect.anything(),
+    ))
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+  })
+
   it('keeps the stock modal open when a transfer fails', async () => {
     const onClose = renderComponent()
     await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())

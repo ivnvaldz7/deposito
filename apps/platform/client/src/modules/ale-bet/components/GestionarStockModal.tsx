@@ -520,7 +520,20 @@ function TransferirModal({ productoId, productoNombre, loteId, loteNumero, orige
             </div>
           )}
           <div>
-            <label htmlFor="cantidad-transferir" className="font-body text-[12px] text-outline">Cantidad a transferir</label>
+            <div className="flex items-center justify-between gap-3">
+              <label htmlFor="cantidad-transferir" className="font-body text-[12px] text-outline">Cantidad a transferir</label>
+              <button
+                type="button"
+                onClick={() => {
+                  setCantidad(String(cantidadActual))
+                  setErrorLocal(null)
+                }}
+                disabled={cantidadActual === 0 || (hasPresentationRules && transferRulesQuery.isLoading)}
+                className="font-body text-[12px] font-semibold text-primary transition hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Transferir todo ({cantidadActual})
+              </button>
+            </div>
             <input 
               id="cantidad-transferir"
               type="number" 
