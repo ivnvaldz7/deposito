@@ -13,7 +13,7 @@ import {
   useRechazarOrden,
 } from '../queries'
 import { ProductoSelector } from '../components/ProductoSelector'
-import { MERCADOS as MERCADOS_COMPARTIDOS } from '../components/inventory-shared/mercados'
+import { MERCADOS as MERCADOS_COMPARTIDOS, formatMercadoLabel } from '../components/inventory-shared/mercados'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import {
   Dialog,

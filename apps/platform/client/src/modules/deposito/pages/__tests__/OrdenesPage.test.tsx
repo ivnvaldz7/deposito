@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { api, ApiError } from '../../lib/api'
 import { toast } from '../../lib/toast'
 import OrdenesPage from '../OrdenesPage'
-import { createOrdenList } from './fixtures/deposito-mock-factories'
+import { createOrden, createOrdenList } from './fixtures/deposito-mock-factories'
 import { createMockUser } from '@/test-utils'
 import { useAuthStore } from '@/stores/auth-store'
 
@@ -46,6 +46,12 @@ describe('OrdenesPage', () => {
     await waitFor(() => { expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument() })
     expect(screen.getAllByText(/Vitamina B12/i).length).toBeGreaterThan(0)
     expect(screen.getAllByText(/solicitada/i).length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('renders the selected country for packaging orders', async () => {
+    vi.mocked(api.get).mockResolvedValue([createOrden({ categoria: 'estuche', mercado: 'argentina' })])
+    render(<MemoryRouter><OrdenesPage /></MemoryRouter>)
+    expect(await screen.findByText('Estuche · Argentina')).toBeInTheDocument()
   })
 
   it('shows empty state', async () => {
