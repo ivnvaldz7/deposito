@@ -75,12 +75,11 @@ describe('ActasPage', () => {
     ])
     render(<MemoryRouter><ActasPage /></MemoryRouter>)
 
-    expect(await screen.findByText('OLIFAMISOL 500 ML')).toBeInTheDocument()
-    expect(screen.getByText('Etiqueta', { selector: 'span' })).toBeInTheDocument()
-    expect(screen.getByText('Ecuador', { selector: 'span' })).toBeInTheDocument()
+    expect(await screen.findByText('ETIQUETA OLIFAMISOL 500 ML')).toBeInTheDocument()
+    expect(screen.getByText('EC', { selector: 'span' })).toHaveAttribute('title', 'Ecuador')
 
     await user.selectOptions(screen.getByLabelText('País'), 'ecuador')
-    expect(screen.getByText('OLIFAMISOL 500 ML')).toBeInTheDocument()
+    expect(screen.getByText('ETIQUETA OLIFAMISOL 500 ML')).toBeInTheDocument()
     expect(screen.queryByText('AMINOÁCIDOS 20 ML')).not.toBeInTheDocument()
   })
 
@@ -95,7 +94,26 @@ describe('ActasPage', () => {
     }])
 
     expect(csv).toContain('"Tipo de insumo"')
-    expect(csv).toContain('"Etiqueta";"Ecuador";"3508";"300 uds"')
+    expect(csv).toContain('"ETIQUETA OLIFAMISOL 500 ML";"Etiqueta";"Ecuador";"3508";"300 uds"')
+  })
+
+  it('uses compact market badges and keeps Argentina, Colombia, and México in that filter order', async () => {
+    vi.mocked(api.get).mockResolvedValue(['argentina', 'colombia', 'mexico'].map((mercado, index) => createActaListItem({
+      id: `acta-${mercado}`,
+      items: [{
+        id: `item-${mercado}`, lote: `L-${index}`, categoria: 'etiqueta', productoNombre: `PRODUCTO ${mercado}`,
+        cantidadIngresada: 10, cantidadDistribuida: 0, mercado,
+        temperaturaTransporte: null, condicionEmbalaje: null, observacionesCalidad: null, aprobadoCalidad: false,
+      }],
+    })))
+    render(<MemoryRouter><ActasPage /></MemoryRouter>)
+
+    expect(await screen.findByText('AR', { selector: 'span' })).toHaveAttribute('title', 'Argentina')
+    expect(screen.getByText('COL', { selector: 'span' })).toHaveAttribute('title', 'Colombia')
+    expect(screen.getByText('MEX', { selector: 'span' })).toHaveAttribute('title', 'México')
+    expect(Array.from(screen.getByLabelText('País').querySelectorAll('option')).map((option) => option.textContent)).toEqual([
+      'Todos los países', 'Argentina', 'Colombia', 'México',
+    ])
   })
 
   it('hides create button without ingresos.create permission', async () => {

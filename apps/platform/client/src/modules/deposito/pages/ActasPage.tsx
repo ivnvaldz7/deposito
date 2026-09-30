@@ -21,6 +21,28 @@ const MERCADO_LABEL: Record<Mercado, string> = {
   bolivia: 'Bolivia', paraguay: 'Paraguay', VENEZUELA: 'Venezuela', no_exportable: 'No exportable',
 }
 
+const MERCADO_BADGE: Record<Mercado, string> = {
+  argentina: 'AR',
+  colombia: 'COL',
+  mexico: 'MEX',
+  ecuador: 'EC',
+  bolivia: 'BOL',
+  paraguay: 'PY',
+  VENEZUELA: 'VEN',
+  no_exportable: 'N/E',
+}
+
+const MERCADO_ORDER: Mercado[] = [
+  'argentina',
+  'colombia',
+  'mexico',
+  'ecuador',
+  'bolivia',
+  'paraguay',
+  'VENEZUELA',
+  'no_exportable',
+]
+
 const MERCADO_COLOR: Record<Mercado, string> = {
   argentina: 'bg-sky-500/15 text-sky-200 border-sky-400/30', colombia: 'bg-yellow-500/15 text-yellow-200 border-yellow-400/30',
   mexico: 'bg-emerald-500/15 text-emerald-200 border-emerald-400/30', ecuador: 'bg-amber-500/15 text-amber-200 border-amber-400/30',
@@ -29,6 +51,12 @@ const MERCADO_COLOR: Record<Mercado, string> = {
 }
 
 export type ActaRow = { id: string; fecha: string; userName: string; item: ActaItemSummary }
+
+function formatProductName(item: ActaItemSummary): string {
+  return item.categoria === 'droga'
+    ? item.productoNombre
+    : `${CATEGORIA_LABEL[item.categoria].toUpperCase()} ${item.productoNombre}`
+}
 
 function formatFecha(iso: string): string {
   return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -41,7 +69,7 @@ function escapeCsv(value: string | number): string {
 export function buildActasCsv(rows: ActaRow[]): string {
   const header = ['Fecha', 'Producto', 'Tipo de insumo', 'País / mercado', 'Lote', 'Cantidad', 'Usuario']
   const data = rows.map(({ fecha, userName, item }) => [
-    formatFecha(fecha), item.productoNombre, CATEGORIA_LABEL[item.categoria],
+    formatFecha(fecha), formatProductName(item), CATEGORIA_LABEL[item.categoria],
     item.mercado ? MERCADO_LABEL[item.mercado] : '', item.lote || '',
     formatCantidad(item.cantidadIngresada, item.categoria), userName,
   ].map(escapeCsv).join(';'))
@@ -58,14 +86,9 @@ function DateIconButton({ label, value, onChange }: { label: string; value: stri
   </div>
 }
 
-function ProductKind({ categoria }: { categoria: Categoria }) {
-  if (categoria === 'droga') return null
-  return <span className="ml-2 inline-flex rounded border border-primary/30 bg-primary/10 px-1.5 py-0.5 align-middle font-body text-[10px] font-semibold uppercase tracking-wide text-primary">{CATEGORIA_LABEL[categoria]}</span>
-}
-
 function MarketBadge({ mercado }: { mercado: Mercado | null }) {
   if (!mercado) return null
-  return <span className={`ml-2 inline-flex rounded border px-1.5 py-0.5 align-middle font-body text-[10px] font-semibold uppercase tracking-wide ${MERCADO_COLOR[mercado]}`}>{MERCADO_LABEL[mercado]}</span>
+  return <span aria-label={MERCADO_LABEL[mercado]} title={MERCADO_LABEL[mercado]} className={`ml-2 inline-flex rounded border px-1.5 py-0.5 align-middle font-body text-[10px] font-semibold uppercase tracking-wide ${MERCADO_COLOR[mercado]}`}>{MERCADO_BADGE[mercado]}</span>
 }
 
 export default function ActasPage() {
@@ -84,7 +107,8 @@ export default function ActasPage() {
   const rows = useMemo<ActaRow[]>(() => actas.flatMap((acta) => (acta.items ?? []).map((item, index) => ({
     id: item.id || `${acta.id}-${index}`, fecha: acta.fecha, userName: acta.user.name, item,
   }))), [actas])
-  const mercadosDisponibles = useMemo(() => Array.from(new Set(rows.flatMap((row) => row.item.mercado ? [row.item.mercado] : []))).sort(), [rows])
+  const mercadosDisponibles = useMemo(() => Array.from(new Set(rows.flatMap((row) => row.item.mercado ? [row.item.mercado] : [])))
+    .sort((left, right) => MERCADO_ORDER.indexOf(left) - MERCADO_ORDER.indexOf(right)), [rows])
   const filtered = useMemo(() => rows.filter((row) => {
     const { item } = row
     return (!searchQuery.trim() || item.productoNombre.toLowerCase().includes(searchQuery.trim().toLowerCase()))
@@ -129,7 +153,7 @@ export default function ActasPage() {
       : error ? <div className="flex items-center justify-center h-48"><p className="font-body text-error text-sm">{error instanceof ApiError ? error.message : 'No se pudieron cargar las actas'}</p></div>
       : filtered.length === 0 ? <div className="flex flex-col items-center justify-center h-48 rounded-lg bg-surface-container-high border border-white/10 gap-3"><p className="font-body text-on-surface-variant text-sm">{hasFilters ? 'No se encontraron ingresos con esos filtros.' : 'No hay actas registradas todavía.'}</p>{canCreate && !hasFilters && <p className="font-body text-on-surface-variant/60 text-xs">Usá "Nuevo Ingreso" para empezar.</p>}</div>
       : <div className="bg-surface-container border border-white/10 rounded-xl overflow-hidden flex-1 shadow-float flex flex-col"><div className="overflow-x-auto flex-1"><table className="w-full text-left border-collapse text-xs"><thead className="bg-surface-container-highest border-b border-white/10"><tr><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Fecha</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider w-1/3">Producto</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider">Lote</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider text-right">Cantidad</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider text-center">Usuario</th></tr></thead><tbody className="divide-y divide-white/5">
-        {paginatedRows.map(({ id, fecha, userName, item }) => <tr key={id} className="hover:bg-surface-variant/30 transition-colors"><td className="p-3 font-body text-on-surface tabular-nums whitespace-nowrap">{formatFecha(fecha)}</td><td className="p-3 font-body text-sm font-medium text-on-surface max-w-[360px]" title={item.productoNombre}><span className="break-words">{item.productoNombre}</span><ProductKind categoria={item.categoria} /><MarketBadge mercado={item.mercado} /></td><td className="p-3 font-body text-on-surface-variant">{item.lote || '—'}</td><td className="p-3 font-body text-on-surface tabular-nums text-right font-medium">{formatCantidad(item.cantidadIngresada, item.categoria)}</td><td className="p-3 font-body text-outline text-center truncate max-w-[100px]" title={userName}>{userName}</td></tr>)}
+        {paginatedRows.map(({ id, fecha, userName, item }) => <tr key={id} className="hover:bg-surface-variant/30 transition-colors"><td className="p-3 font-body text-on-surface tabular-nums whitespace-nowrap">{formatFecha(fecha)}</td><td className="p-3 font-body text-sm font-medium text-on-surface max-w-[360px]" title={formatProductName(item)}><span className="break-words">{formatProductName(item)}</span><MarketBadge mercado={item.mercado} /></td><td className="p-3 font-body text-on-surface-variant">{item.lote || '—'}</td><td className="p-3 font-body text-on-surface tabular-nums text-right font-medium">{formatCantidad(item.cantidadIngresada, item.categoria)}</td><td className="p-3 font-body text-outline text-center truncate max-w-[100px]" title={userName}>{userName}</td></tr>)}
       </tbody></table></div>
       {totalPages > 1 && <div className="border-t border-white/10 p-3 flex items-center justify-end bg-surface-container-low mt-auto"><div className="flex gap-2"><button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1} aria-label="Página anterior" className="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-variant disabled:opacity-50 transition-colors"><ChevronLeft size={16} /></button><button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} aria-label="Página siguiente" className="w-8 h-8 rounded-lg border border-outline-variant flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-variant disabled:opacity-50 transition-colors"><ChevronRight size={16} /></button></div></div>}
     </div>}
