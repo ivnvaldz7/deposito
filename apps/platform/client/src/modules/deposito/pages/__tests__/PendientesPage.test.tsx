@@ -1,6 +1,6 @@
 import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
 import PendientesPage from '../PendientesPage'
@@ -45,5 +45,20 @@ describe('PendientesPage', () => {
     await waitFor(() => { expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument() })
     expect(screen.getAllByText(/en esterilización/i).length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(/recibidos/i).length).toBeGreaterThan(0)
+    expect(screen.getByRole('heading', { name: 'Pendientes' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Resumen' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('filters the visible sections by status without changing the summary', async () => {
+    vi.mocked(api.get).mockResolvedValue(createPendienteList())
+    render(<MemoryRouter><PendientesPage /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Recibidos' }))
+
+    expect(screen.getByRole('button', { name: 'Recibidos' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.queryByRole('heading', { name: /^En esterilización/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^Recibidos/ })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: 'Resumen' })).toBeInTheDocument()
   })
 })

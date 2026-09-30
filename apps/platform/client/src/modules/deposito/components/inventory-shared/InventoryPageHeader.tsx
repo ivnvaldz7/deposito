@@ -70,7 +70,7 @@ export function InventoryPageHeader({
       </section>
       {children ? (
         <section
-          aria-label="Filtros de mercado"
+          aria-label="Filtros"
           className="rounded-xl border border-outline-variant/20 bg-surface-container-low p-3"
         >
           {children}

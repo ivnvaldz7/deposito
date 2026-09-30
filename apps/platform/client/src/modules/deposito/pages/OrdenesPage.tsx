@@ -14,7 +14,7 @@ import {
 } from '../queries'
 import { ProductoSelector } from '../components/ProductoSelector'
 import { MERCADOS as MERCADOS_COMPARTIDOS, formatMercadoLabel } from '../components/inventory-shared/mercados'
-import { PageHeader } from '../components/layout/PageHeader'
+import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import {
   Dialog,
   DialogContent,
@@ -503,9 +503,10 @@ export default function OrdenesPage({ archivadas = false }: { archivadas?: boole
   })
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title={archivadas ? 'ÓRDENES ARCHIVADAS' : 'ÓRDENES'}
+    <div className="space-y-5">
+      <InventoryPageHeader
+        title={archivadas ? 'Órdenes archivadas' : 'Órdenes'}
+        description={archivadas ? 'Historial de órdenes finalizadas y cerradas.' : 'Solicitudes de producción, aprobación y despacho.'}
         stats={[
           { label: 'órdenes', value: isLoading ? '...' : ordenes.length },
           { label: 'urgentes', value: isLoading ? '...' : urgentes.length, warning: urgentes.length > 0 && !isLoading },
@@ -522,7 +523,7 @@ export default function OrdenesPage({ archivadas = false }: { archivadas?: boole
         }
       >
         <FiltroEstado value={filtroEstado} onChange={setFiltroEstado} />
-      </PageHeader>
+      </InventoryPageHeader>
 
       {canCreate && !archivadas ? (
         <NuevaOrdenModal
