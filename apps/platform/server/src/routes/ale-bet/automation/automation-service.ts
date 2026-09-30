@@ -138,6 +138,9 @@ function requirePresentationSelection(snapshot: ParsedOrder, sourceProductIds: R
       line.lineState === 'DISCARDED' ||
       !line.productCandidate ||
       !sourceProductIds.has(line.productCandidate.productId) ||
+      // Normal keeps the product identity. Persisting the explicit selection
+      // prevents a later read from turning that valid choice into a blocker.
+      Boolean(line.presentationTargetProductId) ||
       line.warnings.includes(PRESENTATION_REQUIRED)
     ) return line
 
@@ -321,6 +324,7 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
         confidence: 1,
         requiresReview: false,
         warnings: [],
+        presentationTargetProductId: selectingPresentation ? product.id : undefined,
         lineState: 'VALID',
         quantity: {
           originalExpression: currentLine.quantity.originalExpression,

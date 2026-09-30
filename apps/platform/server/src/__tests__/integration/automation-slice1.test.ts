@@ -151,8 +151,10 @@ describe('AUTOMATION-01 Slice 1', () => {
     ] })
     const deposito = await prisma.ubicacionStock.create({ data: { codigo: 'DEPOSITO', nombre: 'Depósito' } })
     const lote = await prisma.lote.create({ data: { numero: `AMINO-EQUINO-${suffix}`, productoId: equino.id, cajas: 2, fechaVencimiento: new Date(Date.now() + 86_400_000) } })
+    const sourceLote = await prisma.lote.create({ data: { numero: `AMINO-NORMAL-${suffix}`, productoId: source.id, cajas: 2, fechaVencimiento: new Date(Date.now() + 86_400_000) } })
     await prisma.saldoStock.create({ data: { productoId: equino.id, loteId: lote.id, ubicacionId: deposito.id, cantidad: 24 } })
-    return { auth: `Bearer ${adminToken()}`, customer, source, aves, equino, lote, deposito }
+    await prisma.saldoStock.create({ data: { productoId: source.id, loteId: sourceLote.id, ubicacionId: deposito.id, cantidad: 24 } })
+    return { auth: `Bearer ${adminToken()}`, customer, source, aves, equino, lote, sourceLote, deposito }
   }
 
   it('exige elegir la presentación configurada y descuenta el destino seleccionado', async () => {
@@ -193,6 +195,33 @@ describe('AUTOMATION-01 Slice 1', () => {
       .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: selected.body.version }).expect(200)
     expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.equino.id, cantidad: 12 })])
     expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.equino.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })).cantidad).toBe(12)
+  })
+
+  it('acepta Normal como una selección persistente aunque conserve el producto origen', async () => {
+    const fixture = await seedPresentationProduct()
+    const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', fixture.auth)
+      .send({ originalText: '12 AMINOÁCIDOS 1 L' }).expect(201)
+    const customer = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: created.body.version, clienteId: fixture.customer.id }).expect(200)
+    const beforeSelection = await getEffective(created.body.id, fixture.auth)
+    const line = beforeSelection.effectiveSnapshot.lines[0]
+
+    const selected = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: customer.body.version, line: { lineId: line.lineId, presentationProductId: fixture.source.id } }).expect(200)
+    const ready = await getEffective(created.body.id, fixture.auth)
+
+    expect(selected.body.estado).toBe('READY')
+    expect(ready.effectiveSnapshot.lines[0]).toMatchObject({
+      productCandidate: { productId: fixture.source.id },
+      presentationTargetProductId: fixture.source.id,
+      requiresReview: false,
+      warnings: [],
+      quantity: { totalUnits: 12 },
+    })
+
+    const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${created.body.id}/confirm`).set('Authorization', fixture.auth)
+      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: selected.body.version }).expect(200)
+    expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.source.id, cantidad: 12 })])
   })
 
   it('no solicita una presentación para un producto que sólo tiene la regla Normal', async () => {

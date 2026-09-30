@@ -24,6 +24,8 @@ export type ParsedOrderLine = {
   quantity: ParsedQuantity
   requiresReview: boolean
   warnings: string[]
+  /** Destination explicitly chosen for a configurable presentation. */
+  presentationTargetProductId?: string
   /** A user decision within the interpretation draft. Persisted only there. */
   lineState?: InterpretationLineState
   /** Preserved only while discarded so undo can restore the original review state. */
