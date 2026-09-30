@@ -16,6 +16,7 @@ $logDirectory = Join-Path $RuntimeRoot 'logs'
 $stdoutPath = 'no creado'
 $stderrPath = 'no creado'
 $currentPid = 'no disponible'
+$startedByFallback = $false
 
 function Get-CurrentAleBetLogPaths {
     param([string]$Directory)
@@ -149,8 +150,30 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "schtasks /Run falló para la tarea '$TaskName'." }
 
     $script:DeployStage = 'WAIT FOR HEALTH'
-    $health = Wait-AleBetHealth -Uri 'http://127.0.0.1:3000/api/health' -TimeoutSeconds 90 -RequestTimeoutSeconds 2 -PollIntervalMilliseconds 500
-    if ($null -eq $health) { throw 'No se obtuvo HTTP 200 con status=ok y db=connected dentro de 90 segundos.' }
+    $health = Wait-AleBetHealth -Uri 'http://127.0.0.1:3000/api/health' -TimeoutSeconds 30 -RequestTimeoutSeconds 2 -PollIntervalMilliseconds 500
+    if ($null -eq $health) {
+        $script:DeployStage = 'FALLBACK DIRECT START'
+        # A task can fail before it creates a PID/log (for example, an S4U
+        # launch problem). The deploy caller already owns this controlled
+        # restart, so retry through the same guarded start script only when
+        # it left neither a listener nor a live PID behind.
+        $fallbackListeners = @(Get-AleBetListeningConnections -Port 3000)
+        if ($fallbackListeners.Count -gt 0) {
+            $owners = @($fallbackListeners | Select-Object -ExpandProperty OwningProcess -Unique)
+            throw "La tarea dejó listener(s) en 3000 (PID(s): $($owners -join ', ')) sin health; no se iniciará un segundo servidor."
+        }
+        if (Test-Path -LiteralPath $pidFile -PathType Leaf) {
+            [int]$fallbackPid = 0
+            $fallbackPidText = (Get-Content -LiteralPath $pidFile -Raw).Trim()
+            if ([int]::TryParse($fallbackPidText, [ref]$fallbackPid) -and (Get-Process -Id $fallbackPid -ErrorAction SilentlyContinue)) {
+                throw "La tarea dejó el PID $fallbackPid sin health; no se iniciará un segundo servidor."
+            }
+        }
+        & (Join-Path $PSScriptRoot 'start-prod.ps1') -ConfigPath $resolvedConfig -RuntimeRoot $RuntimeRoot -StartupTimeoutSeconds 30
+        $startedByFallback = $true
+        $health = Wait-AleBetHealth -Uri 'http://127.0.0.1:3000/api/health' -TimeoutSeconds 5 -RequestTimeoutSeconds 2 -PollIntervalMilliseconds 250
+        if ($null -eq $health) { throw 'El arranque por tarea y el arranque directo no lograron health 200 con base conectada.' }
+    }
     if (-not (Test-Path -LiteralPath $pidFile -PathType Leaf)) { throw "Health respondió pero falta el PID file $pidFile." }
     [int]$expectedPid = 0
     $pidText = (Get-Content -LiteralPath $pidFile -Raw).Trim()
@@ -177,17 +200,19 @@ try {
     if ($null -eq $stableHealth) { throw 'El health dejó de validar después de la ventana de estabilidad.' }
 
     $script:DeployStage = 'TASK RESULT'
-    $taskDeadline = [DateTime]::UtcNow.AddSeconds(15)
-    do {
-        $task = Get-ScheduledTask -TaskPath '\' -TaskName $TaskName -ErrorAction Stop
-        if ([string]$task.State -ne 'Running') { break }
-        Start-Sleep -Milliseconds 250
-    } while ([DateTime]::UtcNow -lt $taskDeadline)
-    if ([string]$task.State -eq 'Running') { throw "La tarea '$TaskName' sigue ejecutándose después del arranque." }
-    $taskInfo = Get-ScheduledTaskInfo -InputObject $task -ErrorAction Stop
-    if ([long]$taskInfo.LastTaskResult -ne 0) { throw "LastTaskResult de '$TaskName' es $($taskInfo.LastTaskResult), se esperaba 0." }
-    if ($taskInfo.LastRunTime.ToUniversalTime() -lt $taskRunStartedAt.AddSeconds(-2)) { throw "LastRunTime de '$TaskName' no corresponde a este arranque." }
-    if (-not $stableCommandLineValidated) {
+    if (-not $startedByFallback) {
+        $taskDeadline = [DateTime]::UtcNow.AddSeconds(15)
+        do {
+            $task = Get-ScheduledTask -TaskPath '\' -TaskName $TaskName -ErrorAction Stop
+            if ([string]$task.State -ne 'Running') { break }
+            Start-Sleep -Milliseconds 250
+        } while ([DateTime]::UtcNow -lt $taskDeadline)
+        if ([string]$task.State -eq 'Running') { throw "La tarea '$TaskName' sigue ejecutándose después del arranque." }
+        $taskInfo = Get-ScheduledTaskInfo -InputObject $task -ErrorAction Stop
+        if ([long]$taskInfo.LastTaskResult -ne 0) { throw "LastTaskResult de '$TaskName' es $($taskInfo.LastTaskResult), se esperaba 0." }
+        if ($taskInfo.LastRunTime.ToUniversalTime() -lt $taskRunStartedAt.AddSeconds(-2)) { throw "LastRunTime de '$TaskName' no corresponde a este arranque." }
+    }
+    if (-not $startedByFallback -and -not $stableCommandLineValidated) {
         # S4U puede ocultar Win32_Process.CommandLine fuera del proceso de tarea.
         # El owner proof lo escribió start-prod.exe al lanzar el PID con el
         # ejecutable y entryPath exactos; PID, ejecutable y hora de inicio se
@@ -204,6 +229,7 @@ try {
     Write-Host "PID: $expectedPid"
     Write-Host 'Port: 3000'
     Write-Host 'Health: 200 / db connected'
+    if ($startedByFallback) { Write-Host 'Recovery: la tarea no inició; se recuperó con start-prod.ps1.' }
     Write-Host "Instances: $($connections.Count)"
     $logs = Get-CurrentAleBetLogPaths -Directory $logDirectory
     $stdoutPath = $logs.Stdout

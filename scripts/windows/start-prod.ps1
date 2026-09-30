@@ -5,6 +5,19 @@ param(
     [int]$StartupTimeoutSeconds = 20
 )
 
+$ErrorActionPreference = 'Stop'
+$startupDiagnosticPath = Join-Path $RuntimeRoot 'logs\platform-startup.log'
+
+trap {
+    try {
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $startupDiagnosticPath) | Out-Null
+        "$(Get-Date -Format o) STARTUP FAILED: $($_.Exception.Message)" | Add-Content -LiteralPath $startupDiagnosticPath -Encoding utf8
+    } catch {
+        # Never conceal the original startup error when its diagnostic log cannot be written.
+    }
+    throw
+}
+
 . (Join-Path $PSScriptRoot 'prod-common.ps1')
 
 $repoRoot = Get-AleBetRepoRoot
@@ -100,3 +113,4 @@ if (-not $healthy) {
 
 Write-Host "ALE-BET iniciado. PID $($startedProcess.Id), puerto $listenPort."
 Write-Host "Logs: $stdoutPath | $stderrPath"
+"$(Get-Date -Format o) STARTUP OK: PID $($startedProcess.Id), puerto $listenPort." | Add-Content -LiteralPath $startupDiagnosticPath -Encoding utf8

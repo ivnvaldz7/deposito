@@ -186,6 +186,22 @@ Describe 'ALE-BET deploy readiness checks' {
         ($buildIndex -ge 0 -and $buildFailureIndex -gt $buildIndex -and $taskStopIndex -gt $buildFailureIndex -and $serverStopIndex -gt $taskStopIndex -and $endTaskActionExists) | Should Be $true
     }
 
+    It 'recovers with the guarded direct start when the scheduled task never becomes healthy' {
+        $deployPath = Join-Path $PSScriptRoot '..\deploy-prod.ps1'
+        $text = Get-Content -LiteralPath $deployPath -Raw
+        $fallbackIndex = $text.IndexOf("'FALLBACK DIRECT START'", [StringComparison]::Ordinal)
+        $healthWaitIndex = $text.IndexOf("'WAIT FOR HEALTH'", [StringComparison]::Ordinal)
+        $fallbackStartIndex = $text.IndexOf("'start-prod.ps1') -ConfigPath `$resolvedConfig", $fallbackIndex, [StringComparison]::Ordinal)
+        ($fallbackIndex -gt $healthWaitIndex -and $fallbackStartIndex -gt $fallbackIndex -and $text.Contains('$startedByFallback') -and $text.Contains('$fallbackListeners') -and $text.Contains('$fallbackPid')) | Should Be $true
+    }
+
+    It 'records startup failures and provides the supported restart entrypoint' {
+        $startPath = Join-Path $PSScriptRoot '..\start-prod.ps1'
+        $restartPath = Join-Path $PSScriptRoot '..\restart-prod.ps1'
+        (Get-Content -LiteralPath $startPath -Raw).Contains('platform-startup.log') | Should Be $true
+        (Get-Content -LiteralPath $restartPath -Raw).Contains("'deploy-prod.ps1'") | Should Be $true
+    }
+
     It 'accepts an already stopped scheduled task without issuing End' {
         $script:taskEndCalls = 0
         $stateProbe = { param($name) [pscustomobject]@{ State = 'Ready' } }
