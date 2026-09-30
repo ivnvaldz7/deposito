@@ -134,13 +134,17 @@ function refreshReviewState(snapshot: ParsedOrder): ParsedOrder {
 function requirePresentationSelection(snapshot: ParsedOrder, sourceProductIds: ReadonlySet<string>): ParsedOrder {
   let requiresReview = snapshot.requiresReview
   const lines = snapshot.lines.map((line) => {
+    const hasPersistedPresentationSelection =
+      Boolean(line.presentationTargetProductId) ||
+      // Compatibility for a Normal choice saved by the prior version. That
+      // version made the line valid but could not persist a same-product
+      // selection marker, so treating it as pending again traps the draft.
+      (line.lineState === 'VALID' && !line.requiresReview && !line.warnings.includes(PRESENTATION_REQUIRED))
     if (
       line.lineState === 'DISCARDED' ||
       !line.productCandidate ||
       !sourceProductIds.has(line.productCandidate.productId) ||
-      // Normal keeps the product identity. Persisting the explicit selection
-      // prevents a later read from turning that valid choice into a blocker.
-      Boolean(line.presentationTargetProductId) ||
+      hasPersistedPresentationSelection ||
       line.warnings.includes(PRESENTATION_REQUIRED)
     ) return line
 

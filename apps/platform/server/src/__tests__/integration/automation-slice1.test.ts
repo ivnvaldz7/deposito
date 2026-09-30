@@ -224,6 +224,27 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.source.id, cantidad: 12 })])
   })
 
+  it('mantiene válida una selección Normal guardada antes del marcador persistente', async () => {
+    const fixture = await seedPresentationProduct()
+    const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', fixture.auth)
+      .send({ originalText: '12 AMINOÁCIDOS 1 L' }).expect(201)
+    const customer = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: created.body.version, clienteId: fixture.customer.id }).expect(200)
+    const beforeSelection = await getEffective(created.body.id, fixture.auth)
+    const line = beforeSelection.effectiveSnapshot.lines[0]
+
+    const selected = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', fixture.auth)
+      .send({ expectedVersion: customer.body.version, line: { lineId: line.lineId, presentationProductId: fixture.source.id } }).expect(200)
+    const draft = await prisma.orderInterpretationDraft.findUniqueOrThrow({ where: { id: created.body.id } })
+    const legacySnapshot = JSON.parse(JSON.stringify(draft.editedSnapshot))
+    delete legacySnapshot.lines[0].presentationTargetProductId
+    await prisma.orderInterpretationDraft.update({ where: { id: created.body.id }, data: { editedSnapshot: legacySnapshot } })
+
+    const ready = await getEffective(created.body.id, fixture.auth)
+    expect(selected.body.estado).toBe('READY')
+    expect(ready.effectiveSnapshot.lines[0]).toMatchObject({ productCandidate: { productId: fixture.source.id }, requiresReview: false, warnings: [] })
+  })
+
   it('no solicita una presentación para un producto que sólo tiene la regla Normal', async () => {
     const suffix = crypto.randomUUID()
     const customer = await prisma.cliente.create({ data: { nombre: `Cliente normal ${suffix}`, cuit: '30-12345678-9', condicionIva: 'RI', direccion: 'Ruta 2 km 50' } })
