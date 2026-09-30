@@ -202,9 +202,7 @@ export default function ActaNuevaPage() {
         lote: data.lote?.trim() || undefined,
         vencimientoMes: data.categoria === 'droga' ? `${data.vencimientoAnio}-${data.vencimientoMes}` : undefined,
         mercado: data.categoria === 'etiqueta' || data.categoria === 'estuche' ? data.mercado : undefined,
-        cantidad: data.categoria === 'frasco' 
-          ? undefined 
-          : (data.categoria === 'droga' ? Math.round(Number(data.cantidad) * 1000) : Number(data.cantidad)),
+        cantidad: data.categoria === 'frasco' ? undefined : Number(data.cantidad),
         cantidadCajas: data.categoria === 'frasco' ? Number(data.cantidadCajas) : undefined,
         unidadesPorCaja: data.categoria === 'frasco' ? Number(data.unidadesPorCaja) : undefined,
         observaciones: data.observaciones?.trim() || undefined,
@@ -484,7 +482,7 @@ export default function ActaNuevaPage() {
                   {categoria !== 'frasco' && (
                     <div className="space-y-1">
                       <label htmlFor="ingreso-cantidad" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
-                        Cantidad <span className="text-error">*</span>
+                        Cantidad {categoria === 'droga' && '(kg)'} <span className="text-error">*</span>
                       </label>
                       <div className="relative">
                         <Package size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
@@ -505,6 +503,7 @@ export default function ActaNuevaPage() {
                           })}
                         />
                       </div>
+                      {categoria === 'droga' && <p className="font-body text-xs text-on-surface-variant/60">Ingresá el valor en kg. Ej.: 80 registra 80 kg.</p>}
                       {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
                     </div>
                   )}
@@ -585,7 +584,7 @@ export default function ActaNuevaPage() {
                         <p className="font-display font-bold text-2xl text-primary leading-none">
                           {categoria === 'frasco' 
                             ? formatCantidad(cantidadCajas * unidadesPorCaja, categoria)
-                            : formatCantidad(categoria === 'droga' ? Math.round(cantidadManual * 1000) : cantidadManual, categoria)
+                            : formatCantidad(cantidadManual, categoria)
                           }
                         </p>
                       </div>

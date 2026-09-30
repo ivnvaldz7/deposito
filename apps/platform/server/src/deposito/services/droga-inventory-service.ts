@@ -59,12 +59,17 @@ type AddDrugLotInput = {
   cantidad: number
 }
 
+export function normalizeDrugLot(lote: string): string {
+  return lote.trim().replace(/\s+/g, ' ').toUpperCase()
+}
+
 export async function addDrugLotInventory(tx: DrugInventoryTransaction, input: AddDrugLotInput) {
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${input.productoId}:${input.lote}`}, 0))`
+  const lote = normalizeDrugLot(input.lote)
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`${input.productoId}:${lote}`}, 0))`
   const rows = await tx.$queryRaw`
     SELECT id, vencimiento
     FROM deposito.inventario_drogas
-    WHERE producto_id = ${input.productoId} AND lote = ${input.lote}
+    WHERE producto_id = ${input.productoId} AND lote = ${lote}
     FOR UPDATE
   `
   const existing = rows[0]
@@ -78,5 +83,5 @@ export async function addDrugLotInventory(tx: DrugInventoryTransaction, input: A
     })
   }
 
-  return tx.inventarioDroga.create({ data: input })
+  return tx.inventarioDroga.create({ data: { ...input, lote } })
 }

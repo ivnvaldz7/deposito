@@ -266,7 +266,7 @@ describe('ActaNuevaPage', () => {
         lote: 'MP-001',
         vencimientoMes: '2027-07',
         mercado: undefined,
-        cantidad: 100000,
+        cantidad: 100,
         cantidadCajas: undefined,
         unidadesPorCaja: undefined,
         observaciones: undefined,

@@ -41,4 +41,10 @@ describe('addDrugLotInventory', () => {
     await addDrugLotInventory(tx, { productoId: 'p1', nombre: 'ATP', lote: 'L2', vencimiento: new Date('2028-01-01T00:00:00Z'), cantidad: 5 })
     expect(tx.inventarioDroga.create).toHaveBeenCalledWith({ data: expect.objectContaining({ productoId: 'p1', lote: 'L2' }) })
   })
+
+  it('normalizes a lot before creating it so equivalent entries share one record', async () => {
+    const tx = { $executeRaw: vi.fn().mockResolvedValue(1), $queryRaw: vi.fn().mockResolvedValue([]), inventarioDroga: { update: vi.fn(), create: vi.fn().mockResolvedValue({ id: 'i2' }) } }
+    await addDrugLotInventory(tx, { productoId: 'p1', nombre: 'ATP', lote: '  atp   001 ', vencimiento: new Date('2028-01-01T00:00:00Z'), cantidad: 5 })
+    expect(tx.inventarioDroga.create).toHaveBeenCalledWith({ data: expect.objectContaining({ lote: 'ATP 001' }) })
+  })
 })
