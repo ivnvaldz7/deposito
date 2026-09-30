@@ -159,9 +159,25 @@ async function presentationOptionsForSnapshot(
   const sourceProductIds = [...new Set(snapshot.lines.flatMap((line) => line.productCandidate ? [line.productCandidate.productId] : []))]
   if (sourceProductIds.length === 0) return []
 
-  const rules = await tx.productoTransferRule.findMany({
+  // Sólo los productos que tienen al menos una presentación derivada deben
+  // pedir una elección. "Normal" se suma como alternativa de esos productos,
+  // pero no transforma los traslados comunes en un paso obligatorio.
+  const presentationSourceRules = await tx.productoTransferRule.findMany({
     where: {
       sourceProductId: { in: sourceProductIds },
+      tipo: TipoReglaTransferenciaProducto.PRESENTATION,
+      activo: true,
+      targetProduct: { activo: true },
+    },
+    select: { sourceProductId: true },
+    distinct: ['sourceProductId'],
+  })
+  const presentationSourceProductIds = presentationSourceRules.map((rule) => rule.sourceProductId)
+  if (presentationSourceProductIds.length === 0) return []
+
+  const rules = await tx.productoTransferRule.findMany({
+    where: {
+      sourceProductId: { in: presentationSourceProductIds },
       // Una preparación puede conservar el mismo producto ("Normal") o
       // derivarlo a una presentación. Ambas son destinos elegibles cuando
       // el producto tiene una presentación especial configurada.

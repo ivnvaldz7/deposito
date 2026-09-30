@@ -195,6 +195,23 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.equino.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })).cantidad).toBe(12)
   })
 
+  it('no solicita una presentación para un producto que sólo tiene la regla Normal', async () => {
+    const suffix = crypto.randomUUID()
+    const customer = await prisma.cliente.create({ data: { nombre: `Cliente normal ${suffix}`, cuit: '30-12345678-9', condicionIva: 'RI', direccion: 'Ruta 2 km 50' } })
+    const product = await prisma.producto.create({ data: { nombre: `PRODUCTO NORMAL ${suffix}`, sku: `NORMAL-${suffix}`, unidadesPorCaja: 12 } })
+    await prisma.productoTransferRule.create({ data: { sourceProductId: product.id, targetProductId: product.id, label: 'Normal', tipo: 'SAME_PRODUCT', orden: 1 } })
+
+    const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', `Bearer ${adminToken()}`)
+      .send({ originalText: `12 ${product.nombre}` }).expect(201)
+    const updated = await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', `Bearer ${adminToken()}`)
+      .send({ expectedVersion: created.body.version, clienteId: customer.id }).expect(200)
+    const reviewed = await getEffective(created.body.id, `Bearer ${adminToken()}`)
+
+    expect(updated.body.estado).toBe('READY')
+    expect(reviewed.presentationOptions).toEqual([])
+    expect(reviewed.effectiveSnapshot.lines[0]).toMatchObject({ productCandidate: { productId: product.id }, requiresReview: false, warnings: [] })
+  })
+
   it('A: corregir cliente conserva el producto unresolved', async () => {
     const fixture = await createPartialDraft()
     await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)
