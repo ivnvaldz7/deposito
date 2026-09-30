@@ -51,7 +51,7 @@ describe('LoginPage', () => {
         <LoginPage />
       </MemoryRouter>,
     )
-    expect(screen.getByAltText('Ale-Bet')).toBeInTheDocument()
+    expect(screen.getByAltText('Logística')).toBeInTheDocument()
   })
 
   it('shows error message when error=unauthorized is in URL', () => {
@@ -274,7 +274,7 @@ describe('LoginPage', () => {
       </MemoryRouter>,
     )
 
-    const container = screen.getByAltText('Ale-Bet').closest('div')
+    const container = screen.getByAltText('Logística').closest('div')
     expect(container?.parentElement?.innerHTML).not.toContain('bg-obsidian')
   })
 

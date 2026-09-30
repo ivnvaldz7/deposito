@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Search, Pill, FlaskConical, Syringe
 } from 'lucide-react'
-import { ApiError } from '../lib/api'
+import { api, ApiError } from '../lib/api'
 import { useDrogas, type DrogaRecord } from '../queries/use-drogas'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
@@ -202,7 +202,7 @@ function DrugQuantityAdjustment({ lote }: { lote: DrogaRecord }) {
       </div>
       {adjustment.error && (
         <p role="alert" className="mt-2 text-xs text-error">
-          {adjustment.error instanceof ApiError ? adjustment.error.message : 'No se pudo guardar el ajuste.'}
+          {adjustment.error instanceof Error ? adjustment.error.message : 'No se pudo guardar el ajuste.'}
         </p>
       )}
     </form>

@@ -158,7 +158,7 @@ export function AppAccessPanel({ user, onClose, onSaveAccess, onRemoveAccess, on
               <div key={app} className="rounded-xl border border-white/10 bg-surface-container/60 p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="font-body text-sm font-semibold text-on-surface">
-                    {app === 'deposito' ? 'Depósito' : 'Ale-Bet / Logística'}
+                    {app === 'deposito' ? 'Depósito' : 'Logística'}
                   </span>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" className="sr-only peer" checked={access[app].activo} onChange={(e) => setAccess(curr => ({ ...curr, [app]: { ...curr[app], activo: e.target.checked } }))} />

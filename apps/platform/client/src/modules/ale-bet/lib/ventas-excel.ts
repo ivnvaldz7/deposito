@@ -39,7 +39,7 @@ function setupPrintOptions(ws: ExcelJS.Worksheet) {
     top: 0.75, bottom: 0.75,
     header: 0.3, footer: 0.3
   }
-  ws.headerFooter.oddHeader = '&L&"Arial,Bold"Ale-Bet · Logística'
+  ws.headerFooter.oddHeader = '&L&"Arial,Bold"Logística'
   ws.headerFooter.oddFooter = '&R&"Arial"Página &P de &N'
 }
 
@@ -324,7 +324,7 @@ function buildAnualSheets(wb: ExcelJS.Workbook, cliente: Cliente, reporte: Repor
 
 export async function generarExcelVentas(cliente: Cliente, reporte: ReporteVentas): Promise<void> {
   const wb = new ExcelJS.Workbook()
-  wb.creator = 'Ale-Bet Logística'
+  wb.creator = 'Logística'
   wb.created = new Date()
   wb.calcProperties.fullCalcOnLoad = true
 

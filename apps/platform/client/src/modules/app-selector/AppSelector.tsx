@@ -17,7 +17,7 @@ const APP_LABELS: Record<string, AppInfo> = {
     icon: Package,
   },
   'ale-bet': {
-    name: 'Ale·Bet',
+    name: 'Logística',
     desc: 'Pedidos, armado y despacho',
     icon: ClipboardList,
   },

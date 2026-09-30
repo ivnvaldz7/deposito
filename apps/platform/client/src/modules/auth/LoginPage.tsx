@@ -94,7 +94,7 @@ export default function LoginPage() {
           <div className="relative w-[180px] sm:w-[220px] h-[36px] sm:h-[44px] overflow-hidden">
             <img 
               src="/brand/AB-SVG.svg" 
-              alt="Ale-Bet" 
+              alt="Logística"
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-auto invert opacity-90" 
             />
           </div>

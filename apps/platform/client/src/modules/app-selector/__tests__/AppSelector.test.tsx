@@ -42,7 +42,7 @@ describe('AppSelector', () => {
     render(<TestApp />)
 
     expect(screen.getByText(/depósito/i)).toBeInTheDocument()
-    expect(screen.getByText(/ale.bet/i)).toBeInTheDocument()
+    expect(screen.getByText(/logística/i)).toBeInTheDocument()
   })
 
   it('navigates to deposito on click', () => {
@@ -84,8 +84,8 @@ describe('AppSelector', () => {
 
     render(<TestApp />)
 
-    // Should show ale-bet but not deposito
-    expect(screen.getByText(/ale.bet/i)).toBeInTheDocument()
+    // Should show Logística but not Depósito
+    expect(screen.getByText(/logística/i)).toBeInTheDocument()
     expect(screen.queryByText(/depósito/i)).not.toBeInTheDocument()
   })
 
@@ -110,7 +110,7 @@ describe('AppSelector', () => {
 
     render(<TestApp />)
 
-    expect(screen.getByText(/ale.bet/i)).toBeInTheDocument()
+    expect(screen.getByText(/logística/i)).toBeInTheDocument()
     expect(screen.queryByText(/admin/i)).not.toBeInTheDocument()
   })
 })

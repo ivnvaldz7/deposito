@@ -207,7 +207,7 @@ export function UserModal({ open, onClose, onCreate }: UserModalProps) {
                       updateAccess('ale_bet', { enabled: event.target.checked })
                     }
                   />
-                  Ale-Bet
+                  Logística
                 </label>
                 <select
                   value={access.ale_bet.rol}

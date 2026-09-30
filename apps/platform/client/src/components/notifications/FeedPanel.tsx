@@ -9,7 +9,7 @@ type FilterTab = 'all' | AppId
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'Todos' },
   { key: 'deposito', label: 'Depósito' },
-  { key: 'ale_bet', label: 'Ale-Bet' },
+  { key: 'ale_bet', label: 'Logística' },
   { key: 'admin', label: 'Admin' },
 ]
 

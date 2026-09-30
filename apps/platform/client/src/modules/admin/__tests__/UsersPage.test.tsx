@@ -162,7 +162,7 @@ describe('UsersPage', () => {
     })
 
     expect(screen.getByText('Depósito · encargado')).toBeInTheDocument()
-    expect(screen.getByText('Ale-Bet · operador')).toBeInTheDocument()
+    expect(screen.getByText('Logística · operador')).toBeInTheDocument()
   })
 
   it('shows loading state initially', () => {
@@ -247,7 +247,7 @@ describe('UsersPage', () => {
     const editButtons = await screen.findAllByRole('button', { name: 'Editar' })
     await user.click(editButtons[0])
 
-    const aleBetTitle = screen.getByText('Ale-Bet / Logística')
+    const aleBetTitle = screen.getByText('Logística')
     const aleBetSection = aleBetTitle.closest('.rounded-xl.border') as HTMLElement
     expect(aleBetSection).not.toBeNull()
 

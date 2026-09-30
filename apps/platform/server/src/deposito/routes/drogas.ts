@@ -123,7 +123,16 @@ router.patch('/:inventarioId/cantidad', authenticate, requirePermission('deposit
       return
     }
     res.json(result)
-  } catch {
+  } catch (error) {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? (error as { code?: unknown }).code
+      : undefined
+    console.error('[deposito:drogas] No se pudo ajustar la cantidad', {
+      inventarioId: parsedId.data,
+      actorId: req.depositoUser?.id,
+      code,
+      message: error instanceof Error ? error.message : String(error),
+    })
     res.status(500).json({ message: 'No se pudo ajustar la cantidad' })
   }
 })

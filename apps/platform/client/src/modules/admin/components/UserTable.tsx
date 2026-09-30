@@ -12,7 +12,7 @@ function statusClasses(active: boolean): string {
 }
 
 function appLabel(app: string): string {
-  return app === 'deposito' ? 'Depósito' : 'Ale-Bet'
+  return app === 'deposito' ? 'Depósito' : 'Logística'
 }
 
 export function UserTable({ users, onEdit }: UserTableProps) {
