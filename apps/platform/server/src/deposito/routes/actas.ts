@@ -87,11 +87,13 @@ router.get('/', authenticate, requirePermission('deposito', 'actas.read'), async
         _count: { select: { items: true } },
         items: {
           select: {
+            id: true,
             lote: true,
             categoria: true,
             productoNombre: true,
             cantidadIngresada: true,
             cantidadDistribuida: true,
+            mercado: true,
             temperaturaTransporte: true,
             condicionEmbalaje: true,
             observacionesCalidad: true,

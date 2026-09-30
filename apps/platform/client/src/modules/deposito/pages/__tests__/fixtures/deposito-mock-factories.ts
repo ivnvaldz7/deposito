@@ -44,7 +44,19 @@ export function createActaListItem(overrides: Record<string, unknown> = {}) {
     user: { name: 'María López' },
     _count: { items: 3 },
     items: [
-      { lote: 'L2401', productoNombre: 'Vitamina B12', temperaturaTransporte: null, condicionEmbalaje: null, observacionesCalidad: null, aprobadoCalidad: false },
+      {
+        id: 'acta-item-1',
+        lote: 'L2401',
+        categoria: 'droga' as const,
+        productoNombre: 'Vitamina B12',
+        cantidadIngresada: 100,
+        cantidadDistribuida: 0,
+        mercado: null,
+        temperaturaTransporte: null,
+        condicionEmbalaje: null,
+        observacionesCalidad: null,
+        aprobadoCalidad: false,
+      },
     ],
     ...overrides,
   }

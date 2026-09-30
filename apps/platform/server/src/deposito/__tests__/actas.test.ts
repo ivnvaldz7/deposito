@@ -10,6 +10,7 @@ vi.mock('@platform/db', () => ({
     ecuador: 'ecuador',
     bolivia: 'bolivia',
     paraguay: 'paraguay',
+    VENEZUELA: 'VENEZUELA',
     no_exportable: 'no_exportable',
   },
   CondicionEmbalaje: {
@@ -87,7 +88,15 @@ const mocks = vi.hoisted(() => {
       Object.assign(acta, data, { updatedAt: new Date() })
       return acta
     }),
-    findMany: vi.fn(async () => state.actas),
+    findMany: vi.fn(async ({ include }: any = {}) => state.actas.map((acta) => {
+      if (!include) return acta
+      return {
+        ...acta,
+        user: { name: 'Encargado' },
+        _count: { items: state.items.filter((item) => item.actaId === acta.id).length },
+        items: state.items.filter((item) => item.actaId === acta.id),
+      }
+    })),
   }
 
   prisma.actaItem = {
@@ -329,6 +338,29 @@ describe('Actas críticas', () => {
     expect(mocks.state.inventarioEstuches[0]?.cantidad).toBe(9)
     expect(mocks.state.items[0]?.cantidadDistribuida).toBe(4)
     expect(mocks.state.actas[0]?.estado).toBe('parcial')
+  })
+
+  it('incluye tipo, mercado y cantidad de cada insumo al listar actas', async () => {
+    const acta = await request(app)
+      .post('/api/actas')
+      .set('x-test-role', 'encargado')
+      .send({ fecha: '2026-04-11' })
+
+    await request(app)
+      .post(`/api/actas/${acta.body.id}/items`)
+      .set('x-test-role', 'encargado')
+      .send({ categoria: 'etiqueta', productoNombre: 'OLIFAMISOL 500 ML', cantidadIngresada: 300, mercado: 'ecuador' })
+
+    const list = await request(app).get('/api/actas').set('x-test-role', 'observador')
+
+    expect(list.status).toBe(200)
+    expect(list.body[0].items[0]).toMatchObject({
+      id: expect.any(String),
+      categoria: 'etiqueta',
+      productoNombre: 'OLIFAMISOL 500 ML',
+      cantidadIngresada: 300,
+      mercado: 'ecuador',
+    })
   })
 
   it('rechaza distribuir más de lo ingresado', async () => {
