@@ -148,3 +148,20 @@ describe('Alias — alias normalizado sin cantidad inicial', () => {
     expect(productText.toLowerCase()).toContain('b12b15')
   })
 })
+
+describe('Cantidad iniciada con conjunción', () => {
+  it('interpreta “Y 3 ATP” como tres unidades del alias ATP', () => {
+    const catalog = [
+      { id: 'jeringa-atp', nombre: 'JERINGA ATP 35 GR', sku: 'ATP-35', unidadesPorCaja: 24, aliases: ['ATP'] },
+    ]
+
+    const line = interpretOrder('Y 3 ATP', catalog, []).lines[0]
+
+    expect(line).toMatchObject({
+      productCandidate: { productId: 'jeringa-atp' },
+      quantity: { mode: 'UNITS', explicitUnits: 3, totalUnits: 3 },
+      requiresReview: false,
+      warnings: [],
+    })
+  })
+})

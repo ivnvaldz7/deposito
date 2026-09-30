@@ -145,6 +145,7 @@ describe('AUTOMATION-01 Slice 1', () => {
     const aves = await prisma.producto.create({ data: { nombre: 'AMINOÁCIDOS 1 L AVES', sku: `AMINO-AVES-${suffix}`, unidadesPorCaja: 12 } })
     const equino = await prisma.producto.create({ data: { nombre: 'AMINOÁCIDOS 1 L EQUINO', sku: `AMINO-EQUINO-${suffix}`, unidadesPorCaja: 12 } })
     await prisma.productoTransferRule.createMany({ data: [
+      { sourceProductId: source.id, targetProductId: source.id, label: 'Normal', tipo: 'SAME_PRODUCT', orden: 0 },
       { sourceProductId: source.id, targetProductId: aves.id, label: 'Aves', tipo: 'PRESENTATION', orden: 1 },
       { sourceProductId: source.id, targetProductId: equino.id, label: 'Equino', tipo: 'PRESENTATION', orden: 2 },
     ] })
@@ -166,6 +167,7 @@ describe('AUTOMATION-01 Slice 1', () => {
     const line = reviewed.effectiveSnapshot.lines[0]
     expect(line).toMatchObject({ productCandidate: { productId: fixture.source.id }, requiresReview: true, warnings: ['PRESENTATION_REQUIRED'] })
     expect(reviewed.presentationOptions).toEqual([
+      expect.objectContaining({ sourceProductId: fixture.source.id, targetProductId: fixture.source.id, label: 'Normal' }),
       expect.objectContaining({ sourceProductId: fixture.source.id, targetProductId: fixture.aves.id, label: 'Aves' }),
       expect.objectContaining({ sourceProductId: fixture.source.id, targetProductId: fixture.equino.id, label: 'Equino' }),
     ])

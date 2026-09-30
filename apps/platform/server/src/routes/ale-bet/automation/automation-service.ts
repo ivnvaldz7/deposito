@@ -162,7 +162,10 @@ async function presentationOptionsForSnapshot(
   const rules = await tx.productoTransferRule.findMany({
     where: {
       sourceProductId: { in: sourceProductIds },
-      tipo: TipoReglaTransferenciaProducto.PRESENTATION,
+      // Una preparación puede conservar el mismo producto ("Normal") o
+      // derivarlo a una presentación. Ambas son destinos elegibles cuando
+      // el producto tiene una presentación especial configurada.
+      tipo: { in: [TipoReglaTransferenciaProducto.SAME_PRODUCT, TipoReglaTransferenciaProducto.PRESENTATION] },
       activo: true,
       targetProduct: { activo: true },
     },

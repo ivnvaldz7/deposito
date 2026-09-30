@@ -110,8 +110,15 @@ export function extractQuantityAndProduct(line: string): { originalExpression: s
   // También se acepta la forma habitual "Producto - cantidad". Requerimos
   // espacio después del guion para no confundir identificadores como B-12.
   const trailingUnitsMatch = line.match(/\s*[-–—]\s+(\d+)\s*$/)
+  // Algunos pedidos continúan una línea previa con "Y 3 ATP". En ese caso
+  // "Y" es una conjunción, no parte del nombre del producto.
+  const leadingConjunctionUnitsMatch = line.match(/^\s*(?:Y|MAS|MÁS)\s+(\d+)\s+(.+?)\s*$/i)
   
-  if (trailingUnitsMatch) {
+  if (leadingConjunctionUnitsMatch) {
+    explicitUnits = Number(leadingConjunctionUnitsMatch[1])
+    productText = leadingConjunctionUnitsMatch[2].trim()
+    mode = 'UNITS'
+  } else if (trailingUnitsMatch) {
     explicitUnits = Number(trailingUnitsMatch[1])
     productText = line.slice(0, trailingUnitsMatch.index).trim()
     mode = 'UNITS'
