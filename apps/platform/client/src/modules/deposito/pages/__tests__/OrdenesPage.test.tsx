@@ -96,13 +96,13 @@ describe('OrdenesPage', () => {
     expect(screen.getByRole('button', { name: 'Aprobar' })).toBeEnabled()
   })
 
-  it('filtra por categoría y exige mercado para estuche antes de crear', async () => {
+  it('filtra estuches por país mediante badges y conserva el país elegido en la orden', async () => {
     const estuche = {
       id: '11111111-1111-4111-8111-111111111111',
-      nombreBase: 'Estuche prueba',
-      nombreCompleto: 'Estuche prueba 500 ml',
+      nombreBase: 'OLIVITASAN PLUS',
+      nombreCompleto: 'OLIVITASAN PLUS 500 ML',
       categoria: 'estuche',
-      codigo: 'EST-1',
+      codigo: 'IGES033',
       presentacion: 500,
       unidad: 'ml',
       volumen: null,
@@ -119,10 +119,24 @@ describe('OrdenesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Material de Empaque' }))
     fireEvent.click(screen.getByRole('button', { name: 'estuche' }))
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/productos?categoria=estuche&activo=true&incluirStock=true'))
-    expect(screen.getByPlaceholderText('Buscá un estuche...')).toBeInTheDocument()
-    expect(screen.getByLabelText('Mercado')).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Venezuela' })).toBeInTheDocument()
-    expect(screen.queryByLabelText('Mercado')).not.toHaveAttribute('value', 'argentina')
-    expect(api.post).not.toHaveBeenCalled()
+    const producto = screen.getByPlaceholderText('Primero seleccioná un país')
+    expect(producto).toBeDisabled()
+    expect(screen.queryByLabelText('Mercado')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Argentina' })).toHaveAttribute('aria-pressed', 'false')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Argentina' }))
+    expect(screen.getByRole('button', { name: 'Argentina' })).toHaveAttribute('aria-pressed', 'true')
+    const selector = screen.getByPlaceholderText('Buscá un estuche...')
+    expect(selector).toBeEnabled()
+    await act(async () => selector.focus())
+    fireEvent.mouseDown(await screen.findByRole('option', { name: /OLIVITASAN PLUS 500 ML/i }))
+    fireEvent.change(screen.getByLabelText('Cantidad'), { target: { value: '10' } })
+    vi.mocked(api.post).mockResolvedValue({ id: 'orden-1', productoNombre: estuche.nombreCompleto } as never)
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar orden' }))
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/ordenes', expect.objectContaining({
+      productoId: estuche.id,
+      mercado: 'argentina',
+      cantidad: 10,
+    })))
   })
 })

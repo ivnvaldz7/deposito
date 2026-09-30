@@ -13,7 +13,7 @@ import {
   useRechazarOrden,
 } from '../queries'
 import { ProductoSelector } from '../components/ProductoSelector'
-import { MERCADOS as MERCADOS_COMPARTIDOS, formatMercadoLabel } from '../components/inventory-shared/mercados'
+import { MERCADOS as MERCADOS_COMPARTIDOS } from '../components/inventory-shared/mercados'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import {
   Dialog,
@@ -35,7 +35,7 @@ const CATEGORIA_LABELS: Record<Categoria, string> = {
   frasco: 'Frasco',
 }
 
-const MERCADOS = MERCADOS_COMPARTIDOS.map(({ value }) => value)
+const MERCADOS_POR_PAIS = MERCADOS_COMPARTIDOS.filter(({ value }) => value !== 'no_exportable')
 
 function needsMercado(cat: Categoria) {
   return cat === 'estuche' || cat === 'etiqueta'
@@ -105,7 +105,7 @@ const nuevaOrdenSchema = z.object({
     ctx.addIssue({ code: 'custom', path: ['cantidad'], message: 'Debe ser un entero para materiales de empaque' })
   }
   if (needsMercado(data.categoria) && !data.mercado) {
-    ctx.addIssue({ code: 'custom', path: ['mercado'], message: 'Seleccioná el mercado' })
+    ctx.addIssue({ code: 'custom', path: ['mercado'], message: 'Seleccioná el país' })
   }
 })
 
@@ -138,6 +138,7 @@ function NuevaOrdenModal({
   const categoria = useWatch({ control, name: 'categoria' })
   const productoId = useWatch({ control, name: 'productoId' })
   const productoNombre = useWatch({ control, name: 'productoNombre' })
+  const mercado = useWatch({ control, name: 'mercado' })
   useEffect(() => {
     if (!open) return
     setValue('productoId', undefined)
@@ -145,10 +146,16 @@ function NuevaOrdenModal({
     setValue('mercado', '')
   }, [categoria, open, setValue])
 
+  function seleccionarMercado(nuevoMercado: Mercado) {
+    setValue('mercado', nuevoMercado, { shouldValidate: true })
+    setValue('productoId', undefined, { shouldValidate: true })
+    setValue('productoNombre', '', { shouldValidate: true })
+  }
+
   async function onSubmit(data: NuevaOrdenForm) {
     setServerError(null)
     if (needsMercado(data.categoria) && !data.mercado) {
-      setServerError('Seleccioná el mercado')
+      setServerError('Seleccioná el país')
       return
     }
     try {
@@ -206,42 +213,59 @@ function NuevaOrdenModal({
           </div>
 
           {familia && <>
+          {needsMercado(categoria) && (
+            <fieldset className="space-y-2">
+              <legend className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
+                País
+              </legend>
+              <div className="flex flex-wrap gap-2" aria-label="Elegí el país del insumo">
+                {MERCADOS_POR_PAIS.map(({ value, label }) => {
+                  const selected = mercado === value
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => seleccionarMercado(value)}
+                      className={`rounded-lg border px-3 py-2 font-body text-xs font-medium transition-colors ${
+                        selected
+                          ? 'border-primary bg-primary text-on-primary'
+                          : 'border-outline-variant bg-surface-container-high text-on-surface hover:border-primary'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              {errors.mercado && <p className="font-body text-error text-xs">{errors.mercado.message}</p>}
+            </fieldset>
+          )}
+
           {/* Producto (fuzzy search) */}
           <div className="space-y-1">
             <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
               Producto
             </label>
             <ProductoSelector
-              key={`${categoria}-${productoId ?? 'empty'}`}
+              key={`${categoria}-${mercado || 'sin-pais'}-${productoId ?? 'empty'}`}
               categoria={categoria}
               expandirMercados={false}
+              mercadoFiltro={needsMercado(categoria) && mercado ? mercado as Mercado : null}
               displayValue={productoNombre}
               onChange={(id, nombre) => {
                 setValue('productoId', id || undefined, { shouldValidate: true })
                 setValue('productoNombre', nombre, { shouldValidate: true })
               }}
-              placeholder={`Buscá un ${CATEGORIA_LABELS[categoria].toLowerCase()}...`}
+              placeholder={needsMercado(categoria) && !mercado
+                ? 'Primero seleccioná un país'
+                : `Buscá un ${CATEGORIA_LABELS[categoria].toLowerCase()}...`}
+              disabled={needsMercado(categoria) && !mercado}
             />
             {errors.productoNombre && (
               <p className="font-body text-error text-xs">{errors.productoNombre.message}</p>
             )}
           </div>
-
-          {/* Mercado (solo estuche/etiqueta) */}
-          {needsMercado(categoria) && (
-            <div className="space-y-1">
-              <label htmlFor="orden-mercado" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-                Mercado
-              </label>
-              <select id="orden-mercado" {...register('mercado')} className="input-field">
-                <option value="">Seleccioná mercado</option>
-                {MERCADOS.map((m) => (
-                  <option key={m} value={m}>{formatMercadoLabel(m)}</option>
-                ))}
-              </select>
-              {errors.mercado && <p className="font-body text-error text-xs">{errors.mercado.message}</p>}
-            </div>
-          )}
 
           {/* Cantidad */}
           <div className="space-y-1">
