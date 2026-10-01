@@ -68,6 +68,18 @@ export function useUpdatePedido() {
   })
 }
 
+export function useAmpliarPedidoConfirmado() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, items, idempotencyKey }: { id: string; expectedVersion: number; items: Array<{ productoId: string; cantidad: number }>; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.ampliar(id, { expectedVersion, items }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
+  })
+}
+
 export function useAprobarPedido() {
   const qc = useQueryClient()
   return useMutation({

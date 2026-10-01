@@ -35,6 +35,7 @@ import {
   descargarRemitoPdf,
   pedidosKeys,
   useAnularRemito,
+  useAmpliarPedidoConfirmado,
   useAprobarPedido,
   useCancelarPedido,
   useClientes,
@@ -1993,6 +1994,14 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
   const [devolucionCarrito, setDevolucionCarrito] = useState<Carrito>({})
   const [motivoDevolucion, setMotivoDevolucion] = useState('')
   const [motivoDevolucionError, setMotivoDevolucionError] = useState<string | null>(null)
+  const [ampliacionOpen, setAmpliacionOpen] = useState(false)
+  const [ampliacionBusqueda, setAmpliacionBusqueda] = useState('')
+  const [ampliacionCarrito, setAmpliacionCarrito] = useState<Carrito>({})
+  const [ampliacionProductos, setAmpliacionProductos] = useState<Record<string, ProductoCardDatos>>({})
+  const [ampliacionError, setAmpliacionError] = useState<string | null>(null)
+
+  const ampliacionBusquedaDebounced = useDebouncedValue(ampliacionBusqueda, 200)
+  const { data: resultadosAmpliacion = [] } = useProductosSearch(ampliacionBusquedaDebounced)
 
   const ocasionalNombreRef = useRef<HTMLInputElement>(null)
   const ocasionalDireccionRef = useRef<HTMLInputElement>(null)
@@ -2000,14 +2009,78 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
   const emitirRemitoMutation = useEmitirRemito()
   const anularRemitoMutation = useAnularRemito()
   const devolucionMutation = useRegistrarDevolucionPedido()
+  const ampliacionMutation = useAmpliarPedidoConfirmado()
 
   const remitoVigente = pedido?.remitos?.find((r: any) => r.estado === 'VIGENTE') ?? null
   const remitosInvalidados = pedido?.remitos?.filter((r: any) => r.estado === 'INVALIDADO') ?? []
   const canDevolver = canRegistrarDevolucion(pedido, rol, userId)
+  const canAmpliar = rol === 'admin' && can(user, 'ale-bet', 'pedidos.edit') && pedido.estado === 'APROBADO'
+  const itemsAgrupados = useMemo(() => {
+    const grouped = new Map<string, any>()
+    for (const item of pedido.items) {
+      const previous = grouped.get(item.productoId)
+      grouped.set(item.productoId, previous ? { ...previous, cantidad: previous.cantidad + item.cantidad } : item)
+    }
+    return [...grouped.values()]
+  }, [pedido.items])
+
+  function abrirAmpliacion() {
+    setAmpliacionBusqueda('')
+    setAmpliacionCarrito({})
+    setAmpliacionProductos({})
+    setAmpliacionError(null)
+    setAmpliacionOpen(true)
+  }
+
+  function agregarProducto(producto: ProductoCardDatos) {
+    setAmpliacionProductos((previous) => ({ ...previous, [producto.id]: producto }))
+    setAmpliacionCarrito((previous) => {
+      const current = previous[producto.id] ?? { cajas: 0, sueltos: 0 }
+      const next = calcularCajasSueltos(cantidadLinea(current.cajas, current.sueltos, producto.unidadesPorCaja) + 1, producto.unidadesPorCaja)
+      return { ...previous, [producto.id]: next }
+    })
+  }
+
+  function cambiarAmpliacion(productoId: string, cajas: number, sueltos: number) {
+    setAmpliacionCarrito((previous) => ({ ...previous, [productoId]: { cajas, sueltos } }))
+  }
+
+  function quitarAmpliacion(productoId: string) {
+    setAmpliacionCarrito((previous) => {
+      const { [productoId]: _, ...rest } = previous
+      return rest
+    })
+    setAmpliacionProductos((previous) => {
+      const { [productoId]: _, ...rest } = previous
+      return rest
+    })
+  }
+
+  async function guardarAmpliacion() {
+    const items = Object.entries(ampliacionCarrito).flatMap(([productoId, line]) => {
+      const producto = ampliacionProductos[productoId]
+      if (!producto) return []
+      const cantidad = cantidadLinea(line.cajas, line.sueltos, producto.unidadesPorCaja)
+      return cantidad > 0 ? [{ productoId, cantidad }] : []
+    })
+    if (items.length === 0) {
+      setAmpliacionError('Agregá al menos una unidad al pedido')
+      return
+    }
+    setAmpliacionError(null)
+    try {
+      await ampliacionMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version, items, idempotencyKey: newIdempotencyKey() })
+      toast.success('Pedido actualizado y stock adicional descontado')
+      setAmpliacionOpen(false)
+      void qc.invalidateQueries({ queryKey: pedidosKeys.all })
+    } catch (error) {
+      setAmpliacionError(error instanceof Error ? error.message : 'No se pudo actualizar el pedido')
+    }
+  }
 
   function abrirDevolucion() {
     const initial: Carrito = {}
-    for (const item of pedido.items) initial[item.productoId] = { cajas: 0, sueltos: 0 }
+    for (const item of itemsAgrupados) initial[item.productoId] = { cajas: 0, sueltos: 0 }
     setDevolucionCarrito(initial)
     setMotivoDevolucion('')
     setMotivoDevolucionError(null)
@@ -2020,7 +2093,7 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
       setMotivoDevolucionError(motivo.length === 0 ? 'Indicá el motivo de la devolución' : 'El motivo debe tener al menos 3 caracteres')
       return
     }
-    const items = pedido.items.flatMap((item: any) => {
+    const items = itemsAgrupados.flatMap((item: any) => {
       const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
       const cantidad = cantidadLinea(line.cajas, line.sueltos, item.producto.unidadesPorCaja)
       return cantidad > 0 ? [{ productoId: item.productoId, cantidad }] : []
@@ -2163,6 +2236,11 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
                   Registrar devolución
                 </Button>
               )}
+              {canAmpliar && (
+                <Button variant="outline" onClick={abrirAmpliacion} className="h-9 w-full px-4 text-[12px]">
+                  Modificar pedido
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -2171,7 +2249,7 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
           <div>
             <h2 className="text-[20px] font-bold tracking-tight text-on-surface mb-4">Productos</h2>
             <div className="flex flex-col border-t border-white/10">
-              {pedido.items.map((item: any) => {
+              {itemsAgrupados.map((item: any) => {
                 const base = calcularCajasSueltos(item.cantidad, item.producto.unidadesPorCaja)
                 return (
                   <LineaDetalle
@@ -2337,6 +2415,74 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
       </BottomSheet>
 
       <BottomSheet
+        open={ampliacionOpen}
+        onClose={() => setAmpliacionOpen(false)}
+        title="Modificar pedido"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setAmpliacionOpen(false)} disabled={ampliacionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Volver</Button>
+            <Button onClick={() => void guardarAmpliacion()} loading={ampliacionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Confirmar ampliación</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            Sumá productos o cantidades al pedido confirmado. Solo se descuenta el adicional; si hay un remito vigente se anula para emitir uno actualizado.
+          </p>
+          {Object.entries(ampliacionCarrito).length > 0 && (
+            <div className="space-y-3">
+              <p className="font-body text-[12px] font-semibold uppercase tracking-wide text-on-surface-variant">A agregar</p>
+              {Object.entries(ampliacionCarrito).map(([productoId, line]) => {
+                const producto = ampliacionProductos[productoId]
+                if (!producto) return null
+                return (
+                  <div key={productoId} className="rounded-xl border border-white/10 bg-surface-container-high p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate font-body text-[13px] font-semibold text-on-surface">{producto.nombre}</p>
+                      <button type="button" onClick={() => quitarAmpliacion(productoId)} className="shrink-0 font-body text-[11px] font-semibold text-error hover:underline">Quitar</button>
+                    </div>
+                    <QuantityStepper
+                      cajas={line.cajas}
+                      sueltos={line.sueltos}
+                      unidadesPorCaja={producto.unidadesPorCaja}
+                      onChange={(cajas, sueltos) => cambiarAmpliacion(productoId, cajas, sueltos)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <div className="space-y-2">
+            <label htmlFor="buscar-producto-ampliacion" className="font-body text-[13px] font-medium text-on-surface">Buscar producto para sumar</label>
+            <input
+              id="buscar-producto-ampliacion"
+              value={ampliacionBusqueda}
+              onChange={(event) => setAmpliacionBusqueda(event.target.value)}
+              placeholder="Buscá un producto..."
+              className="input-field w-full text-[13px]"
+            />
+          </div>
+          {ampliacionBusqueda.trim().length > 0 && (
+            <div role="region" aria-label="Resultados para sumar" className="overflow-hidden rounded-xl border border-white/10 bg-surface-container-high">
+              {resultadosAmpliacion.length === 0 ? (
+                <p className="p-4 font-body text-[13px] text-on-surface-variant">No se encontraron productos.</p>
+              ) : resultadosAmpliacion.map((producto) => (
+                <div key={producto.id} className="flex items-center justify-between gap-3 border-b border-white/5 p-3 last:border-b-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-body text-[13px] font-semibold text-on-surface">{producto.nombre}</p>
+                    <p className="mt-0.5 font-body text-[11px] text-on-surface-variant">Disponible: {producto.disponible}</p>
+                  </div>
+                  <Button variant="outline" onClick={() => agregarProducto(producto)} className="h-8 shrink-0 px-3 text-[11px]">Agregar</Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {ampliacionError && <p role="alert" className="font-body text-[12px] font-medium text-error">{ampliacionError}</p>}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
         open={devolucionOpen}
         onClose={() => setDevolucionOpen(false)}
         title="Registrar devolución"
@@ -2353,7 +2499,7 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
             Las unidades se reingresarán automáticamente en los lotes desde los que se descontaron al confirmar el pedido.
           </p>
           <div className="space-y-3">
-            {pedido.items.map((item: any) => {
+            {itemsAgrupados.map((item: any) => {
               const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
               return (
                 <div key={item.id} className="rounded-xl border border-white/10 bg-surface-container-high p-3">

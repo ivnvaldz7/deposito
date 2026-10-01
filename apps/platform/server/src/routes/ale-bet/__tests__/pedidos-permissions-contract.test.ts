@@ -7,7 +7,7 @@ const bindings = [
   ['get list', "router.get('/', requirePermission('ale-bet', 'pedidos.read')"],
   ['get detail', "router.get('/:id', requirePermission('ale-bet', 'pedidos.read')"],
   ['availability', "'pedidos.availability.read'"], ['create', "'pedidos.create'"],
-  ['edit', "'pedidos.edit'"], ['approve', "'pedidos.approve'"], ['take', "'pedidos.take'"],
+  ['edit', "'pedidos.edit'"], ['expand confirmed automation order', "router.post('/:id/ampliaciones', requirePermission('ale-bet', 'pedidos.edit')"], ['approve', "'pedidos.approve'"], ['take', "'pedidos.take'"],
   ['complete items', "'pedidos.complete_items'"], ['prepare', "'pedidos.prepare'"],
   ['cancel', "'pedidos.cancel'"], ['confirm cancel', "'pedidos.confirm_cancel'"], ['dispatch', "'pedidos.dispatch'"], ['return', "'pedidos.return'"],
 ] as const

@@ -27,7 +27,7 @@ vi.mock('../../lib/api', () => ({
     dashboard: vi.fn(),
     productos: { list: vi.fn(), search: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), lotes: { list: vi.fn(), create: vi.fn(), update: vi.fn() } },
     clientes: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
-    pedidos: { list: vi.fn(), get: vi.fn(), disponibilidadStock: vi.fn(), create: vi.fn(), update: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn(), devolver: vi.fn() },
+    pedidos: { list: vi.fn(), get: vi.fn(), disponibilidadStock: vi.fn(), create: vi.fn(), update: vi.fn(), ampliar: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn(), devolver: vi.fn() },
     transportistas: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
     remitos: { emitir: vi.fn(), anular: vi.fn(), pdf: vi.fn() },
     stock: { get: vi.fn(), movimientos: vi.fn() },
@@ -522,6 +522,35 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
       { expectedVersion: 1, items: [{ productoId: 'prod-1', cantidad: 1 }], motivo: 'Devolución del cliente' },
       expect.objectContaining({ idempotencyKey: expect.any(String) }),
     ))
+  })
+
+  it('AUTOMATION confirmado: permite sumar productos y descuenta solo el adicional', async () => {
+    mockRol('admin')
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(
+      createPedido({ origen: 'AUTOMATION', estado: 'APROBADO', aprobadoAt: '2026-10-01T09:13:00.000Z' }),
+    )
+    vi.mocked(aleBetApi.productos.search).mockResolvedValue([
+      createProductoSearchResult({ id: 'prod-2', nombre: 'Producto B', sku: 'SKU-002', unidadesPorCaja: 12 }),
+    ])
+    vi.mocked(aleBetApi.pedidos.ampliar).mockResolvedValue(
+      createPedido({ origen: 'AUTOMATION', estado: 'APROBADO', version: 2 }),
+    )
+    renderDetalle()
+    await screen.findByTestId('pedido-numero')
+    fireEvent.click(screen.getByRole('button', { name: 'Modificar pedido' }))
+    const ampliacion = sheet()
+    fireEvent.change(within(ampliacion).getByLabelText('Buscar producto para sumar'), { target: { value: 'Producto B' } })
+    await waitFor(() => expect(aleBetApi.productos.search).toHaveBeenCalledWith('Producto B'))
+    const resultados = screen.getByRole('region', { name: 'Resultados para sumar' })
+    fireEvent.click(within(resultados).getByRole('button', { name: 'Agregar' }))
+    fireEvent.click(within(ampliacion).getByRole('button', { name: 'Confirmar ampliación' }))
+
+    await waitFor(() => expect(aleBetApi.pedidos.ampliar).toHaveBeenCalledWith(
+      'pedido-1',
+      { expectedVersion: 1, items: [{ productoId: 'prod-2', cantidad: 1 }] },
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    ))
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Pedido actualizado y stock adicional descontado')
   })
 
   it('facturación emite remito con transporte habitual (AUTOMATION)', async () => {

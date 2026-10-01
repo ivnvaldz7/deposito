@@ -1,6 +1,6 @@
 export { useProductos, useProductosSearch, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useCreateLote, useUpdateLote, useProductoAdminStock, useProductTransferRules, useCreateAdminLote, useAjusteAdminStock, useIngresarAdminStock, useTransferirStock, productosKeys } from './use-productos'
 export { useClientes, useCreateCliente, useUpdateCliente, clientesKeys } from './use-clientes'
-export { usePedidos, usePedidoDetalle, usePedidoDisponibilidad, useCreatePedido, useUpdatePedido, useAprobarPedido, useTomarPedido, useCompletarItemPedido, usePrepararPedido, useCancelarPedido, useConfirmarCancelacionPedido, useDespacharPedido, useRegistrarDevolucionPedido, pedidosKeys } from './use-pedidos'
+export { usePedidos, usePedidoDetalle, usePedidoDisponibilidad, useCreatePedido, useUpdatePedido, useAmpliarPedidoConfirmado, useAprobarPedido, useTomarPedido, useCompletarItemPedido, usePrepararPedido, useCancelarPedido, useConfirmarCancelacionPedido, useDespacharPedido, useRegistrarDevolucionPedido, pedidosKeys } from './use-pedidos'
 export { useTransportistas, useCreateTransportista, useUpdateTransportista, transportistasKeys } from './use-transportistas'
 export { useEmitirRemito, useAnularRemito, descargarRemitoPdf, remitosKeys } from './use-remitos'
 export { useStockOverview, useStockMovimientos, stockKeys } from './use-stock'

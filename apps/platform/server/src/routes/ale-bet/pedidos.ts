@@ -17,6 +17,7 @@ const itemSchema = z.object({ productoId: z.string().min(1), cantidad: z.number(
 const createSchema = z.object({ clienteId: z.string().min(1), items: z.array(itemSchema).min(1) })
 const editSchema = createSchema.extend({ expectedVersion: z.number().int().positive() })
 const versionSchema = z.object({ expectedVersion: z.number().int().positive() })
+const expansionSchema = versionSchema.extend({ items: z.array(itemSchema).min(1) })
 const approvalSchema = versionSchema.extend({
   fingerprint: z.string().length(64),
   transferencias: z.array(z.object({
@@ -88,6 +89,14 @@ async function lockOrder(tx: Prisma.TransactionClient, pedidoId: string) {
 
 function assertVersion(pedido: { version: number }, expectedVersion: number): void {
   if (pedido.version !== expectedVersion) throw new ConflictError('La versión del pedido cambió; actualizá antes de reintentar')
+}
+
+function consolidateItems(items: Array<{ productoId: string; cantidad: number }>): Array<{ productoId: string; cantidad: number }> {
+  const quantities = new Map<string, number>()
+  for (const item of items) quantities.set(item.productoId, (quantities.get(item.productoId) ?? 0) + item.cantidad)
+  return [...quantities.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([productoId, cantidad]) => ({ productoId, cantidad }))
 }
 
 async function invalidateRemitos(tx: Prisma.TransactionClient, pedidoId: string, actorId: string, motivo: string): Promise<void> {
@@ -260,6 +269,68 @@ router.patch('/:id', requirePermission('ale-bet', 'pedidos.edit'), async (req, r
         editedApprovedOrder ? 'PEDIDO_EDITADO_REQUIERE_REAPROBACION' : 'PEDIDO_EDITADO',
         { estado: pedido.estado, clienteId: pedido.clienteId, items: pedido.items },
         { estado: updated.estado, clienteId: updated.clienteId, items: updated.items },
+      )
+      return updated
+    })
+    await syncStockProjectionAfterCommit()
+    if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
+    res.json(result.body)
+  } catch (error) { errorResponse(error, res) }
+})
+
+/**
+ * Automation consumes stock when it is confirmed.  An expansion therefore
+ * creates fresh item/reservation rows (instead of mutating the consumed
+ * reservation) and consumes only the additional quantity.  Keeping separate
+ * rows also preserves the exact lot traceability of each correction.
+ */
+router.post('/:id/ampliaciones', requirePermission('ale-bet', 'pedidos.edit'), async (req, res) => {
+  const parsed = expansionSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Debe indicar al menos un producto y una cantidad válida' }); return }
+  const user = req.user as JwtPayload
+  try {
+    const result = await idem(user, 'ale-bet.pedido.ampliar-confirmado', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
+      const pedido = await lockOrder(tx, String(req.params.id))
+      if (pedido.origen !== 'AUTOMATION' || pedido.estado !== 'APROBADO') {
+        throw new ConflictError('Solo se pueden ampliar pedidos Automation confirmados')
+      }
+      if (actorRole(user) !== 'admin') throw new ForbiddenError('Solo un administrador puede ampliar pedidos confirmados')
+      assertVersion(pedido, parsed.data.expectedVersion)
+
+      const additions = consolidateItems(parsed.data.items)
+      const products = await tx.producto.findMany({
+        where: { id: { in: additions.map((item) => item.productoId) }, activo: true },
+        select: { id: true },
+      })
+      if (products.length !== additions.length) throw new ConflictError('Uno o más productos ya no están activos')
+
+      // A consumed reservation cannot be reused because its unique allocation
+      // identifies the original stock exit.  Each expansion receives its own
+      // item row and FEFO reservation, even when it is the same product.
+      const newItems = [] as Array<{ id: string; productoId: string; cantidad: number }>
+      for (const item of additions) {
+        const created = await tx.itemPedido.create({
+          data: { pedidoId: pedido.id, productoId: item.productoId, cantidad: item.cantidad },
+          select: { id: true, productoId: true, cantidad: true },
+        })
+        newItems.push(created)
+      }
+      await reserveFefo(tx, pedido.id, newItems)
+      await consumeActiveReservations(tx, pedido.id, user.sub)
+      await invalidateRemitos(tx, pedido.id, user.sub, 'Pedido confirmado ampliado')
+
+      const updated = await tx.pedido.update({
+        where: { id: pedido.id },
+        data: { version: { increment: 1 } },
+        include: { cliente: true, items: { include: { producto: true } }, remitos: true },
+      })
+      await audit(
+        tx,
+        updated.id,
+        user.sub,
+        'PEDIDO_CONFIRMADO_AMPLIADO',
+        { items: pedido.items.map((item) => ({ productoId: item.productoId, cantidad: item.cantidad })) },
+        { additions, items: updated.items.map((item) => ({ productoId: item.productoId, cantidad: item.cantidad })) },
       )
       return updated
     })

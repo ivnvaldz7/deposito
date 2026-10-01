@@ -460,6 +460,8 @@ export const aleBetApi = {
       apiClient.post<Pedido>(`${BASE}/pedidos`, data, undefined, mutationOptions(options)),
     update: (id: string, data: UpdatePedidoInput, options?: MutationOptions) =>
       apiClient.patch<Pedido>(`${BASE}/pedidos/${id}`, data, undefined, mutationOptions(options)),
+    ampliar: (id: string, data: { expectedVersion: number; items: PedidoItemInput[] }, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos/${id}/ampliaciones`, data, undefined, mutationOptions(options)),
     disponibilidadStock: (id: string) => apiClient.get<PedidoDisponibilidadStock>(`${BASE}/pedidos/${id}/disponibilidad-stock`),
     aprobar: (id: string, data: { expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
       apiClient.put<Pedido>(`${BASE}/pedidos/${id}/aprobar`, data, undefined, mutationOptions(options)),
