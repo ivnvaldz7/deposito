@@ -189,7 +189,7 @@ export interface MovimientoStock {
   id: string
   productoId: string
   cantidad: number
-  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'AJUSTE' | 'SALDO_APERTURA' | 'TRANSFERENCIA_INTERNA'
+  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'DEVOLUCION_PEDIDO' | 'AJUSTE' | 'SALDO_APERTURA' | 'TRANSFERENCIA_INTERNA'
   referencia: string | null
   usuarioId: string
   loteId?: string | null
@@ -475,6 +475,8 @@ export const aleBetApi = {
       apiClient.put<Pedido>(`${BASE}/pedidos/${id}/confirmar-cancelacion`, data, undefined, mutationOptions(options)),
     despachar: (id: string, data: { expectedVersion: number }, options?: MutationOptions) =>
       apiClient.post<Pedido>(`${BASE}/pedidos/${id}/despachar`, data, undefined, mutationOptions(options)),
+    devolver: (id: string, data: { expectedVersion: number; items: PedidoItemInput[]; motivo: string }, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos/${id}/devoluciones`, data, undefined, mutationOptions(options)),
   },
 
   // Automation

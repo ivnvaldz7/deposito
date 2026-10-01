@@ -179,6 +179,12 @@ export function canDespachar(pedido: Pedido, rol: string, userId: string): boole
   return Boolean(pedido.remitos?.some((r) => r.estado === 'VIGENTE'))
 }
 
+export function canRegistrarDevolucion(pedido: Pedido, rol: string, userId: string): boolean {
+  if (esPedidoAutomation(pedido) || pedido.estado !== 'DESPACHADO') return false
+  if (!roleHasPermission('ale-bet', rol, 'pedidos.return')) return false
+  return rol === 'admin' || rol === 'encargado' || esArmadorAsignado(pedido, userId)
+}
+
 export function canCancelarDirecto(pedido: Pedido, rol: string, userId: string): boolean {
   if (pedido.estado !== 'BORRADOR' && pedido.estado !== 'APROBADO') return false
   if (roleHasPermission('ale-bet', rol, 'pedidos.cancel')) return true

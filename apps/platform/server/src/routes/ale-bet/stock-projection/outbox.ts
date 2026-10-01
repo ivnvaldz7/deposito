@@ -5,6 +5,7 @@ export type StockProjectionOutboxCause =
   | 'SALDO_APERTURA'
   | 'TRANSFER'
   | 'CONSUMO_PEDIDO'
+  | 'DEVOLUCION_PEDIDO'
 
 export async function markStockProjectionDirty(
   tx: Prisma.TransactionClient,

@@ -7,7 +7,7 @@ const action: Record<(typeof roles)[number], readonly [string, string]> = {
   admin: ['pedidos.dispatch', 'unknown.permission'],
   encargado: ['pedidos.prepare', 'pedidos.create'],
   vendedor: ['pedidos.create', 'pedidos.prepare'],
-  armador: ['pedidos.complete_items', 'pedidos.create'],
+  armador: ['pedidos.return', 'pedidos.create'],
   facturacion: ['pedidos.read', 'pedidos.create'],
   observador: ['pedidos.read', 'pedidos.create'],
 }

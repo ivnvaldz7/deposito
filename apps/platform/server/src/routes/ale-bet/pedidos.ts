@@ -7,7 +7,7 @@ import { eventBus, getAppAccess } from '@platform/core'
 import { requirePermission } from '../../middlewares/require-permission'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { canCancelOrder, canConfirmDispatch, canEditOrder, canTransitionOrder, canVendorCancelDirectly, type OrderState } from './order-workflow'
-import { consumeActiveReservations, releaseActiveReservations, reserveFefo, StockConflictError } from './reservas-service'
+import { consumeActiveReservations, releaseActiveReservations, reserveFefo, returnConsumedReservations, StockConflictError } from './reservas-service'
 import { getOrderAvailability, InventoryConflictError, transferInternal } from './inventory-service'
 import { sseManager } from './sse-manager'
 import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
@@ -28,6 +28,10 @@ const approvalSchema = versionSchema.extend({
   })).default([]),
 })
 const cancelSchema = versionSchema.extend({ motivo: z.string().trim().min(3).max(500).optional() })
+const returnSchema = versionSchema.extend({
+  items: z.array(itemSchema).min(1),
+  motivo: z.string().trim().min(3).max(500),
+})
 
 class ConflictError extends Error {}
 class NotFoundError extends Error {}
@@ -234,12 +238,32 @@ router.patch('/:id', requirePermission('ale-bet', 'pedidos.edit'), async (req, r
       const cliente = await tx.cliente.findUnique({ where: { id: parsed.data.clienteId } }); if (!cliente) throw new NotFoundError('Cliente no encontrado')
       if (pedido.estado === 'APROBADO') await releaseActiveReservations(tx, pedido.id)
       await tx.itemPedido.deleteMany({ where: { pedidoId: pedido.id } })
-      const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { clienteId: cliente.id, version: { increment: 1 }, items: { create: parsed.data.items } }, include: { cliente: true, items: { include: { producto: true } } } })
-      if (updated.estado === 'APROBADO') await reserveFefo(tx, updated.id, updated.items)
+      // Any changed approved order must go through availability and approval
+      // again. Keeping it approved would incorrectly preserve an approval for
+      // a different set of items.
+      const editedApprovedOrder = pedido.estado === 'APROBADO'
+      const updated = await tx.pedido.update({
+        where: { id: pedido.id },
+        data: {
+          clienteId: cliente.id,
+          version: { increment: 1 },
+          ...(editedApprovedOrder ? { estado: 'BORRADOR', aprobadoAt: null } : {}),
+          items: { create: parsed.data.items },
+        },
+        include: { cliente: true, items: { include: { producto: true } } },
+      })
       await invalidateRemitos(tx, updated.id, user.sub, 'Pedido editado')
-      await audit(tx, updated.id, user.sub, 'PEDIDO_EDITADO', { clienteId: pedido.clienteId, items: pedido.items }, { clienteId: updated.clienteId, items: updated.items })
+      await audit(
+        tx,
+        updated.id,
+        user.sub,
+        editedApprovedOrder ? 'PEDIDO_EDITADO_REQUIERE_REAPROBACION' : 'PEDIDO_EDITADO',
+        { estado: pedido.estado, clienteId: pedido.clienteId, items: pedido.items },
+        { estado: updated.estado, clienteId: updated.clienteId, items: updated.items },
+      )
       return updated
     })
+    await syncStockProjectionAfterCommit()
     if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
     res.json(result.body)
   } catch (error) { errorResponse(error, res) }
@@ -413,6 +437,32 @@ router.post('/:id/despachar', requirePermission('ale-bet', 'pedidos.dispatch'), 
       await consumeActiveReservations(tx, pedido.id, user.sub)
       const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'DESPACHADO', despachadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
       await audit(tx, updated.id, user.sub, 'PEDIDO_DESPACHADO', { estado: pedido.estado }, { estado: updated.estado })
+      return updated
+    })
+    await syncStockProjectionAfterCommit()
+    if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
+    res.json(result.body)
+  } catch (error) { errorResponse(error, res) }
+})
+
+router.post('/:id/devoluciones', requirePermission('ale-bet', 'pedidos.return'), async (req, res) => {
+  const parsed = returnSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Debe indicar cantidades a devolver y un motivo de al menos 3 caracteres' }); return }
+  const user = req.user as JwtPayload
+  try {
+    const result = await idem(user, 'ale-bet.pedido.devolver', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
+      const pedido = await lockOrder(tx, String(req.params.id))
+      assertManualArmadorWorkflow(pedido)
+      assertAssignedArmadorOrSupervisor(pedido, user)
+      assertVersion(pedido, parsed.data.expectedVersion)
+      if (pedido.estado !== 'DESPACHADO') throw new ConflictError('Solo se pueden registrar devoluciones de pedidos DESPACHADOS')
+      await returnConsumedReservations(tx, pedido.id, user.sub, parsed.data.items, parsed.data.motivo)
+      const updated = await tx.pedido.update({
+        where: { id: pedido.id },
+        data: { version: { increment: 1 } },
+        include: { cliente: true, items: { include: { producto: true } } },
+      })
+      await audit(tx, updated.id, user.sub, 'DEVOLUCION_REGISTRADA', undefined, { items: parsed.data.items }, parsed.data.motivo)
       return updated
     })
     await syncStockProjectionAfterCommit()

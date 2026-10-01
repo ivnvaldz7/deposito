@@ -27,7 +27,7 @@ vi.mock('../../lib/api', () => ({
     dashboard: vi.fn(),
     productos: { list: vi.fn(), search: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), lotes: { list: vi.fn(), create: vi.fn(), update: vi.fn() } },
     clientes: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
-    pedidos: { list: vi.fn(), get: vi.fn(), disponibilidadStock: vi.fn(), create: vi.fn(), update: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn() },
+    pedidos: { list: vi.fn(), get: vi.fn(), disponibilidadStock: vi.fn(), create: vi.fn(), update: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn(), devolver: vi.fn() },
     transportistas: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
     remitos: { emitir: vi.fn(), anular: vi.fn(), pdf: vi.fn() },
     stock: { get: vi.fn(), movimientos: vi.fn() },
@@ -243,13 +243,13 @@ it('edita cantidades, agrega un producto y guarda los cambios (MANUAL)', async (
     renderDetalle()
     await screen.findByTestId('pedido-numero')
     expect(
-      screen.getByText(/Editar puede cambiar la disponibilidad y liberar la reserva actual/),
+      screen.getByText(/Al guardar, se libera la reserva actual y el pedido vuelve a borrador/),
     ).toBeInTheDocument()
 
     fireEvent.click(within(linea('prod-1')).getByRole('button', { name: 'Sumar cajas' }))
     fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
     expect(
-      confirmDialog().getByText('Esto puede cambiar la disponibilidad y liberará la reserva actual. ¿Continuar?'),
+      confirmDialog().getByText('Esto libera la reserva actual y devuelve el pedido a borrador. Deberá aprobarse nuevamente antes de armarlo. ¿Continuar?'),
     ).toBeInTheDocument()
     fireEvent.click(confirmDialog().getByRole('button', { name: 'Continuar' }))
     await waitFor(() =>
@@ -258,7 +258,7 @@ it('edita cantidades, agrega un producto y guarda los cambios (MANUAL)', async (
         expect.objectContaining({ items: [{ productoId: 'prod-1', cantidad: 25 }], expectedVersion: 1 }),
       ),
     )
-    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Pedido P-001 actualizado')
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Pedido P-001 modificado: requiere nueva aprobación')
   })
 
   it('APROBADO: cancelar advierte que libera la reserva', async () => {
@@ -468,7 +468,7 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     )
   })
 
-  it('DESPACHADO: muestra fecha y no ofrece acciones', async () => {
+  it('DESPACHADO: permite al armador registrar una devolución y reponer el stock', async () => {
     mockRol('armador')
     vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(
       createPedido({ estado: 'DESPACHADO', armadorId: 'sub-1', despachadoAt: '2026-07-18T10:00:00.000Z' }),
@@ -481,6 +481,23 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     expect(screen.queryByRole('button', { name: 'Tomar pedido' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar devolución' })).toBeInTheDocument()
+
+    vi.mocked(aleBetApi.pedidos.devolver).mockResolvedValue(
+      createPedido({ estado: 'DESPACHADO', armadorId: 'sub-1', version: 2 }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar devolución' }))
+    const devolucion = sheet()
+    fireEvent.click(within(devolucion).getByRole('button', { name: 'Sumar sueltos' }))
+    fireEvent.change(within(devolucion).getByLabelText(/^Motivo/), { target: { value: 'Devolución del cliente' } })
+    fireEvent.click(within(devolucion).getByRole('button', { name: 'Reponer stock' }))
+
+    await waitFor(() => expect(aleBetApi.pedidos.devolver).toHaveBeenCalledWith(
+      'pedido-1',
+      { expectedVersion: 1, items: [{ productoId: 'prod-1', cantidad: 1 }], motivo: 'Devolución del cliente' },
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    ))
+    expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Devolución registrada y stock repuesto')
   })
 
   it('facturación emite remito con transporte habitual (AUTOMATION)', async () => {

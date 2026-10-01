@@ -184,3 +184,117 @@ export async function consumeActiveReservations(
     }
   }
 }
+
+type ReturnItemInput = Array<{ productoId: string; cantidad: number }>
+
+/**
+ * Re-enters returned units in the same lots and stock locations from which
+ * they were consumed during dispatch. Reservation rows are locked first, so
+ * two concurrent returns cannot put more back than was originally shipped.
+ */
+export async function returnConsumedReservations(
+  tx: TransactionClient,
+  pedidoId: string,
+  actorId: string,
+  items: ReturnItemInput,
+  motivo: string,
+): Promise<void> {
+  await tx.$queryRaw(Prisma.sql`
+    SELECT id
+    FROM "ale_bet"."ReservaStock"
+    WHERE "pedidoId" = ${pedidoId} AND estado = 'CONSUMIDA'
+    FOR UPDATE
+  `)
+
+  const requestedByProduct = new Map<string, number>()
+  for (const item of items) {
+    requestedByProduct.set(item.productoId, (requestedByProduct.get(item.productoId) ?? 0) + item.cantidad)
+  }
+
+  const consumed = await tx.reservaStock.findMany({
+    where: { pedidoId, estado: 'CONSUMIDA' },
+    include: { lote: { select: { productoId: true } } },
+    orderBy: [{ consumedAt: 'asc' }, { id: 'asc' }],
+  })
+  if (consumed.length === 0) throw new StockConflictError('El pedido no tiene stock consumido para devolver')
+
+  const returned = await tx.movimientoStock.findMany({
+    where: { pedidoId, tipo: TipoMovimiento.DEVOLUCION_PEDIDO },
+    select: { reservaId: true, cantidad: true },
+  })
+  const returnedByReservation = new Map<string, number>()
+  for (const movement of returned) {
+    if (movement.reservaId) returnedByReservation.set(movement.reservaId, (returnedByReservation.get(movement.reservaId) ?? 0) + movement.cantidad)
+  }
+
+  const reservationsByProduct = new Map<string, typeof consumed>()
+  for (const reservation of consumed) {
+    const entries = reservationsByProduct.get(reservation.lote.productoId) ?? []
+    entries.push(reservation)
+    reservationsByProduct.set(reservation.lote.productoId, entries)
+  }
+
+  for (const [productoId, requested] of requestedByProduct) {
+    const available = (reservationsByProduct.get(productoId) ?? []).reduce(
+      (total, reservation) => total + Math.max(0, reservation.cantidad - (returnedByReservation.get(reservation.id) ?? 0)),
+      0,
+    )
+    if (requested > available) {
+      throw new StockConflictError(`No se pueden devolver ${requested} unidades del producto ${productoId}; quedan ${available} unidades disponibles para devolver`)
+    }
+  }
+
+  const returnedProductIds = new Set<string>()
+  for (const [productoId, requested] of [...requestedByProduct.entries()].sort(([left], [right]) => left.localeCompare(right))) {
+    let remaining = requested
+    const reservations = reservationsByProduct.get(productoId) ?? []
+    for (const reservation of reservations) {
+      const returnable = reservation.cantidad - (returnedByReservation.get(reservation.id) ?? 0)
+      if (returnable <= 0) continue
+      const quantity = Math.min(remaining, returnable)
+      const locked = await tx.$queryRaw<Array<{ id: string; productoId: string; cajas: number; sueltos: number; unidadesPorCaja: number; cantidad: number; saldoId: string }>>(Prisma.sql`
+        SELECT lote.id, lote."productoId", lote.cajas, lote.sueltos, producto."unidadesPorCaja", saldo.cantidad, saldo.id AS "saldoId"
+        FROM "ale_bet"."Lote" AS lote
+        JOIN "ale_bet"."Producto" AS producto ON producto.id = lote."productoId"
+        JOIN "ale_bet"."SaldoStock" AS saldo ON saldo."loteId" = lote.id AND saldo."ubicacionId" = ${reservation.ubicacionId}
+        WHERE lote.id = ${reservation.loteId}
+        FOR UPDATE OF lote, saldo
+      `)
+      const lot = locked[0]
+      if (!lot) throw new StockConflictError('Lote original de la devolución no encontrado')
+
+      const nextQuantity = lot.cantidad + quantity
+      await tx.saldoStock.update({ where: { id: lot.saldoId }, data: { cantidad: { increment: quantity } } })
+      await tx.lote.update({ where: { id: lot.id }, data: descomponerUnidades(nextQuantity, lot.unidadesPorCaja) })
+      await tx.movimientoStock.create({
+        data: {
+          productoId,
+          cantidad: quantity,
+          tipo: TipoMovimiento.DEVOLUCION_PEDIDO,
+          referencia: `DEVOLUCION_PEDIDO:${pedidoId}`,
+          usuarioId: actorId,
+          pedidoId,
+          loteId: lot.id,
+          reservaId: reservation.id,
+          destinoUbicacionId: reservation.ubicacionId,
+        },
+      })
+      await evaluateLotLifecycle(tx, { loteId: lot.id, productoId })
+      returnedByReservation.set(reservation.id, (returnedByReservation.get(reservation.id) ?? 0) + quantity)
+      returnedProductIds.add(productoId)
+      remaining -= quantity
+      if (remaining === 0) break
+    }
+    if (remaining > 0) {
+      throw new StockConflictError(`No se pudieron asignar las unidades devueltas del producto ${productoId}`)
+    }
+  }
+
+  for (const productId of returnedProductIds) {
+    await markStockProjectionDirty(tx, {
+      productId,
+      causeType: 'DEVOLUCION_PEDIDO',
+      causeId: pedidoId,
+    })
+  }
+}

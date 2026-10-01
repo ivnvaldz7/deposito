@@ -9,14 +9,14 @@ const bindings = [
   ['availability', "'pedidos.availability.read'"], ['create', "'pedidos.create'"],
   ['edit', "'pedidos.edit'"], ['approve', "'pedidos.approve'"], ['take', "'pedidos.take'"],
   ['complete items', "'pedidos.complete_items'"], ['prepare', "'pedidos.prepare'"],
-  ['cancel', "'pedidos.cancel'"], ['confirm cancel', "'pedidos.confirm_cancel'"], ['dispatch', "'pedidos.dispatch'"],
+  ['cancel', "'pedidos.cancel'"], ['confirm cancel', "'pedidos.confirm_cancel'"], ['dispatch', "'pedidos.dispatch'"], ['return', "'pedidos.return'"],
 ] as const
 
 describe('Pedidos route permission contract', () => {
   it.each(bindings)('%s is bound to its exact permission', (_, binding) => expect(source).toContain(binding))
   it('has no legacy role-gate and protects assigned-armador actions', () => {
     expect(source).not.toContain('requireApp(')
-    expect(source.match(/assertAssignedArmadorOrSupervisor\(pedido, user\)/g)).toHaveLength(2)
+    expect(source.match(/assertAssignedArmadorOrSupervisor\(pedido, user\)/g)).toHaveLength(3)
     expect(source.match(/assertAssignedArmadorOrSupervisor\(locked, user\)/g)).toHaveLength(2)
   })
 

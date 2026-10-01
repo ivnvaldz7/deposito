@@ -10,7 +10,7 @@ export type AleBetPermission =
   | 'transportistas.read' | 'transportistas.manage'
   | 'pedidos.read' | 'pedidos.create' | 'pedidos.edit' | 'pedidos.approve'
   | 'pedidos.take' | 'pedidos.prepare' | 'pedidos.complete_items'
-  | 'pedidos.dispatch' | 'pedidos.cancel' | 'pedidos.confirm_cancel'
+  | 'pedidos.dispatch' | 'pedidos.cancel' | 'pedidos.confirm_cancel' | 'pedidos.return'
   | 'pedidos.availability.read'
   | 'remitos.create' | 'remitos.void' | 'remitos.read.pdf'
   | 'facturacion.read' | 'facturacion.export.pdf'
@@ -55,7 +55,7 @@ export const PERMISSIONS: Record<AppPermissionKey, readonly string[]> = {
     'transportistas.read', 'transportistas.manage',
     'pedidos.read', 'pedidos.create', 'pedidos.edit', 'pedidos.approve',
     'pedidos.take', 'pedidos.prepare', 'pedidos.complete_items',
-    'pedidos.dispatch', 'pedidos.cancel', 'pedidos.confirm_cancel',
+    'pedidos.dispatch', 'pedidos.cancel', 'pedidos.confirm_cancel', 'pedidos.return',
     'pedidos.availability.read',
     'remitos.create', 'remitos.void', 'remitos.read.pdf',
     'facturacion.read', 'facturacion.export.pdf',
@@ -102,7 +102,7 @@ export const ROLE_PERMISSIONS: {
       'stock.transfer', 'stock.lots.read', 'stock.lots.create', 'stock.lots.adjust', 'stock.history.read',
       'clientes.read',
       'pedidos.read', 'pedidos.take', 'pedidos.prepare', 'pedidos.complete_items',
-      'pedidos.dispatch', 'pedidos.confirm_cancel',
+      'pedidos.dispatch', 'pedidos.confirm_cancel', 'pedidos.return',
       'remitos.read.pdf', 'historial.read', 'historial.export', 'notificaciones.stream'
     ],
     vendedor: [
@@ -115,7 +115,7 @@ export const ROLE_PERMISSIONS: {
       'dashboard.read', 'productos.read', 'stock.read',
       'clientes.read',
       'pedidos.read', 'pedidos.take', 'pedidos.prepare', 'pedidos.complete_items',
-      'pedidos.dispatch', 'pedidos.confirm_cancel',
+      'pedidos.dispatch', 'pedidos.confirm_cancel', 'pedidos.return',
       'remitos.read.pdf', 'historial.read', 'historial.export', 'notificaciones.stream'
     ],
     facturacion: [

@@ -142,3 +142,15 @@ export function useDespacharPedido() {
     },
   })
 }
+
+export function useRegistrarDevolucionPedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, items, motivo, idempotencyKey }: { id: string; expectedVersion: number; items: Array<{ productoId: string; cantidad: number }>; motivo: string; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.devolver(id, { expectedVersion, items, motivo }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
+  })
+}

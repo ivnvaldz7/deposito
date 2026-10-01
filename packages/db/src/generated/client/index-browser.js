@@ -703,6 +703,7 @@ exports.EstadoPedido = exports.$Enums.EstadoPedido = {
 exports.TipoMovimiento = exports.$Enums.TipoMovimiento = {
   ENTRADA_MANUAL: 'ENTRADA_MANUAL',
   SALIDA_PEDIDO: 'SALIDA_PEDIDO',
+  DEVOLUCION_PEDIDO: 'DEVOLUCION_PEDIDO',
   AJUSTE: 'AJUSTE',
   SALDO_APERTURA: 'SALDO_APERTURA',
   TRANSFERENCIA_INTERNA: 'TRANSFERENCIA_INTERNA'

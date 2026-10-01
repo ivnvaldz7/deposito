@@ -13,6 +13,7 @@ const {
   releaseActiveReservations,
   reserveFefo,
   consumeActiveReservations,
+  returnConsumedReservations,
 } = vi.hoisted(() => ({
   acquireIdempotencyRecord: vi.fn(),
   completeIdempotencyRecord: vi.fn(),
@@ -20,6 +21,7 @@ const {
   releaseActiveReservations: vi.fn(),
   reserveFefo: vi.fn(),
   consumeActiveReservations: vi.fn(),
+  returnConsumedReservations: vi.fn(),
   mockDb: {
     producto: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
     lote: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
@@ -90,6 +92,7 @@ vi.mock('../routes/ale-bet/reservas-service', () => ({
   releaseActiveReservations,
   reserveFefo,
   consumeActiveReservations,
+  returnConsumedReservations,
 }))
 vi.mock('../routes/ale-bet/inventory-service', () => ({
   InventoryConflictError: class InventoryConflictError extends Error {},
@@ -193,15 +196,17 @@ describe('ALEBET-01 HTTP contracts', () => {
     expect(mockDb.itemPedido.deleteMany).not.toHaveBeenCalled()
   })
 
-  it('releases then recalculates reservations when an approved order is edited', async () => {
+  it('releases the reservation and returns an edited approved order to BORRADOR', async () => {
     mockDb.pedido.findUnique.mockResolvedValue(pedido({ estado: 'APROBADO' }))
     mockDb.cliente.findUnique.mockResolvedValue({ id: 'cliente-1', estado: 'VALIDADO' })
-    mockDb.pedido.update.mockResolvedValue(pedido({ estado: 'APROBADO', version: 2, items: [{ id: 'item-2', productoId: 'producto-1', cantidad: 4, producto: {} }] }))
+    mockDb.pedido.update.mockResolvedValue(pedido({ estado: 'BORRADOR', version: 2, items: [{ id: 'item-2', productoId: 'producto-1', cantidad: 4, producto: {} }] }))
     const server = await app()
-    await request(server).patch('/api/ale-bet/pedidos/pedido-1').set('Authorization', `Bearer ${token('vendedor')}`)
+    const response = await request(server).patch('/api/ale-bet/pedidos/pedido-1').set('Authorization', `Bearer ${token('vendedor')}`)
       .send({ clienteId: 'cliente-1', items: [{ productoId: 'producto-1', cantidad: 4 }], expectedVersion: 1 }).expect(200)
+    expect(response.body.estado).toBe('BORRADOR')
     expect(releaseActiveReservations).toHaveBeenCalledWith(mockDb, 'pedido-1')
-    expect(reserveFefo).toHaveBeenCalledWith(mockDb, 'pedido-1', expect.any(Array))
+    expect(reserveFefo).not.toHaveBeenCalled()
+    expect(mockDb.pedido.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ estado: 'BORRADOR', aprobadoAt: null }) }))
   })
 
   it('lets a vendor request, but not execute, EN_ARMADO cancellation', async () => {
@@ -316,6 +321,17 @@ describe('ALEBET-01 HTTP contracts', () => {
       .set('Idempotency-Key', 'dispatch-1').send({ expectedVersion: 1 }).expect(200)
     expect(response.headers['idempotency-replayed']).toBe('true')
     expect(consumeActiveReservations).not.toHaveBeenCalled()
+  })
+
+  it('lets the assigned armador return dispatched items to their original stock', async () => {
+    mockDb.pedido.findUnique.mockResolvedValue(pedido({ estado: 'DESPACHADO', armadorId: 'armador-1' }))
+    mockDb.pedido.update.mockResolvedValue(pedido({ estado: 'DESPACHADO', armadorId: 'armador-1', version: 2 }))
+    const server = await app()
+    const response = await request(server).post('/api/ale-bet/pedidos/pedido-1/devoluciones').set('Authorization', `Bearer ${token('armador')}`)
+      .send({ expectedVersion: 1, items: [{ productoId: 'producto-1', cantidad: 2 }], motivo: 'Devuelto por el cliente' }).expect(200)
+
+    expect(response.body.estado).toBe('DESPACHADO')
+    expect(returnConsumedReservations).toHaveBeenCalledWith(mockDb, 'pedido-1', 'armador-1', [{ productoId: 'producto-1', cantidad: 2 }], 'Devuelto por el cliente')
   })
 
   it('returns physical, reserved and available stock to a vendedor', async () => {

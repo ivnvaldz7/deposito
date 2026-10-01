@@ -21,6 +21,7 @@ import {
   canEditarPedido,
   canEmitirRemito,
   canPreparar,
+  canRegistrarDevolucion,
   canSolicitarCancelacion,
   canTomar,
   cantidadLinea,
@@ -48,6 +49,7 @@ import {
   usePrepararPedido,
   useProductos,
   useProductosSearch,
+  useRegistrarDevolucionPedido,
   useTomarPedido,
   useTransportistas,
   useUpdatePedido,
@@ -728,6 +730,10 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
   const [motivoConfirmarError, setMotivoConfirmarError] = useState<string | null>(null)
   const [motivoAnular, setMotivoAnular] = useState('')
   const [motivoAnularError, setMotivoAnularError] = useState<string | null>(null)
+  const [devolucionOpen, setDevolucionOpen] = useState(false)
+  const [devolucionCarrito, setDevolucionCarrito] = useState<Carrito>({})
+  const [motivoDevolucion, setMotivoDevolucion] = useState('')
+  const [motivoDevolucionError, setMotivoDevolucionError] = useState<string | null>(null)
 
   const [transporteId, setTransporteId] = useState('')
   const [usarOcasional, setUsarOcasional] = useState(false)
@@ -749,6 +755,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
   const cancelarMutation = useCancelarPedido()
   const confirmarCancelacionMutation = useConfirmarCancelacionPedido()
   const despacharMutation = useDespacharPedido()
+  const devolucionMutation = useRegistrarDevolucionPedido()
   const emitirRemitoMutation = useEmitirRemito()
   const anularRemitoMutation = useAnularRemito()
 
@@ -800,6 +807,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
   }, [pedido, carrito, productoPorId])
 
   const canEditar = pedido ? canEditarPedido(pedido, rol, userId) : false
+  const canDevolver = pedido ? canRegistrarDevolucion(pedido, rol, userId) : false
   const clientePendiente = pedido ? pedidoClientePendiente(pedido) : false
   const remitoVigente = pedido?.remitos?.find((r) => r.estado === 'VIGENTE') ?? null
   const remitosInvalidados = pedido?.remitos?.filter((r) => r.estado === 'INVALIDADO') ?? []
@@ -939,6 +947,53 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
       })
   }
 
+  function abrirDevolucion() {
+    if (!pedido) return
+    const initial: Carrito = {}
+    for (const item of pedido.items) initial[item.productoId] = { cajas: 0, sueltos: 0 }
+    setDevolucionCarrito(initial)
+    setMotivoDevolucion('')
+    setMotivoDevolucionError(null)
+    setDevolucionOpen(true)
+  }
+
+  function cambiarCantidadDevolucion(productoId: string, cajas: number, sueltos: number) {
+    setDevolucionCarrito((previous) => ({ ...previous, [productoId]: { cajas, sueltos } }))
+  }
+
+  async function registrarDevolucion() {
+    if (!pedido) return
+    const motivo = motivoDevolucion.trim()
+    if (motivo.length < 3) {
+      setMotivoDevolucionError(motivo.length === 0 ? 'Indicá el motivo de la devolución' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    const items = pedido.items.flatMap((item) => {
+      const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+      const cantidad = cantidadLinea(line.cajas, line.sueltos, item.producto.unidadesPorCaja)
+      return cantidad > 0 ? [{ productoId: item.productoId, cantidad }] : []
+    })
+    if (items.length === 0) {
+      setMotivoDevolucionError('Indicá al menos una cantidad para devolver')
+      return
+    }
+    setMotivoDevolucionError(null)
+    try {
+      await devolucionMutation.mutateAsync({
+        id: pedido.id,
+        expectedVersion: pedido.version,
+        items,
+        motivo,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Devolución registrada y stock repuesto')
+      setDevolucionOpen(false)
+      invalidarTodo()
+    } catch (e) {
+      setMotivoDevolucionError(e instanceof Error ? e.message : 'No se pudo registrar la devolución')
+    }
+  }
+
   function invalidarTodo() {
     void qc.invalidateQueries({ queryKey: pedidosKeys.all })
     void refetchProductos()
@@ -959,7 +1014,9 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
         items,
         expectedVersion: pedido.version,
       })
-      toast.success(`Pedido ${actualizado.numero} actualizado`)
+      toast.success(actualizado.estado === 'BORRADOR' && pedido.estado === 'APROBADO'
+        ? `Pedido ${actualizado.numero} modificado: requiere nueva aprobación`
+        : `Pedido ${actualizado.numero} actualizado`)
       invalidarTodo()
     } catch (e) {
       if (e instanceof ApiError && e.status === 409 && e.message.includes('versión')) {
@@ -1355,6 +1412,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
                 <div className="text-left md:text-right w-full">
                   <p className="font-semibold text-[14px] text-success">Pedido despachado</p>
                   {pedido.despachadoAt && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">El {formatFechaHora(pedido.despachadoAt)}</p>}
+                  {canDevolver && <Button variant="outline" onClick={abrirDevolucion} className="mt-3 h-9 w-full md:w-auto px-4 text-[12px]">Registrar devolución</Button>}
                 </div>
               )}
               {pedido.estado === 'CANCELADO' && (
@@ -1424,7 +1482,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
 
             {pedido.estado === 'APROBADO' && canEditar && (
               <p className="mb-4 rounded-md bg-surface-variant/30 px-3 py-2 font-body text-[12px] font-medium text-on-surface-variant inline-block">
-                ℹ️ Editar puede cambiar la disponibilidad y liberar la reserva actual
+                ℹ️ Al guardar, se libera la reserva actual y el pedido vuelve a borrador para aprobarlo nuevamente.
               </p>
             )}
 
@@ -1822,7 +1880,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
       <ConfirmDialog
         open={confirm === 'guardar-aprobado'}
         titulo="Guardar cambios"
-        mensaje="Esto puede cambiar la disponibilidad y liberará la reserva actual. ¿Continuar?"
+        mensaje="Esto libera la reserva actual y devuelve el pedido a borrador. Deberá aprobarse nuevamente antes de armarlo. ¿Continuar?"
         accion="Continuar"
         loading={guardando}
         onCancel={() => setConfirm(null)}
@@ -1846,6 +1904,56 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
         onCancel={() => setConfirm(null)}
         onConfirm={() => void ejecutarConfirm()}
       />
+
+      <BottomSheet
+        open={devolucionOpen}
+        onClose={() => setDevolucionOpen(false)}
+        title="Registrar devolución"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setDevolucionOpen(false)} disabled={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Volver</Button>
+            <Button onClick={() => void registrarDevolucion()} loading={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Reponer stock</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            Las unidades se reingresarán automáticamente en los lotes desde los que se despacharon. Solo podés devolver hasta la cantidad enviada.
+          </p>
+          <div className="space-y-3">
+            {pedido.items.map((item) => {
+              const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+              return (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-surface-container-high p-3">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="min-w-0 truncate font-body text-[13px] font-semibold text-on-surface">{item.producto.nombre}</p>
+                    <span className="shrink-0 font-body text-[11px] text-on-surface-variant">Enviado: {item.cantidad} un</span>
+                  </div>
+                  <QuantityStepper
+                    cajas={line.cajas}
+                    sueltos={line.sueltos}
+                    unidadesPorCaja={item.producto.unidadesPorCaja}
+                    onChange={(cajas, sueltos) => cambiarCantidadDevolucion(item.productoId, cajas, sueltos)}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-devolucion" className="font-body text-[13px] font-medium text-on-surface">Motivo <span className="text-error">*</span></label>
+            <textarea
+              id="motivo-devolucion"
+              value={motivoDevolucion}
+              onChange={(event) => setMotivoDevolucion(event.target.value)}
+              rows={3}
+              placeholder="Ej.: mercadería devuelta por el cliente"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
+            />
+          </div>
+          {motivoDevolucionError && <p role="alert" className="font-body text-[12px] font-medium text-error">{motivoDevolucionError}</p>}
+        </div>
+      </BottomSheet>
 
       <ArmadorActionBar
         pedido={pedido}
