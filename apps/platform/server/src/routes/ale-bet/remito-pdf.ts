@@ -94,7 +94,8 @@ export function renderRemitoPdf(document: RemitoPdfDocument, input: RemitoPdfInp
   document.font('Helvetica').fillColor(TEXT_COLOR).lineWidth(0.8)
   document.rect(MARGIN, MARGIN, CONTENT_WIDTH, PAGE_HEIGHT - MARGIN * 2).stroke()
   vertical(document, companyRight, MARGIN, headerBottom); vertical(document, codeRight, MARGIN, headerBottom)
-  rule(document, 111, companyRight, right); rule(document, headerBottom)
+  // The fiscal-rule divider sits below the complete legal legend in the R box.
+  rule(document, 125, companyRight, right); rule(document, headerBottom)
   drawAbMark(document, MARGIN + 23, MARGIN + 18)
   document.font('Helvetica-Bold').fontSize(22).text('ale.bet', MARGIN + 90, MARGIN + 28, { width: 160 })
   document.font('Helvetica-Bold').fontSize(8.3).text('LABORATORIOS DE ESPECIALIDADES', MARGIN + 16, MARGIN + 77, { width: 244, align: 'center' })
@@ -111,7 +112,7 @@ export function renderRemitoPdf(document: RemitoPdfDocument, input: RemitoPdfInp
   const displayNumber = /^\d{5}-\d{8}$/.test(input.numero) ? input.numero.replace('-', ' - ') : input.numero
   document.font('Helvetica-Bold').fontSize(10.5).text(`N° ${displayNumber}`, codeRight + 8, MARGIN + 54, { width: right - codeRight - 16, align: 'center' })
   document.font('Helvetica').fontSize(9).text(`Fecha: ${date(input.fecha)}`, codeRight + 8, MARGIN + 74, { width: right - codeRight - 16, align: 'center' })
-  document.font('Helvetica').fontSize(7.8).text('CUIT 30-61348051-6', codeRight + 14, 121).text('Ing. Brutos 901-406310-8', codeRight + 14, 132).text('Imp. Internos: No Responsable', codeRight + 14, 143).text('Inicio de actividades: 23/04/1984', codeRight + 14, 154)
+  document.font('Helvetica').fontSize(7.4).text('CUIT 30-61348051-6', codeRight + 14, 132).text('Ing. Brutos 901-406310-8', codeRight + 14, 142).text('Imp. Internos: No Responsable', codeRight + 14, 152).text('Inicio de actividades: 23/04/1984', codeRight + 14, 162)
   document.font('Helvetica-Bold').fontSize(11).text('CLIENTE', MARGIN + 14, 184)
   const fieldX = MARGIN + 14; const fieldW = CONTENT_WIDTH - 28
   label(document, 'SEÑOR:', client.nombre, fieldX, 207, fieldW, 79); label(document, 'DOMICILIO:', client.direccion, fieldX, 229, fieldW, 79)
@@ -133,10 +134,10 @@ export function renderRemitoPdf(document: RemitoPdfDocument, input: RemitoPdfInp
   }
   const footerTop = Math.max(y + 10, PAGE_HEIGHT - 160); const signatureLeft = 365
   vertical(document, quantityRight, pageItemsTop, footerTop); rule(document, footerTop); vertical(document, signatureLeft, footerTop, PAGE_HEIGHT - MARGIN - 42)
-  document.font('Helvetica-Bold').fontSize(9).text('BULTOS:', MARGIN + 12, footerTop + 16).text('PESO:', MARGIN + 12, footerTop + 37).text('TRANSPORTISTA:', MARGIN + 12, footerTop + 65).text('DIRECCIÓN / TRANSPORTE:', MARGIN + 12, footerTop + 87)
-  document.font('Helvetica').fontSize(8.5).text(transport.nombre ?? '', MARGIN + 100, footerTop + 65, { width: 235, ellipsis: true }).text(transport.direccion ?? '', MARGIN + 145, footerTop + 87, { width: 190, ellipsis: true })
+  document.font('Helvetica-Bold').fontSize(9).text('BULTOS:', MARGIN + 12, footerTop + 16).text('PESO:', MARGIN + 12, footerTop + 35).text('TRANSPORTISTA:', MARGIN + 12, footerTop + 56).text('DIRECCIÓN / TRANSPORTE:', MARGIN + 12, footerTop + 76)
+  document.font('Helvetica').fontSize(8.5).text(transport.nombre ?? '', MARGIN + 100, footerTop + 56, { width: 235, ellipsis: true }).text(transport.direccion ?? '', MARGIN + 145, footerTop + 76, { width: 190, ellipsis: true })
   document.font('Helvetica-Bold').fontSize(10).text('RECIBÍ CONFORME', signatureLeft + 20, footerTop + 18, { width: right - signatureLeft - 25, align: 'center' })
-  document.moveTo(signatureLeft + 18, footerTop + 91).lineTo(right - 15, footerTop + 91).stroke(); document.font('Helvetica').fontSize(8.3).fillColor(MUTED_COLOR).text('Firma y aclaración', signatureLeft + 20, footerTop + 98, { width: right - signatureLeft - 25, align: 'center' })
+  document.moveTo(signatureLeft + 18, footerTop + 70).lineTo(right - 15, footerTop + 70).stroke(); document.font('Helvetica').fontSize(8.3).fillColor(MUTED_COLOR).text('Firma y aclaración', signatureLeft + 20, footerTop + 77, { width: right - signatureLeft - 25, align: 'center' })
   rule(document, PAGE_HEIGHT - MARGIN - 42)
   if (cai.numero && cai.vencimiento) {
     document.font('Helvetica-Bold').fontSize(9.5).fillColor(TEXT_COLOR).text(`C.A.I. N° ${cai.numero}`, MARGIN, PAGE_HEIGHT - MARGIN - 28, { width: CONTENT_WIDTH - 12, align: 'right' })
