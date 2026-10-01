@@ -13,14 +13,14 @@ import {
 } from '../inventory-service'
 
 describe('inventory location service', () => {
-  it('orders valid expirations by FEFO before lots without expiration', () => {
+  it('orders eligible lots by natural lot number, independent of expiration date', () => {
     const ordered = orderEligibleLots([
-      { id: 'no-expiry', activo: true, fechaVencimiento: null, fechaProduccion: new Date('2025-01-02'), createdAt: new Date('2025-01-02'), cantidad: 2 },
-      { id: 'later', activo: true, fechaVencimiento: new Date('2027-05-01'), fechaProduccion: null, createdAt: new Date('2025-01-03'), cantidad: 2 },
-      { id: 'first', activo: true, fechaVencimiento: new Date('2027-01-01'), fechaProduccion: null, createdAt: new Date('2025-01-01'), cantidad: 2 },
+      { id: 'later', numero: 'PL0617', activo: true, fechaVencimiento: new Date('2027-01-01'), fechaProduccion: null, createdAt: new Date('2025-01-01'), cantidad: 2 },
+      { id: 'first', numero: 'PL0614', activo: true, fechaVencimiento: new Date('2028-05-01'), fechaProduccion: null, createdAt: new Date('2025-01-03'), cantidad: 2 },
+      { id: 'last', numero: 'PL0618', activo: true, fechaVencimiento: null, fechaProduccion: null, createdAt: new Date('2025-01-02'), cantidad: 2 },
     ], new Date('2026-01-01'))
 
-    expect(ordered.map((lot) => lot.id)).toEqual(['first', 'later', 'no-expiry'])
+    expect(ordered.map((lot) => lot.id)).toEqual(['first', 'later', 'last'])
   })
 
   it('excludes inactive and expired lots and allocates a deterministic transfer shortfall', () => {
@@ -50,7 +50,7 @@ describe('inventory location service', () => {
       .toBe(fingerprintAvailability({ pedidoId: 'p1', allocations: [{ loteId: 'l1', cantidad: 2 }], transferencias: [] }))
   })
 
-  it('splits a request across multiple lots using FEFO and suggests transfer per lot', () => {
+  it('splits a request across multiple lots using lot sequence and suggests transfer per lot', () => {
     const availability = allocateAvailability({
       requested: 100,
       now: new Date('2026-01-01'),

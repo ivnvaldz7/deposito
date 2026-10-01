@@ -4,6 +4,7 @@ import { toast } from '@/lib/toast'
 import { type Producto, type LoteAdminStock } from '../lib/api'
 import { useProductoAdminStock, useAjusteAdminStock, useIngresarAdminStock, useTransferirStock, useCreateAdminLote, useProductTransferRules } from '../queries'
 import { formatOptionalDate } from '../lib/logistics-display'
+import { suggestedLotPrefix } from '../lib/lot-prefix'
 
 interface GestionarStockModalProps {
   producto: Producto
@@ -207,6 +208,7 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
       {createLoteModal && (
         <CreateLoteModal 
           productoId={producto.id}
+          productoNombre={producto.nombre}
           onClose={() => setCreateLoteModal(false)}
         />
       )}
@@ -590,8 +592,8 @@ function TransferirModal({ productoId, productoNombre, loteId, loteNumero, orige
   )
 }
 
-function CreateLoteModal({ productoId, onClose }: { productoId: string; onClose: () => void }) {
-  const [numero, setNumero] = useState('')
+function CreateLoteModal({ productoId, productoNombre, onClose }: { productoId: string; productoNombre: string; onClose: () => void }) {
+  const [numero, setNumero] = useState(() => suggestedLotPrefix(productoNombre))
   const [cantidadInicial, setCantidadInicial] = useState('')
   const [fechaProduccionStr, setFechaProduccionStr] = useState('')
   const [errorLocal, setErrorLocal] = useState<string | null>(null)
@@ -611,7 +613,15 @@ function CreateLoteModal({ productoId, onClose }: { productoId: string; onClose:
 
     const [y, m] = fechaProduccionStr.split('-').map(Number)
     const fechaProduccion = new Date(Date.UTC(y, m - 1, 1)).toISOString()
-    const fechaVencimiento = new Date(Date.UTC(y + 2, m, 0, 23, 59, 59)).toISOString()
+    const vencimiento = new Date(Date.UTC(y + 2, m, 0, 23, 59, 59))
+    const fechaVencimiento = vencimiento.toISOString()
+    const today = new Date()
+    const todayDay = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+    const expirationDay = Date.UTC(vencimiento.getUTCFullYear(), vencimiento.getUTCMonth(), vencimiento.getUTCDate())
+    if (expirationDay < todayDay) {
+      setErrorLocal('La fecha de vencimiento no puede estar en el pasado')
+      return
+    }
 
     try {
       await createMutation.mutateAsync({
@@ -652,6 +662,7 @@ function CreateLoteModal({ productoId, onClose }: { productoId: string; onClose:
               className="input-field mt-1 w-full"
               autoFocus
             />
+            <p className="mt-1 font-body text-[11px] text-on-surface-variant">Prefijo sugerido para {productoNombre}; podés modificarlo.</p>
           </div>
           <div>
             <label htmlFor="fecha-produccion" className="font-body text-[12px] text-outline">Fecha de producción (MM/AAAA)</label>

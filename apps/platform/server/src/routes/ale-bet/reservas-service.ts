@@ -10,6 +10,7 @@ type ReservationInput = Array<{ id: string; productoId: string; cantidad: number
 
 type LockedLot = {
   id: string
+  numero: string
   activo: boolean
   fechaVencimiento: Date | null
   fechaProduccion: Date | null
@@ -25,7 +26,7 @@ export class StockConflictError extends Error {}
 
 async function lockLots(tx: TransactionClient, productoId: string): Promise<LockedLot[]> {
   return tx.$queryRaw<LockedLot[]>(Prisma.sql`
-    SELECT lote.id, lote.activo, lote."fechaVencimiento", lote."fechaProduccion", lote."createdAt", saldo.cantidad, lote.cajas, lote.sueltos, producto."unidadesPorCaja",
+    SELECT lote.id, lote.numero, lote.activo, lote."fechaVencimiento", lote."fechaProduccion", lote."createdAt", saldo.cantidad, lote.cajas, lote.sueltos, producto."unidadesPorCaja",
       COALESCE((
         SELECT SUM(reserva.cantidad)::integer
         FROM "ale_bet"."ReservaStock" AS reserva
@@ -66,7 +67,7 @@ export async function reserveFefo(tx: TransactionClient, pedidoId: string, items
   for (const productoId of [...byProduct.keys()].sort((left, right) => left.localeCompare(right))) {
     const productItems = byProduct.get(productoId) ?? []
     const lockedLots = await lockLots(tx, productoId)
-    // Keep FEFO reservation eligibility exactly aligned with preview/allocation.
+    // Keep lot-sequence reservation eligibility exactly aligned with preview/allocation.
     const lockedById = new Map(lockedLots.map((lot) => [lot.id, lot]))
     const eligibleLots = orderEligibleLots(lockedLots, new Date()).map((lot) => lockedById.get(lot.id)).filter((lot): lot is LockedLot => Boolean(lot))
     // This statement intentionally executes *after* the lot/balance locks. A

@@ -12,10 +12,25 @@ type Tx = Prisma.TransactionClient
 
 const OPENING_LOCATION_CODES = ['DEPOSITO', 'ACONDICIONADO'] as const
 
+function utcDay(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
+function compareLotNumbers(left: string, right: string): number {
+  return left.localeCompare(right, 'es', { numeric: true, sensitivity: 'base' })
+}
+
+export function assertLotExpirationIsNotPast(fechaVencimiento: Date | null | undefined, now = new Date()): void {
+  if (fechaVencimiento && utcDay(fechaVencimiento) < utcDay(now)) {
+    throw new ProductStockAdminConflict('La fecha de vencimiento no puede estar en el pasado')
+  }
+}
+
 export async function createManagedLot(
   tx: Tx,
   input: { productoId: string; numero: string; fechaProduccion?: Date | null; fechaVencimiento?: Date | null },
 ) {
+  assertLotExpirationIsNotPast(input.fechaVencimiento)
   const product = await tx.producto.findUnique({ where: { id: input.productoId }, select: { id: true } })
   if (!product) throw new ProductStockAdminConflict('Producto no encontrado')
 
@@ -184,6 +199,9 @@ export async function getManagedProductStock(productoId: string, db: typeof plat
     const stockAcondicionado = lote.saldos.filter((saldo) => saldo.ubicacion.codigo === 'ACONDICIONADO').reduce((sum, saldo) => sum + saldo.cantidad, 0)
     const stockTotal = lote.saldos.reduce((sum, saldo) => sum + saldo.cantidad, 0)
     return { id: lote.id, numero: lote.numero, fechaProduccion: lote.fechaProduccion, fechaVencimiento: lote.fechaVencimiento, activo: lote.activo, stockTotal, stockDeposito, stockAcondicionado }
+  }).sort((left, right) => {
+    const number = compareLotNumbers(left.numero, right.numero)
+    return number !== 0 ? number : left.id.localeCompare(right.id)
   })
   // The stock overview hides zero balances. The management modal can opt in to
   // active zero-balance lots so they can be corrected or replenished in place.

@@ -8,6 +8,7 @@ export type AvailabilityStatus = 'DISPONIBLE' | 'DISPONIBLE_CON_TRANSFERENCIA' |
 
 export type EligibleLot = {
   id: string
+  numero?: string
   activo: boolean
   fechaVencimiento: Date | null
   fechaProduccion: Date | null
@@ -28,22 +29,22 @@ export type Availability = {
 
 export class InventoryConflictError extends Error {}
 
-function compareDates(left: Date | null, right: Date | null): number {
-  if (left === null && right === null) return 0
-  if (left === null) return 1
-  if (right === null) return -1
-  return left.getTime() - right.getTime()
+function utcDay(date: Date): number {
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
 }
 
 export function orderEligibleLots(lots: EligibleLot[], now: Date): EligibleLot[] {
   return lots
-    .filter((lot) => lot.activo && lot.cantidad > 0 && (!lot.fechaVencimiento || lot.fechaVencimiento >= now))
+    .filter((lot) => lot.activo && lot.cantidad > 0 && (!lot.fechaVencimiento || utcDay(lot.fechaVencimiento) >= utcDay(now)))
     .slice()
     .sort((left, right) => {
-      const expiration = compareDates(left.fechaVencimiento, right.fechaVencimiento)
-      if (expiration !== 0) return expiration
-      const production = compareDates(left.fechaProduccion, right.fechaProduccion)
-      if (production !== 0) return production
+      // Operational dispatch follows the lot sequence, not FEFO. Numeric
+      // comparison keeps PL0614 before PL0617 (and L9 before L10).
+      const lotNumber = (left.numero ?? '').localeCompare(right.numero ?? '', 'es', {
+        numeric: true,
+        sensitivity: 'base',
+      })
+      if (lotNumber !== 0) return lotNumber
       const ingress = left.createdAt.getTime() - right.createdAt.getTime()
       return ingress !== 0 ? ingress : left.id.localeCompare(right.id)
     })
@@ -121,7 +122,7 @@ export type OrderAvailability = {
 }
 
 // Shared by Automation preview and order confirmation. Read balances and active
-// reservations once, then apply the same location and FEFO eligibility rules.
+// reservations once, then apply the same location and lot-sequence rules.
 export async function getProductAvailability(
   tx: Prisma.TransactionClient,
   requests: Array<{ productoId: string; cantidad: number }>,

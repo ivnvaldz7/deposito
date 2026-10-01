@@ -183,6 +183,18 @@ describe('GestionarStockModal', () => {
     })
   })
 
+  it('sugiere el prefijo del producto al crear un lote, sin bloquear su edición', async () => {
+    renderComponent(undefined, 'OLIVITASAN PLUS 500 ML')
+    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: '+ Nuevo lote' }))
+    const numero = screen.getByLabelText('Número de lote')
+    expect(numero).toHaveValue('PL')
+
+    fireEvent.change(numero, { target: { value: 'PL0619' } })
+    expect(numero).toHaveValue('PL0619')
+  })
+
   it('flujo de ajuste: no usa window.confirm y muestra Confirmar ajuste in-app', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm')
     const onClose = renderComponent()

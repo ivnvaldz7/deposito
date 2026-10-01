@@ -6,7 +6,7 @@ import { getAppAccess, hasPermission } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { requirePermission } from '../../middlewares/require-permission'
 import { VENCIMIENTO_DEFAULT_AÑOS, calcularUnidades, validarSueltos } from './constants'
-import { adjustManagedStock, createManagedLot, getManagedProductStock, ProductStockAdminConflict } from './product-stock-admin-service'
+import { adjustManagedStock, assertLotExpirationIsNotPast, createManagedLot, getManagedProductStock, ProductStockAdminConflict } from './product-stock-admin-service'
 import { aggregateProductAvailability } from './stock-aggregation'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
@@ -355,6 +355,7 @@ router.post('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 's
   const cantidad = calcularUnidades(parsed.data.cajas, parsed.data.sueltos, producto.unidadesPorCaja)
 
   try {
+    assertLotExpirationIsNotPast(fechaVencimiento)
     const lote = await prisma.$transaction(async (tx) => {
       const created = await tx.lote.create({
         data: {
@@ -382,6 +383,10 @@ router.post('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 's
 
     res.status(201).json({ ...lote, unidades: cantidad, unidadesPorCaja: producto.unidadesPorCaja })
   } catch (error) {
+    if (error instanceof ProductStockAdminConflict) {
+      res.status(400).json({ error: error.message })
+      return
+    }
     if (isUniqueConstraintError(error)) {
       res.status(409).json({ error: 'Ya existe un lote con ese número para este producto' })
       return

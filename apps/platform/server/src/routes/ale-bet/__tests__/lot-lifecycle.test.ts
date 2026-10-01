@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { evaluateLotLifecycle } from '../product-stock-admin-service'
+import { assertLotExpirationIsNotPast, evaluateLotLifecycle } from '../product-stock-admin-service'
 import { orderEligibleLots, EligibleLot } from '../inventory-service'
 
 // Mock database to avoid real connection
@@ -153,13 +153,13 @@ describe('Lot Lifecycle Tests', () => {
   })
 
   describe('inventory-service: orderEligibleLots', () => {
-    it('H. FEFO/FIFO ignores inactive lots and lots with zero stock', () => {
+    it('H. ignores inactive lots, lots with zero stock, and expired lots', () => {
       const now = new Date('2026-08-18T12:00:00Z')
       const lots: EligibleLot[] = [
-        { id: '1', lote: 'l1', cantidad: 10, activo: true, fechaVencimiento: new Date('2026-10-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') },
-        { id: '2', lote: 'l2', cantidad: 10, activo: false, fechaVencimiento: new Date('2026-11-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') },
-        { id: '3', lote: 'l3', cantidad: 0, activo: true, fechaVencimiento: new Date('2026-12-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') }, // Empty
-        { id: '4', lote: 'l4', cantidad: 10, activo: true, fechaVencimiento: new Date('2025-08-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') }, // Expired
+        { id: '1', numero: 'L1', cantidad: 10, activo: true, fechaVencimiento: new Date('2026-10-18T12:00:00Z'), fechaProduccion: null, createdAt: new Date('2026-08-01') },
+        { id: '2', numero: 'L2', cantidad: 10, activo: false, fechaVencimiento: new Date('2026-11-18T12:00:00Z'), fechaProduccion: null, createdAt: new Date('2026-08-01') },
+        { id: '3', numero: 'L3', cantidad: 0, activo: true, fechaVencimiento: new Date('2026-12-18T12:00:00Z'), fechaProduccion: null, createdAt: new Date('2026-08-01') }, // Empty
+        { id: '4', numero: 'L4', cantidad: 10, activo: true, fechaVencimiento: new Date('2025-08-18T12:00:00Z'), fechaProduccion: null, createdAt: new Date('2026-08-01') }, // Expired
       ]
 
       const eligible = orderEligibleLots(lots, now)
@@ -168,17 +168,25 @@ describe('Lot Lifecycle Tests', () => {
       expect(eligible[0].id).toBe('1') // Only lot 1 is active, has stock, and not expired
     })
 
-    it('I. FEFO/FIFO includes reactivated lot with stock', () => {
+    it('I. includes reactivated lot with stock', () => {
       const now = new Date('2026-08-18T12:00:00Z')
       const lots: EligibleLot[] = [
-        { id: '1', lote: 'l1', cantidad: 10, activo: true, fechaVencimiento: new Date('2026-10-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-01') },
-        { id: '5', lote: 'l5', cantidad: 600, activo: true, fechaVencimiento: new Date('2026-11-18T12:00:00Z'), fechaElaboracion: null, createdAt: new Date('2026-08-05') },
+        { id: '1', numero: 'L1', cantidad: 10, activo: true, fechaVencimiento: new Date('2026-10-18T12:00:00Z'), fechaProduccion: null, createdAt: new Date('2026-08-01') },
+        { id: '5', numero: 'L5', cantidad: 600, activo: true, fechaVencimiento: new Date('2026-11-18T12:00:00Z'), fechaProduccion: null, createdAt: new Date('2026-08-05') },
       ]
 
       const eligible = orderEligibleLots(lots, now)
 
       expect(eligible).toHaveLength(2)
       expect(eligible.map(e => e.id)).toEqual(expect.arrayContaining(['1', '5']))
+    })
+  })
+
+  describe('assertLotExpirationIsNotPast', () => {
+    it('allows the current calendar day and rejects prior calendar days', () => {
+      const now = new Date('2026-10-01T15:00:00Z')
+      expect(() => assertLotExpirationIsNotPast(new Date('2026-10-01T00:00:00Z'), now)).not.toThrow()
+      expect(() => assertLotExpirationIsNotPast(new Date('2026-09-30T23:59:59Z'), now)).toThrow('no puede estar en el pasado')
     })
   })
 
