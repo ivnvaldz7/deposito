@@ -6,7 +6,7 @@ import type { JwtPayload } from '@platform/core'
 import { eventBus, getAppAccess } from '@platform/core'
 import { requirePermission } from '../../middlewares/require-permission'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
-import { canCancelOrder, canConfirmDispatch, canEditOrder, canTransitionOrder, canVendorCancelDirectly, type OrderState } from './order-workflow'
+import { canCancelOrder, canConfirmDispatch, canEditOrder, canReturnConsumedOrder, canTransitionOrder, canVendorCancelDirectly, type OrderState } from './order-workflow'
 import { consumeActiveReservations, releaseActiveReservations, reserveFefo, returnConsumedReservations, StockConflictError } from './reservas-service'
 import { getOrderAvailability, InventoryConflictError, transferInternal } from './inventory-service'
 import { sseManager } from './sse-manager'
@@ -452,10 +452,12 @@ router.post('/:id/devoluciones', requirePermission('ale-bet', 'pedidos.return'),
   try {
     const result = await idem(user, 'ale-bet.pedido.devolver', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
       const pedido = await lockOrder(tx, String(req.params.id))
-      assertManualArmadorWorkflow(pedido)
-      assertAssignedArmadorOrSupervisor(pedido, user)
+      // Automation consumes stock at confirmation.  It has no armador, so a
+      // supervisor may register a customer return directly from that order.
+      if (pedido.origen === 'MANUAL') assertAssignedArmadorOrSupervisor(pedido, user)
+      else if (actorRole(user) !== 'admin' && actorRole(user) !== 'encargado') throw new ForbiddenError('Solo un supervisor puede registrar devoluciones de pedidos confirmados')
       assertVersion(pedido, parsed.data.expectedVersion)
-      if (pedido.estado !== 'DESPACHADO') throw new ConflictError('Solo se pueden registrar devoluciones de pedidos DESPACHADOS')
+      if (!canReturnConsumedOrder(pedido.origen, state(pedido.estado))) throw new ConflictError('El pedido todavía no tiene stock descontado para devolver')
       await returnConsumedReservations(tx, pedido.id, user.sub, parsed.data.items, parsed.data.motivo)
       const updated = await tx.pedido.update({
         where: { id: pedido.id },

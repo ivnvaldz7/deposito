@@ -500,6 +500,30 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Devolución registrada y stock repuesto')
   })
 
+  it('AUTOMATION confirmado: permite al administrador devolver el stock ya descontado', async () => {
+    mockRol('admin')
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(
+      createPedido({ origen: 'AUTOMATION', estado: 'APROBADO', aprobadoAt: '2026-10-01T09:13:00.000Z' }),
+    )
+    vi.mocked(aleBetApi.pedidos.devolver).mockResolvedValue(
+      createPedido({ origen: 'AUTOMATION', estado: 'APROBADO', version: 2 }),
+    )
+    renderDetalle()
+    await screen.findByTestId('pedido-numero')
+    expect(screen.getByText('Automation · Confirmado')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Registrar devolución' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar devolución' }))
+    const devolucion = sheet()
+    fireEvent.click(within(devolucion).getByRole('button', { name: 'Sumar sueltos' }))
+    fireEvent.change(within(devolucion).getByLabelText(/^Motivo/), { target: { value: 'Devolución del cliente' } })
+    fireEvent.click(within(devolucion).getByRole('button', { name: 'Reponer stock' }))
+    await waitFor(() => expect(aleBetApi.pedidos.devolver).toHaveBeenCalledWith(
+      'pedido-1',
+      { expectedVersion: 1, items: [{ productoId: 'prod-1', cantidad: 1 }], motivo: 'Devolución del cliente' },
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    ))
+  })
+
   it('facturación emite remito con transporte habitual (AUTOMATION)', async () => {
     mockRol('facturacion')
     const sinRemito = createPedido({ estado: 'APROBADO', origen: 'AUTOMATION' })

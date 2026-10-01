@@ -5,6 +5,7 @@ import {
   canEditOrder,
   canEmitRemito,
   canReadRemitoPdf,
+  canReturnConsumedOrder,
   canTransitionOrder,
   canVendorCancelDirectly,
 } from '../order-workflow'
@@ -30,6 +31,13 @@ describe('ALEBET-01 order workflow', () => {
     expect(canConfirmDispatch('PREPARADO', true)).toBe(true)
     expect(canConfirmDispatch('PREPARADO', false)).toBe(false)
     expect(canConfirmDispatch('EN_ARMADO', true)).toBe(false)
+  })
+
+  it('allows returns after actual stock consumption in either operational flow', () => {
+    expect(canReturnConsumedOrder('MANUAL', 'DESPACHADO')).toBe(true)
+    expect(canReturnConsumedOrder('AUTOMATION', 'APROBADO')).toBe(true)
+    expect(canReturnConsumedOrder('MANUAL', 'APROBADO')).toBe(false)
+    expect(canReturnConsumedOrder('AUTOMATION', 'BORRADOR')).toBe(false)
   })
 
   it('keeps remito issuance and direct vendor cancellation within their operational states', () => {

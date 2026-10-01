@@ -34,6 +34,15 @@ export function canConfirmDispatch(state: OrderState, hasValidRemito: boolean): 
   return state === 'PREPARADO' && hasValidRemito
 }
 
+/**
+ * Automation confirms an order after consuming its FEFO reservation.  It
+ * deliberately remains APROBADO because it does not use the manual armador /
+ * despacho flow.  Returns must follow the consumption, not the screen label.
+ */
+export function canReturnConsumedOrder(origen: 'MANUAL' | 'AUTOMATION', state: OrderState): boolean {
+  return state === 'DESPACHADO' || (origen === 'AUTOMATION' && state === 'APROBADO')
+}
+
 export function canEmitRemito(state: OrderState): boolean {
   return state === 'APROBADO' || state === 'EN_ARMADO' || state === 'PREPARADO'
 }

@@ -180,9 +180,15 @@ export function canDespachar(pedido: Pedido, rol: string, userId: string): boole
 }
 
 export function canRegistrarDevolucion(pedido: Pedido, rol: string, userId: string): boolean {
-  if (esPedidoAutomation(pedido) || pedido.estado !== 'DESPACHADO') return false
+  // Automation confirms by consuming stock directly and remains APROBADO; it
+  // does not traverse the manual despacho state.
+  const tieneStockDescontado = pedido.estado === 'DESPACHADO'
+    || (esPedidoAutomation(pedido) && pedido.estado === 'APROBADO')
+  if (!tieneStockDescontado) return false
   if (!roleHasPermission('ale-bet', rol, 'pedidos.return')) return false
-  return rol === 'admin' || rol === 'encargado' || esArmadorAsignado(pedido, userId)
+  return esPedidoAutomation(pedido)
+    ? rol === 'admin' || rol === 'encargado'
+    : rol === 'admin' || rol === 'encargado' || esArmadorAsignado(pedido, userId)
 }
 
 export function canCancelarDirecto(pedido: Pedido, rol: string, userId: string): boolean {

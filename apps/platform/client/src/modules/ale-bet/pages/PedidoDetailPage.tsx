@@ -1989,15 +1989,56 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
   const [anularOpen, setAnularOpen] = useState(false)
   const [motivoAnular, setMotivoAnular] = useState('')
   const [motivoAnularError, setMotivoAnularError] = useState<string | null>(null)
+  const [devolucionOpen, setDevolucionOpen] = useState(false)
+  const [devolucionCarrito, setDevolucionCarrito] = useState<Carrito>({})
+  const [motivoDevolucion, setMotivoDevolucion] = useState('')
+  const [motivoDevolucionError, setMotivoDevolucionError] = useState<string | null>(null)
 
   const ocasionalNombreRef = useRef<HTMLInputElement>(null)
   const ocasionalDireccionRef = useRef<HTMLInputElement>(null)
 
   const emitirRemitoMutation = useEmitirRemito()
   const anularRemitoMutation = useAnularRemito()
+  const devolucionMutation = useRegistrarDevolucionPedido()
 
   const remitoVigente = pedido?.remitos?.find((r: any) => r.estado === 'VIGENTE') ?? null
   const remitosInvalidados = pedido?.remitos?.filter((r: any) => r.estado === 'INVALIDADO') ?? []
+  const canDevolver = canRegistrarDevolucion(pedido, rol, userId)
+
+  function abrirDevolucion() {
+    const initial: Carrito = {}
+    for (const item of pedido.items) initial[item.productoId] = { cajas: 0, sueltos: 0 }
+    setDevolucionCarrito(initial)
+    setMotivoDevolucion('')
+    setMotivoDevolucionError(null)
+    setDevolucionOpen(true)
+  }
+
+  async function registrarDevolucion() {
+    const motivo = motivoDevolucion.trim()
+    if (motivo.length < 3) {
+      setMotivoDevolucionError(motivo.length === 0 ? 'Indicá el motivo de la devolución' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    const items = pedido.items.flatMap((item: any) => {
+      const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+      const cantidad = cantidadLinea(line.cajas, line.sueltos, item.producto.unidadesPorCaja)
+      return cantidad > 0 ? [{ productoId: item.productoId, cantidad }] : []
+    })
+    if (items.length === 0) {
+      setMotivoDevolucionError('Indicá al menos una cantidad para devolver')
+      return
+    }
+    setMotivoDevolucionError(null)
+    try {
+      await devolucionMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version, items, motivo, idempotencyKey: newIdempotencyKey() })
+      toast.success('Devolución registrada y stock repuesto')
+      setDevolucionOpen(false)
+      void qc.invalidateQueries({ queryKey: pedidosKeys.all })
+    } catch (error) {
+      setMotivoDevolucionError(error instanceof Error ? error.message : 'No se pudo registrar la devolución')
+    }
+  }
 
   function abrirAnular() {
     setMotivoAnular('')
@@ -2117,6 +2158,11 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
                   {remitoVigente ? 'Remito emitido' : 'Pendiente de remito'}
                 </span>
               </div>
+              {canDevolver && (
+                <Button variant="outline" onClick={abrirDevolucion} className="h-9 w-full px-4 text-[12px]">
+                  Registrar devolución
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -2287,6 +2333,56 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
               {motivoAnularError}
             </p>
           )}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={devolucionOpen}
+        onClose={() => setDevolucionOpen(false)}
+        title="Registrar devolución"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setDevolucionOpen(false)} disabled={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Volver</Button>
+            <Button onClick={() => void registrarDevolucion()} loading={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Reponer stock</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            Las unidades se reingresarán automáticamente en los lotes desde los que se descontaron al confirmar el pedido.
+          </p>
+          <div className="space-y-3">
+            {pedido.items.map((item: any) => {
+              const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+              return (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-surface-container-high p-3">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="min-w-0 truncate font-body text-[13px] font-semibold text-on-surface">{item.producto.nombre}</p>
+                    <span className="shrink-0 font-body text-[11px] text-on-surface-variant">Confirmado: {item.cantidad} un</span>
+                  </div>
+                  <QuantityStepper
+                    cajas={line.cajas}
+                    sueltos={line.sueltos}
+                    unidadesPorCaja={item.producto.unidadesPorCaja}
+                    onChange={(cajas, sueltos) => setDevolucionCarrito((previous) => ({ ...previous, [item.productoId]: { cajas, sueltos } }))}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-devolucion-automation" className="font-body text-[13px] font-medium text-on-surface">Motivo <span className="text-error">*</span></label>
+            <textarea
+              id="motivo-devolucion-automation"
+              value={motivoDevolucion}
+              onChange={(event) => setMotivoDevolucion(event.target.value)}
+              rows={3}
+              placeholder="Ej.: mercadería devuelta por el cliente"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
+            />
+          </div>
+          {motivoDevolucionError && <p role="alert" className="font-body text-[12px] font-medium text-error">{motivoDevolucionError}</p>}
         </div>
       </BottomSheet>
     </div>
