@@ -275,6 +275,28 @@ describe('ActaNuevaPage', () => {
     })
   })
 
+  it('accepts a fractional drug quantity in kg, including a decimal comma', async () => {
+    vi.mocked(api.post).mockResolvedValue({ id: 'acta-decimal' })
+    render(<ActaNuevaPage />)
+    const productoInput = await screen.findByPlaceholderText('Buscá una droga del catálogo...')
+    fireEvent.focus(productoInput)
+    fireEvent.change(productoInput, { target: { value: 'VITAMINA B12' } })
+    fireEvent.mouseDown(await screen.findByText('VITAMINA B12 100 ML'))
+    fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '0,2' } })
+    fireEvent.change(screen.getByLabelText(/Lote/), { target: { value: 'B12-002' } })
+    fireEvent.change(screen.getByLabelText('Mes de vencimiento'), { target: { value: '07' } })
+    fireEvent.change(screen.getByLabelText('Año de vencimiento'), { target: { value: '2027' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/ingresos', expect.objectContaining({
+      productoId: UUID_B,
+      lote: 'B12-002',
+      cantidad: 0.2,
+      vencimientoMes: '2027-07',
+    })))
+  })
+
   it('navigates back on Cancel', async () => {
     render(<ActaNuevaPage />)
     await waitFor(() => {

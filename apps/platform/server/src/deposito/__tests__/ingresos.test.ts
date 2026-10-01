@@ -64,6 +64,19 @@ describe('POST /api/deposito/ingresos', () => {
     }))
   })
 
+  it('accepts a fractional quantity in kg for a drug ingress', async () => {
+    const response = await request(app).post('/api/deposito/ingresos').send({ ...validPayload, cantidad: 0.2 })
+
+    expect(response.status).toBe(201)
+    expect(mocks.addDrugLotInventory).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ cantidad: 0.2 }))
+    expect(mocks.tx.actaItem.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ cantidadIngresada: 0.2, cantidadDistribuida: 0.2 }),
+    }))
+    expect(mocks.tx.movimiento.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ cantidad: 0.2 }),
+    }))
+  })
+
   it('returns 400 instead of reaching Prisma for an invalid expiry payload', async () => {
     const response = await request(app).post('/api/deposito/ingresos').send({ ...validPayload, vencimientoMes: '2099-13' })
     expect(response.status).toBe(400)

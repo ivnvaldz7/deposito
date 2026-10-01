@@ -34,16 +34,8 @@ const ingresoSchema = z.object({
   const positiveInteger = (candidate: string | undefined) => Number.isInteger(Number(candidate)) && Number(candidate) > 0
   const positiveDecimalMax3 = (candidate: string | undefined) => {
     if (candidate === undefined || candidate === '') return false
-    const num = Number(candidate)
-    if (Number.isNaN(num) || num <= 0) return false
-    
-    // Check if it has more than 3 decimal places
-    const str = candidate.trim()
-    const decimalIndex = str.indexOf('.')
-    if (decimalIndex !== -1 && str.length - decimalIndex - 1 > 3) {
-      return false
-    }
-    return true
+    const normalized = normalizeKgInput(candidate)
+    return /^\d+(?:\.\d{1,3})?$/.test(normalized) && Number(normalized) > 0
   }
 
   if (value.categoria === 'frasco') {
@@ -71,6 +63,15 @@ const ingresoSchema = z.object({
 })
 
 type IngresoFormData = z.infer<typeof ingresoSchema>
+
+function normalizeKgInput(value: string | undefined): string {
+  const normalized = (value ?? '').trim().replace(',', '.')
+  return normalized.startsWith('.') ? `0${normalized}` : normalized
+}
+
+function parseKg(value: string | undefined): number {
+  return Number(normalizeKgInput(value))
+}
 
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
@@ -139,7 +140,8 @@ export default function ActaNuevaPage() {
   const mercadoSeleccionado = useWatch({ control, name: 'mercado' }) as Mercado | undefined
   const cantidadCajas = Number(useWatch({ control, name: 'cantidadCajas' })) || 0
   const unidadesPorCaja = Number(useWatch({ control, name: 'unidadesPorCaja' })) || 0
-  const cantidadManual = Number(useWatch({ control, name: 'cantidad' })) || 0
+  const cantidadRaw = useWatch({ control, name: 'cantidad' })
+  const cantidadManual = (categoria === 'droga' ? parseKg(cantidadRaw) : Number(cantidadRaw)) || 0
   const requiereLoteMaterial = resolvedCategoria === 'material_empaque' && materialEmpaqueRequiereLote(productoNombre)
   const usaLoteDeReferencia = esME && (resolvedCategoria !== 'material_empaque' || requiereLoteMaterial)
   const nextLoteQuery = useQuery({
@@ -202,7 +204,7 @@ export default function ActaNuevaPage() {
         lote: data.lote?.trim() || undefined,
         vencimientoMes: data.categoria === 'droga' ? `${data.vencimientoAnio}-${data.vencimientoMes}` : undefined,
         mercado: data.categoria === 'etiqueta' || data.categoria === 'estuche' ? data.mercado : undefined,
-        cantidad: data.categoria === 'frasco' ? undefined : Number(data.cantidad),
+        cantidad: data.categoria === 'frasco' ? undefined : data.categoria === 'droga' ? parseKg(data.cantidad) : Number(data.cantidad),
         cantidadCajas: data.categoria === 'frasco' ? Number(data.cantidadCajas) : undefined,
         unidadesPorCaja: data.categoria === 'frasco' ? Number(data.unidadesPorCaja) : undefined,
         observaciones: data.observaciones?.trim() || undefined,
@@ -494,16 +496,15 @@ export default function ActaNuevaPage() {
                           className="input-field pl-10"
                           {...register('cantidad', {
                             onBlur: (e) => {
-                              let val = e.target.value
-                              if (val.startsWith('.')) {
-                                val = '0' + val
+                              if (categoria === 'droga') {
+                                const val = normalizeKgInput(e.target.value)
                                 setValue('cantidad', val, { shouldValidate: true })
                               }
                             }
                           })}
                         />
                       </div>
-                      {categoria === 'droga' && <p className="font-body text-xs text-on-surface-variant/60">Ingresá el valor en kg. Ej.: 80 registra 80 kg.</p>}
+                      {categoria === 'droga' && <p className="font-body text-xs text-on-surface-variant/60">Ingresá el valor en kg. Ej.: 80, 0,2 o 0.200.</p>}
                       {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
                     </div>
                   )}
