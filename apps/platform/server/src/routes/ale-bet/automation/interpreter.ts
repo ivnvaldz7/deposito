@@ -13,6 +13,13 @@ export function normalizeForMatch(value: string): string {
     .trim()
 }
 
+function removeLeadingListMarker(value: string): string {
+  // Copy/pasted WhatsApp/Excel lists often prefix every item with a bullet,
+  // dash, or another non-alphanumeric marker.  Parse the useful expression,
+  // while retaining the original line separately for audit and display.
+  return value.replace(/^\s*[^\p{L}\p{N}]+\s*/u, '')
+}
+
 function lineId(originalText: string, sourceIndex: number): string {
   const digest = crypto.createHash('sha256').update(`${sourceIndex}\u0000${originalText}`).digest('hex').slice(0, 16)
   return `line-${digest}`
@@ -101,18 +108,19 @@ function scoreMatch(input: string, candidate: string): number {
 }
 
 export function extractQuantityAndProduct(line: string): { originalExpression: string; explicitBoxes: number | null; explicitUnits: number | null; mode: QuantityMode; productText: string } {
-  let productText = line
+  const parseableLine = removeLeadingListMarker(line)
+  let productText = parseableLine
   let explicitBoxes: number | null = null
   let explicitUnits: number | null = null
   let mode: QuantityMode = 'AMBIGUOUS'
 
-  const normalized = normalizeForMatch(line)
+  const normalized = normalizeForMatch(parseableLine)
   // También se acepta la forma habitual "Producto - cantidad". Requerimos
   // espacio después del guion para no confundir identificadores como B-12.
-  const trailingUnitsMatch = line.match(/\s*[-–—]\s+(\d+)\s*$/)
+  const trailingUnitsMatch = parseableLine.match(/\s*[-–—]\s+(\d+)\s*$/)
   // Algunos pedidos continúan una línea previa con "Y 3 ATP". En ese caso
   // "Y" es una conjunción, no parte del nombre del producto.
-  const leadingConjunctionUnitsMatch = line.match(/^\s*(?:Y|MAS|MÁS)\s+(\d+)\s+(.+?)\s*$/i)
+  const leadingConjunctionUnitsMatch = parseableLine.match(/^\s*(?:Y|MAS|MÁS)\s+(\d+)\s+(.+?)\s*$/i)
   
   if (leadingConjunctionUnitsMatch) {
     explicitUnits = Number(leadingConjunctionUnitsMatch[1])
@@ -120,7 +128,7 @@ export function extractQuantityAndProduct(line: string): { originalExpression: s
     mode = 'UNITS'
   } else if (trailingUnitsMatch) {
     explicitUnits = Number(trailingUnitsMatch[1])
-    productText = line.slice(0, trailingUnitsMatch.index).trim()
+    productText = parseableLine.slice(0, trailingUnitsMatch.index).trim()
     mode = 'UNITS'
   } else {
     // Extraer cajas
@@ -160,7 +168,7 @@ export function extractQuantityAndProduct(line: string): { originalExpression: s
 
   // Si no se encontró cantidad explícita pero hay un número al inicio
   if (explicitBoxes === null && explicitUnits === null) {
-      const startNumMatch = line.match(/^\s*(\d+)\s+/)
+      const startNumMatch = parseableLine.match(/^\s*(\d+)\s+/)
       if (startNumMatch) {
           explicitUnits = Number(startNumMatch[1])
           productText = productText.replace(new RegExp(`^\\s*${startNumMatch[1]}\\s+`), '').trim()

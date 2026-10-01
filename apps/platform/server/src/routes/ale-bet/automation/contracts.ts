@@ -26,6 +26,8 @@ export type ParsedOrderLine = {
   warnings: string[]
   /** Destination explicitly chosen for a configurable presentation. */
   presentationTargetProductId?: string
+  /** Original configurable product, retained so a selected presentation can be changed. */
+  presentationSourceProductId?: string
   /** A user decision within the interpretation draft. Persisted only there. */
   lineState?: InterpretationLineState
   /** Preserved only while discarded so undo can restore the original review state. */

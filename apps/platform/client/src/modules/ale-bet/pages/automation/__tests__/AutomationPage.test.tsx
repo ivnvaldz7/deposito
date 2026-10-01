@@ -340,6 +340,43 @@ describe('AutomationPage', () => {
       }))
     })
 
+    it('permite cambiar una presentación ya elegida sin desestimar la línea', async () => {
+      vi.mocked(useDraft).mockReturnValue({
+        data: {
+          draft: { id: 'd1', estado: 'READY', version: 3 },
+          effectiveSnapshot: {
+            customerCandidate: { customerId: 'c1', nombre: 'Cliente 1' },
+            lines: [{
+              lineId: 'line-amino', originalText: '60 AMINOÁCIDOS 1 L', productCandidate: { productId: 'p1' },
+              presentationSourceProductId: 'p1', presentationTargetProductId: 'p-equino',
+              warnings: [], requiresReview: false, lineState: 'VALID',
+              quantity: { totalUnits: 60, mode: 'UNITS', normalizedBoxes: 5, normalizedLooseUnits: 0 },
+            }],
+            warnings: [], requiresReview: false,
+          },
+          presentationOptions: [
+            { sourceProductId: 'p1', targetProductId: 'p-aves', label: 'Aves', targetProductName: 'AMINOÁCIDOS 1 L AVES' },
+            { sourceProductId: 'p1', targetProductId: 'p-equino', label: 'Equino', targetProductName: 'AMINOÁCIDOS 1 L EQUINO' },
+            { sourceProductId: 'p1', targetProductId: 'p-cerdos', label: 'Cerdos', targetProductName: 'AMINOÁCIDOS 1 L CERDOS' },
+          ],
+          availability: [],
+        },
+        refetch: vi.fn(),
+      } as never)
+
+      const user = userEvent.setup()
+      renderComponent()
+      await triggerDraftCreation(user)
+
+      expect(await screen.findByText('Equino')).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Cambiar presentación' }))
+      await user.click(screen.getByRole('button', { name: 'Aves' }))
+      await waitFor(() => expect(updateDraftMock).toHaveBeenCalledWith({
+        id: 'd1',
+        data: { expectedVersion: 3, line: { lineId: 'line-amino', presentationProductId: 'p-aves' } },
+      }))
+    })
+
     it('muestra que no quedan productos cuando todas las líneas fueron desestimadas', async () => {
       vi.mocked(useDraft).mockReturnValue({
         data: {

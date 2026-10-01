@@ -15,6 +15,30 @@ describe('automation deterministic interpreter', () => {
     expect(interpretOrder('Cliente: Veterinaria Norte\n3 cajas y 5 Olivitasan 500', product(20), customer).lines[0].quantity).toMatchObject({ mode: 'MIXED', explicitBoxes: 3, explicitUnits: 5, totalUnits: 65 })
   })
 
+  it('ignora viñetas y símbolos antes de cantidades al inicio de cada línea', () => {
+    const catalog = [
+      { id: 'oli-500', nombre: 'OLIVITASAN 500 ML', sku: 'OLI-500', unidadesPorCaja: 20, aliases: ['OLI 500'] },
+      { id: 'oli-plus-500', nombre: 'OLIVITASAN PLUS 500 ML', sku: 'OLI-PLUS-500', unidadesPorCaja: 20, aliases: ['OLI PLUS 500'] },
+      { id: 'b12-100', nombre: 'COMPLEJO B B12 100 ML', sku: 'B12-100', unidadesPorCaja: 24, aliases: ['B12 100'] },
+      { id: 'b12b15-100', nombre: 'COMPLEJO B B12 B15 100 ML', sku: 'B12B15-100', unidadesPorCaja: 24, aliases: ['B12 B15 100'] },
+      { id: 'b12b15-250', nombre: 'COMPLEJO B B12 B15 250 ML', sku: 'B12B15-250', unidadesPorCaja: 12, aliases: ['B12 B15 250'] },
+      { id: 'amino-1l', nombre: 'AMINOÁCIDOS 1 L', sku: 'AMINO-1L', unidadesPorCaja: 12, aliases: ['AMINOACIDOS 1 L'] },
+    ]
+    const parsed = interpretOrder(`- 200 Oli 500
+• 100 Oli Plus 500
+– 120 B12 x 100 ml.
+— 240 B12 B15 x 100 ml.
+* 120 B12 B15 x 250 ml.
+· 60 Aminoacidos x 1 Lt.`, catalog, [])
+
+    expect(parsed.lines).toHaveLength(6)
+    expect(parsed.lines.map((line) => line.productCandidate?.productId)).toEqual([
+      'oli-500', 'oli-plus-500', 'b12-100', 'b12b15-100', 'b12b15-250', 'amino-1l',
+    ])
+    expect(parsed.lines.map((line) => line.quantity.totalUnits)).toEqual([200, 100, 120, 240, 120, 60])
+    expect(parsed.lines.every((line) => !line.requiresReview)).toBe(true)
+  })
+
   it('interpreta producto - cantidad y conserva la presentación escrita como x1 litro', () => {
     const aminoCatalog = [{
       id: 'amino-equino', nombre: 'AMINOÁCIDOS 1 L EQUINO', sku: 'AMINO-1L-EQ', unidadesPorCaja: 12,

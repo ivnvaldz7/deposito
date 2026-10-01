@@ -163,7 +163,23 @@ async function presentationOptionsForSnapshot(
   tx: Prisma.TransactionClient | typeof prisma,
   snapshot: ParsedOrder,
 ): Promise<PresentationOption[]> {
-  const sourceProductIds = [...new Set(snapshot.lines.flatMap((line) => line.productCandidate ? [line.productCandidate.productId] : []))]
+  const candidateProductIds = [...new Set(snapshot.lines.flatMap((line) => line.productCandidate ? [line.productCandidate.productId] : []))]
+  const persistedSourceProductIds = snapshot.lines.flatMap((line) => line.presentationSourceProductId ? [line.presentationSourceProductId] : [])
+  // Drafts created before presentationSourceProductId existed only retain the
+  // selected target. Look up its active presentation origin so those existing
+  // selections can still be changed instead of trapping the operator.
+  const legacySources = candidateProductIds.length === 0
+    ? []
+    : await tx.productoTransferRule.findMany({
+      where: {
+        targetProductId: { in: candidateProductIds },
+        tipo: TipoReglaTransferenciaProducto.PRESENTATION,
+        activo: true,
+        sourceProduct: { activo: true },
+      },
+      select: { sourceProductId: true },
+    })
+  const sourceProductIds = [...new Set([...candidateProductIds, ...persistedSourceProductIds, ...legacySources.map((rule) => rule.sourceProductId)])]
   if (sourceProductIds.length === 0) return []
 
   // Sólo los productos que tienen al menos una presentación derivada deben
@@ -280,9 +296,14 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
             }
         edited = { ...edited, lines }
       } else {
-      const sourceProductId = currentLine.productCandidate?.productId
-      const presentationOptions = sourceProductId
+      const allPresentationOptions = currentLine.productCandidate
         ? await presentationOptionsForSnapshot(tx, { ...source, lines: [currentLine] })
+        : []
+      const sourceProductId = currentLine.presentationSourceProductId
+        ?? allPresentationOptions.find((option) => option.targetProductId === currentLine.presentationTargetProductId)?.sourceProductId
+        ?? currentLine.productCandidate?.productId
+      const presentationOptions = sourceProductId
+        ? allPresentationOptions.filter((option) => option.sourceProductId === sourceProductId)
         : []
       if (presentationOptions.length > 0 && !input.line.presentationProductId) {
         throw new AutomationConflictError('Elegí una presentación antes de continuar con este producto')
@@ -329,6 +350,7 @@ export async function applyDraftEdit(id: string, expectedVersion: number, input:
         requiresReview: false,
         warnings: [],
         presentationTargetProductId: selectingPresentation ? product.id : undefined,
+        presentationSourceProductId: selectingPresentation ? sourceProductId : undefined,
         lineState: 'VALID',
         quantity: {
           originalExpression: currentLine.quantity.originalExpression,

@@ -183,6 +183,7 @@ export default function AutomationPage() {
   const [editingCliente, setEditingCliente] = useState(false)
   const [creatingCliente, setCreatingCliente] = useState(false)
   const [rememberClientAlias, setRememberClientAlias] = useState(true)
+  const [presentationPickerLineId, setPresentationPickerLineId] = useState<string | null>(null)
 
   useEffect(() => {
     persistAutomationWork({ originalText, draftId })
@@ -386,6 +387,7 @@ export default function AutomationPage() {
             line: { lineId: line.lineId, presentationProductId },
           },
         })
+        setPresentationPickerLineId(null)
       } catch (error) {
         if (error instanceof Error && error.message.includes('versión')) refetchDraft()
         toast.error(error instanceof Error ? error.message : 'No se pudo elegir la presentación')
@@ -501,10 +503,15 @@ export default function AutomationPage() {
                 const isWarning = line.requiresReview || line.warnings.length > 0 || !line.productCandidate
                 const product = line.productCandidate ? productos.find(p => p.id === line.productCandidate.productId) : null
                 const avail = line.productCandidate ? availability.find((a: any) => a.productId === line.productCandidate.productId) : null
-                const linePresentationOptions = line.productCandidate
-                  ? presentationOptions.filter((option: any) => option.sourceProductId === line.productCandidate.productId)
+                const presentationSourceProductId = line.presentationSourceProductId
+                  ?? presentationOptions.find((option: any) => option.targetProductId === line.presentationTargetProductId)?.sourceProductId
+                  ?? line.productCandidate?.productId
+                const linePresentationOptions = presentationSourceProductId
+                  ? presentationOptions.filter((option: any) => option.sourceProductId === presentationSourceProductId)
                   : []
                 const needsPresentation = line.warnings.includes('PRESENTATION_REQUIRED') && linePresentationOptions.length > 0
+                const selectedPresentation = linePresentationOptions.find((option: any) => option.targetProductId === (line.presentationTargetProductId ?? line.productCandidate?.productId))
+                const showPresentationPicker = needsPresentation || presentationPickerLineId === line.lineId
 
                 return (
                   <div key={index} className={cn("rounded-xl border bg-surface-container p-4", isWarning ? "border-[#D5B4B5]" : "border-white/10")}>
@@ -581,7 +588,7 @@ export default function AutomationPage() {
                     )}
                     {product && (
                       <div className="mt-4 border-t border-white/5 pt-4">
-                        {needsPresentation ? (
+                        {showPresentationPicker ? (
                           <div className="space-y-3" aria-label={`Presentación de ${product.nombre}`}>
                             <div>
                               <p className="text-xs font-semibold uppercase tracking-wider text-outline">Preparar como</p>
@@ -593,6 +600,7 @@ export default function AutomationPage() {
                                   key={option.targetProductId}
                                   type="button"
                                   variant="outline"
+                                  disabled={option.targetProductId === line.presentationTargetProductId}
                                   onClick={() => void handleChoosePresentation(line, option.targetProductId)}
                                 >
                                   {option.label}
@@ -600,6 +608,16 @@ export default function AutomationPage() {
                               ))}
                             </div>
                             <p className="text-xs text-outline">Después se verificará el stock de la presentación elegida.</p>
+                          </div>
+                        ) : selectedPresentation ? (
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-3">
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-wider text-outline">Preparar como</p>
+                              <p className="mt-1 text-sm font-semibold text-on-surface">{selectedPresentation.label}</p>
+                            </div>
+                            <Button type="button" variant="outline" onClick={() => setPresentationPickerLineId(line.lineId ?? null)}>
+                              Cambiar presentación
+                            </Button>
                           </div>
                         ) : (
                           <>
