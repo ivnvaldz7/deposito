@@ -249,6 +249,7 @@ exports.Prisma.ClienteScalarFieldEnum = {
   cuit: 'cuit',
   condicionIva: 'condicionIva',
   condicionVenta: 'condicionVenta',
+  transportistaPredeterminadoId: 'transportistaPredeterminadoId',
   estado: 'estado',
   activo: 'activo',
   createdAt: 'createdAt',
@@ -398,12 +399,23 @@ exports.Prisma.RemitoScalarFieldEnum = {
   clienteSnapshot: 'clienteSnapshot',
   transporteSnapshot: 'transporteSnapshot',
   itemsSnapshot: 'itemsSnapshot',
+  caiSnapshot: 'caiSnapshot',
   estado: 'estado',
   invalidadoAt: 'invalidadoAt',
   invalidadoPor: 'invalidadoPor',
   motivoInvalidacion: 'motivoInvalidacion',
   createdBy: 'createdBy',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.ConfiguracionRemitoScalarFieldEnum = {
+  id: 'id',
+  puntoVenta: 'puntoVenta',
+  proximoCorrelativo: 'proximoCorrelativo',
+  numeracionInicializadaAt: 'numeracionInicializadaAt',
+  cai: 'cai',
+  caiVencimiento: 'caiVencimiento',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.UserScalarFieldEnum = {
@@ -858,6 +870,7 @@ exports.Prisma.ModelName = {
   StockProjectionOutbox: 'StockProjectionOutbox',
   Transportista: 'Transportista',
   Remito: 'Remito',
+  ConfiguracionRemito: 'ConfiguracionRemito',
   User: 'User',
   Acta: 'Acta',
   ActaItem: 'ActaItem',

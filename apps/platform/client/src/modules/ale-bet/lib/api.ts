@@ -65,6 +65,8 @@ export interface Cliente {
   cuit: string | null
   condicionIva: string | null
   condicionVenta: string | null
+  transportistaPredeterminadoId?: string | null
+  transportistaPredeterminado?: Pick<Transportista, 'id' | 'nombre' | 'direccion'> | null
   estado: EstadoCliente
   activo: boolean
   createdAt: string
@@ -335,6 +337,7 @@ export interface ClienteUpdateInput {
   cuit?: string | null
   condicionIva?: string | null
   condicionVenta?: string | null
+  transportistaPredeterminadoId?: string | null
   activo?: boolean
   estado?: EstadoCliente
 }
@@ -359,6 +362,15 @@ export interface EmitirRemitoInput {
 
 export interface AnularRemitoInput {
   motivo: string
+}
+
+export interface RemitoConfiguration {
+  puntoVenta: string
+  proximoCorrelativo: number | null
+  numeracionInicializadaAt: string | null
+  cai: string
+  caiVencimiento: string
+  caiVencido: boolean
 }
 
 // ─── API calls ───────────────────────────────────────────────────────────────
@@ -439,7 +451,7 @@ export const aleBetApi = {
   // Clientes
   clientes: {
     list: () => apiClient.get<Cliente[]>(`${BASE}/clientes`),
-    create: (data: { nombre: string; contacto?: string; referencia?: string; direccion?: string; localidad?: string; provincia?: string; cuit?: string; condicionIva?: string; condicionVenta?: string; activo?: boolean }, options?: MutationOptions) =>
+    create: (data: { nombre: string; contacto?: string; referencia?: string; direccion?: string; localidad?: string; provincia?: string; cuit?: string; condicionIva?: string; condicionVenta?: string; transportistaPredeterminadoId?: string | null; activo?: boolean }, options?: MutationOptions) =>
       apiClient.post<Cliente>(`${BASE}/clientes`, data, undefined, mutationOptions(options)),
     update: (id: string, data: ClienteUpdateInput, options?: MutationOptions) =>
       apiClient.put<Cliente>(`${BASE}/clientes/${id}`, data, undefined, mutationOptions(options)),
@@ -512,6 +524,9 @@ export const aleBetApi = {
     anular: (pedidoId: string, remitoId: string, data: AnularRemitoInput, options?: MutationOptions) =>
       apiClient.put<Remito>(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/anular`, data, undefined, mutationOptions(options)),
     pdf: (pedidoId: string) => apiClient.getBlob(`${BASE}/pedidos/${pedidoId}/remito.pdf`),
+    configuracion: () => apiClient.get<RemitoConfiguration>(`${BASE}/remitos/configuracion`),
+    actualizarConfiguracion: (data: { proximoCorrelativo?: number; cai?: string; caiVencimiento?: string }) =>
+      apiClient.put<RemitoConfiguration>(`${BASE}/remitos/configuracion`, data),
   },
 
   // Stock

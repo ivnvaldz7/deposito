@@ -17,7 +17,7 @@ export function useClientes() {
 export function useCreateCliente() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { nombre: string; contacto?: string; referencia?: string; direccion?: string }) =>
+    mutationFn: (data: { nombre: string; contacto?: string; referencia?: string; direccion?: string; localidad?: string; provincia?: string; cuit?: string; condicionIva?: string; condicionVenta?: string; transportistaPredeterminadoId?: string | null }) =>
       aleBetApi.clientes.create(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: clientesKeys.all }),
   })

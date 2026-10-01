@@ -129,6 +129,11 @@ export type Transportista = $Result.DefaultSelection<Prisma.$TransportistaPayloa
  */
 export type Remito = $Result.DefaultSelection<Prisma.$RemitoPayload>
 /**
+ * Model ConfiguracionRemito
+ * 
+ */
+export type ConfiguracionRemito = $Result.DefaultSelection<Prisma.$ConfiguracionRemitoPayload>
+/**
  * Model User
  * 
  */
@@ -936,6 +941,16 @@ export class PrismaClient<
   get remito(): Prisma.RemitoDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.configuracionRemito`: Exposes CRUD operations for the **ConfiguracionRemito** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ConfiguracionRemitos
+    * const configuracionRemitos = await prisma.configuracionRemito.findMany()
+    * ```
+    */
+  get configuracionRemito(): Prisma.ConfiguracionRemitoDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.user`: Exposes CRUD operations for the **User** model.
     * Example usage:
     * ```ts
@@ -1601,6 +1616,7 @@ export namespace Prisma {
     StockProjectionOutbox: 'StockProjectionOutbox',
     Transportista: 'Transportista',
     Remito: 'Remito',
+    ConfiguracionRemito: 'ConfiguracionRemito',
     User: 'User',
     Acta: 'Acta',
     ActaItem: 'ActaItem',
@@ -1637,7 +1653,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "productoTransferRule" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "inventarioMaterialEmpaque" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem" | "partidaProduccion" | "itemSolicitud"
+      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "productoTransferRule" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "configuracionRemito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "inventarioMaterialEmpaque" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem" | "partidaProduccion" | "itemSolicitud"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3343,6 +3359,80 @@ export namespace Prisma {
           }
         }
       }
+      ConfiguracionRemito: {
+        payload: Prisma.$ConfiguracionRemitoPayload<ExtArgs>
+        fields: Prisma.ConfiguracionRemitoFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ConfiguracionRemitoFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ConfiguracionRemitoFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>
+          }
+          findFirst: {
+            args: Prisma.ConfiguracionRemitoFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ConfiguracionRemitoFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>
+          }
+          findMany: {
+            args: Prisma.ConfiguracionRemitoFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>[]
+          }
+          create: {
+            args: Prisma.ConfiguracionRemitoCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>
+          }
+          createMany: {
+            args: Prisma.ConfiguracionRemitoCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ConfiguracionRemitoCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>[]
+          }
+          delete: {
+            args: Prisma.ConfiguracionRemitoDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>
+          }
+          update: {
+            args: Prisma.ConfiguracionRemitoUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>
+          }
+          deleteMany: {
+            args: Prisma.ConfiguracionRemitoDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ConfiguracionRemitoUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ConfiguracionRemitoUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>[]
+          }
+          upsert: {
+            args: Prisma.ConfiguracionRemitoUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ConfiguracionRemitoPayload>
+          }
+          aggregate: {
+            args: Prisma.ConfiguracionRemitoAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateConfiguracionRemito>
+          }
+          groupBy: {
+            args: Prisma.ConfiguracionRemitoGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ConfiguracionRemitoGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ConfiguracionRemitoCountArgs<ExtArgs>
+            result: $Utils.Optional<ConfiguracionRemitoCountAggregateOutputType> | number
+          }
+        }
+      }
       User: {
         payload: Prisma.$UserPayload<ExtArgs>
         fields: Prisma.UserFieldRefs
@@ -5028,6 +5118,7 @@ export namespace Prisma {
     stockProjectionOutbox?: StockProjectionOutboxOmit
     transportista?: TransportistaOmit
     remito?: RemitoOmit
+    configuracionRemito?: ConfiguracionRemitoOmit
     user?: UserOmit
     acta?: ActaOmit
     actaItem?: ActaItemOmit
@@ -5491,10 +5582,12 @@ export namespace Prisma {
 
   export type TransportistaCountOutputType = {
     remitos: number
+    clientesPredeterminados: number
   }
 
   export type TransportistaCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     remitos?: boolean | TransportistaCountOutputTypeCountRemitosArgs
+    clientesPredeterminados?: boolean | TransportistaCountOutputTypeCountClientesPredeterminadosArgs
   }
 
   // Custom InputTypes
@@ -5513,6 +5606,13 @@ export namespace Prisma {
    */
   export type TransportistaCountOutputTypeCountRemitosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: RemitoWhereInput
+  }
+
+  /**
+   * TransportistaCountOutputType without action
+   */
+  export type TransportistaCountOutputTypeCountClientesPredeterminadosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ClienteWhereInput
   }
 
 
@@ -17271,6 +17371,7 @@ export namespace Prisma {
     cuit: string | null
     condicionIva: string | null
     condicionVenta: string | null
+    transportistaPredeterminadoId: string | null
     estado: $Enums.EstadoCliente | null
     activo: boolean | null
     createdAt: Date | null
@@ -17288,6 +17389,7 @@ export namespace Prisma {
     cuit: string | null
     condicionIva: string | null
     condicionVenta: string | null
+    transportistaPredeterminadoId: string | null
     estado: $Enums.EstadoCliente | null
     activo: boolean | null
     createdAt: Date | null
@@ -17305,6 +17407,7 @@ export namespace Prisma {
     cuit: number
     condicionIva: number
     condicionVenta: number
+    transportistaPredeterminadoId: number
     estado: number
     activo: number
     createdAt: number
@@ -17324,6 +17427,7 @@ export namespace Prisma {
     cuit?: true
     condicionIva?: true
     condicionVenta?: true
+    transportistaPredeterminadoId?: true
     estado?: true
     activo?: true
     createdAt?: true
@@ -17341,6 +17445,7 @@ export namespace Prisma {
     cuit?: true
     condicionIva?: true
     condicionVenta?: true
+    transportistaPredeterminadoId?: true
     estado?: true
     activo?: true
     createdAt?: true
@@ -17358,6 +17463,7 @@ export namespace Prisma {
     cuit?: true
     condicionIva?: true
     condicionVenta?: true
+    transportistaPredeterminadoId?: true
     estado?: true
     activo?: true
     createdAt?: true
@@ -17448,6 +17554,7 @@ export namespace Prisma {
     cuit: string | null
     condicionIva: string | null
     condicionVenta: string | null
+    transportistaPredeterminadoId: string | null
     estado: $Enums.EstadoCliente
     activo: boolean
     createdAt: Date
@@ -17482,10 +17589,12 @@ export namespace Prisma {
     cuit?: boolean
     condicionIva?: boolean
     condicionVenta?: boolean
+    transportistaPredeterminadoId?: boolean
     estado?: boolean
     activo?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    transportistaPredeterminado?: boolean | Cliente$transportistaPredeterminadoArgs<ExtArgs>
     pedidos?: boolean | Cliente$pedidosArgs<ExtArgs>
     aliases?: boolean | Cliente$aliasesArgs<ExtArgs>
     _count?: boolean | ClienteCountOutputTypeDefaultArgs<ExtArgs>
@@ -17502,10 +17611,12 @@ export namespace Prisma {
     cuit?: boolean
     condicionIva?: boolean
     condicionVenta?: boolean
+    transportistaPredeterminadoId?: boolean
     estado?: boolean
     activo?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    transportistaPredeterminado?: boolean | Cliente$transportistaPredeterminadoArgs<ExtArgs>
   }, ExtArgs["result"]["cliente"]>
 
   export type ClienteSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -17519,10 +17630,12 @@ export namespace Prisma {
     cuit?: boolean
     condicionIva?: boolean
     condicionVenta?: boolean
+    transportistaPredeterminadoId?: boolean
     estado?: boolean
     activo?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    transportistaPredeterminado?: boolean | Cliente$transportistaPredeterminadoArgs<ExtArgs>
   }, ExtArgs["result"]["cliente"]>
 
   export type ClienteSelectScalar = {
@@ -17536,24 +17649,31 @@ export namespace Prisma {
     cuit?: boolean
     condicionIva?: boolean
     condicionVenta?: boolean
+    transportistaPredeterminadoId?: boolean
     estado?: boolean
     activo?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ClienteOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nombre" | "contacto" | "referencia" | "direccion" | "localidad" | "provincia" | "cuit" | "condicionIva" | "condicionVenta" | "estado" | "activo" | "createdAt" | "updatedAt", ExtArgs["result"]["cliente"]>
+  export type ClienteOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nombre" | "contacto" | "referencia" | "direccion" | "localidad" | "provincia" | "cuit" | "condicionIva" | "condicionVenta" | "transportistaPredeterminadoId" | "estado" | "activo" | "createdAt" | "updatedAt", ExtArgs["result"]["cliente"]>
   export type ClienteInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transportistaPredeterminado?: boolean | Cliente$transportistaPredeterminadoArgs<ExtArgs>
     pedidos?: boolean | Cliente$pedidosArgs<ExtArgs>
     aliases?: boolean | Cliente$aliasesArgs<ExtArgs>
     _count?: boolean | ClienteCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type ClienteIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
-  export type ClienteIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type ClienteIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transportistaPredeterminado?: boolean | Cliente$transportistaPredeterminadoArgs<ExtArgs>
+  }
+  export type ClienteIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    transportistaPredeterminado?: boolean | Cliente$transportistaPredeterminadoArgs<ExtArgs>
+  }
 
   export type $ClientePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Cliente"
     objects: {
+      transportistaPredeterminado: Prisma.$TransportistaPayload<ExtArgs> | null
       pedidos: Prisma.$PedidoPayload<ExtArgs>[]
       aliases: Prisma.$ClientAliasPayload<ExtArgs>[]
     }
@@ -17568,6 +17688,7 @@ export namespace Prisma {
       cuit: string | null
       condicionIva: string | null
       condicionVenta: string | null
+      transportistaPredeterminadoId: string | null
       estado: $Enums.EstadoCliente
       activo: boolean
       createdAt: Date
@@ -17966,6 +18087,7 @@ export namespace Prisma {
    */
   export interface Prisma__ClienteClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    transportistaPredeterminado<T extends Cliente$transportistaPredeterminadoArgs<ExtArgs> = {}>(args?: Subset<T, Cliente$transportistaPredeterminadoArgs<ExtArgs>>): Prisma__TransportistaClient<$Result.GetResult<Prisma.$TransportistaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     pedidos<T extends Cliente$pedidosArgs<ExtArgs> = {}>(args?: Subset<T, Cliente$pedidosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PedidoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     aliases<T extends Cliente$aliasesArgs<ExtArgs> = {}>(args?: Subset<T, Cliente$aliasesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientAliasPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
@@ -18007,6 +18129,7 @@ export namespace Prisma {
     readonly cuit: FieldRef<"Cliente", 'String'>
     readonly condicionIva: FieldRef<"Cliente", 'String'>
     readonly condicionVenta: FieldRef<"Cliente", 'String'>
+    readonly transportistaPredeterminadoId: FieldRef<"Cliente", 'String'>
     readonly estado: FieldRef<"Cliente", 'EstadoCliente'>
     readonly activo: FieldRef<"Cliente", 'Boolean'>
     readonly createdAt: FieldRef<"Cliente", 'DateTime'>
@@ -18265,6 +18388,10 @@ export namespace Prisma {
      */
     data: ClienteCreateManyInput | ClienteCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClienteIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -18335,6 +18462,10 @@ export namespace Prisma {
      * Limit how many Clientes to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClienteIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -18401,6 +18532,25 @@ export namespace Prisma {
      * Limit how many Clientes to delete.
      */
     limit?: number
+  }
+
+  /**
+   * Cliente.transportistaPredeterminado
+   */
+  export type Cliente$transportistaPredeterminadoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Transportista
+     */
+    select?: TransportistaSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Transportista
+     */
+    omit?: TransportistaOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TransportistaInclude<ExtArgs> | null
+    where?: TransportistaWhereInput
   }
 
   /**
@@ -30449,6 +30599,7 @@ export namespace Prisma {
     createdAt?: boolean
     updatedAt?: boolean
     remitos?: boolean | Transportista$remitosArgs<ExtArgs>
+    clientesPredeterminados?: boolean | Transportista$clientesPredeterminadosArgs<ExtArgs>
     _count?: boolean | TransportistaCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["transportista"]>
 
@@ -30482,6 +30633,7 @@ export namespace Prisma {
   export type TransportistaOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "nombre" | "direccion" | "activo" | "createdAt" | "updatedAt", ExtArgs["result"]["transportista"]>
   export type TransportistaInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     remitos?: boolean | Transportista$remitosArgs<ExtArgs>
+    clientesPredeterminados?: boolean | Transportista$clientesPredeterminadosArgs<ExtArgs>
     _count?: boolean | TransportistaCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type TransportistaIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -30491,6 +30643,7 @@ export namespace Prisma {
     name: "Transportista"
     objects: {
       remitos: Prisma.$RemitoPayload<ExtArgs>[]
+      clientesPredeterminados: Prisma.$ClientePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -30894,6 +31047,7 @@ export namespace Prisma {
   export interface Prisma__TransportistaClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     remitos<T extends Transportista$remitosArgs<ExtArgs> = {}>(args?: Subset<T, Transportista$remitosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RemitoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    clientesPredeterminados<T extends Transportista$clientesPredeterminadosArgs<ExtArgs> = {}>(args?: Subset<T, Transportista$clientesPredeterminadosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ClientePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -31346,6 +31500,30 @@ export namespace Prisma {
   }
 
   /**
+   * Transportista.clientesPredeterminados
+   */
+  export type Transportista$clientesPredeterminadosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Cliente
+     */
+    select?: ClienteSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Cliente
+     */
+    omit?: ClienteOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ClienteInclude<ExtArgs> | null
+    where?: ClienteWhereInput
+    orderBy?: ClienteOrderByWithRelationInput | ClienteOrderByWithRelationInput[]
+    cursor?: ClienteWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ClienteScalarFieldEnum | ClienteScalarFieldEnum[]
+  }
+
+  /**
    * Transportista without action
    */
   export type TransportistaDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -31417,6 +31595,7 @@ export namespace Prisma {
     clienteSnapshot: number
     transporteSnapshot: number
     itemsSnapshot: number
+    caiSnapshot: number
     estado: number
     invalidadoAt: number
     invalidadoPor: number
@@ -31470,6 +31649,7 @@ export namespace Prisma {
     clienteSnapshot?: true
     transporteSnapshot?: true
     itemsSnapshot?: true
+    caiSnapshot?: true
     estado?: true
     invalidadoAt?: true
     invalidadoPor?: true
@@ -31562,6 +31742,7 @@ export namespace Prisma {
     clienteSnapshot: JsonValue
     transporteSnapshot: JsonValue
     itemsSnapshot: JsonValue
+    caiSnapshot: JsonValue | null
     estado: $Enums.EstadoRemito
     invalidadoAt: Date | null
     invalidadoPor: string | null
@@ -31598,6 +31779,7 @@ export namespace Prisma {
     clienteSnapshot?: boolean
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
+    caiSnapshot?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31619,6 +31801,7 @@ export namespace Prisma {
     clienteSnapshot?: boolean
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
+    caiSnapshot?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31640,6 +31823,7 @@ export namespace Prisma {
     clienteSnapshot?: boolean
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
+    caiSnapshot?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31661,6 +31845,7 @@ export namespace Prisma {
     clienteSnapshot?: boolean
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
+    caiSnapshot?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31669,7 +31854,7 @@ export namespace Prisma {
     createdAt?: boolean
   }
 
-  export type RemitoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pedidoId" | "numero" | "fecha" | "transportistaId" | "transporteNombre" | "transporteDireccion" | "clienteSnapshot" | "transporteSnapshot" | "itemsSnapshot" | "estado" | "invalidadoAt" | "invalidadoPor" | "motivoInvalidacion" | "createdBy" | "createdAt", ExtArgs["result"]["remito"]>
+  export type RemitoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pedidoId" | "numero" | "fecha" | "transportistaId" | "transporteNombre" | "transporteDireccion" | "clienteSnapshot" | "transporteSnapshot" | "itemsSnapshot" | "caiSnapshot" | "estado" | "invalidadoAt" | "invalidadoPor" | "motivoInvalidacion" | "createdBy" | "createdAt", ExtArgs["result"]["remito"]>
   export type RemitoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     pedido?: boolean | PedidoDefaultArgs<ExtArgs>
     transportista?: boolean | Remito$transportistaArgs<ExtArgs>
@@ -31700,6 +31885,7 @@ export namespace Prisma {
       clienteSnapshot: Prisma.JsonValue
       transporteSnapshot: Prisma.JsonValue
       itemsSnapshot: Prisma.JsonValue
+      caiSnapshot: Prisma.JsonValue | null
       estado: $Enums.EstadoRemito
       invalidadoAt: Date | null
       invalidadoPor: string | null
@@ -32141,6 +32327,7 @@ export namespace Prisma {
     readonly clienteSnapshot: FieldRef<"Remito", 'Json'>
     readonly transporteSnapshot: FieldRef<"Remito", 'Json'>
     readonly itemsSnapshot: FieldRef<"Remito", 'Json'>
+    readonly caiSnapshot: FieldRef<"Remito", 'Json'>
     readonly estado: FieldRef<"Remito", 'EstadoRemito'>
     readonly invalidadoAt: FieldRef<"Remito", 'DateTime'>
     readonly invalidadoPor: FieldRef<"Remito", 'String'>
@@ -32582,6 +32769,1066 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: RemitoInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ConfiguracionRemito
+   */
+
+  export type AggregateConfiguracionRemito = {
+    _count: ConfiguracionRemitoCountAggregateOutputType | null
+    _avg: ConfiguracionRemitoAvgAggregateOutputType | null
+    _sum: ConfiguracionRemitoSumAggregateOutputType | null
+    _min: ConfiguracionRemitoMinAggregateOutputType | null
+    _max: ConfiguracionRemitoMaxAggregateOutputType | null
+  }
+
+  export type ConfiguracionRemitoAvgAggregateOutputType = {
+    proximoCorrelativo: number | null
+  }
+
+  export type ConfiguracionRemitoSumAggregateOutputType = {
+    proximoCorrelativo: number | null
+  }
+
+  export type ConfiguracionRemitoMinAggregateOutputType = {
+    id: string | null
+    puntoVenta: string | null
+    proximoCorrelativo: number | null
+    numeracionInicializadaAt: Date | null
+    cai: string | null
+    caiVencimiento: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ConfiguracionRemitoMaxAggregateOutputType = {
+    id: string | null
+    puntoVenta: string | null
+    proximoCorrelativo: number | null
+    numeracionInicializadaAt: Date | null
+    cai: string | null
+    caiVencimiento: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ConfiguracionRemitoCountAggregateOutputType = {
+    id: number
+    puntoVenta: number
+    proximoCorrelativo: number
+    numeracionInicializadaAt: number
+    cai: number
+    caiVencimiento: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ConfiguracionRemitoAvgAggregateInputType = {
+    proximoCorrelativo?: true
+  }
+
+  export type ConfiguracionRemitoSumAggregateInputType = {
+    proximoCorrelativo?: true
+  }
+
+  export type ConfiguracionRemitoMinAggregateInputType = {
+    id?: true
+    puntoVenta?: true
+    proximoCorrelativo?: true
+    numeracionInicializadaAt?: true
+    cai?: true
+    caiVencimiento?: true
+    updatedAt?: true
+  }
+
+  export type ConfiguracionRemitoMaxAggregateInputType = {
+    id?: true
+    puntoVenta?: true
+    proximoCorrelativo?: true
+    numeracionInicializadaAt?: true
+    cai?: true
+    caiVencimiento?: true
+    updatedAt?: true
+  }
+
+  export type ConfiguracionRemitoCountAggregateInputType = {
+    id?: true
+    puntoVenta?: true
+    proximoCorrelativo?: true
+    numeracionInicializadaAt?: true
+    cai?: true
+    caiVencimiento?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ConfiguracionRemitoAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConfiguracionRemito to aggregate.
+     */
+    where?: ConfiguracionRemitoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConfiguracionRemitos to fetch.
+     */
+    orderBy?: ConfiguracionRemitoOrderByWithRelationInput | ConfiguracionRemitoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ConfiguracionRemitoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConfiguracionRemitos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConfiguracionRemitos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ConfiguracionRemitos
+    **/
+    _count?: true | ConfiguracionRemitoCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ConfiguracionRemitoAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ConfiguracionRemitoSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ConfiguracionRemitoMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ConfiguracionRemitoMaxAggregateInputType
+  }
+
+  export type GetConfiguracionRemitoAggregateType<T extends ConfiguracionRemitoAggregateArgs> = {
+        [P in keyof T & keyof AggregateConfiguracionRemito]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateConfiguracionRemito[P]>
+      : GetScalarType<T[P], AggregateConfiguracionRemito[P]>
+  }
+
+
+
+
+  export type ConfiguracionRemitoGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ConfiguracionRemitoWhereInput
+    orderBy?: ConfiguracionRemitoOrderByWithAggregationInput | ConfiguracionRemitoOrderByWithAggregationInput[]
+    by: ConfiguracionRemitoScalarFieldEnum[] | ConfiguracionRemitoScalarFieldEnum
+    having?: ConfiguracionRemitoScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ConfiguracionRemitoCountAggregateInputType | true
+    _avg?: ConfiguracionRemitoAvgAggregateInputType
+    _sum?: ConfiguracionRemitoSumAggregateInputType
+    _min?: ConfiguracionRemitoMinAggregateInputType
+    _max?: ConfiguracionRemitoMaxAggregateInputType
+  }
+
+  export type ConfiguracionRemitoGroupByOutputType = {
+    id: string
+    puntoVenta: string
+    proximoCorrelativo: number | null
+    numeracionInicializadaAt: Date | null
+    cai: string
+    caiVencimiento: Date
+    updatedAt: Date
+    _count: ConfiguracionRemitoCountAggregateOutputType | null
+    _avg: ConfiguracionRemitoAvgAggregateOutputType | null
+    _sum: ConfiguracionRemitoSumAggregateOutputType | null
+    _min: ConfiguracionRemitoMinAggregateOutputType | null
+    _max: ConfiguracionRemitoMaxAggregateOutputType | null
+  }
+
+  type GetConfiguracionRemitoGroupByPayload<T extends ConfiguracionRemitoGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ConfiguracionRemitoGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ConfiguracionRemitoGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ConfiguracionRemitoGroupByOutputType[P]>
+            : GetScalarType<T[P], ConfiguracionRemitoGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ConfiguracionRemitoSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    puntoVenta?: boolean
+    proximoCorrelativo?: boolean
+    numeracionInicializadaAt?: boolean
+    cai?: boolean
+    caiVencimiento?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["configuracionRemito"]>
+
+  export type ConfiguracionRemitoSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    puntoVenta?: boolean
+    proximoCorrelativo?: boolean
+    numeracionInicializadaAt?: boolean
+    cai?: boolean
+    caiVencimiento?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["configuracionRemito"]>
+
+  export type ConfiguracionRemitoSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    puntoVenta?: boolean
+    proximoCorrelativo?: boolean
+    numeracionInicializadaAt?: boolean
+    cai?: boolean
+    caiVencimiento?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["configuracionRemito"]>
+
+  export type ConfiguracionRemitoSelectScalar = {
+    id?: boolean
+    puntoVenta?: boolean
+    proximoCorrelativo?: boolean
+    numeracionInicializadaAt?: boolean
+    cai?: boolean
+    caiVencimiento?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ConfiguracionRemitoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "puntoVenta" | "proximoCorrelativo" | "numeracionInicializadaAt" | "cai" | "caiVencimiento" | "updatedAt", ExtArgs["result"]["configuracionRemito"]>
+
+  export type $ConfiguracionRemitoPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ConfiguracionRemito"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      puntoVenta: string
+      proximoCorrelativo: number | null
+      numeracionInicializadaAt: Date | null
+      cai: string
+      caiVencimiento: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["configuracionRemito"]>
+    composites: {}
+  }
+
+  type ConfiguracionRemitoGetPayload<S extends boolean | null | undefined | ConfiguracionRemitoDefaultArgs> = $Result.GetResult<Prisma.$ConfiguracionRemitoPayload, S>
+
+  type ConfiguracionRemitoCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ConfiguracionRemitoFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ConfiguracionRemitoCountAggregateInputType | true
+    }
+
+  export interface ConfiguracionRemitoDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ConfiguracionRemito'], meta: { name: 'ConfiguracionRemito' } }
+    /**
+     * Find zero or one ConfiguracionRemito that matches the filter.
+     * @param {ConfiguracionRemitoFindUniqueArgs} args - Arguments to find a ConfiguracionRemito
+     * @example
+     * // Get one ConfiguracionRemito
+     * const configuracionRemito = await prisma.configuracionRemito.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ConfiguracionRemitoFindUniqueArgs>(args: SelectSubset<T, ConfiguracionRemitoFindUniqueArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ConfiguracionRemito that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ConfiguracionRemitoFindUniqueOrThrowArgs} args - Arguments to find a ConfiguracionRemito
+     * @example
+     * // Get one ConfiguracionRemito
+     * const configuracionRemito = await prisma.configuracionRemito.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ConfiguracionRemitoFindUniqueOrThrowArgs>(args: SelectSubset<T, ConfiguracionRemitoFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConfiguracionRemito that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfiguracionRemitoFindFirstArgs} args - Arguments to find a ConfiguracionRemito
+     * @example
+     * // Get one ConfiguracionRemito
+     * const configuracionRemito = await prisma.configuracionRemito.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ConfiguracionRemitoFindFirstArgs>(args?: SelectSubset<T, ConfiguracionRemitoFindFirstArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ConfiguracionRemito that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfiguracionRemitoFindFirstOrThrowArgs} args - Arguments to find a ConfiguracionRemito
+     * @example
+     * // Get one ConfiguracionRemito
+     * const configuracionRemito = await prisma.configuracionRemito.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ConfiguracionRemitoFindFirstOrThrowArgs>(args?: SelectSubset<T, ConfiguracionRemitoFindFirstOrThrowArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ConfiguracionRemitos that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfiguracionRemitoFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ConfiguracionRemitos
+     * const configuracionRemitos = await prisma.configuracionRemito.findMany()
+     * 
+     * // Get first 10 ConfiguracionRemitos
+     * const configuracionRemitos = await prisma.configuracionRemito.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const configuracionRemitoWithIdOnly = await prisma.configuracionRemito.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ConfiguracionRemitoFindManyArgs>(args?: SelectSubset<T, ConfiguracionRemitoFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ConfiguracionRemito.
+     * @param {ConfiguracionRemitoCreateArgs} args - Arguments to create a ConfiguracionRemito.
+     * @example
+     * // Create one ConfiguracionRemito
+     * const ConfiguracionRemito = await prisma.configuracionRemito.create({
+     *   data: {
+     *     // ... data to create a ConfiguracionRemito
+     *   }
+     * })
+     * 
+     */
+    create<T extends ConfiguracionRemitoCreateArgs>(args: SelectSubset<T, ConfiguracionRemitoCreateArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ConfiguracionRemitos.
+     * @param {ConfiguracionRemitoCreateManyArgs} args - Arguments to create many ConfiguracionRemitos.
+     * @example
+     * // Create many ConfiguracionRemitos
+     * const configuracionRemito = await prisma.configuracionRemito.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ConfiguracionRemitoCreateManyArgs>(args?: SelectSubset<T, ConfiguracionRemitoCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ConfiguracionRemitos and returns the data saved in the database.
+     * @param {ConfiguracionRemitoCreateManyAndReturnArgs} args - Arguments to create many ConfiguracionRemitos.
+     * @example
+     * // Create many ConfiguracionRemitos
+     * const configuracionRemito = await prisma.configuracionRemito.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ConfiguracionRemitos and only return the `id`
+     * const configuracionRemitoWithIdOnly = await prisma.configuracionRemito.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ConfiguracionRemitoCreateManyAndReturnArgs>(args?: SelectSubset<T, ConfiguracionRemitoCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ConfiguracionRemito.
+     * @param {ConfiguracionRemitoDeleteArgs} args - Arguments to delete one ConfiguracionRemito.
+     * @example
+     * // Delete one ConfiguracionRemito
+     * const ConfiguracionRemito = await prisma.configuracionRemito.delete({
+     *   where: {
+     *     // ... filter to delete one ConfiguracionRemito
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ConfiguracionRemitoDeleteArgs>(args: SelectSubset<T, ConfiguracionRemitoDeleteArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ConfiguracionRemito.
+     * @param {ConfiguracionRemitoUpdateArgs} args - Arguments to update one ConfiguracionRemito.
+     * @example
+     * // Update one ConfiguracionRemito
+     * const configuracionRemito = await prisma.configuracionRemito.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ConfiguracionRemitoUpdateArgs>(args: SelectSubset<T, ConfiguracionRemitoUpdateArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ConfiguracionRemitos.
+     * @param {ConfiguracionRemitoDeleteManyArgs} args - Arguments to filter ConfiguracionRemitos to delete.
+     * @example
+     * // Delete a few ConfiguracionRemitos
+     * const { count } = await prisma.configuracionRemito.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ConfiguracionRemitoDeleteManyArgs>(args?: SelectSubset<T, ConfiguracionRemitoDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConfiguracionRemitos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfiguracionRemitoUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ConfiguracionRemitos
+     * const configuracionRemito = await prisma.configuracionRemito.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ConfiguracionRemitoUpdateManyArgs>(args: SelectSubset<T, ConfiguracionRemitoUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ConfiguracionRemitos and returns the data updated in the database.
+     * @param {ConfiguracionRemitoUpdateManyAndReturnArgs} args - Arguments to update many ConfiguracionRemitos.
+     * @example
+     * // Update many ConfiguracionRemitos
+     * const configuracionRemito = await prisma.configuracionRemito.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ConfiguracionRemitos and only return the `id`
+     * const configuracionRemitoWithIdOnly = await prisma.configuracionRemito.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ConfiguracionRemitoUpdateManyAndReturnArgs>(args: SelectSubset<T, ConfiguracionRemitoUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ConfiguracionRemito.
+     * @param {ConfiguracionRemitoUpsertArgs} args - Arguments to update or create a ConfiguracionRemito.
+     * @example
+     * // Update or create a ConfiguracionRemito
+     * const configuracionRemito = await prisma.configuracionRemito.upsert({
+     *   create: {
+     *     // ... data to create a ConfiguracionRemito
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ConfiguracionRemito we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ConfiguracionRemitoUpsertArgs>(args: SelectSubset<T, ConfiguracionRemitoUpsertArgs<ExtArgs>>): Prisma__ConfiguracionRemitoClient<$Result.GetResult<Prisma.$ConfiguracionRemitoPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ConfiguracionRemitos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfiguracionRemitoCountArgs} args - Arguments to filter ConfiguracionRemitos to count.
+     * @example
+     * // Count the number of ConfiguracionRemitos
+     * const count = await prisma.configuracionRemito.count({
+     *   where: {
+     *     // ... the filter for the ConfiguracionRemitos we want to count
+     *   }
+     * })
+    **/
+    count<T extends ConfiguracionRemitoCountArgs>(
+      args?: Subset<T, ConfiguracionRemitoCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ConfiguracionRemitoCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ConfiguracionRemito.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfiguracionRemitoAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ConfiguracionRemitoAggregateArgs>(args: Subset<T, ConfiguracionRemitoAggregateArgs>): Prisma.PrismaPromise<GetConfiguracionRemitoAggregateType<T>>
+
+    /**
+     * Group by ConfiguracionRemito.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ConfiguracionRemitoGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ConfiguracionRemitoGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ConfiguracionRemitoGroupByArgs['orderBy'] }
+        : { orderBy?: ConfiguracionRemitoGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ConfiguracionRemitoGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetConfiguracionRemitoGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ConfiguracionRemito model
+   */
+  readonly fields: ConfiguracionRemitoFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ConfiguracionRemito.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ConfiguracionRemitoClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ConfiguracionRemito model
+   */
+  interface ConfiguracionRemitoFieldRefs {
+    readonly id: FieldRef<"ConfiguracionRemito", 'String'>
+    readonly puntoVenta: FieldRef<"ConfiguracionRemito", 'String'>
+    readonly proximoCorrelativo: FieldRef<"ConfiguracionRemito", 'Int'>
+    readonly numeracionInicializadaAt: FieldRef<"ConfiguracionRemito", 'DateTime'>
+    readonly cai: FieldRef<"ConfiguracionRemito", 'String'>
+    readonly caiVencimiento: FieldRef<"ConfiguracionRemito", 'DateTime'>
+    readonly updatedAt: FieldRef<"ConfiguracionRemito", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ConfiguracionRemito findUnique
+   */
+  export type ConfiguracionRemitoFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * Filter, which ConfiguracionRemito to fetch.
+     */
+    where: ConfiguracionRemitoWhereUniqueInput
+  }
+
+  /**
+   * ConfiguracionRemito findUniqueOrThrow
+   */
+  export type ConfiguracionRemitoFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * Filter, which ConfiguracionRemito to fetch.
+     */
+    where: ConfiguracionRemitoWhereUniqueInput
+  }
+
+  /**
+   * ConfiguracionRemito findFirst
+   */
+  export type ConfiguracionRemitoFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * Filter, which ConfiguracionRemito to fetch.
+     */
+    where?: ConfiguracionRemitoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConfiguracionRemitos to fetch.
+     */
+    orderBy?: ConfiguracionRemitoOrderByWithRelationInput | ConfiguracionRemitoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ConfiguracionRemitos.
+     */
+    cursor?: ConfiguracionRemitoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConfiguracionRemitos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConfiguracionRemitos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConfiguracionRemitos.
+     */
+    distinct?: ConfiguracionRemitoScalarFieldEnum | ConfiguracionRemitoScalarFieldEnum[]
+  }
+
+  /**
+   * ConfiguracionRemito findFirstOrThrow
+   */
+  export type ConfiguracionRemitoFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * Filter, which ConfiguracionRemito to fetch.
+     */
+    where?: ConfiguracionRemitoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConfiguracionRemitos to fetch.
+     */
+    orderBy?: ConfiguracionRemitoOrderByWithRelationInput | ConfiguracionRemitoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ConfiguracionRemitos.
+     */
+    cursor?: ConfiguracionRemitoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConfiguracionRemitos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConfiguracionRemitos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConfiguracionRemitos.
+     */
+    distinct?: ConfiguracionRemitoScalarFieldEnum | ConfiguracionRemitoScalarFieldEnum[]
+  }
+
+  /**
+   * ConfiguracionRemito findMany
+   */
+  export type ConfiguracionRemitoFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * Filter, which ConfiguracionRemitos to fetch.
+     */
+    where?: ConfiguracionRemitoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ConfiguracionRemitos to fetch.
+     */
+    orderBy?: ConfiguracionRemitoOrderByWithRelationInput | ConfiguracionRemitoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ConfiguracionRemitos.
+     */
+    cursor?: ConfiguracionRemitoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ConfiguracionRemitos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ConfiguracionRemitos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ConfiguracionRemitos.
+     */
+    distinct?: ConfiguracionRemitoScalarFieldEnum | ConfiguracionRemitoScalarFieldEnum[]
+  }
+
+  /**
+   * ConfiguracionRemito create
+   */
+  export type ConfiguracionRemitoCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ConfiguracionRemito.
+     */
+    data: XOR<ConfiguracionRemitoCreateInput, ConfiguracionRemitoUncheckedCreateInput>
+  }
+
+  /**
+   * ConfiguracionRemito createMany
+   */
+  export type ConfiguracionRemitoCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ConfiguracionRemitos.
+     */
+    data: ConfiguracionRemitoCreateManyInput | ConfiguracionRemitoCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ConfiguracionRemito createManyAndReturn
+   */
+  export type ConfiguracionRemitoCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * The data used to create many ConfiguracionRemitos.
+     */
+    data: ConfiguracionRemitoCreateManyInput | ConfiguracionRemitoCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ConfiguracionRemito update
+   */
+  export type ConfiguracionRemitoUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ConfiguracionRemito.
+     */
+    data: XOR<ConfiguracionRemitoUpdateInput, ConfiguracionRemitoUncheckedUpdateInput>
+    /**
+     * Choose, which ConfiguracionRemito to update.
+     */
+    where: ConfiguracionRemitoWhereUniqueInput
+  }
+
+  /**
+   * ConfiguracionRemito updateMany
+   */
+  export type ConfiguracionRemitoUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ConfiguracionRemitos.
+     */
+    data: XOR<ConfiguracionRemitoUpdateManyMutationInput, ConfiguracionRemitoUncheckedUpdateManyInput>
+    /**
+     * Filter which ConfiguracionRemitos to update
+     */
+    where?: ConfiguracionRemitoWhereInput
+    /**
+     * Limit how many ConfiguracionRemitos to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConfiguracionRemito updateManyAndReturn
+   */
+  export type ConfiguracionRemitoUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * The data used to update ConfiguracionRemitos.
+     */
+    data: XOR<ConfiguracionRemitoUpdateManyMutationInput, ConfiguracionRemitoUncheckedUpdateManyInput>
+    /**
+     * Filter which ConfiguracionRemitos to update
+     */
+    where?: ConfiguracionRemitoWhereInput
+    /**
+     * Limit how many ConfiguracionRemitos to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConfiguracionRemito upsert
+   */
+  export type ConfiguracionRemitoUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ConfiguracionRemito to update in case it exists.
+     */
+    where: ConfiguracionRemitoWhereUniqueInput
+    /**
+     * In case the ConfiguracionRemito found by the `where` argument doesn't exist, create a new ConfiguracionRemito with this data.
+     */
+    create: XOR<ConfiguracionRemitoCreateInput, ConfiguracionRemitoUncheckedCreateInput>
+    /**
+     * In case the ConfiguracionRemito was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ConfiguracionRemitoUpdateInput, ConfiguracionRemitoUncheckedUpdateInput>
+  }
+
+  /**
+   * ConfiguracionRemito delete
+   */
+  export type ConfiguracionRemitoDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
+    /**
+     * Filter which ConfiguracionRemito to delete.
+     */
+    where: ConfiguracionRemitoWhereUniqueInput
+  }
+
+  /**
+   * ConfiguracionRemito deleteMany
+   */
+  export type ConfiguracionRemitoDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ConfiguracionRemitos to delete
+     */
+    where?: ConfiguracionRemitoWhereInput
+    /**
+     * Limit how many ConfiguracionRemitos to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ConfiguracionRemito without action
+   */
+  export type ConfiguracionRemitoDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ConfiguracionRemito
+     */
+    select?: ConfiguracionRemitoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ConfiguracionRemito
+     */
+    omit?: ConfiguracionRemitoOmit<ExtArgs> | null
   }
 
 
@@ -57188,6 +58435,7 @@ export namespace Prisma {
     cuit: 'cuit',
     condicionIva: 'condicionIva',
     condicionVenta: 'condicionVenta',
+    transportistaPredeterminadoId: 'transportistaPredeterminadoId',
     estado: 'estado',
     activo: 'activo',
     createdAt: 'createdAt',
@@ -57373,6 +58621,7 @@ export namespace Prisma {
     clienteSnapshot: 'clienteSnapshot',
     transporteSnapshot: 'transporteSnapshot',
     itemsSnapshot: 'itemsSnapshot',
+    caiSnapshot: 'caiSnapshot',
     estado: 'estado',
     invalidadoAt: 'invalidadoAt',
     invalidadoPor: 'invalidadoPor',
@@ -57382,6 +58631,19 @@ export namespace Prisma {
   };
 
   export type RemitoScalarFieldEnum = (typeof RemitoScalarFieldEnum)[keyof typeof RemitoScalarFieldEnum]
+
+
+  export const ConfiguracionRemitoScalarFieldEnum: {
+    id: 'id',
+    puntoVenta: 'puntoVenta',
+    proximoCorrelativo: 'proximoCorrelativo',
+    numeracionInicializadaAt: 'numeracionInicializadaAt',
+    cai: 'cai',
+    caiVencimiento: 'caiVencimiento',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ConfiguracionRemitoScalarFieldEnum = (typeof ConfiguracionRemitoScalarFieldEnum)[keyof typeof ConfiguracionRemitoScalarFieldEnum]
 
 
   export const UserScalarFieldEnum: {
@@ -58968,10 +60230,12 @@ export namespace Prisma {
     cuit?: StringNullableFilter<"Cliente"> | string | null
     condicionIva?: StringNullableFilter<"Cliente"> | string | null
     condicionVenta?: StringNullableFilter<"Cliente"> | string | null
+    transportistaPredeterminadoId?: StringNullableFilter<"Cliente"> | string | null
     estado?: EnumEstadoClienteFilter<"Cliente"> | $Enums.EstadoCliente
     activo?: BoolFilter<"Cliente"> | boolean
     createdAt?: DateTimeFilter<"Cliente"> | Date | string
     updatedAt?: DateTimeFilter<"Cliente"> | Date | string
+    transportistaPredeterminado?: XOR<TransportistaNullableScalarRelationFilter, TransportistaWhereInput> | null
     pedidos?: PedidoListRelationFilter
     aliases?: ClientAliasListRelationFilter
   }
@@ -58987,10 +60251,12 @@ export namespace Prisma {
     cuit?: SortOrderInput | SortOrder
     condicionIva?: SortOrderInput | SortOrder
     condicionVenta?: SortOrderInput | SortOrder
+    transportistaPredeterminadoId?: SortOrderInput | SortOrder
     estado?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    transportistaPredeterminado?: TransportistaOrderByWithRelationInput
     pedidos?: PedidoOrderByRelationAggregateInput
     aliases?: ClientAliasOrderByRelationAggregateInput
   }
@@ -59009,10 +60275,12 @@ export namespace Prisma {
     cuit?: StringNullableFilter<"Cliente"> | string | null
     condicionIva?: StringNullableFilter<"Cliente"> | string | null
     condicionVenta?: StringNullableFilter<"Cliente"> | string | null
+    transportistaPredeterminadoId?: StringNullableFilter<"Cliente"> | string | null
     estado?: EnumEstadoClienteFilter<"Cliente"> | $Enums.EstadoCliente
     activo?: BoolFilter<"Cliente"> | boolean
     createdAt?: DateTimeFilter<"Cliente"> | Date | string
     updatedAt?: DateTimeFilter<"Cliente"> | Date | string
+    transportistaPredeterminado?: XOR<TransportistaNullableScalarRelationFilter, TransportistaWhereInput> | null
     pedidos?: PedidoListRelationFilter
     aliases?: ClientAliasListRelationFilter
   }, "id" | "nombre">
@@ -59028,6 +60296,7 @@ export namespace Prisma {
     cuit?: SortOrderInput | SortOrder
     condicionIva?: SortOrderInput | SortOrder
     condicionVenta?: SortOrderInput | SortOrder
+    transportistaPredeterminadoId?: SortOrderInput | SortOrder
     estado?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
@@ -59051,6 +60320,7 @@ export namespace Prisma {
     cuit?: StringNullableWithAggregatesFilter<"Cliente"> | string | null
     condicionIva?: StringNullableWithAggregatesFilter<"Cliente"> | string | null
     condicionVenta?: StringNullableWithAggregatesFilter<"Cliente"> | string | null
+    transportistaPredeterminadoId?: StringNullableWithAggregatesFilter<"Cliente"> | string | null
     estado?: EnumEstadoClienteWithAggregatesFilter<"Cliente"> | $Enums.EstadoCliente
     activo?: BoolWithAggregatesFilter<"Cliente"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Cliente"> | Date | string
@@ -59898,6 +61168,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Transportista"> | Date | string
     updatedAt?: DateTimeFilter<"Transportista"> | Date | string
     remitos?: RemitoListRelationFilter
+    clientesPredeterminados?: ClienteListRelationFilter
   }
 
   export type TransportistaOrderByWithRelationInput = {
@@ -59908,6 +61179,7 @@ export namespace Prisma {
     createdAt?: SortOrder
     updatedAt?: SortOrder
     remitos?: RemitoOrderByRelationAggregateInput
+    clientesPredeterminados?: ClienteOrderByRelationAggregateInput
   }
 
   export type TransportistaWhereUniqueInput = Prisma.AtLeast<{
@@ -59922,6 +61194,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Transportista"> | Date | string
     updatedAt?: DateTimeFilter<"Transportista"> | Date | string
     remitos?: RemitoListRelationFilter
+    clientesPredeterminados?: ClienteListRelationFilter
   }, "id" | "nombre_direccion">
 
   export type TransportistaOrderByWithAggregationInput = {
@@ -59962,6 +61235,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonFilter<"Remito">
     transporteSnapshot?: JsonFilter<"Remito">
     itemsSnapshot?: JsonFilter<"Remito">
+    caiSnapshot?: JsonNullableFilter<"Remito">
     estado?: EnumEstadoRemitoFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableFilter<"Remito"> | string | null
@@ -59983,6 +61257,7 @@ export namespace Prisma {
     clienteSnapshot?: SortOrder
     transporteSnapshot?: SortOrder
     itemsSnapshot?: SortOrder
+    caiSnapshot?: SortOrderInput | SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrderInput | SortOrder
     invalidadoPor?: SortOrderInput | SortOrder
@@ -60007,6 +61282,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonFilter<"Remito">
     transporteSnapshot?: JsonFilter<"Remito">
     itemsSnapshot?: JsonFilter<"Remito">
+    caiSnapshot?: JsonNullableFilter<"Remito">
     estado?: EnumEstadoRemitoFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableFilter<"Remito"> | string | null
@@ -60028,6 +61304,7 @@ export namespace Prisma {
     clienteSnapshot?: SortOrder
     transporteSnapshot?: SortOrder
     itemsSnapshot?: SortOrder
+    caiSnapshot?: SortOrderInput | SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrderInput | SortOrder
     invalidadoPor?: SortOrderInput | SortOrder
@@ -60053,12 +61330,77 @@ export namespace Prisma {
     clienteSnapshot?: JsonWithAggregatesFilter<"Remito">
     transporteSnapshot?: JsonWithAggregatesFilter<"Remito">
     itemsSnapshot?: JsonWithAggregatesFilter<"Remito">
+    caiSnapshot?: JsonNullableWithAggregatesFilter<"Remito">
     estado?: EnumEstadoRemitoWithAggregatesFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableWithAggregatesFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableWithAggregatesFilter<"Remito"> | string | null
     motivoInvalidacion?: StringNullableWithAggregatesFilter<"Remito"> | string | null
     createdBy?: StringWithAggregatesFilter<"Remito"> | string
     createdAt?: DateTimeWithAggregatesFilter<"Remito"> | Date | string
+  }
+
+  export type ConfiguracionRemitoWhereInput = {
+    AND?: ConfiguracionRemitoWhereInput | ConfiguracionRemitoWhereInput[]
+    OR?: ConfiguracionRemitoWhereInput[]
+    NOT?: ConfiguracionRemitoWhereInput | ConfiguracionRemitoWhereInput[]
+    id?: StringFilter<"ConfiguracionRemito"> | string
+    puntoVenta?: StringFilter<"ConfiguracionRemito"> | string
+    proximoCorrelativo?: IntNullableFilter<"ConfiguracionRemito"> | number | null
+    numeracionInicializadaAt?: DateTimeNullableFilter<"ConfiguracionRemito"> | Date | string | null
+    cai?: StringFilter<"ConfiguracionRemito"> | string
+    caiVencimiento?: DateTimeFilter<"ConfiguracionRemito"> | Date | string
+    updatedAt?: DateTimeFilter<"ConfiguracionRemito"> | Date | string
+  }
+
+  export type ConfiguracionRemitoOrderByWithRelationInput = {
+    id?: SortOrder
+    puntoVenta?: SortOrder
+    proximoCorrelativo?: SortOrderInput | SortOrder
+    numeracionInicializadaAt?: SortOrderInput | SortOrder
+    cai?: SortOrder
+    caiVencimiento?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConfiguracionRemitoWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ConfiguracionRemitoWhereInput | ConfiguracionRemitoWhereInput[]
+    OR?: ConfiguracionRemitoWhereInput[]
+    NOT?: ConfiguracionRemitoWhereInput | ConfiguracionRemitoWhereInput[]
+    puntoVenta?: StringFilter<"ConfiguracionRemito"> | string
+    proximoCorrelativo?: IntNullableFilter<"ConfiguracionRemito"> | number | null
+    numeracionInicializadaAt?: DateTimeNullableFilter<"ConfiguracionRemito"> | Date | string | null
+    cai?: StringFilter<"ConfiguracionRemito"> | string
+    caiVencimiento?: DateTimeFilter<"ConfiguracionRemito"> | Date | string
+    updatedAt?: DateTimeFilter<"ConfiguracionRemito"> | Date | string
+  }, "id">
+
+  export type ConfiguracionRemitoOrderByWithAggregationInput = {
+    id?: SortOrder
+    puntoVenta?: SortOrder
+    proximoCorrelativo?: SortOrderInput | SortOrder
+    numeracionInicializadaAt?: SortOrderInput | SortOrder
+    cai?: SortOrder
+    caiVencimiento?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ConfiguracionRemitoCountOrderByAggregateInput
+    _avg?: ConfiguracionRemitoAvgOrderByAggregateInput
+    _max?: ConfiguracionRemitoMaxOrderByAggregateInput
+    _min?: ConfiguracionRemitoMinOrderByAggregateInput
+    _sum?: ConfiguracionRemitoSumOrderByAggregateInput
+  }
+
+  export type ConfiguracionRemitoScalarWhereWithAggregatesInput = {
+    AND?: ConfiguracionRemitoScalarWhereWithAggregatesInput | ConfiguracionRemitoScalarWhereWithAggregatesInput[]
+    OR?: ConfiguracionRemitoScalarWhereWithAggregatesInput[]
+    NOT?: ConfiguracionRemitoScalarWhereWithAggregatesInput | ConfiguracionRemitoScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ConfiguracionRemito"> | string
+    puntoVenta?: StringWithAggregatesFilter<"ConfiguracionRemito"> | string
+    proximoCorrelativo?: IntNullableWithAggregatesFilter<"ConfiguracionRemito"> | number | null
+    numeracionInicializadaAt?: DateTimeNullableWithAggregatesFilter<"ConfiguracionRemito"> | Date | string | null
+    cai?: StringWithAggregatesFilter<"ConfiguracionRemito"> | string
+    caiVencimiento?: DateTimeWithAggregatesFilter<"ConfiguracionRemito"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ConfiguracionRemito"> | Date | string
   }
 
   export type UserWhereInput = {
@@ -62534,6 +63876,7 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    transportistaPredeterminado?: TransportistaCreateNestedOneWithoutClientesPredeterminadosInput
     pedidos?: PedidoCreateNestedManyWithoutClienteInput
     aliases?: ClientAliasCreateNestedManyWithoutClienteInput
   }
@@ -62549,6 +63892,7 @@ export namespace Prisma {
     cuit?: string | null
     condicionIva?: string | null
     condicionVenta?: string | null
+    transportistaPredeterminadoId?: string | null
     estado?: $Enums.EstadoCliente
     activo?: boolean
     createdAt?: Date | string
@@ -62572,6 +63916,7 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transportistaPredeterminado?: TransportistaUpdateOneWithoutClientesPredeterminadosNestedInput
     pedidos?: PedidoUpdateManyWithoutClienteNestedInput
     aliases?: ClientAliasUpdateManyWithoutClienteNestedInput
   }
@@ -62587,6 +63932,7 @@ export namespace Prisma {
     cuit?: NullableStringFieldUpdateOperationsInput | string | null
     condicionIva?: NullableStringFieldUpdateOperationsInput | string | null
     condicionVenta?: NullableStringFieldUpdateOperationsInput | string | null
+    transportistaPredeterminadoId?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoClienteFieldUpdateOperationsInput | $Enums.EstadoCliente
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -62606,6 +63952,7 @@ export namespace Prisma {
     cuit?: string | null
     condicionIva?: string | null
     condicionVenta?: string | null
+    transportistaPredeterminadoId?: string | null
     estado?: $Enums.EstadoCliente
     activo?: boolean
     createdAt?: Date | string
@@ -62640,6 +63987,7 @@ export namespace Prisma {
     cuit?: NullableStringFieldUpdateOperationsInput | string | null
     condicionIva?: NullableStringFieldUpdateOperationsInput | string | null
     condicionVenta?: NullableStringFieldUpdateOperationsInput | string | null
+    transportistaPredeterminadoId?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoClienteFieldUpdateOperationsInput | $Enums.EstadoCliente
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -63539,6 +64887,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     remitos?: RemitoCreateNestedManyWithoutTransportistaInput
+    clientesPredeterminados?: ClienteCreateNestedManyWithoutTransportistaPredeterminadoInput
   }
 
   export type TransportistaUncheckedCreateInput = {
@@ -63549,6 +64898,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     remitos?: RemitoUncheckedCreateNestedManyWithoutTransportistaInput
+    clientesPredeterminados?: ClienteUncheckedCreateNestedManyWithoutTransportistaPredeterminadoInput
   }
 
   export type TransportistaUpdateInput = {
@@ -63559,6 +64909,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     remitos?: RemitoUpdateManyWithoutTransportistaNestedInput
+    clientesPredeterminados?: ClienteUpdateManyWithoutTransportistaPredeterminadoNestedInput
   }
 
   export type TransportistaUncheckedUpdateInput = {
@@ -63569,6 +64920,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     remitos?: RemitoUncheckedUpdateManyWithoutTransportistaNestedInput
+    clientesPredeterminados?: ClienteUncheckedUpdateManyWithoutTransportistaPredeterminadoNestedInput
   }
 
   export type TransportistaCreateManyInput = {
@@ -63607,6 +64959,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -63628,6 +64981,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -63645,6 +64999,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -63666,6 +65021,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -63685,6 +65041,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -63702,6 +65059,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -63721,12 +65079,83 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     motivoInvalidacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConfiguracionRemitoCreateInput = {
+    id: string
+    puntoVenta: string
+    proximoCorrelativo?: number | null
+    numeracionInicializadaAt?: Date | string | null
+    cai: string
+    caiVencimiento: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ConfiguracionRemitoUncheckedCreateInput = {
+    id: string
+    puntoVenta: string
+    proximoCorrelativo?: number | null
+    numeracionInicializadaAt?: Date | string | null
+    cai: string
+    caiVencimiento: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ConfiguracionRemitoUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    puntoVenta?: StringFieldUpdateOperationsInput | string
+    proximoCorrelativo?: NullableIntFieldUpdateOperationsInput | number | null
+    numeracionInicializadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cai?: StringFieldUpdateOperationsInput | string
+    caiVencimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConfiguracionRemitoUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    puntoVenta?: StringFieldUpdateOperationsInput | string
+    proximoCorrelativo?: NullableIntFieldUpdateOperationsInput | number | null
+    numeracionInicializadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cai?: StringFieldUpdateOperationsInput | string
+    caiVencimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConfiguracionRemitoCreateManyInput = {
+    id: string
+    puntoVenta: string
+    proximoCorrelativo?: number | null
+    numeracionInicializadaAt?: Date | string | null
+    cai: string
+    caiVencimiento: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ConfiguracionRemitoUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    puntoVenta?: StringFieldUpdateOperationsInput | string
+    proximoCorrelativo?: NullableIntFieldUpdateOperationsInput | number | null
+    numeracionInicializadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cai?: StringFieldUpdateOperationsInput | string
+    caiVencimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ConfiguracionRemitoUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    puntoVenta?: StringFieldUpdateOperationsInput | string
+    proximoCorrelativo?: NullableIntFieldUpdateOperationsInput | number | null
+    numeracionInicializadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cai?: StringFieldUpdateOperationsInput | string
+    caiVencimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type UserCreateInput = {
@@ -66241,6 +67670,11 @@ export namespace Prisma {
     not?: NestedEnumEstadoClienteFilter<$PrismaModel> | $Enums.EstadoCliente
   }
 
+  export type TransportistaNullableScalarRelationFilter = {
+    is?: TransportistaWhereInput | null
+    isNot?: TransportistaWhereInput | null
+  }
+
   export type PedidoListRelationFilter = {
     every?: PedidoWhereInput
     some?: PedidoWhereInput
@@ -66272,6 +67706,7 @@ export namespace Prisma {
     cuit?: SortOrder
     condicionIva?: SortOrder
     condicionVenta?: SortOrder
+    transportistaPredeterminadoId?: SortOrder
     estado?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
@@ -66289,6 +67724,7 @@ export namespace Prisma {
     cuit?: SortOrder
     condicionIva?: SortOrder
     condicionVenta?: SortOrder
+    transportistaPredeterminadoId?: SortOrder
     estado?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
@@ -66306,6 +67742,7 @@ export namespace Prisma {
     cuit?: SortOrder
     condicionIva?: SortOrder
     condicionVenta?: SortOrder
+    transportistaPredeterminadoId?: SortOrder
     estado?: SortOrder
     activo?: SortOrder
     createdAt?: SortOrder
@@ -66978,6 +68415,16 @@ export namespace Prisma {
     _max?: NestedEnumEstadoStockProjectionOutboxFilter<$PrismaModel>
   }
 
+  export type ClienteListRelationFilter = {
+    every?: ClienteWhereInput
+    some?: ClienteWhereInput
+    none?: ClienteWhereInput
+  }
+
+  export type ClienteOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type TransportistaNombreDireccionCompoundUniqueInput = {
     nombre: string
     direccion: string
@@ -67017,11 +68464,6 @@ export namespace Prisma {
     not?: NestedEnumEstadoRemitoFilter<$PrismaModel> | $Enums.EstadoRemito
   }
 
-  export type TransportistaNullableScalarRelationFilter = {
-    is?: TransportistaWhereInput | null
-    isNot?: TransportistaWhereInput | null
-  }
-
   export type RemitoCountOrderByAggregateInput = {
     id?: SortOrder
     pedidoId?: SortOrder
@@ -67033,6 +68475,7 @@ export namespace Prisma {
     clienteSnapshot?: SortOrder
     transporteSnapshot?: SortOrder
     itemsSnapshot?: SortOrder
+    caiSnapshot?: SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrder
     invalidadoPor?: SortOrder
@@ -67081,6 +68524,44 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumEstadoRemitoFilter<$PrismaModel>
     _max?: NestedEnumEstadoRemitoFilter<$PrismaModel>
+  }
+
+  export type ConfiguracionRemitoCountOrderByAggregateInput = {
+    id?: SortOrder
+    puntoVenta?: SortOrder
+    proximoCorrelativo?: SortOrder
+    numeracionInicializadaAt?: SortOrder
+    cai?: SortOrder
+    caiVencimiento?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConfiguracionRemitoAvgOrderByAggregateInput = {
+    proximoCorrelativo?: SortOrder
+  }
+
+  export type ConfiguracionRemitoMaxOrderByAggregateInput = {
+    id?: SortOrder
+    puntoVenta?: SortOrder
+    proximoCorrelativo?: SortOrder
+    numeracionInicializadaAt?: SortOrder
+    cai?: SortOrder
+    caiVencimiento?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConfiguracionRemitoMinOrderByAggregateInput = {
+    id?: SortOrder
+    puntoVenta?: SortOrder
+    proximoCorrelativo?: SortOrder
+    numeracionInicializadaAt?: SortOrder
+    cai?: SortOrder
+    caiVencimiento?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ConfiguracionRemitoSumOrderByAggregateInput = {
+    proximoCorrelativo?: SortOrder
   }
 
   export type EnumRoleFilter<$PrismaModel = never> = {
@@ -69147,6 +70628,12 @@ export namespace Prisma {
     update?: XOR<XOR<ProductoUpdateToOneWithWhereWithoutTargetTransferRulesInput, ProductoUpdateWithoutTargetTransferRulesInput>, ProductoUncheckedUpdateWithoutTargetTransferRulesInput>
   }
 
+  export type TransportistaCreateNestedOneWithoutClientesPredeterminadosInput = {
+    create?: XOR<TransportistaCreateWithoutClientesPredeterminadosInput, TransportistaUncheckedCreateWithoutClientesPredeterminadosInput>
+    connectOrCreate?: TransportistaCreateOrConnectWithoutClientesPredeterminadosInput
+    connect?: TransportistaWhereUniqueInput
+  }
+
   export type PedidoCreateNestedManyWithoutClienteInput = {
     create?: XOR<PedidoCreateWithoutClienteInput, PedidoUncheckedCreateWithoutClienteInput> | PedidoCreateWithoutClienteInput[] | PedidoUncheckedCreateWithoutClienteInput[]
     connectOrCreate?: PedidoCreateOrConnectWithoutClienteInput | PedidoCreateOrConnectWithoutClienteInput[]
@@ -69177,6 +70664,16 @@ export namespace Prisma {
 
   export type EnumEstadoClienteFieldUpdateOperationsInput = {
     set?: $Enums.EstadoCliente
+  }
+
+  export type TransportistaUpdateOneWithoutClientesPredeterminadosNestedInput = {
+    create?: XOR<TransportistaCreateWithoutClientesPredeterminadosInput, TransportistaUncheckedCreateWithoutClientesPredeterminadosInput>
+    connectOrCreate?: TransportistaCreateOrConnectWithoutClientesPredeterminadosInput
+    upsert?: TransportistaUpsertWithoutClientesPredeterminadosInput
+    disconnect?: TransportistaWhereInput | boolean
+    delete?: TransportistaWhereInput | boolean
+    connect?: TransportistaWhereUniqueInput
+    update?: XOR<XOR<TransportistaUpdateToOneWithWhereWithoutClientesPredeterminadosInput, TransportistaUpdateWithoutClientesPredeterminadosInput>, TransportistaUncheckedUpdateWithoutClientesPredeterminadosInput>
   }
 
   export type PedidoUpdateManyWithoutClienteNestedInput = {
@@ -69908,11 +71405,25 @@ export namespace Prisma {
     connect?: RemitoWhereUniqueInput | RemitoWhereUniqueInput[]
   }
 
+  export type ClienteCreateNestedManyWithoutTransportistaPredeterminadoInput = {
+    create?: XOR<ClienteCreateWithoutTransportistaPredeterminadoInput, ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput> | ClienteCreateWithoutTransportistaPredeterminadoInput[] | ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput[]
+    connectOrCreate?: ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput | ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput[]
+    createMany?: ClienteCreateManyTransportistaPredeterminadoInputEnvelope
+    connect?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+  }
+
   export type RemitoUncheckedCreateNestedManyWithoutTransportistaInput = {
     create?: XOR<RemitoCreateWithoutTransportistaInput, RemitoUncheckedCreateWithoutTransportistaInput> | RemitoCreateWithoutTransportistaInput[] | RemitoUncheckedCreateWithoutTransportistaInput[]
     connectOrCreate?: RemitoCreateOrConnectWithoutTransportistaInput | RemitoCreateOrConnectWithoutTransportistaInput[]
     createMany?: RemitoCreateManyTransportistaInputEnvelope
     connect?: RemitoWhereUniqueInput | RemitoWhereUniqueInput[]
+  }
+
+  export type ClienteUncheckedCreateNestedManyWithoutTransportistaPredeterminadoInput = {
+    create?: XOR<ClienteCreateWithoutTransportistaPredeterminadoInput, ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput> | ClienteCreateWithoutTransportistaPredeterminadoInput[] | ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput[]
+    connectOrCreate?: ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput | ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput[]
+    createMany?: ClienteCreateManyTransportistaPredeterminadoInputEnvelope
+    connect?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
   }
 
   export type RemitoUpdateManyWithoutTransportistaNestedInput = {
@@ -69929,6 +71440,20 @@ export namespace Prisma {
     deleteMany?: RemitoScalarWhereInput | RemitoScalarWhereInput[]
   }
 
+  export type ClienteUpdateManyWithoutTransportistaPredeterminadoNestedInput = {
+    create?: XOR<ClienteCreateWithoutTransportistaPredeterminadoInput, ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput> | ClienteCreateWithoutTransportistaPredeterminadoInput[] | ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput[]
+    connectOrCreate?: ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput | ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput[]
+    upsert?: ClienteUpsertWithWhereUniqueWithoutTransportistaPredeterminadoInput | ClienteUpsertWithWhereUniqueWithoutTransportistaPredeterminadoInput[]
+    createMany?: ClienteCreateManyTransportistaPredeterminadoInputEnvelope
+    set?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    disconnect?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    delete?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    connect?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    update?: ClienteUpdateWithWhereUniqueWithoutTransportistaPredeterminadoInput | ClienteUpdateWithWhereUniqueWithoutTransportistaPredeterminadoInput[]
+    updateMany?: ClienteUpdateManyWithWhereWithoutTransportistaPredeterminadoInput | ClienteUpdateManyWithWhereWithoutTransportistaPredeterminadoInput[]
+    deleteMany?: ClienteScalarWhereInput | ClienteScalarWhereInput[]
+  }
+
   export type RemitoUncheckedUpdateManyWithoutTransportistaNestedInput = {
     create?: XOR<RemitoCreateWithoutTransportistaInput, RemitoUncheckedCreateWithoutTransportistaInput> | RemitoCreateWithoutTransportistaInput[] | RemitoUncheckedCreateWithoutTransportistaInput[]
     connectOrCreate?: RemitoCreateOrConnectWithoutTransportistaInput | RemitoCreateOrConnectWithoutTransportistaInput[]
@@ -69941,6 +71466,20 @@ export namespace Prisma {
     update?: RemitoUpdateWithWhereUniqueWithoutTransportistaInput | RemitoUpdateWithWhereUniqueWithoutTransportistaInput[]
     updateMany?: RemitoUpdateManyWithWhereWithoutTransportistaInput | RemitoUpdateManyWithWhereWithoutTransportistaInput[]
     deleteMany?: RemitoScalarWhereInput | RemitoScalarWhereInput[]
+  }
+
+  export type ClienteUncheckedUpdateManyWithoutTransportistaPredeterminadoNestedInput = {
+    create?: XOR<ClienteCreateWithoutTransportistaPredeterminadoInput, ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput> | ClienteCreateWithoutTransportistaPredeterminadoInput[] | ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput[]
+    connectOrCreate?: ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput | ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput[]
+    upsert?: ClienteUpsertWithWhereUniqueWithoutTransportistaPredeterminadoInput | ClienteUpsertWithWhereUniqueWithoutTransportistaPredeterminadoInput[]
+    createMany?: ClienteCreateManyTransportistaPredeterminadoInputEnvelope
+    set?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    disconnect?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    delete?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    connect?: ClienteWhereUniqueInput | ClienteWhereUniqueInput[]
+    update?: ClienteUpdateWithWhereUniqueWithoutTransportistaPredeterminadoInput | ClienteUpdateWithWhereUniqueWithoutTransportistaPredeterminadoInput[]
+    updateMany?: ClienteUpdateManyWithWhereWithoutTransportistaPredeterminadoInput | ClienteUpdateManyWithWhereWithoutTransportistaPredeterminadoInput[]
+    deleteMany?: ClienteScalarWhereInput | ClienteScalarWhereInput[]
   }
 
   export type PedidoCreateNestedOneWithoutRemitosInput = {
@@ -73544,6 +75083,31 @@ export namespace Prisma {
     sourceTransferRules?: ProductoTransferRuleUncheckedUpdateManyWithoutSourceProductNestedInput
   }
 
+  export type TransportistaCreateWithoutClientesPredeterminadosInput = {
+    id?: string
+    nombre: string
+    direccion: string
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    remitos?: RemitoCreateNestedManyWithoutTransportistaInput
+  }
+
+  export type TransportistaUncheckedCreateWithoutClientesPredeterminadosInput = {
+    id?: string
+    nombre: string
+    direccion: string
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    remitos?: RemitoUncheckedCreateNestedManyWithoutTransportistaInput
+  }
+
+  export type TransportistaCreateOrConnectWithoutClientesPredeterminadosInput = {
+    where: TransportistaWhereUniqueInput
+    create: XOR<TransportistaCreateWithoutClientesPredeterminadosInput, TransportistaUncheckedCreateWithoutClientesPredeterminadosInput>
+  }
+
   export type PedidoCreateWithoutClienteInput = {
     id?: string
     numero: string
@@ -73628,6 +75192,37 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type TransportistaUpsertWithoutClientesPredeterminadosInput = {
+    update: XOR<TransportistaUpdateWithoutClientesPredeterminadosInput, TransportistaUncheckedUpdateWithoutClientesPredeterminadosInput>
+    create: XOR<TransportistaCreateWithoutClientesPredeterminadosInput, TransportistaUncheckedCreateWithoutClientesPredeterminadosInput>
+    where?: TransportistaWhereInput
+  }
+
+  export type TransportistaUpdateToOneWithWhereWithoutClientesPredeterminadosInput = {
+    where?: TransportistaWhereInput
+    data: XOR<TransportistaUpdateWithoutClientesPredeterminadosInput, TransportistaUncheckedUpdateWithoutClientesPredeterminadosInput>
+  }
+
+  export type TransportistaUpdateWithoutClientesPredeterminadosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    direccion?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remitos?: RemitoUpdateManyWithoutTransportistaNestedInput
+  }
+
+  export type TransportistaUncheckedUpdateWithoutClientesPredeterminadosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    direccion?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    remitos?: RemitoUncheckedUpdateManyWithoutTransportistaNestedInput
+  }
+
   export type PedidoUpsertWithWhereUniqueWithoutClienteInput = {
     where: PedidoWhereUniqueInput
     update: XOR<PedidoUpdateWithoutClienteInput, PedidoUncheckedUpdateWithoutClienteInput>
@@ -73710,6 +75305,7 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    transportistaPredeterminado?: TransportistaCreateNestedOneWithoutClientesPredeterminadosInput
     pedidos?: PedidoCreateNestedManyWithoutClienteInput
   }
 
@@ -73724,6 +75320,7 @@ export namespace Prisma {
     cuit?: string | null
     condicionIva?: string | null
     condicionVenta?: string | null
+    transportistaPredeterminadoId?: string | null
     estado?: $Enums.EstadoCliente
     activo?: boolean
     createdAt?: Date | string
@@ -73762,6 +75359,7 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transportistaPredeterminado?: TransportistaUpdateOneWithoutClientesPredeterminadosNestedInput
     pedidos?: PedidoUpdateManyWithoutClienteNestedInput
   }
 
@@ -73776,6 +75374,7 @@ export namespace Prisma {
     cuit?: NullableStringFieldUpdateOperationsInput | string | null
     condicionIva?: NullableStringFieldUpdateOperationsInput | string | null
     condicionVenta?: NullableStringFieldUpdateOperationsInput | string | null
+    transportistaPredeterminadoId?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoClienteFieldUpdateOperationsInput | $Enums.EstadoCliente
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -73798,6 +75397,7 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    transportistaPredeterminado?: TransportistaCreateNestedOneWithoutClientesPredeterminadosInput
     aliases?: ClientAliasCreateNestedManyWithoutClienteInput
   }
 
@@ -73812,6 +75412,7 @@ export namespace Prisma {
     cuit?: string | null
     condicionIva?: string | null
     condicionVenta?: string | null
+    transportistaPredeterminadoId?: string | null
     estado?: $Enums.EstadoCliente
     activo?: boolean
     createdAt?: Date | string
@@ -73925,6 +75526,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -73944,6 +75546,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -74019,6 +75622,7 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    transportistaPredeterminado?: TransportistaUpdateOneWithoutClientesPredeterminadosNestedInput
     aliases?: ClientAliasUpdateManyWithoutClienteNestedInput
   }
 
@@ -74033,6 +75637,7 @@ export namespace Prisma {
     cuit?: NullableStringFieldUpdateOperationsInput | string | null
     condicionIva?: NullableStringFieldUpdateOperationsInput | string | null
     condicionVenta?: NullableStringFieldUpdateOperationsInput | string | null
+    transportistaPredeterminadoId?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoClienteFieldUpdateOperationsInput | $Enums.EstadoCliente
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -74132,6 +75737,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonFilter<"Remito">
     transporteSnapshot?: JsonFilter<"Remito">
     itemsSnapshot?: JsonFilter<"Remito">
+    caiSnapshot?: JsonNullableFilter<"Remito">
     estado?: EnumEstadoRemitoFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableFilter<"Remito"> | string | null
@@ -75605,6 +77211,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -75624,6 +77231,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -75642,6 +77250,54 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ClienteCreateWithoutTransportistaPredeterminadoInput = {
+    id?: string
+    nombre: string
+    contacto?: string | null
+    referencia?: string | null
+    direccion?: string | null
+    localidad?: string | null
+    provincia?: string | null
+    cuit?: string | null
+    condicionIva?: string | null
+    condicionVenta?: string | null
+    estado?: $Enums.EstadoCliente
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    pedidos?: PedidoCreateNestedManyWithoutClienteInput
+    aliases?: ClientAliasCreateNestedManyWithoutClienteInput
+  }
+
+  export type ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput = {
+    id?: string
+    nombre: string
+    contacto?: string | null
+    referencia?: string | null
+    direccion?: string | null
+    localidad?: string | null
+    provincia?: string | null
+    cuit?: string | null
+    condicionIva?: string | null
+    condicionVenta?: string | null
+    estado?: $Enums.EstadoCliente
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    pedidos?: PedidoUncheckedCreateNestedManyWithoutClienteInput
+    aliases?: ClientAliasUncheckedCreateNestedManyWithoutClienteInput
+  }
+
+  export type ClienteCreateOrConnectWithoutTransportistaPredeterminadoInput = {
+    where: ClienteWhereUniqueInput
+    create: XOR<ClienteCreateWithoutTransportistaPredeterminadoInput, ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput>
+  }
+
+  export type ClienteCreateManyTransportistaPredeterminadoInputEnvelope = {
+    data: ClienteCreateManyTransportistaPredeterminadoInput | ClienteCreateManyTransportistaPredeterminadoInput[]
+    skipDuplicates?: boolean
+  }
+
   export type RemitoUpsertWithWhereUniqueWithoutTransportistaInput = {
     where: RemitoWhereUniqueInput
     update: XOR<RemitoUpdateWithoutTransportistaInput, RemitoUncheckedUpdateWithoutTransportistaInput>
@@ -75656,6 +77312,43 @@ export namespace Prisma {
   export type RemitoUpdateManyWithWhereWithoutTransportistaInput = {
     where: RemitoScalarWhereInput
     data: XOR<RemitoUpdateManyMutationInput, RemitoUncheckedUpdateManyWithoutTransportistaInput>
+  }
+
+  export type ClienteUpsertWithWhereUniqueWithoutTransportistaPredeterminadoInput = {
+    where: ClienteWhereUniqueInput
+    update: XOR<ClienteUpdateWithoutTransportistaPredeterminadoInput, ClienteUncheckedUpdateWithoutTransportistaPredeterminadoInput>
+    create: XOR<ClienteCreateWithoutTransportistaPredeterminadoInput, ClienteUncheckedCreateWithoutTransportistaPredeterminadoInput>
+  }
+
+  export type ClienteUpdateWithWhereUniqueWithoutTransportistaPredeterminadoInput = {
+    where: ClienteWhereUniqueInput
+    data: XOR<ClienteUpdateWithoutTransportistaPredeterminadoInput, ClienteUncheckedUpdateWithoutTransportistaPredeterminadoInput>
+  }
+
+  export type ClienteUpdateManyWithWhereWithoutTransportistaPredeterminadoInput = {
+    where: ClienteScalarWhereInput
+    data: XOR<ClienteUpdateManyMutationInput, ClienteUncheckedUpdateManyWithoutTransportistaPredeterminadoInput>
+  }
+
+  export type ClienteScalarWhereInput = {
+    AND?: ClienteScalarWhereInput | ClienteScalarWhereInput[]
+    OR?: ClienteScalarWhereInput[]
+    NOT?: ClienteScalarWhereInput | ClienteScalarWhereInput[]
+    id?: StringFilter<"Cliente"> | string
+    nombre?: StringFilter<"Cliente"> | string
+    contacto?: StringNullableFilter<"Cliente"> | string | null
+    referencia?: StringNullableFilter<"Cliente"> | string | null
+    direccion?: StringNullableFilter<"Cliente"> | string | null
+    localidad?: StringNullableFilter<"Cliente"> | string | null
+    provincia?: StringNullableFilter<"Cliente"> | string | null
+    cuit?: StringNullableFilter<"Cliente"> | string | null
+    condicionIva?: StringNullableFilter<"Cliente"> | string | null
+    condicionVenta?: StringNullableFilter<"Cliente"> | string | null
+    transportistaPredeterminadoId?: StringNullableFilter<"Cliente"> | string | null
+    estado?: EnumEstadoClienteFilter<"Cliente"> | $Enums.EstadoCliente
+    activo?: BoolFilter<"Cliente"> | boolean
+    createdAt?: DateTimeFilter<"Cliente"> | Date | string
+    updatedAt?: DateTimeFilter<"Cliente"> | Date | string
   }
 
   export type PedidoCreateWithoutRemitosInput = {
@@ -75718,6 +77411,7 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    clientesPredeterminados?: ClienteCreateNestedManyWithoutTransportistaPredeterminadoInput
   }
 
   export type TransportistaUncheckedCreateWithoutRemitosInput = {
@@ -75727,6 +77421,7 @@ export namespace Prisma {
     activo?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
+    clientesPredeterminados?: ClienteUncheckedCreateNestedManyWithoutTransportistaPredeterminadoInput
   }
 
   export type TransportistaCreateOrConnectWithoutRemitosInput = {
@@ -75811,6 +77506,7 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    clientesPredeterminados?: ClienteUpdateManyWithoutTransportistaPredeterminadoNestedInput
   }
 
   export type TransportistaUncheckedUpdateWithoutRemitosInput = {
@@ -75820,6 +77516,7 @@ export namespace Prisma {
     activo?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    clientesPredeterminados?: ClienteUncheckedUpdateManyWithoutTransportistaPredeterminadoNestedInput
   }
 
   export type ActaCreateWithoutUserInput = {
@@ -80681,6 +82378,7 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -80790,6 +82488,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -80809,6 +82508,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -80827,6 +82527,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -81097,12 +82798,30 @@ export namespace Prisma {
     clienteSnapshot: JsonNullValueInput | InputJsonValue
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
     motivoInvalidacion?: string | null
     createdBy: string
     createdAt?: Date | string
+  }
+
+  export type ClienteCreateManyTransportistaPredeterminadoInput = {
+    id?: string
+    nombre: string
+    contacto?: string | null
+    referencia?: string | null
+    direccion?: string | null
+    localidad?: string | null
+    provincia?: string | null
+    cuit?: string | null
+    condicionIva?: string | null
+    condicionVenta?: string | null
+    estado?: $Enums.EstadoCliente
+    activo?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type RemitoUpdateWithoutTransportistaInput = {
@@ -81114,6 +82833,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -81133,6 +82853,7 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -81151,12 +82872,68 @@ export namespace Prisma {
     clienteSnapshot?: JsonNullValueInput | InputJsonValue
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
+    caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     motivoInvalidacion?: NullableStringFieldUpdateOperationsInput | string | null
     createdBy?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ClienteUpdateWithoutTransportistaPredeterminadoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    contacto?: NullableStringFieldUpdateOperationsInput | string | null
+    referencia?: NullableStringFieldUpdateOperationsInput | string | null
+    direccion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidad?: NullableStringFieldUpdateOperationsInput | string | null
+    provincia?: NullableStringFieldUpdateOperationsInput | string | null
+    cuit?: NullableStringFieldUpdateOperationsInput | string | null
+    condicionIva?: NullableStringFieldUpdateOperationsInput | string | null
+    condicionVenta?: NullableStringFieldUpdateOperationsInput | string | null
+    estado?: EnumEstadoClienteFieldUpdateOperationsInput | $Enums.EstadoCliente
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pedidos?: PedidoUpdateManyWithoutClienteNestedInput
+    aliases?: ClientAliasUpdateManyWithoutClienteNestedInput
+  }
+
+  export type ClienteUncheckedUpdateWithoutTransportistaPredeterminadoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    contacto?: NullableStringFieldUpdateOperationsInput | string | null
+    referencia?: NullableStringFieldUpdateOperationsInput | string | null
+    direccion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidad?: NullableStringFieldUpdateOperationsInput | string | null
+    provincia?: NullableStringFieldUpdateOperationsInput | string | null
+    cuit?: NullableStringFieldUpdateOperationsInput | string | null
+    condicionIva?: NullableStringFieldUpdateOperationsInput | string | null
+    condicionVenta?: NullableStringFieldUpdateOperationsInput | string | null
+    estado?: EnumEstadoClienteFieldUpdateOperationsInput | $Enums.EstadoCliente
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    pedidos?: PedidoUncheckedUpdateManyWithoutClienteNestedInput
+    aliases?: ClientAliasUncheckedUpdateManyWithoutClienteNestedInput
+  }
+
+  export type ClienteUncheckedUpdateManyWithoutTransportistaPredeterminadoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombre?: StringFieldUpdateOperationsInput | string
+    contacto?: NullableStringFieldUpdateOperationsInput | string | null
+    referencia?: NullableStringFieldUpdateOperationsInput | string | null
+    direccion?: NullableStringFieldUpdateOperationsInput | string | null
+    localidad?: NullableStringFieldUpdateOperationsInput | string | null
+    provincia?: NullableStringFieldUpdateOperationsInput | string | null
+    cuit?: NullableStringFieldUpdateOperationsInput | string | null
+    condicionIva?: NullableStringFieldUpdateOperationsInput | string | null
+    condicionVenta?: NullableStringFieldUpdateOperationsInput | string | null
+    estado?: EnumEstadoClienteFieldUpdateOperationsInput | $Enums.EstadoCliente
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ActaCreateManyUserInput = {

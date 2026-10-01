@@ -27,7 +27,7 @@ describe('renderRemitoPdf', () => {
     const document = new RecordingDocument()
 
     renderRemitoPdf(document, {
-      numero: 'R-20260805-AB12CD34',
+      numero: '00001-00013216',
       fecha: new Date('2026-08-05T12:00:00.000Z'),
       clienteSnapshot: {
         id: 'clx_internal_123',
@@ -55,15 +55,23 @@ describe('renderRemitoPdf', () => {
         { productoId: 'prod_internal_1', nombre: 'Olivitasan D', cantidad: 17, stock: 100, reservado: 10 },
         { productoId: 'prod_internal_2', nombre: 'Cefalexina 250', cantidad: 3 },
       ],
+      caiSnapshot: { numero: '52166218186464', vencimiento: '2027-04-17T00:00:00.000Z' },
     })
 
     const content = document.texts.join('\n')
-    expect(content).toContain('Ale-Bet')
-    expect(content).toContain('Laboratorios de Especialidades Veterinarias Ale Bet S.R.L.')
+    expect(content).toContain('ale.bet')
+    expect(content).toContain('LABORATORIOS DE ESPECIALIDADES')
+    expect(content).toContain('VETERINARIAS ALE BET S.R.L.')
     expect(content).toContain('R')
     expect(content).toContain('REMITO')
-    expect(content).toContain('N°: R-20260805-AB12CD34')
-    expect(content).toContain('Fecha: 2026-08-05')
+    expect(content).toContain('CÓDIGO N° 091')
+    expect(content).toContain('DOCUMENTO')
+    expect(content).toContain('NO VÁLIDO')
+    expect(content).toContain('COMO FACTURA')
+    expect(content).toContain('N° 00001 - 00013216')
+    expect(content).toContain('Fecha: 05/08/2026')
+    expect(content).toContain('C.A.I. N° 52166218186464')
+    expect(content).toContain('Vto. 17/04/2027')
     expect(content).toContain('SEÑOR:')
     expect(content).toContain('Veterinaria El Ombú S.A.')
     expect(content).toContain('DOMICILIO:')
@@ -82,8 +90,8 @@ describe('renderRemitoPdf', () => {
     expect(content).toContain('Transporte La Estrella')
     expect(content).toContain('DIRECCIÓN / TRANSPORTE:')
     expect(content).toContain('Ruta 2 Km 45')
-    expect(content).toContain('BULTOS: __________________')
-    expect(content).toContain('PESO: ____________________')
+    expect(content).toContain('BULTOS:')
+    expect(content).toContain('PESO:')
     expect(content).toContain('RECIBÍ CONFORME')
 
     expect(content).not.toContain('{')
@@ -102,7 +110,7 @@ describe('renderRemitoPdf', () => {
     const document = new RecordingDocument()
 
     renderRemitoPdf(document, {
-      numero: 'R-20260805-EF56GH78',
+      numero: '00001-00013217',
       fecha: new Date('2026-08-05T12:00:00.000Z'),
       clienteSnapshot: { nombre: 'Cliente ocasional', direccion: null, localidad: '', provincia: null, cuit: undefined, condicionIva: null, condicionVenta: '' },
       transporteSnapshot: { id: 'technical-only' },
@@ -130,7 +138,7 @@ describe('renderRemitoPdf', () => {
     const document = new RecordingDocument()
 
     renderRemitoPdf(document, {
-      numero: 'R-20260805-LAYOUT',
+      numero: '00001-00013218',
       fecha: new Date('2026-08-05T12:00:00.000Z'),
       clienteSnapshot: { nombre: 'Cliente de prueba' },
       transporteSnapshot: { nombre: 'Transporte de prueba', direccion: 'Ruta 8 123' },
@@ -140,10 +148,10 @@ describe('renderRemitoPdf', () => {
     })
 
     const quantityDivider = document.lines.find((line) =>
-      line.from.x === 152 && line.to.x === 152 && line.from.y === 284,
+      line.from.x === 126 && line.to.x === 126 && line.from.y === 324,
     )
 
     expect(quantityDivider).toBeDefined()
-    expect(quantityDivider?.to.y).toBe(677.89)
+    expect(quantityDivider?.to.y).toBe(681.89)
   })
 })

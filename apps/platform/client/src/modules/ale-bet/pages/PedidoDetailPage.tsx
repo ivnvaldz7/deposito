@@ -817,6 +817,13 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
   const hayCambios = Boolean(pedido) && (clienteCambio || !carritoIgual)
   const clienteActual = clientes.find((c) => c.id === clienteIdLocal) ?? pedido?.cliente ?? null
 
+  useEffect(() => {
+    const defaultId = clienteActual?.transportistaPredeterminadoId
+    if (!usarOcasional && defaultId && transportistas.some((transportista) => transportista.id === defaultId)) {
+      setTransporteId((current) => current || defaultId)
+    }
+  }, [clienteActual?.transportistaPredeterminadoId, transportistas, usarOcasional])
+
   const pedidosActivos = useMemo(
     () => pedidosList.filter((p) => p.estado !== 'CANCELADO').sort(porActualizadoDesc),
     [pedidosList],
@@ -2013,6 +2020,13 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
 
   const remitoVigente = pedido?.remitos?.find((r: any) => r.estado === 'VIGENTE') ?? null
   const remitosInvalidados = pedido?.remitos?.filter((r: any) => r.estado === 'INVALIDADO') ?? []
+
+  useEffect(() => {
+    const defaultId = pedido?.cliente?.transportistaPredeterminadoId
+    if (!usarOcasional && defaultId && transportistas.some((transportista) => transportista.id === defaultId)) {
+      setTransporteId((current) => current || defaultId)
+    }
+  }, [pedido?.cliente?.transportistaPredeterminadoId, transportistas, usarOcasional])
   const canDevolver = canRegistrarDevolucion(pedido, rol, userId)
   const canAmpliar = rol === 'admin' && can(user, 'ale-bet', 'pedidos.edit') && pedido.estado === 'APROBADO'
   const itemsAgrupados = useMemo(() => {

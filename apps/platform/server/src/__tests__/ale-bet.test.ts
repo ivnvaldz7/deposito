@@ -32,6 +32,7 @@ const {
     movimientoStock: { create: vi.fn() },
     pedidoAuditoria: { create: vi.fn() },
     remito: { findFirst: vi.fn(), updateMany: vi.fn(), create: vi.fn(), update: vi.fn() },
+    configuracionRemito: { upsert: vi.fn(), findUniqueOrThrow: vi.fn(), update: vi.fn() },
     transportista: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
@@ -144,6 +145,10 @@ describe('ALEBET-01 HTTP contracts', () => {
     acquireIdempotencyRecord.mockResolvedValue({ type: 'PROPRIETARY', id: 'idem-1' })
     completeIdempotencyRecord.mockResolvedValue(undefined)
     mockDb.remito.updateMany.mockResolvedValue({ count: 0 })
+    const remitoConfiguration = { id: 'DEFAULT', puntoVenta: '00001', proximoCorrelativo: 13216, numeracionInicializadaAt: new Date(), cai: '52166218186464', caiVencimiento: new Date('2027-04-17T00:00:00.000Z') }
+    mockDb.configuracionRemito.upsert.mockResolvedValue(remitoConfiguration)
+    mockDb.configuracionRemito.findUniqueOrThrow.mockResolvedValue(remitoConfiguration)
+    mockDb.configuracionRemito.update.mockResolvedValue({ ...remitoConfiguration, proximoCorrelativo: 13217 })
     mockDb.pedidoAuditoria.create.mockResolvedValue({})
     vi.mocked(getOrderAvailability).mockResolvedValue({
       status: 'DISPONIBLE',
@@ -455,9 +460,9 @@ describe('ALEBET-01 HTTP contracts', () => {
     expect(content).toContain('Producto histórico')
     expect(content).toContain('9')
     expect(content).toContain('R-20260805-AB12CD34')
-    expect(content).toContain('Fecha: 2026-08-05')
-    expect(content).toContain('BULTOS: __________________')
-    expect(content).toContain('PESO: ____________________')
+    expect(content).toContain('Fecha: 05/08/2026')
+    expect(content).toContain('BULTOS:')
+    expect(content).toContain('PESO:')
     expect(content).not.toContain('old-client-id')
     expect(content).not.toContain('old-transport-id')
     expect(content).not.toContain('old-product-id')
@@ -505,7 +510,7 @@ describe('ALEBET-01 HTTP contracts', () => {
     expect(content).toContain('Calle Ocasional 456')
     expect(content).toContain('Mercadería ocasional')
     expect(content).toContain('R-20260805-EF56GH78')
-    expect(content).toContain('Fecha: 2026-08-05')
+    expect(content).toContain('Fecha: 05/08/2026')
     expect(content).not.toContain('Fallback no utilizado')
     expect(content).not.toContain('occasional-client-id')
     expect(content).not.toContain('occasional-product-id')

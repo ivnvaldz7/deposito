@@ -209,22 +209,24 @@ model ProductoTransferRule {
 }
 
 model Cliente {
-  id             String        @id @default(cuid())
-  nombre         String        @unique
-  contacto       String?
-  referencia     String?
-  direccion      String?
-  localidad      String?
-  provincia      String?
-  cuit           String?
-  condicionIva   String?
-  condicionVenta String?
-  estado         EstadoCliente @default(VALIDADO)
-  activo         Boolean       @default(true)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  pedidos        Pedido[]
-  aliases        ClientAlias[]
+  id                            String         @id @default(cuid())
+  nombre                        String         @unique
+  contacto                      String?
+  referencia                    String?
+  direccion                     String?
+  localidad                     String?
+  provincia                     String?
+  cuit                          String?
+  condicionIva                  String?
+  condicionVenta                String?
+  transportistaPredeterminadoId String?
+  transportistaPredeterminado   Transportista? @relation("ClienteTransportistaPredeterminado", fields: [transportistaPredeterminadoId], references: [id], onDelete: SetNull)
+  estado                        EstadoCliente  @default(VALIDADO)
+  activo                        Boolean        @default(true)
+  createdAt                     DateTime       @default(now())
+  updatedAt                     DateTime       @updatedAt
+  pedidos                       Pedido[]
+  aliases                       ClientAlias[]
 
   @@schema("ale_bet")
 }
@@ -411,13 +413,14 @@ model StockProjectionOutbox {
 }
 
 model Transportista {
-  id        String   @id @default(cuid())
-  nombre    String
-  direccion String
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  remitos   Remito[]
+  id                      String    @id @default(cuid())
+  nombre                  String
+  direccion               String
+  activo                  Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  remitos                 Remito[]
+  clientesPredeterminados Cliente[] @relation("ClienteTransportistaPredeterminado")
 
   @@unique([nombre, direccion])
   @@schema("ale_bet")
@@ -436,6 +439,7 @@ model Remito {
   clienteSnapshot     Json
   transporteSnapshot  Json
   itemsSnapshot       Json
+  caiSnapshot         Json?
   estado              EstadoRemito   @default(VIGENTE)
   invalidadoAt        DateTime?
   invalidadoPor       String?
@@ -444,6 +448,18 @@ model Remito {
   createdAt           DateTime       @default(now())
 
   @@index([pedidoId, estado])
+  @@schema("ale_bet")
+}
+
+model ConfiguracionRemito {
+  id                       String    @id
+  puntoVenta               String
+  proximoCorrelativo       Int?
+  numeracionInicializadaAt DateTime?
+  cai                      String
+  caiVencimiento           DateTime
+  updatedAt                DateTime  @updatedAt
+
   @@schema("ale_bet")
 }
 

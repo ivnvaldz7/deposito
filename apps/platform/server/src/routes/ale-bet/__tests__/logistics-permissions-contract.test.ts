@@ -6,6 +6,7 @@ const secret = 'test-secret-for-logistics-permissions'
 const db = vi.hoisted(() => ({
   pedido: { findUnique: vi.fn(), update: vi.fn() },
   remito: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn(), create: vi.fn() },
+  configuracionRemito: { upsert: vi.fn(), findUniqueOrThrow: vi.fn(), update: vi.fn() },
   transportista: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   pedidoAuditoria: { create: vi.fn() },
   $queryRaw: vi.fn(),
@@ -55,6 +56,10 @@ describe('Remitos and Transportistas HTTP permission contract', () => {
     db.$transaction.mockImplementation(async (work: (tx: typeof db) => Promise<unknown>) => work(db))
     db.$queryRaw.mockResolvedValue([])
     db.remito.updateMany.mockResolvedValue({ count: 0 })
+    const remitoConfiguration = { id: 'DEFAULT', puntoVenta: '00001', proximoCorrelativo: 13216, numeracionInicializadaAt: new Date(), cai: '52166218186464', caiVencimiento: new Date('2027-04-17T00:00:00.000Z') }
+    db.configuracionRemito.upsert.mockResolvedValue(remitoConfiguration)
+    db.configuracionRemito.findUniqueOrThrow.mockResolvedValue(remitoConfiguration)
+    db.configuracionRemito.update.mockResolvedValue({ ...remitoConfiguration, proximoCorrelativo: 13217 })
     db.pedido.update.mockResolvedValue({ id: 'pedido-1', version: 2 })
     db.pedidoAuditoria.create.mockResolvedValue({})
   })

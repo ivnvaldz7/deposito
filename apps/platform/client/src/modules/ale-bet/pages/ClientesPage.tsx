@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { type Cliente } from '../lib/api'
+import { type Cliente, type Transportista } from '../lib/api'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { useAuthStore } from '@/stores/auth-store'
-import { useClientes, useCreateCliente, useUpdateCliente } from '../queries'
+import { useActualizarRemitoConfiguracion, useClientes, useCreateCliente, useRemitoConfiguracion, useTransportistas, useUpdateCliente } from '../queries'
 import { toast } from '@/lib/toast'
 import { BottomSheet } from '../components/BottomSheet'
 interface ClienteFormState {
@@ -16,6 +16,7 @@ interface ClienteFormState {
   cuit: string
   condicionIva: string
   condicionVenta: string
+  transportistaPredeterminadoId: string
 }
 
 const FORM_VACIO: ClienteFormState = {
@@ -28,6 +29,7 @@ const FORM_VACIO: ClienteFormState = {
   cuit: '',
   condicionIva: '',
   condicionVenta: '',
+  transportistaPredeterminadoId: '',
 }
 
 type ModalEstado = 'nuevo' | { cliente: Cliente } | null
@@ -80,6 +82,7 @@ interface ClienteFormModalProps {
   guardando: boolean
   esNuevo: boolean
   puedeEditar: boolean
+  transportistas: Transportista[]
   onChange: (campo: keyof ClienteFormState, valor: string) => void
   onClose: () => void
   onGuardar: (validar: boolean) => void
@@ -94,6 +97,7 @@ function ClienteFormModal({
   guardando,
   esNuevo,
   puedeEditar,
+  transportistas,
   onChange,
   onClose,
   onGuardar,
@@ -166,8 +170,60 @@ function ClienteFormModal({
             <Campo label="Condición de venta" value={form.condicionVenta} maxLength={80} onChange={(v) => onChange('condicionVenta', v)} />
           </div>
         )}
+        {puedeEditar && (
+          <div className="space-y-2 mt-5">
+            <h4 className="font-body text-[12px] font-semibold text-primary uppercase tracking-wider">Logística</h4>
+            <label htmlFor="Transportista predeterminado" className="font-body text-[11px] text-outline">Transportista predeterminado</label>
+            <select id="Transportista predeterminado" value={form.transportistaPredeterminadoId} onChange={(event) => onChange('transportistaPredeterminadoId', event.target.value)} className="input-field mt-1">
+              <option value="">Sin transportista predeterminado</option>
+              {transportistas.filter((transportista) => transportista.activo).map((transportista) => (
+                <option key={transportista.id} value={transportista.id}>{transportista.nombre}</option>
+              ))}
+            </select>
+            <p className="font-body text-[11px] text-on-surface-variant">Se propone automáticamente al emitir un remito; se puede cambiar para cada entrega.</p>
+          </div>
+        )}
       </div>
     </BottomSheet>
+  )
+}
+
+function RemitoConfigurationCard({ enabled }: { enabled: boolean }) {
+  const { data: configuration, isLoading } = useRemitoConfiguracion(enabled)
+  const update = useActualizarRemitoConfiguracion()
+  const [correlativo, setCorrelativo] = useState('')
+  const [cai, setCai] = useState('')
+  const [vencimiento, setVencimiento] = useState('')
+
+  if (!enabled || isLoading || !configuration) return null
+  const next = configuration.proximoCorrelativo === null ? null : `${configuration.puntoVenta}-${String(configuration.proximoCorrelativo).padStart(8, '0')}`
+  const saveCorrelative = async () => {
+    const value = Number(correlativo)
+    if (!Number.isInteger(value) || value < 1) { toast.error('Ingresá un correlativo válido'); return }
+    try { await update.mutateAsync({ proximoCorrelativo: value }); toast.success('Correlativo inicial configurado') } catch (error) { toast.error(error instanceof Error ? error.message : 'No se pudo guardar el correlativo') }
+  }
+  const renewCai = async () => {
+    if (!/^\d{14}$/.test(cai) || !vencimiento) { toast.error('Ingresá el CAI de 14 dígitos y su vencimiento'); return }
+    try { await update.mutateAsync({ cai, caiVencimiento: new Date(`${vencimiento}T00:00:00.000Z`).toISOString() }); toast.success('CAI renovado') } catch (error) { toast.error(error instanceof Error ? error.message : 'No se pudo renovar el CAI') }
+  }
+  return (
+    <section className="rounded-2xl border border-white/10 bg-surface-container-high p-5" aria-label="Configuración de remitos">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div><h2 className="text-[16px] font-bold text-on-surface">Configuración de remitos</h2><p className="mt-1 font-body text-[12px] text-on-surface-variant">Punto de venta fijo: {configuration.puntoVenta}. Cada emisión reserva su número de forma segura.</p></div>
+        <Badge variant={configuration.caiVencido ? 'warning' : 'success'}>{configuration.caiVencido ? 'CAI vencido' : 'CAI vigente'}</Badge>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-white/10 p-3">
+          <p className="font-body text-[11px] uppercase tracking-wider text-outline">Numeración</p>
+          {next ? <p className="mt-1 text-[14px] font-semibold text-on-surface">Próximo remito: {next}</p> : <><p className="mt-1 font-body text-[12px] text-on-surface-variant">Indicá una sola vez el próximo número a emitir.</p><div className="mt-3 flex gap-2"><input value={correlativo} inputMode="numeric" onChange={(event) => setCorrelativo(event.target.value.replace(/\D/g, ''))} placeholder="Ej: 13216" className="input-field" /><Button onClick={() => void saveCorrelative()} loading={update.isPending}>Guardar</Button></div></>}
+        </div>
+        <div className="rounded-xl border border-white/10 p-3">
+          <p className="font-body text-[11px] uppercase tracking-wider text-outline">C.A.I.</p>
+          <p className="mt-1 text-[14px] font-semibold text-on-surface">N° {configuration.cai} · Vto. {new Date(configuration.caiVencimiento).toLocaleDateString('es-AR', { timeZone: 'UTC' })}</p>
+          {configuration.caiVencido && <><p className="mt-2 font-body text-[12px] text-warning">El CAI venció. Los remitos pueden seguir emitiéndose, pero renovalo para los próximos documentos.</p><div className="mt-3 grid gap-2 sm:grid-cols-2"><input value={cai} inputMode="numeric" onChange={(event) => setCai(event.target.value.replace(/\D/g, ''))} placeholder="Nuevo CAI (14 dígitos)" className="input-field" /><input type="date" value={vencimiento} onChange={(event) => setVencimiento(event.target.value)} className="input-field" /></div><Button className="mt-2" onClick={() => void renewCai()} loading={update.isPending}>Renovar CAI</Button></>}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -214,6 +270,7 @@ export default function ClientesPage() {
   const esVendedor = rol === 'vendedor'
   const puedeCrear = can(user, 'ale-bet', 'clientes.create')
   const puedeEditar = can(user, 'ale-bet', 'clientes.update')
+  const puedeConfigurarRemitos = can(user, 'ale-bet', 'remitos.create')
 
   const { data: clientes = [], isLoading, error } = useClientes()
   const createMutation = useCreateCliente()
@@ -226,6 +283,7 @@ export default function ClientesPage() {
   const [guardando, setGuardando] = useState(false)
   const [confirmar, setConfirmar] = useState<Cliente | null>(null)
   const [ejecutando, setEjecutando] = useState(false)
+  const { data: transportistas = [] } = useTransportistas({ enabled: puedeEditar && modal !== null })
 
   const pendientes = clientes.filter((c) => c.estado === 'PENDIENTE_CLIENTE')
   const validados = clientes.filter((c) => c.estado === 'VALIDADO')
@@ -254,6 +312,7 @@ export default function ClientesPage() {
       cuit: c.cuit ?? '',
       condicionIva: c.condicionIva ?? '',
       condicionVenta: c.condicionVenta ?? '',
+      transportistaPredeterminadoId: c.transportistaPredeterminadoId ?? '',
     })
     setFormError(null)
   }
@@ -288,11 +347,12 @@ export default function ClientesPage() {
           referencia: form.referencia.trim() || undefined,
           direccion: form.direccion.trim() || undefined,
           ...(!esVendedor ? {
-            localidad: form.localidad.trim() || undefined,
-            provincia: form.provincia.trim() || undefined,
-            cuit: form.cuit.trim() || undefined,
-            condicionIva: form.condicionIva.trim() || undefined,
-            condicionVenta: form.condicionVenta.trim() || undefined,
+            ...(form.localidad.trim() ? { localidad: form.localidad.trim() } : {}),
+            ...(form.provincia.trim() ? { provincia: form.provincia.trim() } : {}),
+            ...(form.cuit.trim() ? { cuit: form.cuit.trim() } : {}),
+            ...(form.condicionIva.trim() ? { condicionIva: form.condicionIva.trim() } : {}),
+            ...(form.condicionVenta.trim() ? { condicionVenta: form.condicionVenta.trim() } : {}),
+            ...(form.transportistaPredeterminadoId ? { transportistaPredeterminadoId: form.transportistaPredeterminadoId } : {}),
           } : {})
         })
         toast.success(esVendedor ? 'Cliente creado · quedará pendiente de validación' : 'Cliente creado')
@@ -308,6 +368,7 @@ export default function ClientesPage() {
           cuit: form.cuit.trim() || null,
           condicionIva: form.condicionIva.trim() || null,
           condicionVenta: form.condicionVenta.trim() || null,
+          transportistaPredeterminadoId: form.transportistaPredeterminadoId || null,
           ...(validar ? { estado: 'VALIDADO' as const } : {}),
         })
         toast.success(validar ? 'Cliente validado' : 'Cliente actualizado')
@@ -353,6 +414,8 @@ export default function ClientesPage() {
           </button>
         )}
       </div>
+
+      <RemitoConfigurationCard enabled={puedeConfigurarRemitos} />
 
       <input
         type="text"
@@ -466,6 +529,7 @@ export default function ClientesPage() {
         guardando={guardando}
         esNuevo={modal === 'nuevo'}
         puedeEditar={puedeEditar}
+        transportistas={transportistas}
         onChange={cambiarForm}
         onClose={cerrarModal}
         onGuardar={(validar) => void guardar(validar)}

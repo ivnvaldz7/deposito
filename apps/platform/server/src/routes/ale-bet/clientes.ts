@@ -15,13 +15,22 @@ const baseClienteSchema = z.object({
   cuit: z.string().trim().max(30).optional(),
   condicionIva: z.string().trim().max(80).optional(),
   condicionVenta: z.string().trim().max(80).optional(),
+  transportistaPredeterminadoId: z.string().min(1).optional().nullable(),
 })
-const updateClienteSchema = z.object({ nombre: z.string().min(2).max(120).optional(), contacto: z.string().max(120).optional().nullable(), referencia: z.string().max(120).optional().nullable(), direccion: z.string().max(200).optional().nullable(), localidad: z.string().max(120).optional().nullable(), provincia: z.string().max(120).optional().nullable(), cuit: z.string().max(30).optional().nullable(), condicionIva: z.string().max(80).optional().nullable(), condicionVenta: z.string().max(80).optional().nullable(), activo: z.boolean().optional(), estado: z.enum(['PENDIENTE_CLIENTE', 'VALIDADO']).optional() })
+const updateClienteSchema = z.object({ nombre: z.string().min(2).max(120).optional(), contacto: z.string().max(120).optional().nullable(), referencia: z.string().max(120).optional().nullable(), direccion: z.string().max(200).optional().nullable(), localidad: z.string().max(120).optional().nullable(), provincia: z.string().max(120).optional().nullable(), cuit: z.string().max(30).optional().nullable(), condicionIva: z.string().max(80).optional().nullable(), condicionVenta: z.string().max(80).optional().nullable(), transportistaPredeterminadoId: z.string().min(1).optional().nullable(), activo: z.boolean().optional(), estado: z.enum(['PENDIENTE_CLIENTE', 'VALIDADO']).optional() })
 
-router.get('/', requirePermission('ale-bet', 'clientes.read'), async (_req, res) => { res.json(await prisma.cliente.findMany({ where: { activo: true }, orderBy: { nombre: 'asc' } })) })
+const clienteInclude = { transportistaPredeterminado: { select: { id: true, nombre: true, direccion: true } } } as const
+
+async function validateDefaultTransportista(id: string | null | undefined): Promise<boolean> {
+  if (!id) return true
+  return Boolean(await prisma.transportista.findFirst({ where: { id, activo: true }, select: { id: true } }))
+}
+
+router.get('/', requirePermission('ale-bet', 'clientes.read'), async (_req, res) => { res.json(await prisma.cliente.findMany({ where: { activo: true }, orderBy: { nombre: 'asc' }, include: clienteInclude })) })
 router.post('/', requirePermission('ale-bet', 'clientes.create'), async (req, res) => {
   const parsed = baseClienteSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
+  if (!await validateDefaultTransportista(parsed.data.transportistaPredeterminadoId)) { res.status(400).json({ error: 'El transportista predeterminado no está disponible' }); return }
   const role = (req.user?.apps['ale-bet']?.rol)
   
   if (role === 'vendedor' && !parsed.data.contacto && !parsed.data.referencia) {
@@ -35,6 +44,7 @@ router.post('/', requirePermission('ale-bet', 'clientes.create'), async (req, re
 router.put('/:id', requirePermission('ale-bet', 'clientes.update'), async (req, res) => {
   const parsed = updateClienteSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
+  if (!await validateDefaultTransportista(parsed.data.transportistaPredeterminadoId)) { res.status(400).json({ error: 'El transportista predeterminado no está disponible' }); return }
   res.json(await prisma.cliente.update({ where: { id: String(req.params.id) }, data: parsed.data }))
 })
 router.post('/import', requirePermission('ale-bet', 'clientes.import'), async (req, res) => {
