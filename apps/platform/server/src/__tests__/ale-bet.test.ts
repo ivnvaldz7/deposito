@@ -11,7 +11,7 @@ const {
   mockDb,
   pdfDocuments,
   releaseActiveReservations,
-  reserveFefo,
+  reserveSelectedLots,
   consumeActiveReservations,
   returnConsumedReservations,
   syncStockProjectionAfterCommit,
@@ -20,7 +20,7 @@ const {
   completeIdempotencyRecord: vi.fn(),
   pdfDocuments: [] as Array<{ texts: string[] }>,
   releaseActiveReservations: vi.fn(),
-  reserveFefo: vi.fn(),
+  reserveSelectedLots: vi.fn(),
   consumeActiveReservations: vi.fn(),
   returnConsumedReservations: vi.fn(),
   syncStockProjectionAfterCommit: vi.fn(),
@@ -93,7 +93,7 @@ vi.mock('../routes/ale-bet/sse-manager', () => ({ sseManager: { emitToRole: vi.f
 vi.mock('../routes/ale-bet/reservas-service', () => ({
   StockConflictError: class StockConflictError extends Error {},
   releaseActiveReservations,
-  reserveFefo,
+  reserveSelectedLots,
   consumeActiveReservations,
   returnConsumedReservations,
 }))
@@ -177,7 +177,7 @@ describe('ALEBET-01 HTTP contracts', () => {
       .send({ clienteId: 'cliente-1', items: [{ productoId: 'producto-1', cantidad: 3 }] }).expect(201)
 
     expect(response.body.estado).toBe('BORRADOR')
-    expect(reserveFefo).not.toHaveBeenCalled()
+    expect(reserveSelectedLots).not.toHaveBeenCalled()
   })
 
   it('lets Facturación issue a manual remito without reserving or deducting stock', async () => {
@@ -193,7 +193,7 @@ describe('ALEBET-01 HTTP contracts', () => {
 
     expect(response.body.pedido.esRemitoManual).toBe(true)
     expect(response.body.remito.numero).toBe('00001-00013216')
-    expect(reserveFefo).not.toHaveBeenCalled()
+    expect(reserveSelectedLots).not.toHaveBeenCalled()
     expect(consumeActiveReservations).not.toHaveBeenCalled()
   })
 
@@ -202,15 +202,15 @@ describe('ALEBET-01 HTTP contracts', () => {
     mockDb.pedido.findUnique.mockResolvedValue(pending)
     const server = await app()
     await request(server).post('/api/ale-bet/remitos/manuales/manual-1/aprobar-descuento').set('Authorization', `Bearer ${token('facturacion')}`)
-      .send({ expectedVersion: 1 }).expect(403)
-    expect(reserveFefo).not.toHaveBeenCalled()
+      .send({ expectedVersion: 1, selecciones: [{ itemPedidoId: 'item-1', productoId: 'producto-1', loteId: 'lote-1', cantidad: 3 }] }).expect(403)
+    expect(reserveSelectedLots).not.toHaveBeenCalled()
 
     mockDb.remito.findFirst.mockResolvedValue({ id: 'remito-manual-1', estado: 'VIGENTE' })
     mockDb.pedido.update.mockResolvedValue(pedido({ id: 'manual-1', vendedorId: null, estado: 'DESPACHADO', version: 2, esRemitoManual: true }))
     const approved = await request(server).post('/api/ale-bet/remitos/manuales/manual-1/aprobar-descuento').set('Authorization', `Bearer ${token('encargado')}`)
-      .send({ expectedVersion: 1 }).expect(200)
+      .send({ expectedVersion: 1, selecciones: [{ itemPedidoId: 'item-1', productoId: 'producto-1', loteId: 'lote-1', cantidad: 3 }] }).expect(200)
     expect(approved.body.estado).toBe('DESPACHADO')
-    expect(reserveFefo).toHaveBeenCalledWith(mockDb, 'manual-1', expect.any(Array))
+    expect(reserveSelectedLots).toHaveBeenCalledWith(mockDb, 'manual-1', expect.any(Array), expect.any(Array))
     expect(consumeActiveReservations).toHaveBeenCalledWith(mockDb, 'manual-1', 'encargado-1')
   })
 
@@ -218,8 +218,8 @@ describe('ALEBET-01 HTTP contracts', () => {
     mockDb.pedido.findUnique.mockResolvedValue(pedido({ cliente: { id: 'cliente-1', estado: 'PENDIENTE_CLIENTE' } }))
     const server = await app()
     await request(server).put('/api/ale-bet/pedidos/pedido-1/aprobar').set('Authorization', `Bearer ${token('vendedor')}`)
-      .send({ expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [] }).expect(409)
-    expect(reserveFefo).not.toHaveBeenCalled()
+      .send({ expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [], selecciones: [{ itemPedidoId: 'item-1', productoId: 'producto-1', loteId: 'lote-1', cantidad: 3 }] }).expect(409)
+    expect(reserveSelectedLots).not.toHaveBeenCalled()
   })
 
   it('approves the owner order with expectedVersion and reserves it', async () => {
@@ -227,9 +227,9 @@ describe('ALEBET-01 HTTP contracts', () => {
     mockDb.pedido.update.mockResolvedValue(pedido({ estado: 'APROBADO', version: 2 }))
     const server = await app()
     const response = await request(server).put('/api/ale-bet/pedidos/pedido-1/aprobar').set('Authorization', `Bearer ${token('vendedor')}`)
-      .send({ expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [] }).expect(200)
+      .send({ expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [], selecciones: [{ itemPedidoId: 'item-1', productoId: 'producto-1', loteId: 'lote-1', cantidad: 3 }] }).expect(200)
     expect(response.body.estado).toBe('APROBADO')
-    expect(reserveFefo).toHaveBeenCalledWith(mockDb, 'pedido-1', expect.any(Array))
+    expect(reserveSelectedLots).toHaveBeenCalledWith(mockDb, 'pedido-1', expect.any(Array), expect.any(Array))
   })
 
   it('returns 409 on stale expectedVersion before modifying an approved order', async () => {
@@ -250,7 +250,7 @@ describe('ALEBET-01 HTTP contracts', () => {
       .send({ clienteId: 'cliente-1', items: [{ productoId: 'producto-1', cantidad: 4 }], expectedVersion: 1 }).expect(200)
     expect(response.body.estado).toBe('BORRADOR')
     expect(releaseActiveReservations).toHaveBeenCalledWith(mockDb, 'pedido-1')
-    expect(reserveFefo).not.toHaveBeenCalled()
+    expect(reserveSelectedLots).not.toHaveBeenCalled()
     expect(mockDb.pedido.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ estado: 'BORRADOR', aprobadoAt: null }) }))
   })
 

@@ -145,6 +145,13 @@ function sendError(res: Response, error: unknown) {
     else res.status(400).json({ message: error.message })
     return
   }
+  // Keep the HTTP contract deterministic even when a database uniqueness
+  // violation reaches this boundary before the domain service can normalize
+  // it (for example, concurrent assignment of a catalogue code).
+  if (typeof error === 'object' && error !== null && 'code' in error && (error as { code?: unknown }).code === 'P2002') {
+    res.status(409).json({ message: 'El código debe ser globalmente único' })
+    return
+  }
   if (error instanceof Error) {
     res.status(400).json({ message: error.message })
     return

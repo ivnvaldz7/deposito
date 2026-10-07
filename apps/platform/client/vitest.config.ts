@@ -15,6 +15,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // This is the retired Google callback flow. It needs a real external
+    // identity-provider contract and no longer describes the email/password
+    // login shipped by the client, so it is kept as historical reference but
+    // excluded from hermetic unit CI.
+    exclude: ['src/__tests__/auth-flow.integration.test.tsx'],
     css: true,
     coverage: {
       provider: 'v8',

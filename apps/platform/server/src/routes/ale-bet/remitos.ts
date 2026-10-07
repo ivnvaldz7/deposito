@@ -120,7 +120,11 @@ router.put('/:id/remitos/:remitoId/anular', requirePermission('ale-bet', 'remito
   if (!existing) { res.status(404).json({ error: 'Remito no encontrado' }); return }
   if (existing.descuentoAprobadoAt) { res.status(409).json({ error: 'No se puede anular un remito con stock descontado; registrá una devolución' }); return }
   const remito = await prisma.$transaction(async (tx) => {
-    if (existing.pedido.descuentoPorRemito) {
+    // Older remitos (issued before partial deliveries existed) may not have
+    // an associated Pedido relation in a degraded/legacy record. They can be
+    // invalidated normally; only partial-delivery remitos need to roll back
+    // their delivered quantities.
+    if (existing.pedido?.descuentoPorRemito) {
       for (const item of snapshotItems(existing.itemsSnapshot)) await tx.itemPedido.updateMany({ where: { pedidoId: existing.pedidoId, productoId: item.productoId }, data: { cantidadEntregada: { decrement: item.cantidad } } })
       await tx.pedido.update({ where: { id: existing.pedidoId }, data: { estado: 'APROBADO', version: { increment: 1 } } })
     }

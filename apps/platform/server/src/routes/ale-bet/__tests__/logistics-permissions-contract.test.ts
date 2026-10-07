@@ -98,7 +98,7 @@ describe('Remitos and Transportistas HTTP permission contract', () => {
     expect(created.body.id).toBe('remito-1')
     expect(db.remito.create).toHaveBeenCalledOnce()
 
-    db.remito.findFirst.mockResolvedValue({ id: 'remito-1', pedidoId: 'pedido-1' })
+    db.remito.findFirst.mockResolvedValue({ id: 'remito-1', pedidoId: 'pedido-1', pedido: { descuentoPorRemito: false, items: [] } })
     db.remito.update.mockResolvedValue({ id: 'remito-1', estado: 'INVALIDADO' })
     await request(server).put('/api/ale-bet/pedidos/pedido-1/remitos/remito-1/anular').set(auth(token('admin')))
       .send({ motivo: 'Documento emitido por error' }).expect(200)
@@ -111,7 +111,7 @@ describe('Remitos and Transportistas HTTP permission contract', () => {
 
   it('enforces the six-role matrix for remito voiding without updating denied requests', async () => {
     const server = await app()
-    db.remito.findFirst.mockResolvedValue({ id: 'remito-1', pedidoId: 'pedido-1' })
+    db.remito.findFirst.mockResolvedValue({ id: 'remito-1', pedidoId: 'pedido-1', pedido: { descuentoPorRemito: false, items: [] } })
     db.remito.update.mockResolvedValue({ id: 'remito-1', estado: 'INVALIDADO' })
     for (const role of roles) {
       const status = ['admin', 'facturacion'].includes(role) ? 200 : 403

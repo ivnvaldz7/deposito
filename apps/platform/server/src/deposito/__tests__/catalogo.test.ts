@@ -102,6 +102,7 @@ const mocks = vi.hoisted(() => {
     inventarioEstuche: { findMany: vi.fn(async () => []) },
     inventarioEtiqueta: { findMany: vi.fn(async () => []) },
     inventarioFrasco: { findMany: vi.fn(async () => []) },
+    inventarioMaterialEmpaque: { findMany: vi.fn(async () => []) },
   }
 
   function reset() {
@@ -113,6 +114,7 @@ const mocks = vi.hoisted(() => {
     prisma.inventarioEstuche.findMany.mockClear()
     prisma.inventarioEtiqueta.findMany.mockClear()
     prisma.inventarioFrasco.findMany.mockClear()
+    prisma.inventarioMaterialEmpaque.findMany.mockClear()
   }
 
   return { prisma, state, reset }

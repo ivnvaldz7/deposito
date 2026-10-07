@@ -14,8 +14,8 @@ describe('expiry month UI contract', () => {
   })
 
   it('rejects incomplete values and accepts the current month', () => {
-    expect(validateExpirySelection('08', '202', new Date('2026-08-13T12:00:00Z'))).toContain('válidos')
-    expect(validateExpirySelection('13', '2027', new Date('2026-08-13T12:00:00Z'))).toContain('válidos')
+    expect(validateExpirySelection('08', '202', new Date('2026-08-13T12:00:00Z'))).toContain('Seleccioná mes y año')
+    expect(validateExpirySelection('13', '2027', new Date('2026-08-13T12:00:00Z'))).toContain('Seleccioná mes y año')
     expect(validateExpirySelection('08', '2026', new Date('2026-08-13T12:00:00Z'))).toBeNull()
   })
 })

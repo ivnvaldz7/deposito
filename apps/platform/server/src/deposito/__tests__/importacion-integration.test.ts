@@ -60,6 +60,7 @@ vi.mock('../lib/prisma', () => ({ prisma: mocks.prisma }))
 vi.mock('../middleware/auth', () => ({
   authenticate: (req: any, res: any, next: any) => {
     req.depositoUser = { id: 'enc-1', role: req.headers['x-test-role'] || 'encargado' }
+    req.user = { sub: req.depositoUser.id, apps: { deposito: { rol: req.depositoUser.role, activo: true } } }
     next()
   },
   requireRole: (role: string) => (req: any, res: any, next: any) => {
@@ -68,6 +69,10 @@ vi.mock('../middleware/auth', () => ({
     }
     next()
   },
+}))
+
+vi.mock('../../middlewares/require-permission', () => ({
+  requirePermission: () => (_req: any, _res: any, next: any) => next(),
 }))
 
 import { createTestApp } from './helpers/create-test-app'

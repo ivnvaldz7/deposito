@@ -273,7 +273,7 @@ describe('AutomationPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar', exact: true }))
     await waitFor(() => expect(aleBetApi.automation.confirmDraft).toHaveBeenCalledWith(
       'draft-summary',
-      { expectedVersion: 2 },
+      { expectedVersion: 2, selecciones: [], transferencias: [] },
       expect.objectContaining({ idempotencyKey: expect.any(String) })
     ))
   })
@@ -311,7 +311,9 @@ describe('AutomationPage', () => {
     })
     
     const confirmBtn = screen.getByText('Confirmar pedido')
-    expect(confirmBtn).toBeDisabled()
+    // Automation now creates the commercial order even when it cannot be
+    // fulfilled today; billing emits partial remitos as stock becomes ready.
+    expect(confirmBtn).toBeEnabled()
   })
 
   it('persists a quantity edit and renders the refetched draft', async () => {

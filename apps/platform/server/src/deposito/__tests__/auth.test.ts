@@ -113,6 +113,19 @@ vi.mock('../middleware/auth', () => ({
       role,
       name: 'Usuario Test',
     }
+    req.user = { sub: req.depositoUser.id, apps: { deposito: { rol: role, activo: true } } }
+    next()
+  },
+}))
+
+vi.mock('../../middlewares/require-permission', () => ({
+  requirePermission: (_app: string, permission: string) => (req: any, res: any, next: any) => {
+    const role = req.depositoUser?.role
+    const canManage = role === 'encargado'
+    if (!role || (permission === 'productos_catalogo.manage' && !canManage)) {
+      res.status(403).json({ error: 'Permiso insuficiente' })
+      return
+    }
     next()
   },
 }))
