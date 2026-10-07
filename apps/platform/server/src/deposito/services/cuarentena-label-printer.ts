@@ -86,7 +86,8 @@ export async function printCuarentenaLabel(input: CuarentenaLabelInput, config =
       if (settled) return
       settled = true
       clearTimeout(timeout)
-      error ? reject(error) : resolve()
+      if (error) reject(error)
+      else resolve()
     }
     const timeout = setTimeout(() => {
       child.kill()
