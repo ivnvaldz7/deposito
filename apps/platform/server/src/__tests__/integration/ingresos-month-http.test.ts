@@ -10,16 +10,21 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
 const state = vi.hoisted(() => ({ db: null as PrismaClient | null }))
 vi.mock('../../deposito/lib/prisma', () => ({ get prisma() { return state.db } }))
-vi.mock('../../deposito/middleware/auth', () => ({ authenticate: (req: any, _res: any, next: any) => { req.depositoUser = { id: '00000000-0000-4000-8000-000000000001', role: 'encargado' }; next() } }))
+vi.mock('../../deposito/middleware/auth', () => ({ authenticate: (req: any, _res: any, next: any) => {
+  req.user = { sub: '00000000-0000-4000-8000-000000000001', apps: { deposito: { rol: 'encargado', activo: true } } }
+  req.depositoUser = { id: '00000000-0000-4000-8000-000000000001', role: 'encargado' }
+  next()
+} }))
 vi.mock('../../deposito/middleware/require-role', () => ({ requireRole: () => (_req: any, _res: any, next: any) => next() }))
 vi.mock('../../deposito/lib/sse-manager', () => ({ sseManager: { broadcastGlobal: vi.fn() } }))
-vi.mock('@platform/core', () => ({ eventBus: { emit: vi.fn() } }))
+vi.mock('@platform/core', () => ({ eventBus: { emit: vi.fn() }, hasPermission: () => true }))
 
 const migrationsRoot = resolve(process.cwd(), '../../../packages/db/prisma/migrations')
 const migrations = [
   '20260721160000_init_platform', '20260721164308_add_estado_and_is_platform_admin', '20260726163214_pr_b3a_idempotency',
   '20260727125700_inventory_constraints_metadata', '20260727125701_inventory_constraints_validate', '20260730111000_mvp01_expand_catalogo',
   '20260730111100_mvp01_migrate_catalogo', '20260730152750_mvp01_correct_codigo_rules', '20260811101500_deposito_initial_estuches_import',
+  '20260824140000_centralize_deposito_stock_minimo',
   '20260812120000_deposito_producto_market_identity', '20260812143000_enforce_estuche_canonical_market', '20260812160000_add_etiqueta_catalog_sequence',
   '20260813102000_add_export_etiqueta_catalog_sequences', '20260813102500_sync_export_etiqueta_catalog_sequences', '20260813130000_add_frasco_catalog_sequence',
   '20260813133000_preserve_legacy_frasco_identity', '20260813170000_add_inventario_droga_created_at',
@@ -54,7 +59,7 @@ describe('ingress expiry month HTTP + PostgreSQL', () => {
   it('rejects the old impossible full-date payload without side effects', async () => {
     const product = await db.depositoProducto.create({ data: { nombreBase: 'ATP', nombreCompleto: 'ATP', categoria: 'droga', estado: 'ACTIVO' } })
     const before = { actas: await db.acta.count(), items: await db.actaItem.count(), movements: await db.movimiento.count(), lots: await db.inventarioDroga.count() }
-    const response = await request(app).post('/api/deposito/ingresos').send({ fecha: '2026-08-13', productoId: product.id, lote: 'BAD', vencimiento: '2027-02-31', cantidad: 1 })
+    const response = await request(app).post('/api/deposito/ingresos').send({ fecha: '2026-08-13', productoId: product.id, lote: 'BAD', vencimientoMes: '2027-02-31', cantidad: 1 })
     expect(response.status).toBe(400)
     expect({ actas: await db.acta.count(), items: await db.actaItem.count(), movements: await db.movimiento.count(), lots: await db.inventarioDroga.count() }).toEqual(before)
   })

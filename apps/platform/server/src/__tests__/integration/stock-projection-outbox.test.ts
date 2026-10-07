@@ -81,7 +81,7 @@ describe('SDD-01 Slice 2 — Stock Projection Outbox', () => {
   })
 
   describe('Stock opening (saldo de apertura)', () => {
-    it('creates PENDING outbox with SALDO_APERTURA cause', async () => {
+    it('keeps the retired opening endpoint closed', async () => {
       const data = await fixture()
 
       const response = await request(app)
@@ -90,12 +90,8 @@ describe('SDD-01 Slice 2 — Stock Projection Outbox', () => {
         .set('Idempotency-Key', crypto.randomUUID())
         .send({ ubicacionId: data.deposito.id, cantidadFinal: 2400, motivo: 'Apertura inicial', fechaEfectiva: '2026-01-01' })
 
-      expect(response.status).toBe(201)
-      expect(response.body.delta).toBe(2400)
-
-      const outbox = await prisma.stockProjectionOutbox.findMany({ where: { productId: data.producto.id } })
-      expect(outbox).toHaveLength(1)
-      expect(outbox[0]).toMatchObject({ causeType: 'SALDO_APERTURA', estado: 'PENDING' })
+      expect(response.status).toBe(410)
+      expect(await prisma.stockProjectionOutbox.count({ where: { productId: data.producto.id } })).toBe(0)
     })
   })
 
@@ -149,6 +145,7 @@ describe('SDD-01 Slice 2 — Stock Projection Outbox', () => {
       await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: data.lote.id, ubicacionId: data.deposito.id, cantidad: 100 } })
 
       const cliente = await prisma.cliente.create({ data: { nombre: 'Cliente Test', direccion: 'Dir Test' } })
+      await prisma.configuracionRemito.create({ data: { id: 'DEFAULT', puntoVenta: '00001', proximoCorrelativo: 1, cai: '52166218186464', caiVencimiento: new Date('2027-04-17T00:00:00.000Z') } })
       const pedido = await prisma.pedido.create({ data: { numero: `TEST-${crypto.randomUUID().slice(0, 8)}`, clienteId: cliente.id, estado: 'APROBADO', items: { create: { productoId: data.producto.id, cantidad: 10 } } } })
 
       const emit = await request(app)
@@ -188,7 +185,7 @@ describe('SDD-01 Slice 2 — Stock Projection Outbox', () => {
       expect(response.status).toBe(200)
 
       const snapshot = await buildCurrentStockProjectionSnapshot(prisma)
-      expect(snapshot.productoTerminado).toEqual([{ producto: data.producto.nombre, lote: data.lote.numero, total: 150 }])
+      expect(snapshot.productoTerminado).toEqual([expect.objectContaining({ producto: data.producto.nombre, lote: data.lote.numero, total: 150, vencimiento: 'SIN VTO' })])
     })
 
     it('reflects transferred stock in snapshot', async () => {
@@ -205,8 +202,8 @@ describe('SDD-01 Slice 2 — Stock Projection Outbox', () => {
       expect(response.status).toBe(201)
 
       const snapshot = await buildCurrentStockProjectionSnapshot(prisma)
-      expect(snapshot.productoTerminado).toEqual([{ producto: data.producto.nombre, lote: data.lote.numero, total: 80 }])
-      expect(snapshot.sinAcondicionar).toEqual([{ producto: data.producto.nombre, lote: data.lote.numero, total: 120 }])
+      expect(snapshot.productoTerminado).toEqual([expect.objectContaining({ producto: data.producto.nombre, lote: data.lote.numero, total: 80, vencimiento: 'SIN VTO' })])
+      expect(snapshot.sinAcondicionar).toEqual([expect.objectContaining({ producto: data.producto.nombre, lote: data.lote.numero, total: 120, vencimiento: 'SIN VTO' })])
     })
   })
 

@@ -20,6 +20,7 @@ const migrationNames = [
   '20260730111100_mvp01_migrate_catalogo',
   '20260730152750_mvp01_correct_codigo_rules',
   '20260811101500_deposito_initial_estuches_import',
+  '20260824140000_centralize_deposito_stock_minimo',
   '20260812120000_deposito_producto_market_identity',
   '20260812143000_enforce_estuche_canonical_market',
   '20260812160000_add_etiqueta_catalog_sequence',

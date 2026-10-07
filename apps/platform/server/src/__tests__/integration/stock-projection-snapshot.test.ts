@@ -48,15 +48,15 @@ describe('stock projection snapshot repository', () => {
     })
 
     expect(await buildCurrentStockProjectionSnapshot(prisma)).toEqual({
-      productoTerminado: [{ producto: 'Producto X 500 ML', lote: 'B', total: 200 }],
-      sinAcondicionar: [{ producto: 'Producto X 500 ML', lote: 'A', total: 100 }],
+      productoTerminado: [expect.objectContaining({ producto: 'Producto X 500 ML', lote: 'B', total: 200, vencimiento: 'SIN VTO' })],
+      sinAcondicionar: [expect.objectContaining({ producto: 'Producto X 500 ML', lote: 'A', total: 100, vencimiento: 'SIN VTO' })],
     })
 
     await prisma.saldoStock.updateMany({ data: { cantidad: 0 } })
 
     expect(await buildCurrentStockProjectionSnapshot(prisma)).toEqual({
-      productoTerminado: [{ producto: 'Producto X 500 ML', lote: 'B', total: 0 }],
-      sinAcondicionar: [{ producto: 'Producto X 500 ML', lote: 'B', total: 0 }],
+      productoTerminado: [expect.objectContaining({ producto: 'Producto X 500 ML', lote: 'B', total: 0, vencimiento: 'SIN VTO' })],
+      sinAcondicionar: [expect.objectContaining({ producto: 'Producto X 500 ML', lote: 'B', total: 0, vencimiento: 'SIN VTO' })],
     })
   })
 })

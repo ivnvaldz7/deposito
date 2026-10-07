@@ -157,7 +157,7 @@ describe('AUTOMATION-01 Slice 1', () => {
     return { auth: `Bearer ${adminToken()}`, customer, source, aves, equino, lote, sourceLote, deposito }
   }
 
-  it('exige elegir la presentación configurada y descuenta el destino seleccionado', async () => {
+  it('exige elegir la presentación configurada y conserva el destino seleccionado hasta el remito', async () => {
     const fixture = await seedPresentationProduct()
     const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', fixture.auth)
       .send({ originalText: '12 AMINOÁCIDOS 1 L' }).expect(201)
@@ -194,7 +194,7 @@ describe('AUTOMATION-01 Slice 1', () => {
     const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${created.body.id}/confirm`).set('Authorization', fixture.auth)
       .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: selected.body.version }).expect(200)
     expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.equino.id, cantidad: 12 })])
-    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.equino.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })).cantidad).toBe(12)
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.equino.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })).cantidad).toBe(24)
   })
 
   it('acepta Normal como una selección persistente aunque conserve el producto origen', async () => {
@@ -355,7 +355,7 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(current.effectiveSnapshot.lines[1].productCandidate).toBeNull()
   })
 
-  it('permite descartar una línea sin coincidencia, confirma solo las válidas y consume solo su stock', async () => {
+  it('permite descartar una línea sin coincidencia y confirma solo las válidas sin descontar stock', async () => {
     const fixture = await createDiscardableDraft()
     const initial = await getEffective(fixture.draft.id, fixture.auth)
     expect(initial.draft.estado).toBe('DRAFT')
@@ -372,8 +372,8 @@ describe('AUTOMATION-01 Slice 1', () => {
     const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${fixture.draft.id}/confirm`).set('Authorization', fixture.auth)
       .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: discarded.body.version }).expect(200)
     expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.product.id, cantidad: 12 })])
-    expect(await prisma.movimientoStock.count({ where: { pedidoId: confirmed.body.pedido.id, productoId: fixture.product.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
-    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: (await prisma.ubicacionStock.findFirstOrThrow({ where: { codigo: 'DEPOSITO' } })).id } } })).cantidad).toBe(108)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: confirmed.body.pedido.id, productoId: fixture.product.id, tipo: 'SALIDA_PEDIDO' } })).toBe(0)
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: (await prisma.ubicacionStock.findFirstOrThrow({ where: { codigo: 'DEPOSITO' } })).id } } })).cantidad).toBe(120)
   })
 
   it('no deja que warnings históricos de una línea desestimada sigan bloqueando el pedido', async () => {
@@ -464,8 +464,9 @@ describe('AUTOMATION-01 Slice 1', () => {
     await expect(prisma.cliente.findUniqueOrThrow({ where: { id: fixture.customer.id } })).resolves.toMatchObject({ id: fixture.customer.id })
   })
 
-  it('confirms Automation as one stock-effective operation and remitos stay documentary', async () => {
+  it('confirms Automation commercially and delegates stock deduction to a partial remito', async () => {
     const fixture = await seed()
+    await prisma.configuracionRemito.create({ data: { id: 'DEFAULT', puntoVenta: '00001', proximoCorrelativo: 1, cai: '52166218186464', caiVencimiento: new Date('2027-04-17T00:00:00.000Z') } })
     const auth = `Bearer ${adminToken()}`
     const created = await request(app).post('/api/ale-bet/automation/drafts').set('Authorization', auth)
       .send({ originalText: '8 Olivitasan 500\nagregá 4 más de Olivitasan 500' }).expect(201)
@@ -490,17 +491,17 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(pedido).toMatchObject({ estado: 'APROBADO', origen: 'AUTOMATION', vendedorId: null })
     expect(pedido.items).toHaveLength(1)
     expect(pedido.items[0]?.cantidad).toBe(12)
-    expect(pedido.reservas).toHaveLength(1)
-    expect(pedido.reservas[0]).toMatchObject({ estado: 'CONSUMIDA', cantidad: 12, loteId: fixture.valid.id })
-    const balance = await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })
-    expect(balance.cantidad).toBe(108)
+    expect(pedido.reservas).toHaveLength(0)
+    const deposito = await prisma.ubicacionStock.findFirstOrThrow({ where: { codigo: 'DEPOSITO' } })
+    const balance = await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: deposito.id } } })
+    expect(balance.cantidad).toBe(120)
     expect(await prisma.reservaStock.count({ where: { pedidoId: pedido.id, estado: 'ACTIVA' } })).toBe(0)
-    expect(await prisma.movimientoStock.findMany({ where: { pedidoId: pedido.id } })).toEqual([expect.objectContaining({ tipo: 'SALIDA_PEDIDO', cantidad: -12, loteId: fixture.valid.id })])
+    expect(await prisma.movimientoStock.findMany({ where: { pedidoId: pedido.id } })).toEqual([])
     expect(await prisma.pedidoAuditoria.count({ where: { pedidoId: pedido.id } })).toBe(2)
-    expect(await prisma.stockProjectionOutbox.findMany({ where: { causeId: pedido.id } })).toEqual([expect.objectContaining({ productId: fixture.product.id, estado: 'PENDING' })])
+    expect(await prisma.stockProjectionOutbox.findMany({ where: { causeId: pedido.id } })).toEqual([])
     expect(await prisma.orderInterpretationDraft.findUniqueOrThrow({ where: { id: created.body.id } })).toMatchObject({ estado: 'CONFIRMED', pedidoId: pedido.id, confirmedBy: 'automation-admin' })
-    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })).cantidad).toBe(108)
-    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: deposito.id } } })).cantidad).toBe(120)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(0)
 
     // Armador never receives or operates Automation orders; a manual APROBADO
     // order still enters the historical queue and can be taken.
@@ -520,29 +521,30 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', billing).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id, origen: 'AUTOMATION' }))
     const billingDetail = await request(app).get(`/api/ale-bet/pedidos/${pedido.id}`).set('Authorization', billing).expect(200)
     expect(billingDetail.body).toMatchObject({ cliente: { cuit: '30-12345678-9', direccion: 'Ruta 2 km 50' }, items: [expect.objectContaining({ cantidad: 12 })] })
+    const currentPedido = await prisma.pedido.findUniqueOrThrow({ where: { id: pedido.id } })
     const issued = await request(app).post(`/api/ale-bet/pedidos/${pedido.id}/remitos`).set('Authorization', billing)
-      .send({ expectedVersion: pedido.version, transporteOcasional: { nombre: 'Flete Automation', direccion: 'Ruta 2 km 50' } }).expect(201)
-    expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', billing).expect(200)).body).not.toContainEqual(expect.objectContaining({ id: pedido.id }))
+      .send({ expectedVersion: currentPedido.version, items: [{ productoId: fixture.product.id, cantidad: 12 }], transporteOcasional: { nombre: 'Flete Automation', direccion: 'Ruta 2 km 50' } }).expect(201)
+    expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', billing).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id, estado: 'PREPARADO' }))
     expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', auth).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id }))
     expect((await request(app).get('/api/ale-bet/historial').set('Authorization', auth).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id }))
-    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })).cantidad).toBe(108)
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: deposito.id } } })).cantidad).toBe(120)
     await request(app).put(`/api/ale-bet/pedidos/${pedido.id}/remitos/${issued.body.id}/anular`).set('Authorization', billing)
       .send({ motivo: 'Documento emitido por error' }).expect(200)
     expect((await request(app).get('/api/ale-bet/pedidos').set('Authorization', billing).expect(200)).body).toContainEqual(expect.objectContaining({ id: pedido.id, origen: 'AUTOMATION' }))
     const afterVoid = await prisma.pedido.findUniqueOrThrow({ where: { id: pedido.id } })
     await request(app).post(`/api/ale-bet/pedidos/${pedido.id}/remitos`).set('Authorization', billing)
-      .send({ expectedVersion: afterVoid.version, transporteOcasional: { nombre: 'Flete Automation', direccion: 'Ruta 2 km 50' } }).expect(201)
-    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: pedido.reservas[0]!.ubicacionId } } })).cantidad).toBe(108)
-    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+      .send({ expectedVersion: afterVoid.version, items: [{ productoId: fixture.product.id, cantidad: 12 }], transporteOcasional: { nombre: 'Flete Automation', direccion: 'Ruta 2 km 50' } }).expect(201)
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.valid.id, ubicacionId: deposito.id } } })).cantidad).toBe(120)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(0)
     await request(app).put(`/api/ale-bet/automation/drafts/${created.body.id}`).set('Authorization', auth)
       .send({ expectedVersion: edited.body.version, clienteId: fixture.customer.id }).expect(409)
   })
 
-  it('keeps CETRI physical and available stock coherent across Automation, Productos and Stock', async () => {
+  it('keeps CETRI physical and available stock unchanged across Automation confirmations', async () => {
     const fixture = await seedCetri(108)
     const auth = `Bearer ${adminToken()}`
 
-    for (const expectedPhysical of [96, 84, 72]) {
+    for (const expectedPhysical of [108, 108, 108]) {
       await confirmAutomationUnits({ auth, customerId: fixture.customer.id, productId: fixture.product.id, productName: fixture.product.nombre, units: 12 })
       const saldo = await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })
       expect(saldo.cantidad).toBe(expectedPhysical)
@@ -578,9 +580,9 @@ describe('AUTOMATION-01 Slice 1', () => {
       expect([403, 409]).toContain(cancel.status)
     }
     expect(await prisma.pedido.findUniqueOrThrow({ where: { id: pedido.id }, include: { items: true } })).toMatchObject({ origen: 'AUTOMATION', estado: 'APROBADO', version: pedido.version, items: [{ cantidad: 12 }] })
-    expect((await prisma.saldoStock.findFirstOrThrow({ where: { loteId: fixture.lote.id } })).cantidad).toBe(96)
+    expect((await prisma.saldoStock.findFirstOrThrow({ where: { loteId: fixture.lote.id } })).cantidad).toBe(108)
     expect(await prisma.reservaStock.count({ where: { pedidoId: pedido.id, estado: 'ACTIVA' } })).toBe(0)
-    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(0)
   })
 
   it('resolves bare and explicit B12 presentations through the persisted draft endpoint with historic bad aliases', async () => {
@@ -600,7 +602,7 @@ describe('AUTOMATION-01 Slice 1', () => {
     }
   })
 
-  it('previews and consumes ACONDICIONADO with the same availability as confirmation', async () => {
+  it('previews ACONDICIONADO and leaves it intact when Automation confirms', async () => {
     const fixture = await seedCetri(0)
     const location = await prisma.ubicacionStock.create({ data: { codigo: 'ACONDICIONADO', nombre: 'Acondicionado' } })
     await prisma.saldoStock.create({ data: { productoId: fixture.product.id, loteId: fixture.lote.id, ubicacionId: location.id, cantidad: 108 } })
@@ -611,8 +613,8 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(detail.availability).toContainEqual(expect.objectContaining({ availableUnits: 108, status: 'DISPONIBLE_CON_TRANSFERENCIA' }))
     const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${draft.body.id}/confirm`).set('Authorization', auth)
       .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: draft.body.version }).expect(200)
-    expect((await getEffective(draft.body.id, auth)).availability[0].availableUnits).toBe(96)
-    expect((await prisma.saldoStock.aggregate({ where: { productoId: fixture.product.id }, _sum: { cantidad: true } }))._sum.cantidad).toBe(96)
+    expect((await getEffective(draft.body.id, auth)).availability[0].availableUnits).toBe(108)
+    expect((await prisma.saldoStock.aggregate({ where: { productoId: fixture.product.id }, _sum: { cantidad: true } }))._sum.cantidad).toBe(108)
     expect(await prisma.reservaStock.count({ where: { pedidoId: confirmed.body.pedido.id, estado: 'ACTIVA' } })).toBe(0)
   })
 
@@ -635,7 +637,7 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(await prisma.pedido.findUniqueOrThrow({ where: { id: legacy.id } })).toMatchObject({ origen: 'AUTOMATION', estado: 'APROBADO' })
   })
 
-  it('serializes concurrent drafts against the last availability', async () => {
+  it('confirms concurrent drafts without discounting stock', async () => {
     const fixture = await seed(20)
     const auth = `Bearer ${adminToken()}`
     const ids: Array<{ id: string; version: number }> = []
@@ -646,9 +648,9 @@ describe('AUTOMATION-01 Slice 1', () => {
       ids.push({ id: draft.body.id, version: edited.body.version })
     }
     const responses = await Promise.all(ids.map((draft) => request(app).post(`/api/ale-bet/automation/drafts/${draft.id}/confirm`).set('Authorization', auth).set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: draft.version })))
-    expect(responses.map((response) => response.status).sort()).toEqual([200, 409])
+    expect(responses.map((response) => response.status).sort()).toEqual([200, 200])
     expect(await prisma.reservaStock.count({ where: { estado: 'ACTIVA', loteId: fixture.valid.id } })).toBe(0)
-    expect((await prisma.saldoStock.findFirstOrThrow({ where: { loteId: fixture.valid.id } })).cantidad).toBe(0)
-    expect(await prisma.movimientoStock.count({ where: { loteId: fixture.valid.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+    expect((await prisma.saldoStock.findFirstOrThrow({ where: { loteId: fixture.valid.id } })).cantidad).toBe(20)
+    expect(await prisma.movimientoStock.count({ where: { loteId: fixture.valid.id, tipo: 'SALIDA_PEDIDO' } })).toBe(0)
   })
 })

@@ -34,7 +34,7 @@ app.use('/api/ale-bet', createAleBetRoutes({
   },
 }))
 
-function token(role: 'admin' | 'facturacion'): string {
+function token(role: 'admin'): string {
   return `Bearer ${jwt.sign({ sub: `${role}-direct-sync`, apps: { 'ale-bet': { rol: role, activo: true } } }, process.env.PLATFORM_JWT_SECRET ?? 'test-secret')}`
 }
 
@@ -79,7 +79,7 @@ function confirm(input: Awaited<ReturnType<typeof createReadyDraft>>, key = cryp
     .send({ expectedVersion: input.expectedVersion })
 }
 
-describe('SDD-01 direct Automation sync', () => {
+describe('Automation confirmation does not mutate or sync stock', () => {
   beforeAll(async () => { await prisma.$queryRaw`SELECT 1` })
   beforeEach(async () => {
     await truncateDb(prisma)
@@ -87,7 +87,7 @@ describe('SDD-01 direct Automation sync', () => {
     syncLogger.error.mockReset()
   })
 
-  it('writes exactly one authoritative post-commit snapshot after successful confirmation', async () => {
+  it('writes a non-mutating snapshot after successful commercial confirmation', async () => {
     const fixture = await seed()
     const ready = await createReadyDraft(fixture)
     const snapshots: StockProjectionSnapshot[] = []
@@ -96,7 +96,7 @@ describe('SDD-01 direct Automation sync', () => {
         const persisted = await prisma.saldoStock.findUniqueOrThrow({
           where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lot.id, ubicacionId: fixture.deposito.id } },
         })
-        expect(persisted.cantidad).toBe(108)
+        expect(persisted.cantidad).toBe(120)
         snapshots.push(snapshot)
       },
     }
@@ -110,31 +110,28 @@ describe('SDD-01 direct Automation sync', () => {
     const response = await confirm(ready).expect(200)
 
     expect(response.body.pedido).toMatchObject({ estado: 'APROBADO', origen: 'AUTOMATION' })
-    expect(snapshots).toHaveLength(1)
-    expect(snapshots[0]?.productoTerminado).toContainEqual(expect.objectContaining({
-      producto: fixture.product.nombre,
-      lote: fixture.lot.numero,
-      total: 108,
-    }))
-    expect(await prisma.stockProjectionOutbox.count({ where: { causeId: response.body.pedido.id } })).toBe(1)
+    expect(snapshots).toEqual([expect.objectContaining({
+      productoTerminado: [expect.objectContaining({ producto: fixture.product.nombre, lote: fixture.lot.numero, total: 120 })],
+    })])
+    expect(await prisma.stockProjectionOutbox.count({ where: { causeId: response.body.pedido.id } })).toBe(0)
   })
 
-  it('does not sync when the Automation confirmation does not commit', async () => {
+  it('confirms an insufficient commercial order without discounting stock', async () => {
     const fixture = await seed(10)
     const ready = await createReadyDraft(fixture, 12)
     const sync = vi.fn().mockResolvedValue(undefined)
     syncBehavior = sync
 
-    await confirm(ready).expect(409)
+    await confirm(ready).expect(200)
 
-    expect(sync).not.toHaveBeenCalled()
+    expect(sync).toHaveBeenCalledOnce()
     expect((await prisma.saldoStock.findUniqueOrThrow({
       where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lot.id, ubicacionId: fixture.deposito.id } },
     })).cantidad).toBe(10)
     expect(await prisma.movimientoStock.count()).toBe(0)
   })
 
-  it('confirms and consumes stock without snapshot or Google calls when disabled', async () => {
+  it('does not build a snapshot or call Google when Automation confirms', async () => {
     const fixture = await seed()
     const ready = await createReadyDraft(fixture)
     const buildSnapshot = vi.fn().mockRejectedValue(new Error('must not run'))
@@ -149,10 +146,10 @@ describe('SDD-01 direct Automation sync', () => {
     expect(createAdapter).not.toHaveBeenCalled()
     expect((await prisma.saldoStock.findUniqueOrThrow({
       where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lot.id, ubicacionId: fixture.deposito.id } },
-    })).cantidad).toBe(108)
+    })).cantidad).toBe(120)
   })
 
-  it('keeps the committed confirmation successful and logs a sanitized constant when Google fails', async () => {
+  it('keeps confirmation successful and logs a sanitized sync failure', async () => {
     const fixture = await seed()
     const ready = await createReadyDraft(fixture)
     syncBehavior = async () => { throw new Error('private_key=must-never-be-logged') }
@@ -162,14 +159,14 @@ describe('SDD-01 direct Automation sync', () => {
     expect(response.body.pedido).toMatchObject({ estado: 'APROBADO', origen: 'AUTOMATION' })
     expect((await prisma.saldoStock.findUniqueOrThrow({
       where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lot.id, ubicacionId: fixture.deposito.id } },
-    })).cantidad).toBe(108)
-    expect(await prisma.movimientoStock.count({ where: { pedidoId: response.body.pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
+    })).cantidad).toBe(120)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: response.body.pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(0)
     expect(syncLogger.error).toHaveBeenCalledOnce()
     expect(syncLogger.error).toHaveBeenCalledWith(STOCK_PROJECTION_SYNC_FAILURE_LOG)
     expect(JSON.stringify(syncLogger.error.mock.calls)).not.toContain('private_key')
   })
 
-  it('allows an idempotent replay sync, never discounts twice, and remitos do not trigger sync', async () => {
+  it('allows idempotent replay sync without discounting stock', async () => {
     const fixture = await seed()
     const ready = await createReadyDraft(fixture)
     const writeSnapshot = vi.fn().mockResolvedValue(undefined)
@@ -187,23 +184,7 @@ describe('SDD-01 direct Automation sync', () => {
     expect(writeSnapshot).toHaveBeenCalledTimes(2)
     expect((await prisma.saldoStock.findUniqueOrThrow({
       where: { productoId_loteId_ubicacionId: { productoId: fixture.product.id, loteId: fixture.lot.id, ubicacionId: fixture.deposito.id } },
-    })).cantidad).toBe(108)
-    expect(await prisma.movimientoStock.count({ where: { pedidoId: first.body.pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
-
-    const issued = await request(app).post(`/api/ale-bet/pedidos/${first.body.pedido.id}/remitos`)
-      .set('Authorization', token('facturacion'))
-      .send({ expectedVersion: first.body.pedido.version, transporteOcasional: { nombre: 'Flete UAT', direccion: 'Ruta 2 km 50' } })
-      .expect(201)
-    expect(writeSnapshot).toHaveBeenCalledTimes(2)
-    await request(app).put(`/api/ale-bet/pedidos/${first.body.pedido.id}/remitos/${issued.body.id}/anular`)
-      .set('Authorization', token('facturacion'))
-      .send({ motivo: 'Documento emitido por error' })
-      .expect(200)
-    const afterVoid = await prisma.pedido.findUniqueOrThrow({ where: { id: first.body.pedido.id } })
-    await request(app).post(`/api/ale-bet/pedidos/${first.body.pedido.id}/remitos`)
-      .set('Authorization', token('facturacion'))
-      .send({ expectedVersion: afterVoid.version, transporteOcasional: { nombre: 'Flete UAT', direccion: 'Ruta 2 km 50' } })
-      .expect(201)
-    expect(writeSnapshot).toHaveBeenCalledTimes(2)
+    })).cantidad).toBe(120)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: first.body.pedido.id, tipo: 'SALIDA_PEDIDO' } })).toBe(0)
   })
 })
