@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => {
       solicitanteId: string
       aprobadoPor: string | null
       productoId: string | null
+      grupoId?: string | null
       categoria: 'estuche' | 'droga' | 'frasco' | 'etiqueta'
       productoNombre: string
       mercado: Mercado | null
@@ -62,6 +63,7 @@ const mocks = vi.hoisted(() => {
         solicitanteId: data.solicitanteId,
         aprobadoPor: null,
         productoId: data.productoId ?? null,
+        grupoId: data.grupoId ?? null,
         categoria: data.categoria,
         productoNombre: data.productoNombre,
         mercado: data.mercado ?? null,
@@ -308,6 +310,36 @@ describe('Órdenes de producción críticas', () => {
     expect(duplicateApproval.status).toBe(409)
     expect(mocks.state.inventarioEstuches[0]?.cantidad).toBe(7)
     expect(mocks.state.movimientos).toHaveLength(1)
+  })
+
+  it('groups a multiorder and leaves only the line without stock pending', async () => {
+    const secondProductId = '00000000-0000-4000-8000-000000000002'
+    mocks.state.inventarioEstuches.push({
+      id: 'est-1', productoId: productId, articulo: 'AMANTINA 500 ML', mercado: 'argentina', cantidad: 5,
+    })
+
+    const created = await request(app)
+      .post('/api/ordenes')
+      .set('x-test-role', 'solicitante')
+      .send({
+        items: [
+          { categoria: 'estuche', productoId: productId, mercado: 'argentina', cantidad: 3 },
+          { categoria: 'estuche', productoId: secondProductId, mercado: 'argentina', cantidad: 2 },
+        ],
+      })
+      .expect(201)
+
+    expect(created.body.grupoId).toEqual(expect.any(String))
+    expect(created.body.ordenes).toHaveLength(2)
+    expect(created.body.ordenes.every((orden: { grupoId: string }) => orden.grupoId === created.body.grupoId)).toBe(true)
+
+    const [withStock, withoutStock] = created.body.ordenes as Array<{ id: string }>
+    await request(app).post(`/api/ordenes/${withStock!.id}/aprobar`).set('x-test-role', 'encargado').expect(200)
+    const insufficient = await request(app).post(`/api/ordenes/${withoutStock!.id}/aprobar`).set('x-test-role', 'encargado').expect(409)
+
+    expect(insufficient.body.message).toMatch(/Stock insuficiente|no tiene inventario/)
+    expect(mocks.state.ordenes.map((orden) => orden.estado)).toEqual(['aprobada', 'solicitada'])
+    expect(mocks.state.inventarioEstuches[0]?.cantidad).toBe(2)
   })
 
   it('rechaza ejecutar con stock insuficiente', async () => {

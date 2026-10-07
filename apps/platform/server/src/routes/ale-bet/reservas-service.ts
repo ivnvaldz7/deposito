@@ -7,6 +7,7 @@ import { markStockProjectionDirty } from './stock-projection/outbox'
 type TransactionClient = Prisma.TransactionClient
 
 type ReservationInput = Array<{ id: string; productoId: string; cantidad: number }>
+export type LotSelectionInput = Array<{ itemPedidoId: string; productoId: string; loteId: string; cantidad: number }>
 
 type LockedLot = {
   id: string
@@ -23,6 +24,11 @@ type LockedLot = {
 }
 
 export class StockConflictError extends Error {}
+
+function isExpired(date: Date | null, now: Date): boolean {
+  if (!date) return false
+  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) < Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+}
 
 async function lockLots(tx: TransactionClient, productoId: string): Promise<LockedLot[]> {
   return tx.$queryRaw<LockedLot[]>(Prisma.sql`
@@ -122,11 +128,96 @@ export async function reserveFefo(tx: TransactionClient, pedidoId: string, items
   }
 }
 
+/**
+ * Reserves the lots expressly chosen while preparing an order.  This is not a
+ * UI hint: every lot and balance is locked again in the transaction so a
+ * stale selector cannot consume a different lot or oversell stock.
+ */
+export async function reserveSelectedLots(
+  tx: TransactionClient,
+  pedidoId: string,
+  items: ReservationInput,
+  selections: LotSelectionInput,
+): Promise<void> {
+  const depositoId = await getDepositoLocationId(tx)
+  const itemsById = new Map(items.map((item) => [item.id, item]))
+  const selectedByItem = new Map<string, Array<{ productoId: string; loteId: string; cantidad: number }>>()
+
+  for (const selection of selections) {
+    if (!Number.isInteger(selection.cantidad) || selection.cantidad <= 0) {
+      throw new StockConflictError('Cada lote seleccionado debe tener una cantidad entera positiva')
+    }
+    const item = itemsById.get(selection.itemPedidoId)
+    if (!item || item.productoId !== selection.productoId) {
+      throw new StockConflictError('La selección de lote no corresponde a una línea vigente del pedido')
+    }
+    const current = selectedByItem.get(selection.itemPedidoId) ?? []
+    current.push({ productoId: selection.productoId, loteId: selection.loteId, cantidad: selection.cantidad })
+    selectedByItem.set(selection.itemPedidoId, current)
+  }
+
+  for (const item of items) {
+    const chosen = selectedByItem.get(item.id) ?? []
+    const selectedTotal = chosen.reduce((total, entry) => total + entry.cantidad, 0)
+    if (selectedTotal !== item.cantidad) {
+      throw new StockConflictError(`La selección de lotes debe completar exactamente ${item.cantidad} unidades para cada producto`)
+    }
+  }
+
+  const byProduct = new Map<string, ReservationInput>()
+  for (const item of items) {
+    const current = byProduct.get(item.productoId) ?? []
+    current.push(item)
+    byProduct.set(item.productoId, current)
+  }
+
+  const today = new Date()
+  for (const productoId of [...byProduct.keys()].sort((left, right) => left.localeCompare(right))) {
+    const lockedLots = await lockLots(tx, productoId)
+    const byLotId = new Map(lockedLots.map((lot) => [lot.id, lot]))
+    const neededByLot = new Map<string, number>()
+    const entries: Array<{ itemPedidoId: string; loteId: string; cantidad: number }> = []
+    for (const item of byProduct.get(productoId) ?? []) {
+      for (const selection of selectedByItem.get(item.id) ?? []) {
+        const lot = byLotId.get(selection.loteId)
+        if (!lot || !lot.activo) throw new StockConflictError('El lote seleccionado ya no está disponible en DEPÓSITO')
+        if (isExpired(lot.fechaVencimiento, today)) {
+          throw new StockConflictError(`El lote ${lot.numero} está vencido y no se puede usar`)
+        }
+        neededByLot.set(selection.loteId, (neededByLot.get(selection.loteId) ?? 0) + selection.cantidad)
+        entries.push({ itemPedidoId: item.id, loteId: selection.loteId, cantidad: selection.cantidad })
+      }
+    }
+    const active = await tx.reservaStock.groupBy({
+      by: ['loteId'],
+      where: { loteId: { in: [...neededByLot.keys()] }, estado: 'ACTIVA' },
+      _sum: { cantidad: true },
+    })
+    const reservedByLot = new Map(active.map((entry) => [entry.loteId, entry._sum.cantidad ?? 0]))
+    for (const [loteId, needed] of neededByLot) {
+      const lot = byLotId.get(loteId)!
+      const available = Math.max(0, lot.cantidad - (reservedByLot.get(loteId) ?? lot.reservado))
+      if (needed > available) throw new StockConflictError(`El lote ${lot.numero} ya no tiene stock suficiente; disponible: ${available}u`)
+    }
+    for (const entry of entries) {
+      await tx.reservaStock.create({
+        data: {
+          cantidad: entry.cantidad,
+          pedido: { connect: { id: pedidoId } },
+          itemPedido: { connect: { id: entry.itemPedidoId } },
+          lote: { connect: { id: entry.loteId } },
+          ubicacion: { connect: { id: depositoId } },
+        },
+      })
+    }
+  }
+}
+
 export async function consumeActiveReservations(
   tx: TransactionClient,
   pedidoId: string,
   actorId: string,
-  options: { skipOutbox?: boolean } = {},
+  options: { skipOutbox?: boolean; remitoId?: string; remitoNumero?: string } = {},
 ): Promise<void> {
   const reservations = await tx.reservaStock.findMany({
     where: { pedidoId, estado: 'ACTIVA' },
@@ -163,9 +254,10 @@ export async function consumeActiveReservations(
         productoId: lot.productoId,
         cantidad: -reservation.cantidad,
         tipo: TipoMovimiento.SALIDA_PEDIDO,
-        referencia: pedidoId,
+        referencia: options.remitoNumero ? `REMITO:${options.remitoNumero}` : pedidoId,
         usuarioId: actorId,
         pedidoId,
+        remitoId: options.remitoId,
         loteId: lot.id,
         reservaId: reservation.id,
         origenUbicacionId: reservation.ubicacionId,

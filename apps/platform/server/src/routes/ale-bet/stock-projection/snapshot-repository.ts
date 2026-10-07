@@ -46,5 +46,5 @@ export async function readStockProjectionSource(
 export async function buildCurrentStockProjectionSnapshot(
   prisma: StockProjectionReadClient,
 ): Promise<StockProjectionSnapshot> {
-  return buildStockProjectionSnapshot(await readStockProjectionSource(prisma))
+  return buildStockProjectionSnapshot(await readStockProjectionSource(prisma), new Date())
 }

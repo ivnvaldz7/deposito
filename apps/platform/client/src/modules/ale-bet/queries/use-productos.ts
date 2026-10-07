@@ -90,7 +90,7 @@ export function useCreateLote() {
 export function useUpdateLote() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ productoId, loteId, ...data }: { productoId: string; loteId: string; cajas?: number; sueltos?: number; activo?: boolean }) =>
+    mutationFn: ({ productoId, loteId, ...data }: { productoId: string; loteId: string; cajas?: number; sueltos?: number; activo?: boolean; fechaVencimiento?: string | null }) =>
       aleBetApi.productos.lotes.update(productoId, loteId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: productosKeys.all }),
   })

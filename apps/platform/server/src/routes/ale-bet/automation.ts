@@ -27,7 +27,13 @@ const editSchema = z.object({
   const edits = Number(Boolean(value.clienteId)) + Number(Boolean(value.line))
   if (edits !== 1) context.addIssue({ code: z.ZodIssueCode.custom, message: 'La edición debe cambiar exactamente un cliente o una línea' })
 })
-const confirmSchema = z.object({ expectedVersion: z.number().int().positive() })
+const confirmSchema = z.object({
+  expectedVersion: z.number().int().positive(),
+  // Automation registers the commercial order.  Lots and physical stock are
+  // deliberately selected later, when a concrete remito is approved.
+  selecciones: z.array(z.object({ itemPedidoId: z.string().min(1), productoId: z.string().min(1), loteId: z.string().min(1), cantidad: z.number().int().positive() })).default([]),
+  transferencias: z.array(z.object({ productoId: z.string().min(1), loteId: z.string().min(1), origen: z.literal('ACONDICIONADO'), destino: z.literal('DEPOSITO'), cantidad: z.number().int().positive() })).default([]),
+})
 
 function isAutomationOperator(user: JwtPayload): boolean { return getAppAccess(user, 'ale-bet')?.rol === 'admin' }
 function requireOperator(req: { user?: JwtPayload }, res: { status: (code: number) => { json: (body: unknown) => void } }): boolean {
@@ -118,14 +124,26 @@ router.post('/drafts/:id/confirm', requirePermission('ale-bet', 'pedidos.approve
       await tx.$queryRaw`SELECT id FROM "ale_bet"."OrderInterpretationDraft" WHERE id = ${draftId} FOR UPDATE`
       const acquired = await acquireIdempotencyRecord(tx, user.sub, scope, key, calculateFingerprint(req.method, scope, draftId, input.data))
       if (acquired.type === 'REPLAY') return { body: acquired.body, replayed: true }
-      const body = await confirmDraftInTransaction(tx, { draftId, expectedVersion: input.data.expectedVersion, actorId: user.sub })
+      const body = await confirmDraftInTransaction(tx, { draftId, expectedVersion: input.data.expectedVersion, actorId: user.sub, selecciones: input.data.selecciones, transferencias: input.data.transferencias })
       await completeIdempotencyRecord(tx, acquired.id, 200, toPersistableResponseBody(body))
       return { body, replayed: false }
     })
     await syncStockProjectionAfterCommit({ syncStockProjectionNow: syncProjection, logger })
     if (result.replayed) res.setHeader('Idempotency-Replayed', 'true')
     res.json(result.body)
-  } catch (error) { errorResponse(error, res) }
+  } catch (error) {
+    // A 409 is an expected protection, but it must be observable. Without
+    // this record operators only saw a generic dialog and could not tell if
+    // the order had already been committed.
+    logger.error('[automation.confirm] rejected', {
+      draftId,
+      actorId: user.sub,
+      expectedVersion: input.data.expectedVersion,
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+      errorMessage: error instanceof Error ? error.message : String(error),
+    })
+    errorResponse(error, res)
+  }
 })
 
   return router

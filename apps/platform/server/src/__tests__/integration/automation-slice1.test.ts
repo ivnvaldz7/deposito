@@ -262,6 +262,17 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(reviewed.effectiveSnapshot.lines[0]).toMatchObject({ productCandidate: { productId: product.id }, requiresReview: false, warnings: [] })
   })
 
+  it('abre un borrador DRAFT con líneas pendientes para poder corregirlas', async () => {
+    const fixture = await createPartialDraft()
+    const current = await getEffective(fixture.draft.id, fixture.auth)
+
+    expect(current.draft.estado).toBe('DRAFT')
+    expect(current.effectiveSnapshot.lines.filter((line: { requiresReview: boolean }) => line.requiresReview)).toHaveLength(2)
+    expect(current.availability).toEqual([
+      expect.objectContaining({ productId: fixture.productC.id, requestedUnits: 7 }),
+    ])
+  })
+
   it('A: corregir cliente conserva el producto unresolved', async () => {
     const fixture = await createPartialDraft()
     await request(app).put(`/api/ale-bet/automation/drafts/${fixture.draft.id}`).set('Authorization', fixture.auth)

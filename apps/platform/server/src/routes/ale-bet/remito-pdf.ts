@@ -130,7 +130,7 @@ export function renderRemitoPdf(document: RemitoPdfDocument, input: RemitoPdfInp
       rule(document, MARGIN + ROW_HEIGHT); y = MARGIN + ROW_HEIGHT; pageItemsTop = MARGIN
     }
     document.font('Helvetica').fontSize(9.2).text(item.cantidad ?? '', MARGIN + 8, y + 7, { width: 82, align: 'center' }).text(item.nombre ?? '', quantityRight + 12, y + 7, { width: right - quantityRight - 20, height: ROW_HEIGHT - 8, ellipsis: true })
-    rule(document, y + ROW_HEIGHT); y += ROW_HEIGHT
+    y += ROW_HEIGHT
   }
   const footerTop = Math.max(y + 10, PAGE_HEIGHT - 160); const signatureLeft = 365
   vertical(document, quantityRight, pageItemsTop, footerTop); rule(document, footerTop); vertical(document, signatureLeft, footerTop, PAGE_HEIGHT - MARGIN - 42)

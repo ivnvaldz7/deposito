@@ -157,17 +157,17 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-primary tracking-tighter">Depósito</h1>
-          <p className="font-body text-base text-on-surface-variant mt-1">
+          <h1 className="text-2xl font-bold text-primary tracking-tighter sm:text-3xl">Depósito</h1>
+          <p className="font-body text-sm text-on-surface-variant mt-1 sm:text-base">
             Resumen del inventario y alertas críticas.
           </p>
         </div>
         {can(user, 'deposito', 'ingresos.create') && (
           <button
             onClick={() => navigate('/deposito/ingresos')}
-            className="flex items-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float"
+            className="flex min-h-11 w-full items-center justify-center gap-2 bg-primary text-on-primary font-body text-sm font-semibold px-lg py-sm rounded-lg scale-hover transition-transform duration-200 hover:brightness-110 shadow-float sm:w-auto"
           >
             <Plus size={18} />
             <span>Nuevo ingreso</span>
@@ -270,7 +270,19 @@ export default function DashboardPage() {
         <div className="lg:col-span-1">
           <h2 className="text-lg font-semibold text-on-surface mb-md">Últimos movimientos</h2>
           <div className="bg-surface-container-high rounded-xl border border-white/10 overflow-hidden">
-            <table className="w-full text-left border-collapse">
+            <div className="md:hidden divide-y divide-white/5">
+              {stats.ultimosMovimientos.length === 0 ? (
+                <p className="p-6 text-center text-xs text-on-surface-variant">Sin movimientos registrados.</p>
+              ) : stats.ultimosMovimientos.slice(0, 6).map((mov) => (
+                <article key={mov.id} className="flex items-center justify-between gap-3 p-3">
+                  <div className="min-w-0"><p className="truncate text-sm font-medium text-on-surface">{mov.productoNombre}</p><div className="mt-1"><TipoChip tipo={mov.tipo} /></div></div>
+                  <p className="shrink-0 text-right text-sm font-bold tabular-nums" style={{ color: mov.cantidad >= 0 ? 'var(--color-primary)' : 'var(--color-error)' }}>
+                    {mov.cantidad >= 0 ? '+' : ''}{mov.cantidad} {mov.categoria === 'droga' ? 'kg' : 'uds'}
+                  </p>
+                </article>
+              ))}
+            </div>
+            <table className="hidden w-full text-left border-collapse md:table">
               <thead>
                 <tr className="border-b border-white/5 bg-surface-container-low font-body text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
                   <th className="p-3 font-normal">Item</th>

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { Sidebar } from '../Sidebar'
@@ -45,10 +45,11 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
     )
 
     // The Active Link should have "bg-surface-variant/30 text-on-surface font-semibold"
-    const actasLink = screen.getByRole('link', { name: /Actas/i })
+    const desktopNav = within(screen.getByRole('complementary'))
+    const actasLink = desktopNav.getByRole('link', { name: /Actas/i })
     expect(actasLink).toHaveClass('font-semibold')
     
-    const dashboardLink = screen.getByRole('link', { name: /Dashboard/i })
+    const dashboardLink = desktopNav.getByRole('link', { name: /Dashboard/i })
     expect(dashboardLink).not.toHaveClass('font-semibold')
   })
 
@@ -60,7 +61,7 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
   it('uses the operational navigation order and keeps Productos out of the visible menu', () => {
     render(<MemoryRouter><Sidebar /></MemoryRouter>)
 
-    expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
+    expect(within(screen.getByRole('complementary')).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
       '/deposito/dashboard',
       '/deposito/actas',
       '/deposito/ordenes',
@@ -75,5 +76,11 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
       '/deposito/metricas',
     ])
     expect(screen.queryByRole('link', { name: 'Productos' })).not.toBeInTheDocument()
+  })
+
+  it('keeps the mobile navigation compact and exposes more operational sections on demand', () => {
+    render(<MemoryRouter><Sidebar /></MemoryRouter>)
+
+    expect(screen.getByRole('button', { name: 'Más opciones' })).toBeInTheDocument()
   })
 })

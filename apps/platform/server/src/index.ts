@@ -14,6 +14,7 @@ import { createBootstrapRoutes } from './routes/bootstrap/index'
 import { eventBus, createNotificationHandler } from '@platform/core'
 import { platformDb } from '@platform/db'
 import { getHealthResponse } from './health'
+import { syncStockProjectionAfterCommit } from './routes/ale-bet/stock-projection/direct-sync'
 
 const app = express()
 const PORT = Number(process.env.PORT ?? 3000)
@@ -102,6 +103,9 @@ setInterval(async () => {
 
 app.listen(PORT, HOST, () => {
   console.log(`Platform server running on http://${HOST}:${PORT}`)
+  // Mantiene STOCK APP sincronizada al publicar una nueva versión, incluso si
+  // todavía no hubo un movimiento de stock desde el reinicio.
+  void syncStockProjectionAfterCommit()
 })
 
 export default app

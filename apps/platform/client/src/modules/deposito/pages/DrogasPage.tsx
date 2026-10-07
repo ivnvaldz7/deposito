@@ -278,7 +278,7 @@ export default function DrogasPage() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <header className="shrink-0 flex items-center justify-between mb-lg">
+      <header className="shrink-0 flex flex-col gap-3 mb-lg sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-md">
           <h1 className="text-xl font-semibold text-on-surface tracking-tight">
             Drogas
@@ -287,14 +287,14 @@ export default function DrogasPage() {
             {activeProductCount} activas
           </span>
         </div>
-        <div className="flex items-center gap-3"><div className="relative group">
+        <div className="flex items-center gap-3"><div className="relative group w-full sm:w-auto">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por nombre o lote..."
-            className="w-64 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+            className="w-full min-h-11 sm:min-h-0 sm:w-64 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
           />
         </div></div>
       </header>

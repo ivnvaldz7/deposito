@@ -14,6 +14,7 @@ const HistorialPage = lazy(() => import('./pages/HistorialPage'))
 const TransportistasPage = lazy(() => import('./pages/TransportistasPage'))
 const VentasPage = lazy(() => import('./pages/VentasPage'))
 const AutomationPage = lazy(() => import('./pages/automation/AutomationPage'))
+const RemitosManualesPage = lazy(() => import('./pages/RemitosManualesPage'))
 
 function LoadingFallback() {
   return (
@@ -28,7 +29,7 @@ export default function AleBetModule() {
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 md:ml-[280px]">
-        <main className="flex-1 p-margin-desktop overflow-y-auto">
+        <main className="flex-1 overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-5 sm:pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:p-margin-desktop">
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route index element={<Navigate to="dashboard" replace />} />
@@ -37,6 +38,7 @@ export default function AleBetModule() {
               <Route path="pedidos/nuevo" element={<PermissionRoute app="ale-bet" permission="pedidos.create"><NuevoPedidoPage /></PermissionRoute>} />
               <Route path="pedidos/:id" element={<PermissionRoute app="ale-bet" permission="pedidos.read"><PedidoDetailPage /></PermissionRoute>} />
               <Route path="automation" element={<PermissionRoute app="ale-bet" permission="pedidos.approve"><AutomationPage /></PermissionRoute>} />
+              <Route path="remitos" element={<PermissionRoute app="ale-bet" permission="remitos.create"><RemitosManualesPage /></PermissionRoute>} />
               <Route path="productos" element={<ProductosPage />} />
               <Route path="clientes" element={<PermissionRoute app="ale-bet" permission="clientes.read"><ClientesPage /></PermissionRoute>} />
               <Route path="stock" element={<StockPage />} />

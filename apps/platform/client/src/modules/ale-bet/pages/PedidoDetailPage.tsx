@@ -30,13 +30,15 @@ import {
   pedidoClientePendiente,
 } from '../lib/estados'
 import { roleHasPermission } from '@platform/core/permissions'
-import type { Cliente, PedidoItemInput } from '../lib/api'
+import { aleBetApi, type Cliente, type Pedido, type PedidoItemInput, type PedidoDisponibilidadStock } from '../lib/api'
 import {
   descargarRemitoPdf,
   pedidosKeys,
   useAnularRemito,
+  useAprobarDescuentoRemito,
   useAmpliarPedidoConfirmado,
   useAprobarPedido,
+  useAprobarDescuentoRemitoManual,
   useCancelarPedido,
   useClientes,
   useCompletarItemPedido,
@@ -51,6 +53,8 @@ import {
   useProductos,
   useProductosSearch,
   useRegistrarDevolucionPedido,
+  useActualizarRemitoConfiguracion,
+  useRemitoConfiguracion,
   useTomarPedido,
   useTransportistas,
   useUpdatePedido,
@@ -59,6 +63,7 @@ import { BottomSheet } from '../components/BottomSheet'
 import { ArmadorActionBar } from '../components/ArmadorActionBar'
 import { ProductCard, type ProductoCardDatos } from '../components/ProductCard'
 import { QuantityStepper } from '../components/QuantityStepper'
+import { LotAllocationSelector } from '../components/LotAllocationSelector'
 
 
 interface CartLine {
@@ -543,9 +548,12 @@ interface TransportSelectorProps {
   setTransporteId: (id: string) => void
   usarOcasional: boolean
   setUsarOcasional: (v: boolean) => void
+  entregaDirectaDisponible: boolean
+  usarEntregaDirecta: boolean
+  setUsarEntregaDirecta: (v: boolean) => void
 }
 
-function TransportSelector({ transportistas, transporteId, setTransporteId, usarOcasional, setUsarOcasional }: TransportSelectorProps) {
+function TransportSelector({ transportistas, transporteId, setTransporteId, usarOcasional, setUsarOcasional, entregaDirectaDisponible, usarEntregaDirecta, setUsarEntregaDirecta }: TransportSelectorProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState("")
   const ref = useRef<HTMLDivElement>(null)
@@ -566,6 +574,8 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
     if (!open) {
       if (usarOcasional) {
         setSearch("OTRO / TRANSPORTE OCASIONAL")
+      } else if (usarEntregaDirecta) {
+        setSearch("ENTREGA DIRECTA AL CLIENTE")
       } else if (selectedT) {
         setSearch(selectedT.nombre)
       } else {
@@ -575,10 +585,10 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
   }, [open, usarOcasional, selectedT])
 
   const filtered = useMemo(() => {
-    if (!search || (selectedT && search === selectedT.nombre) || (usarOcasional && search === "OTRO / TRANSPORTE OCASIONAL")) return transportistas
+    if (!search || (selectedT && search === selectedT.nombre) || (usarOcasional && search === "OTRO / TRANSPORTE OCASIONAL") || (usarEntregaDirecta && search === "ENTREGA DIRECTA AL CLIENTE")) return transportistas
     const s = search.toLowerCase()
     return transportistas.filter(t => t.nombre.toLowerCase().includes(s) || (t.direccion && t.direccion.toLowerCase().includes(s)))
-  }, [transportistas, search, selectedT, usarOcasional])
+  }, [transportistas, search, selectedT, usarOcasional, usarEntregaDirecta])
 
   return (
     <div className="relative w-full md:w-[320px]" ref={ref}>
@@ -596,6 +606,7 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
             setOpen(true)
             if (transporteId) setTransporteId("")
             if (usarOcasional) setUsarOcasional(false)
+            if (usarEntregaDirecta) setUsarEntregaDirecta(false)
           }}
           onFocus={() => setOpen(true)}
           onClick={() => setOpen(true)}
@@ -608,6 +619,7 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
               setSearch("")
               setTransporteId("")
               setUsarOcasional(false)
+              setUsarEntregaDirecta(false)
               setOpen(true)
             }}
           >
@@ -625,7 +637,7 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
               <button
                 key={t.id}
                 type="button"
-                onClick={() => { setUsarOcasional(false); setTransporteId(t.id); setOpen(false) }}
+                onClick={() => { setUsarOcasional(false); setUsarEntregaDirecta(false); setTransporteId(t.id); setOpen(false) }}
                 className={cn(
                   "flex flex-col w-full px-3 py-2 text-left rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
                   !usarOcasional && transporteId === t.id ? "bg-primary/10" : ""
@@ -641,7 +653,7 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
           <div className="my-1 h-[1px] w-full bg-white/10" />
           <button
             type="button"
-            onClick={() => { setUsarOcasional(true); setTransporteId(''); setOpen(false) }}
+            onClick={() => { setUsarOcasional(true); setUsarEntregaDirecta(false); setTransporteId(''); setOpen(false) }}
             className={cn(
               "flex w-full items-center px-3 py-2.5 text-left text-[14px] font-body rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
               usarOcasional ? "bg-primary/10 text-primary font-semibold" : "font-semibold text-primary/80"
@@ -649,9 +661,55 @@ function TransportSelector({ transportistas, transporteId, setTransporteId, usar
           >
             OTRO / TRANSPORTE OCASIONAL
           </button>
+          {entregaDirectaDisponible && (
+            <button
+              type="button"
+              onClick={() => { setUsarOcasional(false); setUsarEntregaDirecta(true); setTransporteId(''); setOpen(false) }}
+              className={cn(
+                "flex w-full items-center px-3 py-2.5 text-left text-[14px] font-body rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
+                usarEntregaDirecta ? "bg-primary/10 text-primary font-semibold" : "font-semibold text-primary/80"
+              )}
+            >
+              ENTREGA DIRECTA AL CLIENTE
+            </button>
+          )}
         </div>
       )}
     </div>
+  )
+}
+
+function RemitoNumerationSetup({ enabled }: { enabled: boolean }) {
+  const { data: configuracion, isLoading } = useRemitoConfiguracion(enabled)
+  const actualizar = useActualizarRemitoConfiguracion()
+  const [correlativo, setCorrelativo] = useState('')
+
+  if (!enabled || isLoading || !configuracion || configuracion.proximoCorrelativo !== null) return null
+  const configuracionLista = configuracion
+
+  async function guardar(): Promise<void> {
+    const value = Number(correlativo)
+    if (!Number.isInteger(value) || value < 1) {
+      toast.error('Ingresá el próximo número de remito, sin el punto de venta')
+      return
+    }
+    try {
+      await actualizar.mutateAsync({ proximoCorrelativo: value })
+      toast.success(`Numeración configurada: ${configuracionLista.puntoVenta}-${String(value).padStart(8, '0')}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo configurar la numeración')
+    }
+  }
+
+  return (
+    <section aria-label="Numeración de remitos pendiente" className="mb-4 rounded-xl border border-warning/40 bg-warning/10 p-4">
+      <h2 className="font-body text-[13px] font-bold text-on-surface">Antes de emitir el primer remito</h2>
+      <p className="mt-1 font-body text-[12px] text-on-surface-variant">Indicá el próximo número. El punto de venta es fijo: {configuracionLista.puntoVenta}. Luego el sistema continúa la numeración automáticamente.</p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input aria-label="Próximo número de remito" value={correlativo} inputMode="numeric" onChange={(event) => setCorrelativo(event.target.value.replace(/\D/g, ''))} placeholder="Ej: 13216" className="input-field" />
+        <Button onClick={() => void guardar()} loading={actualizar.isPending} className="shrink-0">Guardar numeración</Button>
+      </div>
+    </section>
   )
 }
 
@@ -691,7 +749,67 @@ export default function PedidoDetailPage() {
     return <AutomationPedidoDetail pedido={pedido} />
   }
 
+  if (pedido.esRemitoManual && pedido.estado === 'PREPARADO') {
+    return <RemitoManualPendienteDetalle pedido={pedido} />
+  }
+
   return <PedidoDetailPageLegacy pedidoData={pedido} />
+}
+
+function RemitoManualPendienteDetalle({ pedido }: { pedido: Pedido }) {
+  const user = useAuthStore((state) => state.user)
+  const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const approve = useAprobarDescuentoRemitoManual()
+  const { data: disponibilidad } = usePedidoDisponibilidad(pedido.id)
+  const [lotSelectorOpen, setLotSelectorOpen] = useState(false)
+  const remito = pedido.remitos?.find((candidate) => candidate.estado === 'VIGENTE')
+  const puedeAprobar = (rol === 'admin' || rol === 'encargado') && Boolean(remito)
+
+  async function aprobarDescuento(selecciones: import('../lib/api').PedidoDisponibilidadStock['allocations']) {
+    try {
+      await approve.mutateAsync({ id: pedido.id, expectedVersion: pedido.version, selecciones, transferencias: disponibilidad?.transferencias ?? [], idempotencyKey: newIdempotencyKey() })
+      toast.success('Stock descontado correctamente por lote.')
+      setLotSelectorOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo descontar el stock.')
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+      <header className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container p-6">
+        <div>
+          <p className="font-body text-xs font-semibold uppercase tracking-[0.16em] text-primary">Remito manual</p>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-on-surface">{pedido.cliente.nombre}</h1>
+          <p className="mt-1 font-body text-sm text-on-surface-variant">{remito?.numero ?? pedido.numero} · Emitido y pendiente a descuento</p>
+        </div>
+        <Badge variant="warning">Pendiente a descuento</Badge>
+      </header>
+      <section className="rounded-xl border border-outline-variant bg-surface-container p-5">
+        <h2 className="font-display text-lg font-semibold">Productos</h2>
+        <div className="mt-4 divide-y divide-outline-variant/70">{pedido.items.map((item) => <div key={item.id} className="flex items-center justify-between gap-4 py-3"><span className="font-body text-sm font-semibold">{item.producto.nombre}</span><span className="font-body text-sm">{item.cantidad} un</span></div>)}</div>
+      </section>
+      <section className="rounded-xl border border-warning/40 bg-warning/10 p-5">
+        <h2 className="font-display text-lg font-semibold text-on-surface">Aprobación de stock</h2>
+        <p className="mt-1 font-body text-sm text-on-surface-variant">Al aprobar elegís los lotes, se valida el stock actual y recién entonces se descuenta. Si no alcanza, no se modifica nada.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button variant="outline" onClick={() => void descargarRemitoPdf(pedido.id)}>Abrir remito</Button>
+          {puedeAprobar && <Button loading={approve.isPending} disabled={!disponibilidad || disponibilidad.status === 'INSUFICIENTE'} onClick={() => setLotSelectorOpen(true)}>Elegir lotes y aprobar</Button>}
+          {!puedeAprobar && <p className="self-center font-body text-sm text-on-surface-variant">Sólo Encargado o Admin puede aprobar el descuento.</p>}
+        </div>
+      </section>
+      {lotSelectorOpen && disponibilidad && (
+        <LotAllocationSelector
+          items={pedido.items.map((item) => ({ id: item.id, productoId: item.productoId, nombre: item.producto.nombre, cantidad: item.cantidad }))}
+          disponibilidad={disponibilidad}
+          mode="descuento"
+          submitting={approve.isPending}
+          onCancel={() => setLotSelectorOpen(false)}
+          onConfirm={(selecciones) => void aprobarDescuento(selecciones)}
+        />
+      )}
+    </div>
+  )
 }
 function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
   const { id } = useParams<{ id: string }>()
@@ -719,6 +837,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
   const [confirmarOpen, setConfirmarOpen] = useState(false)
   const [anularOpen, setAnularOpen] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmAccion | null>(null)
+  const [lotSelectorOpen, setLotSelectorOpen] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [esperas, setEsperas] = useState<Record<string, boolean>>({})
   const [finalizandoArmado, setFinalizandoArmado] = useState(false)
@@ -738,6 +857,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
 
   const [transporteId, setTransporteId] = useState('')
   const [usarOcasional, setUsarOcasional] = useState(false)
+  const [usarEntregaDirecta, setUsarEntregaDirecta] = useState(false)
   const [ocasionalNombre, setOcasionalNombre] = useState('')
   const [ocasionalDireccion, setOcasionalDireccion] = useState('')
   const [remitoError, setRemitoError] = useState<string | null>(null)
@@ -1058,15 +1178,13 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
           toast.error('No hay disponibilidad vigente para aprobar el pedido')
           return
         }
-        const aprobado = await aprobarMutation.mutateAsync({
-          id: pedido.id,
-          expectedVersion: pedido.version,
-          fingerprint: disponibilidad.fingerprint,
-          transferencias: disponibilidad.transferencias,
-          idempotencyKey: newIdempotencyKey(),
-        })
-        toast.success(`Pedido ${aprobado.numero} aprobado`)
-        invalidarTodo()
+        if (!Array.isArray(disponibilidad.lotes)) {
+          isExecutingRef.current = false
+          await confirmarLotesSeleccionados(disponibilidad.allocations)
+          return
+        }
+        setLotSelectorOpen(true)
+        return
       } else if (confirm === 'tomar') {
         await tomarMutation.mutateAsync({
           id: pedido.id,
@@ -1112,7 +1230,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
           expectedVersion: pedido.version,
           idempotencyKey: newIdempotencyKey(),
         })
-        toast.success('Pedido despachado')
+        toast.success('Stock descontado')
         invalidarTodo()
       } else if (confirm === 'guardar-aprobado') {
         await ejecutarGuardar()
@@ -1125,6 +1243,28 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
     } finally {
       isExecutingRef.current = false
       setConfirm(null)
+    }
+  }
+
+  async function confirmarLotesSeleccionados(selecciones: import('../lib/api').PedidoDisponibilidadStock['allocations']) {
+    if (!pedido || !disponibilidad || isExecutingRef.current) return
+    isExecutingRef.current = true
+    try {
+      const aprobado = await aprobarMutation.mutateAsync({
+        id: pedido.id,
+        expectedVersion: pedido.version,
+        fingerprint: disponibilidad.fingerprint,
+        transferencias: disponibilidad.transferencias,
+        selecciones,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success(`Pedido ${aprobado.numero} aprobado`)
+      setLotSelectorOpen(false)
+      invalidarTodo()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo reservar la selección de lotes')
+    } finally {
+      isExecutingRef.current = false
     }
   }
 
@@ -1243,8 +1383,8 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
         }
         return
       }
-    } else if (!transporteId) {
-      setRemitoError('Seleccioná un transporte habitual o indicá un transporte ocasional')
+    } else if (!transporteId && !pedido?.cliente.direccion?.trim()) {
+      setRemitoError('Seleccioná un transporte o cargá el domicilio del cliente para entrega directa')
       return
     }
     setRemitoError(null)
@@ -1255,16 +1395,19 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
         expectedVersion: pedido.version,
         ...(usarOcasional
           ? { transporteOcasional: { nombre: ocasionalNombre.trim(), direccion: ocasionalDireccion.trim() } }
-          : { transportistaId: transporteId }),
+          : transporteId ? { transportistaId: transporteId } : {}),
         idempotencyKey: newIdempotencyKey(),
       })
       toast.success('Remito emitido')
       setTransporteId('')
       setUsarOcasional(false)
+      setUsarEntregaDirecta(false)
       setOcasionalNombre('')
       setOcasionalDireccion('')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error al emitir el remito')
+      const message = e instanceof Error ? e.message : 'Error al emitir el remito'
+      setRemitoError(message)
+      toast.error(message)
     }
   }
 
@@ -1399,7 +1542,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
               )}
               {canDespachar(pedido, rol, userId) && (
                 <div data-testid="accion-despachar-desktop" className="hidden lg:block w-full md:w-auto">
-                  <button type="button" onClick={() => setConfirm('despachar')} disabled={despacharMutation.isPending} className="h-9 w-full md:w-auto px-4 rounded-full border border-error/40 font-body text-[13px] font-semibold text-error transition hover:bg-error/10 disabled:opacity-50">Confirmar despacho</button>
+                  <button type="button" onClick={() => setConfirm('despachar')} disabled={despacharMutation.isPending} className="h-9 w-full md:w-auto px-4 rounded-full border border-error/40 font-body text-[13px] font-semibold text-error transition hover:bg-error/10 disabled:opacity-50">Aprobar descuento</button>
                 </div>
               )}
 
@@ -1418,8 +1561,8 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
 
               {pedido.estado === 'DESPACHADO' && (
                 <div className="text-left md:text-right w-full">
-                  <p className="font-semibold text-[14px] text-success">Pedido despachado</p>
-                  {pedido.despachadoAt && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">El {formatFechaHora(pedido.despachadoAt)}</p>}
+                  <p className="font-semibold text-[14px] text-success">Stock descontado</p>
+                  {pedido.despachadoAt && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">Aprobado el {formatFechaHora(pedido.despachadoAt)}</p>}
                   {canDevolver && <Button variant="outline" onClick={abrirDevolucion} className="mt-3 h-9 w-full md:w-auto px-4 text-[12px]">Registrar devolución</Button>}
                 </div>
               )}
@@ -1561,6 +1704,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
               </div>
             ) : canEmitirRemito(pedido, rol) ? (
               <div>
+                <RemitoNumerationSetup enabled={esRemitos} />
                 <h2 className="font-body text-[13px] font-bold tracking-wide text-on-surface-variant uppercase mb-3">Transporte</h2>
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-col md:flex-row md:items-start gap-3">
@@ -1570,8 +1714,11 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
                       setTransporteId={setTransporteId}
                       usarOcasional={usarOcasional}
                       setUsarOcasional={setUsarOcasional}
+                      entregaDirectaDisponible={Boolean(pedido.cliente.direccion?.trim())}
+                      usarEntregaDirecta={usarEntregaDirecta}
+                      setUsarEntregaDirecta={setUsarEntregaDirecta}
                     />
-                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} disabled={!transporteId && !usarOcasional} className="h-11 w-full md:w-auto px-6 font-semibold">
+                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} className="h-11 w-full md:w-auto px-6 font-semibold">
                       Emitir remito
                     </Button>
                   </div>
@@ -1603,6 +1750,12 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
                         </div>
                       </div>
                     </div>
+                  )}
+                  {usarEntregaDirecta && (
+                    <p className="mt-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 font-body text-[12px] text-on-surface">Se emitirá como entrega directa a: <strong>{pedido.cliente.direccion}</strong>.</p>
+                  )}
+                  {!transporteId && !usarOcasional && !pedido.cliente.direccion?.trim() && (
+                    <p className="mt-3 font-body text-[12px] text-warning">Este cliente no tiene domicilio cargado. Para entrega directa, completalo en Clientes; también podés seleccionar un transportista u “Otro”.</p>
                   )}
                   {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error mt-2">{remitoError}</p>}
                 </div>
@@ -1850,6 +2003,16 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
         </div>
       </BottomSheet>
 
+      {lotSelectorOpen && disponibilidad && (
+        <LotAllocationSelector
+          items={pedido.items.map((item) => ({ id: item.id, productoId: item.productoId, nombre: item.producto.nombre, cantidad: item.cantidad }))}
+          disponibilidad={disponibilidad}
+          submitting={aprobarMutation.isPending}
+          onCancel={() => setLotSelectorOpen(false)}
+          onConfirm={(selecciones) => void confirmarLotesSeleccionados(selecciones)}
+        />
+      )}
+
       <ConfirmDialog
         open={confirm === 'aprobar'}
         titulo="Aprobar pedido"
@@ -1897,7 +2060,7 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
       <ConfirmDialog
         open={confirm === 'preparar'}
         titulo="FINALIZAR ARMADO"
-        mensaje={`¿Marcar ${pedido.numero} como completamente armado y listo para despacho/remito?`}
+        mensaje={`¿Marcar ${pedido.numero} como completamente armado y listo para remito?`}
         accion="FINALIZAR ARMADO"
         loading={prepararMutation.isPending}
         onCancel={() => setConfirm(null)}
@@ -1905,9 +2068,9 @@ function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
       />
       <ConfirmDialog
         open={confirm === 'despachar'}
-        titulo="Confirmar despacho"
+        titulo="Aprobar descuento de stock"
         mensaje="Esta acción descontará definitivamente el stock."
-        accion="Despachar"
+        accion="Aprobar descuento"
         loading={despacharMutation.isPending}
         onCancel={() => setConfirm(null)}
         onConfirm={() => void ejecutarConfirm()}
@@ -1991,12 +2154,17 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
   
   const [transporteId, setTransporteId] = useState('')
   const [usarOcasional, setUsarOcasional] = useState(false)
+  const [usarEntregaDirecta, setUsarEntregaDirecta] = useState(false)
   const [ocasionalNombre, setOcasionalNombre] = useState('')
   const [ocasionalDireccion, setOcasionalDireccion] = useState('')
   const [remitoError, setRemitoError] = useState<string | null>(null)
   const [anularOpen, setAnularOpen] = useState(false)
   const [motivoAnular, setMotivoAnular] = useState('')
   const [motivoAnularError, setMotivoAnularError] = useState<string | null>(null)
+  const [remitoAnular, setRemitoAnular] = useState<any | null>(null)
+  const [entregaCantidades, setEntregaCantidades] = useState<Record<string, number>>({})
+  const [remitoParaDescuento, setRemitoParaDescuento] = useState<any | null>(null)
+  const [disponibilidadDescuento, setDisponibilidadDescuento] = useState<PedidoDisponibilidadStock | null>(null)
   const [devolucionOpen, setDevolucionOpen] = useState(false)
   const [devolucionCarrito, setDevolucionCarrito] = useState<Carrito>({})
   const [motivoDevolucion, setMotivoDevolucion] = useState('')
@@ -2015,10 +2183,12 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
 
   const emitirRemitoMutation = useEmitirRemito()
   const anularRemitoMutation = useAnularRemito()
+  const aprobarDescuentoRemitoMutation = useAprobarDescuentoRemito()
   const devolucionMutation = useRegistrarDevolucionPedido()
   const ampliacionMutation = useAmpliarPedidoConfirmado()
 
-  const remitoVigente = pedido?.remitos?.find((r: any) => r.estado === 'VIGENTE') ?? null
+  const remitosVigentes = pedido?.remitos?.filter((r: any) => r.estado === 'VIGENTE') ?? []
+  const remitoVigente = remitosVigentes[0] ?? null
   const remitosInvalidados = pedido?.remitos?.filter((r: any) => r.estado === 'INVALIDADO') ?? []
 
   useEffect(() => {
@@ -2037,6 +2207,8 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
     }
     return [...grouped.values()]
   }, [pedido.items])
+  const entregaParcial = Boolean(pedido?.descuentoPorRemito)
+  const puedeEmitirParcial = esRemitos && canEmitirRemito(pedido, rol) && itemsAgrupados.some((item: any) => Math.max(0, item.cantidad - (item.cantidadEntregada ?? 0)) > 0)
 
   function abrirAmpliacion() {
     setAmpliacionBusqueda('')
@@ -2127,9 +2299,10 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
     }
   }
 
-  function abrirAnular() {
+  function abrirAnular(remito = remitoVigente) {
     setMotivoAnular('')
     setMotivoAnularError(null)
+    setRemitoAnular(remito)
     setAnularOpen(true)
   }
 
@@ -2140,11 +2313,11 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
       return
     }
     setMotivoAnularError(null)
-    if (!pedido || !remitoVigente) return
+    if (!pedido || !remitoAnular) return
     try {
       await anularRemitoMutation.mutateAsync({
         pedidoId: pedido.id,
-        remitoId: remitoVigente.id,
+        remitoId: remitoAnular.id,
         motivo,
         idempotencyKey: newIdempotencyKey(),
       })
@@ -2171,42 +2344,92 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
         }
         return
       }
-    } else if (!transporteId) {
-      setRemitoError('Seleccioná un transporte habitual o indicá un transporte ocasional')
+    } else if (!transporteId && !pedido?.cliente.direccion?.trim()) {
+      setRemitoError('Seleccioná un transporte o cargá el domicilio del cliente para entrega directa')
       return
     }
     setRemitoError(null)
     if (!pedido) return
+    const items = entregaParcial ? itemsAgrupados.flatMap((item: any) => {
+      const cantidad = Number(entregaCantidades[item.productoId] ?? 0)
+      const pendiente = Math.max(0, item.cantidad - (item.cantidadEntregada ?? 0))
+      return Number.isInteger(cantidad) && cantidad > 0 && cantidad <= pendiente ? [{ productoId: item.productoId, cantidad }] : []
+    }) : undefined
+    if (entregaParcial && (!items || items.length === 0)) {
+      setRemitoError('Elegí al menos una cantidad pendiente para esta entrega')
+      return
+    }
+    if (entregaParcial && items!.some((item) => item.cantidad !== entregaCantidades[item.productoId])) {
+      setRemitoError('Una cantidad supera lo pendiente de entregar')
+      return
+    }
     try {
       await emitirRemitoMutation.mutateAsync({
         pedidoId: pedido.id,
         expectedVersion: pedido.version,
+        ...(items ? { items } : {}),
         ...(usarOcasional
           ? { transporteOcasional: { nombre: ocasionalNombre.trim(), direccion: ocasionalDireccion.trim() } }
-          : { transportistaId: transporteId }),
+          : transporteId ? { transportistaId: transporteId } : {}),
         idempotencyKey: newIdempotencyKey(),
       })
       toast.success('Remito emitido')
       setTransporteId('')
       setUsarOcasional(false)
+      setUsarEntregaDirecta(false)
       setOcasionalNombre('')
       setOcasionalDireccion('')
+      setEntregaCantidades({})
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error al emitir el remito')
+      const message = e instanceof Error ? e.message : 'Error al emitir el remito'
+      setRemitoError(message)
+      toast.error(message)
     }
   }
 
-  async function descargarRemito() {
+  async function descargarRemito(remitoId?: string) {
     if (!pedido) return
     try {
-      await descargarRemitoPdf(pedido.id)
+      await descargarRemitoPdf(pedido.id, remitoId)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al descargar el remito')
     }
   }
 
+  async function abrirDescuento(remito: any) {
+    try {
+      const disponibilidad = await aleBetApi.remitos.disponibilidadDescuento(pedido.id, remito.id)
+      setDisponibilidadDescuento(disponibilidad)
+      setRemitoParaDescuento(remito)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo consultar el stock actual')
+    }
+  }
+
+  async function aprobarDescuento(selecciones: PedidoDisponibilidadStock['allocations']) {
+    if (!remitoParaDescuento || !disponibilidadDescuento) return
+    try {
+      await aprobarDescuentoRemitoMutation.mutateAsync({ pedidoId: pedido.id, remitoId: remitoParaDescuento.id, expectedVersion: pedido.version, selecciones, transferencias: disponibilidadDescuento.transferencias, idempotencyKey: newIdempotencyKey() })
+      toast.success('Stock descontado y remito aprobado')
+      setRemitoParaDescuento(null)
+      setDisponibilidadDescuento(null)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo aprobar el descuento')
+    }
+  }
+
   return (
     <div className="mx-auto w-full max-w-[1000px] flex flex-col">
+      {entregaParcial && remitosVigentes.length > 0 && (
+        <section className="mb-4 space-y-3 rounded-xl border border-white/10 bg-surface-container-low p-4">
+          <h2 className="font-body text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">Entregas emitidas</h2>
+          {remitosVigentes.map((remito: any) => {
+            const aprobado = Boolean(remito.descuentoAprobadoAt)
+            const puedeAprobar = (rol === 'admin' || rol === 'encargado') && !aprobado
+            return <article key={remito.id} className="rounded-lg border border-white/10 bg-surface-container p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><p className="font-body text-[14px] font-bold text-on-surface">Remito {remito.numero}</p><Badge variant={aprobado ? 'success' : 'warning'}>{aprobado ? 'Stock descontado' : 'Pendiente a descuento'}</Badge></div><p className="mt-1 font-body text-[12px] text-on-surface-variant">{(remito.itemsSnapshot ?? []).map((item: any) => `${item.nombre}: ${item.cantidad} un`).join(' · ')}</p></div><div className="flex flex-wrap gap-2">{can(user, 'ale-bet', 'remitos.read.pdf') && <Button variant="outline" onClick={() => void descargarRemito(remito.id)} className="h-9 px-3 text-[12px]">Descargar</Button>}{puedeAprobar && <Button onClick={() => void abrirDescuento(remito)} className="h-9 px-3 text-[12px]">Elegir lotes y descontar</Button>}{!aprobado && can(user, 'ale-bet', 'remitos.void') && <Button variant="outline" onClick={() => abrirAnular(remito)} className="h-9 px-3 text-[12px] text-error border-error/20">Anular</Button>}</div></div></article>
+          })}
+        </section>
+      )}
       <section className="bg-surface-container-high shadow-sm lg:rounded-2xl">
         <div className="px-4 py-5 lg:px-8 lg:py-7 border-b border-white/10 bg-surface-container-low">
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
@@ -2242,7 +2465,7 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/10">
                 <FileText size={16} className="text-primary" />
                 <span className="font-body text-[13px] font-medium text-primary">
-                  {remitoVigente ? 'Remito emitido' : 'Pendiente de remito'}
+                  {entregaParcial ? `${remitosVigentes.length} entrega${remitosVigentes.length === 1 ? '' : 's'} emitida${remitosVigentes.length === 1 ? '' : 's'}` : remitoVigente ? 'Remito emitido' : 'Pendiente de remito'}
                 </span>
               </div>
               {canDevolver && (
@@ -2265,21 +2488,25 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
             <div className="flex flex-col border-t border-white/10">
               {itemsAgrupados.map((item: any) => {
                 const base = calcularCajasSueltos(item.cantidad, item.producto.unidadesPorCaja)
+                const entregado = item.cantidadEntregada ?? 0
+                const pendiente = Math.max(0, item.cantidad - entregado)
                 return (
-                  <LineaDetalle
-                    key={item.productoId}
-                    productoId={item.productoId}
-                    nombre={item.producto.nombre}
-                    sku={item.producto.sku}
-                    cajas={base.cajas}
-                    sueltos={base.sueltos}
-                    unidades={item.cantidad}
-                    unidadesPorCaja={item.producto.unidadesPorCaja}
-                    completado={item.completado}
-                    editable={false}
-                    completable={false}
-                    isFacturacion={true}
-                  />
+                  <div key={item.productoId}>
+                    <LineaDetalle
+                      productoId={item.productoId}
+                      nombre={item.producto.nombre}
+                      sku={item.producto.sku}
+                      cajas={base.cajas}
+                      sueltos={base.sueltos}
+                      unidades={item.cantidad}
+                      unidadesPorCaja={item.producto.unidadesPorCaja}
+                      completado={item.completado}
+                      editable={false}
+                      completable={false}
+                      isFacturacion={true}
+                    />
+                    {entregaParcial && <p className="-mt-2 pb-3 pl-1 font-body text-[12px] text-on-surface-variant">Entregado: <strong className="text-on-surface">{entregado} un</strong> · Pendiente: <strong className="text-primary">{pendiente} un</strong></p>}
+                  </div>
                 )
               })}
             </div>
@@ -2288,7 +2515,7 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
 
         {esRemitos && (
           <div className="border-t border-white/10 bg-surface-container/30 p-4 lg:p-8">
-            {remitoVigente ? (
+            {!entregaParcial && remitoVigente ? (
               <div className="md:flex md:items-center md:justify-between md:gap-6">
                 <div className="flex-1">
                   <h2 className="font-body text-[13px] font-bold text-on-surface">Remito Vigente</h2>
@@ -2306,15 +2533,32 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
                 </div>
                 <div className="mt-4 md:mt-0 shrink-0 flex flex-row md:flex-col gap-2 md:w-40">
                   {can(user, 'ale-bet', 'remitos.read.pdf') && (
-                    <Button variant="outline" onClick={() => void descargarRemito()} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
+                    <Button variant="outline" onClick={() => void descargarRemito(remitoVigente.id)} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
                   )}
                   {can(user, 'ale-bet', 'remitos.void') && (
-                    <Button variant="outline" onClick={abrirAnular} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
+                    <Button variant="outline" onClick={() => abrirAnular(remitoVigente)} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
                   )}
                 </div>
               </div>
             ) : (
               <div>
+                <RemitoNumerationSetup enabled={esRemitos} />
+                {entregaParcial && (
+                  <div className="mb-5 rounded-xl border border-primary/25 bg-primary/5 p-4">
+                    <h2 className="font-body text-[13px] font-bold text-on-surface">Nueva entrega parcial</h2>
+                    <p className="mt-1 font-body text-[12px] text-on-surface-variant">Indicá solamente lo que sale ahora. Lo restante queda pendiente para un próximo remito.</p>
+                    <div className="mt-3 space-y-2">
+                      {itemsAgrupados.map((item: any) => {
+                        const pendiente = Math.max(0, item.cantidad - (item.cantidadEntregada ?? 0))
+                        if (pendiente === 0) return null
+                        return <label key={item.productoId} className="grid grid-cols-[1fr_92px] items-center gap-3 rounded-lg border border-white/10 bg-surface-container-low px-3 py-2">
+                          <span className="min-w-0"><span className="block truncate font-body text-[13px] font-semibold text-on-surface">{item.producto.nombre}</span><span className="font-body text-[11px] text-on-surface-variant">Pendiente: {pendiente} un</span></span>
+                          <input aria-label={`Cantidad a entregar de ${item.producto.nombre}`} type="number" min="0" max={pendiente} step="1" value={entregaCantidades[item.productoId] ?? ''} onChange={(event) => setEntregaCantidades((current) => ({ ...current, [item.productoId]: event.target.value === '' ? 0 : Number(event.target.value) }))} className="input-field h-10 w-full text-center text-[13px]" placeholder="0" />
+                        </label>
+                      })}
+                    </div>
+                  </div>
+                )}
                 <h2 className="font-body text-[13px] font-bold tracking-wide text-on-surface-variant uppercase mb-3">Transporte</h2>
                 <div className="flex flex-col gap-2">
                   <div className="flex flex-col md:flex-row md:items-start gap-3">
@@ -2324,9 +2568,12 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
                       setTransporteId={setTransporteId}
                       usarOcasional={usarOcasional}
                       setUsarOcasional={setUsarOcasional}
+                      entregaDirectaDisponible={Boolean(pedido.cliente.direccion?.trim())}
+                      usarEntregaDirecta={usarEntregaDirecta}
+                      setUsarEntregaDirecta={setUsarEntregaDirecta}
                     />
-                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} disabled={!transporteId && !usarOcasional} className="h-11 w-full md:w-auto px-6 font-semibold">
-                      Emitir remito
+                    <Button onClick={() => void emitirRemito()} disabled={entregaParcial && !puedeEmitirParcial} loading={emitirRemitoMutation.isPending} className="h-11 w-full md:w-auto px-6 font-semibold">
+                      {entregaParcial ? 'Emitir esta entrega' : 'Emitir remito'}
                     </Button>
                   </div>
                   {usarOcasional && (
@@ -2357,6 +2604,12 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
                         </div>
                       </div>
                     </div>
+                  )}
+                  {usarEntregaDirecta && (
+                    <p className="mt-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 font-body text-[12px] text-on-surface">Se emitirá como entrega directa a: <strong>{pedido.cliente.direccion}</strong>.</p>
+                  )}
+                  {!transporteId && !usarOcasional && !pedido.cliente.direccion?.trim() && (
+                    <p className="mt-3 font-body text-[12px] text-warning">Este cliente no tiene domicilio cargado. Para entrega directa, completalo en Clientes; también podés seleccionar un transportista u “Otro”.</p>
                   )}
                   {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error mt-2">{remitoError}</p>}
                 </div>
@@ -2545,6 +2798,19 @@ function AutomationPedidoDetail({ pedido }: { pedido: any }) {
           {motivoDevolucionError && <p role="alert" className="font-body text-[12px] font-medium text-error">{motivoDevolucionError}</p>}
         </div>
       </BottomSheet>
+      {remitoParaDescuento && disponibilidadDescuento && (
+        <LotAllocationSelector
+          items={itemsAgrupados.flatMap((item: any) => {
+            const snapshot = (remitoParaDescuento.itemsSnapshot ?? []).find((entry: any) => entry.productoId === item.productoId)
+            return snapshot ? [{ id: item.id, productoId: item.productoId, nombre: item.producto.nombre, cantidad: snapshot.cantidad }] : []
+          })}
+          disponibilidad={disponibilidadDescuento}
+          mode="descuento"
+          submitting={aprobarDescuentoRemitoMutation.isPending}
+          onCancel={() => { setRemitoParaDescuento(null); setDisponibilidadDescuento(null) }}
+          onConfirm={(selecciones) => void aprobarDescuento(selecciones)}
+        />
+      )}
     </div>
   )
 }

@@ -240,6 +240,7 @@ const updateLoteSchema = z.object({
   cajas: z.number().int().min(0).optional(),
   sueltos: z.number().int().min(0).optional(),
   activo: z.boolean().optional(),
+  fechaVencimiento: z.string().datetime().nullable().optional(),
 })
 
 router.put('/:id/lotes/:loteId', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
@@ -285,7 +286,10 @@ router.put('/:id/lotes/:loteId', requireApp('ale-bet'), requirePermission('ale-b
         throw new Error(`STOCK_RESERVATION_CONFLICT:${newUnidades}:${reservado}`)
       }
 
-      const result = await tx.lote.update({ where: { id: loteId }, data: parsed.data })
+      const result = await tx.lote.update({
+        where: { id: loteId },
+        data: { ...parsed.data, ...(parsed.data.fechaVencimiento !== undefined ? { fechaVencimiento: parsed.data.fechaVencimiento ? new Date(parsed.data.fechaVencimiento) : null } : {}) },
+      })
       if (diff !== 0) {
         await tx.movimientoStock.create({
           data: {
@@ -428,6 +432,15 @@ router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale
       })
     : []
 
+  const userIds = [...new Set(movimientos.map((movimiento) => movimiento.usuarioId))]
+  const pedidoIds = [...new Set(movimientos.flatMap((movimiento) => [movimiento.pedidoId, movimiento.referencia]).filter((id): id is string => Boolean(id)))]
+  const [users, pedidos] = await Promise.all([
+    prisma.platformUser.findMany({ where: { id: { in: userIds } }, select: { id: true, nombre: true, email: true } }),
+    prisma.pedido.findMany({ where: { id: { in: pedidoIds } }, select: { id: true, numero: true, cliente: { select: { nombre: true } } } }),
+  ])
+  const userById = new Map(users.map((user) => [user.id, user]))
+  const pedidoById = new Map(pedidos.map((pedido) => [pedido.id, pedido]))
+
   const movimientosByLote = new Map<string, typeof movimientos>()
   for (const mov of movimientos) {
     if (!mov.loteId) continue
@@ -440,10 +453,26 @@ router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale
     const stockDeposito = lote.saldos.filter((s) => s.ubicacion.codigo === 'DEPOSITO').reduce((sum, s) => sum + s.cantidad, 0)
     const stockAcondicionado = lote.saldos.filter((s) => s.ubicacion.codigo === 'ACONDICIONADO').reduce((sum, s) => sum + s.cantidad, 0)
     const stockTotal = lote.saldos.reduce((sum, s) => sum + s.cantidad, 0)
-    const loteMovimientos = (movimientosByLote.get(lote.id) ?? []).slice(0, 10).map((movimiento) => ({
-      ...movimiento,
-      ...parseMovimientoReferencia(movimiento.referencia),
-    }))
+    const balanceByLocation = new Map(lote.saldos.map((saldo) => [saldo.ubicacionId, saldo.cantidad]))
+    const loteMovimientos = (movimientosByLote.get(lote.id) ?? []).slice(0, 10).map((movimiento) => {
+      const parsed = parseMovimientoReferencia(movimiento.referencia)
+      const order = pedidoById.get(movimiento.pedidoId ?? movimiento.referencia ?? '')
+      const locationId = movimiento.origenUbicacionId ?? movimiento.destinoUbicacionId ?? null
+      const saldoPosterior = locationId ? balanceByLocation.get(locationId) ?? null : null
+      // Walk backward from the current balance so every row can show the
+      // amount that remained immediately after that movement.
+      if (movimiento.tipo === 'TRANSFERENCIA_INTERNA') {
+        if (movimiento.destinoUbicacionId) balanceByLocation.set(movimiento.destinoUbicacionId, (balanceByLocation.get(movimiento.destinoUbicacionId) ?? 0) - movimiento.cantidad)
+        if (movimiento.origenUbicacionId) balanceByLocation.set(movimiento.origenUbicacionId, (balanceByLocation.get(movimiento.origenUbicacionId) ?? 0) + movimiento.cantidad)
+      } else if (locationId) {
+        balanceByLocation.set(locationId, (balanceByLocation.get(locationId) ?? 0) - movimiento.cantidad)
+      }
+      const user = userById.get(movimiento.usuarioId)
+      const motivoVisible = order
+        ? `Separado para ${order.cliente.nombre} · Pedido ${order.numero}`
+        : parsed.motivo ?? (movimiento.tipo === 'AJUSTE' && movimiento.cantidad < 0 ? 'Descuento local' : null)
+      return { ...movimiento, ...parsed, usuarioNombre: user?.nombre ?? user?.email ?? 'Usuario no identificado', motivoVisible, saldoPosterior }
+    })
 
     return {
       id: lote.id,

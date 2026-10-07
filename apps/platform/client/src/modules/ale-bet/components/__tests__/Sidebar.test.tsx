@@ -40,13 +40,12 @@ describe('Sidebar', () => {
     vi.clearAllMocks()
   })
 
-  it('no longer contains "Nuevo pedido" in desktop but keeps it in mobile', () => {
+  it('uses a compact mobile navigation with access to additional sections', () => {
     mockRol('vendedor')
     renderSidebar()
 
     expect(screen.queryByText('Nuevo pedido')).not.toBeInTheDocument()
-    expect(screen.getByText('Nuevo')).toBeInTheDocument()
-    expect(screen.getByText('Nuevo').closest('a')).toHaveAttribute('href', '/ale-bet/pedidos/nuevo')
+    expect(screen.getByRole('button', { name: 'Más opciones' })).toBeInTheDocument()
   })
 
   it('handles "Cambiar módulo" routing without logging out', () => {

@@ -36,7 +36,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 md:ml-[280px]">
         {showGlobalActions && <Topbar />}
-        <main className="flex-1 p-margin-desktop overflow-y-auto animate-fadeIn">
+        <main className="flex-1 overflow-y-auto animate-fadeIn p-3 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-5 md:p-margin-desktop">
           {children}
         </main>
       </div>

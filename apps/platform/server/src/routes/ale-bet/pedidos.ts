@@ -7,7 +7,7 @@ import { eventBus, getAppAccess } from '@platform/core'
 import { requirePermission } from '../../middlewares/require-permission'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { canCancelOrder, canConfirmDispatch, canEditOrder, canReturnConsumedOrder, canTransitionOrder, canVendorCancelDirectly, type OrderState } from './order-workflow'
-import { consumeActiveReservations, releaseActiveReservations, reserveFefo, returnConsumedReservations, StockConflictError } from './reservas-service'
+import { consumeActiveReservations, releaseActiveReservations, reserveFefo, reserveSelectedLots, returnConsumedReservations, StockConflictError } from './reservas-service'
 import { getOrderAvailability, InventoryConflictError, transferInternal } from './inventory-service'
 import { sseManager } from './sse-manager'
 import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
@@ -27,6 +27,9 @@ const approvalSchema = versionSchema.extend({
     destino: z.literal('DEPOSITO'),
     cantidad: z.number().int().positive(),
   })).default([]),
+  selecciones: z.array(z.object({
+    itemPedidoId: z.string().min(1), productoId: z.string().min(1), loteId: z.string().min(1), cantidad: z.number().int().positive(),
+  })).min(1),
 })
 const cancelSchema = versionSchema.extend({ motivo: z.string().trim().min(3).max(500).optional() })
 const returnSchema = versionSchema.extend({
@@ -190,8 +193,12 @@ router.get('/', requirePermission('ale-bet', 'pedidos.read'), async (req, res) =
   const billingTray = role === 'facturacion' || requestedTray === 'FACTURACION'
   if (billingTray) {
     where.origen = 'AUTOMATION'
-    where.estado = { not: 'CANCELADO' }
-    where.remitos = { none: { estado: 'VIGENTE' } }
+    // Partial Automation orders remain in the billing tray after their first
+    // remito: Facturación may document the next available product later.
+    where.OR = [
+      { descuentoPorRemito: true, estado: { in: ['APROBADO', 'PENDIENTE_PRODUCCION', 'PENDIENTE_PARCIAL', 'PREPARADO'] } },
+      { descuentoPorRemito: false, estado: { not: 'CANCELADO' }, remitos: { none: { estado: 'VIGENTE' } } },
+    ]
   } else {
     if (requestedState && ['BORRADOR', 'APROBADO', 'EN_ARMADO', 'PREPARADO', 'DESPACHADO', 'CANCELADO'].includes(requestedState)) where.estado = requestedState as OrderState
     if (role === 'vendedor') where.vendedorId = user.sub
@@ -215,6 +222,7 @@ router.get('/:id/disponibilidad-stock', requirePermission('ale-bet', 'pedidos.av
   try {
     const result = await prisma.$transaction(async (tx) => {
       const pedido = await lockOrder(tx, String(req.params.id))
+      if (pedido.esRemitoManual && ['admin', 'encargado'].includes(actorRole(user) ?? '')) return getOrderAvailability(tx, pedido)
       assertOwnerOrAdmin(pedido, user)
       return getOrderAvailability(tx, pedido)
     })
@@ -358,7 +366,7 @@ router.put('/:id/aprobar', requirePermission('ale-bet', 'pedidos.approve'), asyn
       for (const transfer of parsed.data.transferencias) {
         await transferInternal(tx, { ...transfer, actorId: user.sub, idempotencyKey: `pedido:${pedido.id}:${parsed.data.fingerprint}:${transfer.loteId}` })
       }
-      await reserveFefo(tx, pedido.id, pedido.items)
+      await reserveSelectedLots(tx, pedido.id, pedido.items, parsed.data.selecciones)
       const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'APROBADO', aprobadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
       await audit(tx, updated.id, user.sub, 'PEDIDO_APROBADO', { estado: pedido.estado }, { estado: updated.estado })
       return updated
@@ -504,10 +512,10 @@ router.post('/:id/despachar', requirePermission('ale-bet', 'pedidos.dispatch'), 
     const result = await idem(user, 'ale-bet.pedido.despachar', String(req.params.id), req.method, parsed.data, req.rawHeaders, async (tx) => {
       const pedido = await lockOrder(tx, String(req.params.id)); assertManualArmadorWorkflow(pedido); assertAssignedArmadorOrSupervisor(pedido, user); assertVersion(pedido, parsed.data.expectedVersion)
       const remito = await tx.remito.findFirst({ where: { pedidoId: pedido.id, estado: 'VIGENTE' } })
-      if (!canConfirmDispatch(state(pedido.estado), Boolean(remito))) throw new ConflictError('Despacho requiere pedido PREPARADO y remito vigente')
+      if (!canConfirmDispatch(state(pedido.estado), Boolean(remito))) throw new ConflictError('El descuento requiere pedido PREPARADO y remito vigente')
       await consumeActiveReservations(tx, pedido.id, user.sub)
       const updated = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'DESPACHADO', despachadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
-      await audit(tx, updated.id, user.sub, 'PEDIDO_DESPACHADO', { estado: pedido.estado }, { estado: updated.estado })
+      await audit(tx, updated.id, user.sub, 'STOCK_DESCONTADO', { estado: pedido.estado }, { estado: updated.estado })
       return updated
     })
     await syncStockProjectionAfterCommit()

@@ -29,7 +29,7 @@ vi.mock('../../lib/api', () => ({
     clientes: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
     pedidos: { list: vi.fn(), get: vi.fn(), disponibilidadStock: vi.fn(), create: vi.fn(), update: vi.fn(), ampliar: vi.fn(), aprobar: vi.fn(), tomar: vi.fn(), completarItem: vi.fn(), preparar: vi.fn(), cancelar: vi.fn(), confirmarCancelacion: vi.fn(), despachar: vi.fn(), devolver: vi.fn() },
     transportistas: { list: vi.fn(), create: vi.fn(), update: vi.fn() },
-    remitos: { emitir: vi.fn(), anular: vi.fn(), pdf: vi.fn() },
+    remitos: { emitir: vi.fn(), anular: vi.fn(), pdf: vi.fn(), configuracion: vi.fn(), actualizarConfiguracion: vi.fn() },
     stock: { get: vi.fn(), movimientos: vi.fn() },
     historial: { list: vi.fn(), exportDownload: vi.fn() },
   },
@@ -101,6 +101,22 @@ describe('PedidoDetailPage', () => {
       createRemito({ estado: 'INVALIDADO', motivoInvalidacion: 'Error de carga', invalidadoAt: '2026-07-17T12:00:00.000Z' }),
     )
     vi.mocked(aleBetApi.remitos.pdf).mockResolvedValue(new Blob(['pdf']))
+    vi.mocked(aleBetApi.remitos.configuracion).mockResolvedValue({
+      puntoVenta: '00001',
+      proximoCorrelativo: 13216,
+      numeracionInicializadaAt: '2026-10-02T00:00:00.000Z',
+      cai: '52166218186464',
+      caiVencimiento: '2027-04-17T00:00:00.000Z',
+      caiVencido: false,
+    })
+    vi.mocked(aleBetApi.remitos.actualizarConfiguracion).mockResolvedValue({
+      puntoVenta: '00001',
+      proximoCorrelativo: 13216,
+      numeracionInicializadaAt: '2026-10-02T00:00:00.000Z',
+      cai: '52166218186464',
+      caiVencimiento: '2027-04-17T00:00:00.000Z',
+      caiVencido: false,
+    })
   })
 
   afterEach(() => {
@@ -305,7 +321,7 @@ it('admin aprueba un BORRADOR y confirma (MANUAL)', async () => {
     await waitFor(() =>
       expect(aleBetApi.pedidos.aprobar).toHaveBeenCalledWith(
         'pedido-1',
-        { expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [] },
+        { expectedVersion: 1, fingerprint: 'a'.repeat(64), transferencias: [], selecciones: [] },
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )
@@ -412,7 +428,7 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     expect(barra().getByText('1/1')).toBeInTheDocument()
 
     fireEvent.click(within(progresoActualizado).getByRole('button', { name: 'FINALIZAR ARMADO' }))
-    expect(confirmDialog().getByText(/¿Marcar P-001 como completamente armado y listo para despacho\/remito\?/)).toBeInTheDocument()
+    expect(confirmDialog().getByText(/¿Marcar P-001 como completamente armado y listo para remito\?/)).toBeInTheDocument()
     fireEvent.click(confirmDialog().getByRole('button', { name: 'FINALIZAR ARMADO' }))
     await waitFor(() =>
       expect(aleBetApi.pedidos.preparar).toHaveBeenCalledWith(
@@ -440,7 +456,7 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     renderDetalle()
     await screen.findByTestId('pedido-numero')
     expect(screen.getByText(/Esperando remito/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aprobar descuento' })).not.toBeInTheDocument()
   })
 
   it('PREPARADO con remito: despacha una sola vez', async () => {
@@ -454,12 +470,12 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     )
     renderDetalle()
     await screen.findByTestId('pedido-numero')
-    fireEvent.click(barra().getByRole('button', { name: 'Confirmar despacho' }))
+    fireEvent.click(barra().getByRole('button', { name: 'Aprobar descuento' }))
     expect(confirmDialog().getByText('Esta acción descontará definitivamente el stock.')).toBeInTheDocument()
-    fireEvent.click(confirmDialog().getByRole('button', { name: 'Despachar' }))
-    await waitFor(() => expect(barra().getByRole('button', { name: 'Confirmar despacho' })).toBeDisabled())
+    fireEvent.click(confirmDialog().getByRole('button', { name: 'Aprobar descuento' }))
+    await waitFor(() => expect(barra().getByRole('button', { name: 'Aprobar descuento' })).toBeDisabled())
     resolveDespacho(createPedido({ estado: 'DESPACHADO', despachadoAt: '2026-07-18T10:00:00.000Z' }))
-    await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Pedido despachado'))
+    await waitFor(() => expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Stock descontado'))
     expect(aleBetApi.pedidos.despachar).toHaveBeenCalledTimes(1)
     expect(aleBetApi.pedidos.despachar).toHaveBeenCalledWith(
       'pedido-1',
@@ -475,12 +491,12 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     )
     renderDetalle()
     await screen.findByTestId('pedido-numero')
-    expect(screen.getByText('Pedido despachado')).toBeInTheDocument()
-    expect(screen.getByText(/El 18\/07\/2026/)).toBeInTheDocument()
+    expect(screen.getAllByText('Stock descontado')).toHaveLength(2)
+    expect(screen.getByText(/Aprobado el 18\/07\/2026/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Tomar pedido' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aprobar descuento' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Registrar devolución' })).toBeInTheDocument()
 
     vi.mocked(aleBetApi.pedidos.devolver).mockResolvedValue(
@@ -553,7 +569,7 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Pedido actualizado y stock adicional descontado')
   })
 
-  it('facturación emite remito con transporte habitual (AUTOMATION)', async () => {
+  it('facturación emite entrega directa al cliente sin seleccionar transporte (AUTOMATION)', async () => {
     mockRol('facturacion')
     const sinRemito = createPedido({ estado: 'APROBADO', origen: 'AUTOMATION' })
     const vigente = createPedido({ estado: 'APROBADO', origen: 'AUTOMATION', remitos: [createRemito()] })
@@ -563,31 +579,58 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     renderDetalle()
     await screen.findByTestId('pedido-numero')
     expect(screen.queryByRole('button', { name: 'Tomar pedido' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Confirmar despacho' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Aprobar descuento' })).not.toBeInTheDocument()
 
-    expect(screen.getByRole('button', { name: 'Emitir remito' })).toBeDisabled()
-    expect(aleBetApi.remitos.emitir).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByRole('combobox'))
-    // Transportation options may be empty in Automation; select first available or OTRO
-    const transportOptions = await screen.findAllByRole('button', { name: /Transporte A/i })
-    if (transportOptions.length > 0) {
-      fireEvent.click(transportOptions[0])
-    } else {
-      // No preset transportistas; select OTRO / TRANSPORTE OCASIONAL
-      fireEvent.click(screen.getByRole('button', { name: /OTRO \/ TRANSPORTE OCASIONAL/i }))
-    }
+    expect(screen.getByRole('button', { name: 'Emitir remito' })).toBeEnabled()
     fireEvent.click(screen.getByRole('button', { name: 'Emitir remito' }))
     await waitFor(() =>
       expect(aleBetApi.remitos.emitir).toHaveBeenCalledWith(
         'pedido-1',
-        { transportistaId: expect.any(String), expectedVersion: 1 },
+        { expectedVersion: 1 },
         expect.objectContaining({ idempotencyKey: expect.any(String) }),
       ),
     )
     expect(vi.mocked(toast.success)).toHaveBeenCalledWith('Remito emitido')
     await waitFor(() => expect(screen.getByText('Remito R-001')).toBeInTheDocument())
     expect(screen.getByText(/Transporte A/)).toBeInTheDocument()
+  })
+
+  it('facturación puede elegir explícitamente la entrega directa al domicilio del cliente', async () => {
+    mockRol('facturacion')
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ estado: 'APROBADO', origen: 'AUTOMATION' }))
+    renderDetalle()
+    await screen.findByTestId('pedido-numero')
+
+    fireEvent.click(screen.getByRole('combobox'))
+    fireEvent.click(screen.getByRole('button', { name: 'ENTREGA DIRECTA AL CLIENTE' }))
+    expect(screen.getByText(/Se emitirá como entrega directa a:/)).toHaveTextContent('Calle 123')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Emitir remito' }))
+    await waitFor(() => expect(aleBetApi.remitos.emitir).toHaveBeenCalledWith(
+      'pedido-1',
+      { expectedVersion: 1 },
+      expect.objectContaining({ idempotencyKey: expect.any(String) }),
+    ))
+  })
+
+  it('facturación inicializa el correlativo desde el pedido antes del primer remito', async () => {
+    mockRol('facturacion')
+    vi.mocked(aleBetApi.remitos.configuracion).mockResolvedValue({
+      puntoVenta: '00001',
+      proximoCorrelativo: null,
+      numeracionInicializadaAt: null,
+      cai: '52166218186464',
+      caiVencimiento: '2027-04-17T00:00:00.000Z',
+      caiVencido: false,
+    })
+    vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(createPedido({ estado: 'APROBADO', origen: 'AUTOMATION' }))
+    renderDetalle()
+    await screen.findByTestId('pedido-numero')
+    await screen.findByRole('region', { name: 'Numeración de remitos pendiente' })
+
+    fireEvent.change(screen.getByLabelText('Próximo número de remito'), { target: { value: '13216' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar numeración' }))
+    await waitFor(() => expect(aleBetApi.remitos.actualizarConfiguracion).toHaveBeenCalledWith({ proximoCorrelativo: 13216 }))
   })
 
   it('facturación valida y emite transporte ocasional', async () => {
@@ -770,7 +813,7 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     expect(armadoDesktop?.className).toContain('lg:block')
   })
 
-  it('barra sticky del armador (mobile): PREPARADO con remito → Confirmar despacho', async () => {
+  it('barra sticky del armador (mobile): PREPARADO con remito → Aprobar descuento', async () => {
     mockRol('armador')
     vi.mocked(aleBetApi.pedidos.get).mockResolvedValue(
       createPedido({ estado: 'PREPARADO', armadorId: 'sub-1', remitos: [createRemito()] }),
@@ -778,7 +821,7 @@ it('EN_ARMADO armador asignado: marca items, espera todos y prepara (MANUAL)', a
     renderDetalle()
     await screen.findByTestId('pedido-numero')
 
-    expect(barra().getByRole('button', { name: 'Confirmar despacho' })).toBeInTheDocument()
+    expect(barra().getByRole('button', { name: 'Aprobar descuento' })).toBeInTheDocument()
     const despacharDesktop = screen.getByTestId('accion-despachar-desktop')
     expect(despacharDesktop.className).toContain('hidden')
     expect(despacharDesktop.className).toContain('lg:block')

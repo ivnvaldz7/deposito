@@ -154,4 +154,28 @@ describe('renderRemitoPdf', () => {
     expect(quantityDivider).toBeDefined()
     expect(quantityDivider?.to.y).toBe(681.89)
   })
+
+  it('does not draw row separators between the remito items', () => {
+    const document = new RecordingDocument()
+
+    renderRemitoPdf(document, {
+      numero: '00001-00013219',
+      fecha: new Date('2026-08-05T12:00:00.000Z'),
+      clienteSnapshot: { nombre: 'Cliente de prueba' },
+      transporteSnapshot: { nombre: 'Entrega directa', direccion: 'Calle 1 123' },
+      transporteNombre: '',
+      transporteDireccion: '',
+      itemsSnapshot: [
+        { nombre: 'Producto uno', cantidad: 1 },
+        { nombre: 'Producto dos', cantidad: 2 },
+      ],
+    })
+
+    const hasItemSeparator = document.lines.some((line) =>
+      line.from.x === 28 && line.to.x === 567.28 && line.from.y === line.to.y
+        && (line.from.y === 374 || line.from.y === 399),
+    )
+
+    expect(hasItemSeparator).toBe(false)
+  })
 })

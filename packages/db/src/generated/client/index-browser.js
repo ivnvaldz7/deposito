@@ -272,6 +272,8 @@ exports.Prisma.PedidoScalarFieldEnum = {
   vendedorId: 'vendedorId',
   armadorId: 'armadorId',
   origen: 'origen',
+  esRemitoManual: 'esRemitoManual',
+  descuentoPorRemito: 'descuentoPorRemito',
   estado: 'estado',
   version: 'version',
   cancelacionSolicitadaAt: 'cancelacionSolicitadaAt',
@@ -290,6 +292,7 @@ exports.Prisma.ItemPedidoScalarFieldEnum = {
   pedidoId: 'pedidoId',
   productoId: 'productoId',
   cantidad: 'cantidad',
+  cantidadEntregada: 'cantidadEntregada',
   completado: 'completado',
   createdAt: 'createdAt'
 };
@@ -304,6 +307,7 @@ exports.Prisma.MovimientoStockScalarFieldEnum = {
   pedidoId: 'pedidoId',
   loteId: 'loteId',
   reservaId: 'reservaId',
+  remitoId: 'remitoId',
   origenUbicacionId: 'origenUbicacionId',
   destinoUbicacionId: 'destinoUbicacionId',
   idempotencyKey: 'idempotencyKey',
@@ -400,6 +404,8 @@ exports.Prisma.RemitoScalarFieldEnum = {
   transporteSnapshot: 'transporteSnapshot',
   itemsSnapshot: 'itemsSnapshot',
   caiSnapshot: 'caiSnapshot',
+  descuentoAprobadoAt: 'descuentoAprobadoAt',
+  descuentoAprobadoPor: 'descuentoAprobadoPor',
   estado: 'estado',
   invalidadoAt: 'invalidadoAt',
   invalidadoPor: 'invalidadoPor',
@@ -551,6 +557,7 @@ exports.Prisma.OrdenProduccionScalarFieldEnum = {
   solicitanteId: 'solicitanteId',
   aprobadoPor: 'aprobadoPor',
   productoId: 'productoId',
+  grupoId: 'grupoId',
   categoria: 'categoria',
   productoNombre: 'productoNombre',
   mercado: 'mercado',
@@ -708,6 +715,8 @@ exports.EstadoPedido = exports.$Enums.EstadoPedido = {
   APROBADO: 'APROBADO',
   EN_ARMADO: 'EN_ARMADO',
   PREPARADO: 'PREPARADO',
+  PENDIENTE_PRODUCCION: 'PENDIENTE_PRODUCCION',
+  PENDIENTE_PARCIAL: 'PENDIENTE_PARCIAL',
   DESPACHADO: 'DESPACHADO',
   CANCELADO: 'CANCELADO'
 };

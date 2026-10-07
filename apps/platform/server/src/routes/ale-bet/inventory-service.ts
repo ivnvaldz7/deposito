@@ -116,6 +116,16 @@ export type OrderAvailability = {
   stockAcondicionado: number
   stockDisponiblePedido: number
   allocations: Array<{ itemPedidoId: string; productoId: string; loteId: string; cantidad: number }>
+  lotes: Array<{
+    itemPedidoId: string
+    productoId: string
+    loteId: string
+    numero: string
+    fechaVencimiento: Date | null
+    ubicacion: StockLocationCode
+    disponible: number
+    vencido: boolean
+  }>
   transferencias: Array<{ productoId: string; loteId: string; origen: 'ACONDICIONADO'; destino: 'DEPOSITO'; cantidad: number }>
   shortfall: number
   fingerprint: string
@@ -153,9 +163,10 @@ export async function getProductAvailability(
 export async function getOrderAvailability(
   tx: Prisma.TransactionClient,
   pedido: { id: string; items: Array<{ id: string; productoId: string }> },
+  requestedItems?: Array<{ id: string; productoId: string; cantidad: number }>,
 ): Promise<OrderAvailability> {
   const itemIds = pedido.items.map((item) => item.id)
-  const items = await tx.itemPedido.findMany({ where: { id: { in: itemIds } }, select: { id: true, productoId: true, cantidad: true } })
+  const items = requestedItems ?? await tx.itemPedido.findMany({ where: { id: { in: itemIds } }, select: { id: true, productoId: true, cantidad: true } })
   const allocations: OrderAvailability['allocations'] = []
   const transferencias: OrderAvailability['transferencias'] = []
   let stockTotal = 0
@@ -175,6 +186,18 @@ export async function getOrderAvailability(
     .sort((left, right) => left.productoId.localeCompare(right.productoId))
 
   const availability = await getProductAvailability(tx, consolidatedItems, itemIds)
+  const [balances, reservations] = await Promise.all([
+    tx.saldoStock.findMany({ where: { productoId: { in: consolidatedItems.map((item) => item.productoId) } }, include: { lote: true, ubicacion: true } }),
+    tx.reservaStock.groupBy({
+      by: ['loteId', 'ubicacionId'],
+      where: { estado: 'ACTIVA', lote: { productoId: { in: consolidatedItems.map((item) => item.productoId) } }, OR: [{ itemPedidoId: null }, { itemPedidoId: { notIn: itemIds } }] },
+      _sum: { cantidad: true },
+    }),
+  ])
+  const reserved = new Map(reservations.map((row) => [`${row.loteId}:${row.ubicacionId}`, row._sum.cantidad ?? 0]))
+  const now = new Date()
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const lotes: OrderAvailability['lotes'] = []
   for (const item of consolidatedItems) {
     const result = availability.get(item.productoId)!
     stockTotal += result.stockTotal
@@ -183,11 +206,64 @@ export async function getOrderAvailability(
     shortfall += result.shortfall
     if (result.status === 'INSUFICIENTE') overall = 'INSUFICIENTE'
     else if (result.status === 'DISPONIBLE_CON_TRANSFERENCIA' && overall === 'DISPONIBLE') overall = 'DISPONIBLE_CON_TRANSFERENCIA'
-    allocations.push(...result.allocations.map((allocation) => ({ ...allocation, itemPedidoId: item.id, productoId: item.productoId })))
+    // Keep an allocation attached to the actual item rows, even for old
+    // orders that contain the same product more than once.
+    const productItems = items.filter((candidate) => candidate.productoId === item.productoId)
+    const remainingByItem = new Map(productItems.map((productItem) => [productItem.id, productItem.cantidad]))
+    let allocationIndex = 0
+    let availableInAllocation = result.allocations[0]?.cantidad ?? 0
+    for (const productItem of productItems) {
+      let pending = productItem.cantidad
+      while (pending > 0) {
+        const allocation = result.allocations[allocationIndex]
+        if (!allocation) break
+        const cantidad = Math.min(pending, availableInAllocation)
+        allocations.push({ itemPedidoId: productItem.id, productoId: item.productoId, loteId: allocation.loteId, cantidad })
+        remainingByItem.set(productItem.id, (remainingByItem.get(productItem.id) ?? 0) - cantidad)
+        pending -= cantidad
+        availableInAllocation -= cantidad
+        if (availableInAllocation === 0) {
+          allocationIndex += 1
+          availableInAllocation = result.allocations[allocationIndex]?.cantidad ?? 0
+        }
+      }
+    }
     transferencias.push(...result.transferencias.map((transfer) => ({ productoId: item.productoId, loteId: transfer.loteId, origen: 'ACONDICIONADO' as const, destino: 'DEPOSITO' as const, cantidad: transfer.cantidad })))
+    let transferIndex = 0
+    let availableInTransfer = result.transferencias[0]?.cantidad ?? 0
+    for (const productItem of productItems) {
+      let pending = remainingByItem.get(productItem.id) ?? 0
+      while (pending > 0) {
+        const transfer = result.transferencias[transferIndex]
+        if (!transfer) break
+        const cantidad = Math.min(pending, availableInTransfer)
+        allocations.push({ itemPedidoId: productItem.id, productoId: item.productoId, loteId: transfer.loteId, cantidad })
+        pending -= cantidad
+        availableInTransfer -= cantidad
+        if (availableInTransfer === 0) {
+          transferIndex += 1
+          availableInTransfer = result.transferencias[transferIndex]?.cantidad ?? 0
+        }
+      }
+    }
+    for (const balance of balances.filter((candidate) => candidate.productoId === item.productoId && (candidate.ubicacion.codigo === 'DEPOSITO' || candidate.ubicacion.codigo === 'ACONDICIONADO'))) {
+      const vencido = Boolean(balance.lote.fechaVencimiento && Date.UTC(balance.lote.fechaVencimiento.getUTCFullYear(), balance.lote.fechaVencimiento.getUTCMonth(), balance.lote.fechaVencimiento.getUTCDate()) < today)
+      for (const productItem of productItems) {
+        lotes.push({
+          itemPedidoId: productItem.id,
+          productoId: item.productoId,
+          loteId: balance.loteId,
+          numero: balance.lote.numero,
+          fechaVencimiento: balance.lote.fechaVencimiento,
+          ubicacion: balance.ubicacion.codigo as StockLocationCode,
+          disponible: Math.max(0, balance.cantidad - (reserved.get(`${balance.loteId}:${balance.ubicacionId}`) ?? 0)),
+          vencido,
+        })
+      }
+    }
   }
   const fingerprint = fingerprintAvailability({ pedidoId: pedido.id, allocations: allocations.map(({ loteId, cantidad }) => ({ loteId, cantidad })), transferencias: transferencias.map(({ loteId, cantidad }) => ({ loteId, cantidad })) })
-  return { status: overall, stockTotal, stockDeposito, stockAcondicionado, stockDisponiblePedido: stockTotal, allocations, transferencias, shortfall, fingerprint }
+  return { status: overall, stockTotal, stockDeposito, stockAcondicionado, stockDisponiblePedido: stockTotal, allocations, lotes, transferencias, shortfall, fingerprint }
 }
 
 export async function transferInternal(

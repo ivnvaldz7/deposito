@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { roleHasPermission } from '@platform/core/permissions'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { ChevronRight, FileText } from 'lucide-react'
+import { ChevronRight, FileText, Plus } from 'lucide-react'
 import { type Pedido, type PedidoEstado } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { can } from '@/lib/permissions'
@@ -55,15 +55,16 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
   const cancelacionSolicitada = Boolean(pedido.cancelacionSolicitadaAt)
   const esCancelado = pedido.estado === 'CANCELADO'
   const isAuto = esPedidoAutomation(pedido)
+  const stockDescontado = pedido.stockDescontado === true || pedido.estado === 'DESPACHADO' || isAuto
 
   let senalOperativa = ''
   if (cancelacionSolicitada) senalOperativa = 'Cancelación solicitada'
   else if (clientePendiente) senalOperativa = 'Pendiente de validación'
-  else if (isAuto) senalOperativa = remitoVigente ? 'Remito emitido' : 'Pendiente de remito'
+  else if (remitoVigente) senalOperativa = stockDescontado ? 'Stock descontado' : 'Pendiente a descuento'
+  else if (isAuto) senalOperativa = 'Pendiente de remito'
   else if (pedido.estado === 'APROBADO') senalOperativa = 'Pendiente de armado'
   else if (pedido.estado === 'EN_ARMADO') senalOperativa = 'En preparación'
   else if (pedido.estado === 'PREPARADO' && !remitoVigente) senalOperativa = 'Esperando remito'
-  else if (pedido.estado === 'PREPARADO' && remitoVigente) senalOperativa = 'Listo para despacho'
 
   return (
     <article
@@ -131,6 +132,7 @@ export default function PedidosPage() {
   const userId = user?.sub ?? ''
   const esFacturacion = rol === 'facturacion'
   const esOperativo = can(user, 'ale-bet', 'pedidos.prepare') || can(user, 'ale-bet', 'pedidos.take')
+  const puedeCrearPedidos = can(user, 'ale-bet', 'pedidos.create') && !esFacturacion
 
   const armadorFiltros = [
     { valor: '', etiqueta: 'Todos' },
@@ -169,11 +171,21 @@ export default function PedidosPage() {
   }, [filtrados, esOperativo, rol, userId])
 
   const header = (
-    <div className="flex items-center justify-between gap-4">
+    <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Pedidos</h1>
+        <h1 className="text-[24px] font-bold tracking-tight text-on-surface sm:text-[28px]">Pedidos</h1>
         <p className="font-body text-[13px] text-on-surface-variant">{esFacturacion ? 'Pendientes de remito' : 'Bandeja operativa de pedidos'}</p>
       </div>
+      {puedeCrearPedidos && (
+        <button
+          type="button"
+          onClick={() => navigate('/ale-bet/pedidos/nuevo')}
+          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 font-body text-[13px] font-semibold text-on-primary btn-press"
+        >
+          <Plus size={18} aria-hidden="true" />
+          Nuevo
+        </button>
+      )}
     </div>
   )
 
@@ -201,7 +213,7 @@ export default function PedidosPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {header}
 
       {ordenados.length === 0 ? (

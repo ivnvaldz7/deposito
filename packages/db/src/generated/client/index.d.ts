@@ -274,6 +274,8 @@ export const EstadoPedido: {
   APROBADO: 'APROBADO',
   EN_ARMADO: 'EN_ARMADO',
   PREPARADO: 'PREPARADO',
+  PENDIENTE_PRODUCCION: 'PENDIENTE_PRODUCCION',
+  PENDIENTE_PARCIAL: 'PENDIENTE_PARCIAL',
   DESPACHADO: 'DESPACHADO',
   CANCELADO: 'CANCELADO'
 };
@@ -19723,6 +19725,8 @@ export namespace Prisma {
     vendedorId: string | null
     armadorId: string | null
     origen: $Enums.OrigenPedido | null
+    esRemitoManual: boolean | null
+    descuentoPorRemito: boolean | null
     estado: $Enums.EstadoPedido | null
     version: number | null
     cancelacionSolicitadaAt: Date | null
@@ -19743,6 +19747,8 @@ export namespace Prisma {
     vendedorId: string | null
     armadorId: string | null
     origen: $Enums.OrigenPedido | null
+    esRemitoManual: boolean | null
+    descuentoPorRemito: boolean | null
     estado: $Enums.EstadoPedido | null
     version: number | null
     cancelacionSolicitadaAt: Date | null
@@ -19763,6 +19769,8 @@ export namespace Prisma {
     vendedorId: number
     armadorId: number
     origen: number
+    esRemitoManual: number
+    descuentoPorRemito: number
     estado: number
     version: number
     cancelacionSolicitadaAt: number
@@ -19793,6 +19801,8 @@ export namespace Prisma {
     vendedorId?: true
     armadorId?: true
     origen?: true
+    esRemitoManual?: true
+    descuentoPorRemito?: true
     estado?: true
     version?: true
     cancelacionSolicitadaAt?: true
@@ -19813,6 +19823,8 @@ export namespace Prisma {
     vendedorId?: true
     armadorId?: true
     origen?: true
+    esRemitoManual?: true
+    descuentoPorRemito?: true
     estado?: true
     version?: true
     cancelacionSolicitadaAt?: true
@@ -19833,6 +19845,8 @@ export namespace Prisma {
     vendedorId?: true
     armadorId?: true
     origen?: true
+    esRemitoManual?: true
+    descuentoPorRemito?: true
     estado?: true
     version?: true
     cancelacionSolicitadaAt?: true
@@ -19940,6 +19954,8 @@ export namespace Prisma {
     vendedorId: string | null
     armadorId: string | null
     origen: $Enums.OrigenPedido
+    esRemitoManual: boolean
+    descuentoPorRemito: boolean
     estado: $Enums.EstadoPedido
     version: number
     cancelacionSolicitadaAt: Date | null
@@ -19979,6 +19995,8 @@ export namespace Prisma {
     vendedorId?: boolean
     armadorId?: boolean
     origen?: boolean
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: boolean
     version?: boolean
     cancelacionSolicitadaAt?: boolean
@@ -20006,6 +20024,8 @@ export namespace Prisma {
     vendedorId?: boolean
     armadorId?: boolean
     origen?: boolean
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: boolean
     version?: boolean
     cancelacionSolicitadaAt?: boolean
@@ -20027,6 +20047,8 @@ export namespace Prisma {
     vendedorId?: boolean
     armadorId?: boolean
     origen?: boolean
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: boolean
     version?: boolean
     cancelacionSolicitadaAt?: boolean
@@ -20048,6 +20070,8 @@ export namespace Prisma {
     vendedorId?: boolean
     armadorId?: boolean
     origen?: boolean
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: boolean
     version?: boolean
     cancelacionSolicitadaAt?: boolean
@@ -20061,7 +20085,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type PedidoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "numero" | "clienteId" | "vendedorId" | "armadorId" | "origen" | "estado" | "version" | "cancelacionSolicitadaAt" | "cancelacionSolicitadaPor" | "motivoCancelacion" | "aprobadoAt" | "preparadoAt" | "despachadoAt" | "canceladoAt" | "createdAt" | "updatedAt", ExtArgs["result"]["pedido"]>
+  export type PedidoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "numero" | "clienteId" | "vendedorId" | "armadorId" | "origen" | "esRemitoManual" | "descuentoPorRemito" | "estado" | "version" | "cancelacionSolicitadaAt" | "cancelacionSolicitadaPor" | "motivoCancelacion" | "aprobadoAt" | "preparadoAt" | "despachadoAt" | "canceladoAt" | "createdAt" | "updatedAt", ExtArgs["result"]["pedido"]>
   export type PedidoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     cliente?: boolean | ClienteDefaultArgs<ExtArgs>
     items?: boolean | Pedido$itemsArgs<ExtArgs>
@@ -20095,6 +20119,15 @@ export namespace Prisma {
       vendedorId: string | null
       armadorId: string | null
       origen: $Enums.OrigenPedido
+      /**
+       * Backing record for a document created directly by Facturación. It never
+       * enters the seller/armador workflow; it waits for a supervisor stock exit.
+       */
+      esRemitoManual: boolean
+      /**
+       * Automation orders using partial remitos consume stock only when each remito is approved.
+       */
+      descuentoPorRemito: boolean
       estado: $Enums.EstadoPedido
       version: number
       cancelacionSolicitadaAt: Date | null
@@ -20541,6 +20574,8 @@ export namespace Prisma {
     readonly vendedorId: FieldRef<"Pedido", 'String'>
     readonly armadorId: FieldRef<"Pedido", 'String'>
     readonly origen: FieldRef<"Pedido", 'OrigenPedido'>
+    readonly esRemitoManual: FieldRef<"Pedido", 'Boolean'>
+    readonly descuentoPorRemito: FieldRef<"Pedido", 'Boolean'>
     readonly estado: FieldRef<"Pedido", 'EstadoPedido'>
     readonly version: FieldRef<"Pedido", 'Int'>
     readonly cancelacionSolicitadaAt: FieldRef<"Pedido", 'DateTime'>
@@ -21100,10 +21135,12 @@ export namespace Prisma {
 
   export type ItemPedidoAvgAggregateOutputType = {
     cantidad: number | null
+    cantidadEntregada: number | null
   }
 
   export type ItemPedidoSumAggregateOutputType = {
     cantidad: number | null
+    cantidadEntregada: number | null
   }
 
   export type ItemPedidoMinAggregateOutputType = {
@@ -21111,6 +21148,7 @@ export namespace Prisma {
     pedidoId: string | null
     productoId: string | null
     cantidad: number | null
+    cantidadEntregada: number | null
     completado: boolean | null
     createdAt: Date | null
   }
@@ -21120,6 +21158,7 @@ export namespace Prisma {
     pedidoId: string | null
     productoId: string | null
     cantidad: number | null
+    cantidadEntregada: number | null
     completado: boolean | null
     createdAt: Date | null
   }
@@ -21129,6 +21168,7 @@ export namespace Prisma {
     pedidoId: number
     productoId: number
     cantidad: number
+    cantidadEntregada: number
     completado: number
     createdAt: number
     _all: number
@@ -21137,10 +21177,12 @@ export namespace Prisma {
 
   export type ItemPedidoAvgAggregateInputType = {
     cantidad?: true
+    cantidadEntregada?: true
   }
 
   export type ItemPedidoSumAggregateInputType = {
     cantidad?: true
+    cantidadEntregada?: true
   }
 
   export type ItemPedidoMinAggregateInputType = {
@@ -21148,6 +21190,7 @@ export namespace Prisma {
     pedidoId?: true
     productoId?: true
     cantidad?: true
+    cantidadEntregada?: true
     completado?: true
     createdAt?: true
   }
@@ -21157,6 +21200,7 @@ export namespace Prisma {
     pedidoId?: true
     productoId?: true
     cantidad?: true
+    cantidadEntregada?: true
     completado?: true
     createdAt?: true
   }
@@ -21166,6 +21210,7 @@ export namespace Prisma {
     pedidoId?: true
     productoId?: true
     cantidad?: true
+    cantidadEntregada?: true
     completado?: true
     createdAt?: true
     _all?: true
@@ -21262,6 +21307,7 @@ export namespace Prisma {
     pedidoId: string
     productoId: string
     cantidad: number
+    cantidadEntregada: number
     completado: boolean
     createdAt: Date
     _count: ItemPedidoCountAggregateOutputType | null
@@ -21290,6 +21336,7 @@ export namespace Prisma {
     pedidoId?: boolean
     productoId?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     completado?: boolean
     createdAt?: boolean
     pedido?: boolean | PedidoDefaultArgs<ExtArgs>
@@ -21303,6 +21350,7 @@ export namespace Prisma {
     pedidoId?: boolean
     productoId?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     completado?: boolean
     createdAt?: boolean
     pedido?: boolean | PedidoDefaultArgs<ExtArgs>
@@ -21314,6 +21362,7 @@ export namespace Prisma {
     pedidoId?: boolean
     productoId?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     completado?: boolean
     createdAt?: boolean
     pedido?: boolean | PedidoDefaultArgs<ExtArgs>
@@ -21325,11 +21374,12 @@ export namespace Prisma {
     pedidoId?: boolean
     productoId?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     completado?: boolean
     createdAt?: boolean
   }
 
-  export type ItemPedidoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pedidoId" | "productoId" | "cantidad" | "completado" | "createdAt", ExtArgs["result"]["itemPedido"]>
+  export type ItemPedidoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pedidoId" | "productoId" | "cantidad" | "cantidadEntregada" | "completado" | "createdAt", ExtArgs["result"]["itemPedido"]>
   export type ItemPedidoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     pedido?: boolean | PedidoDefaultArgs<ExtArgs>
     producto?: boolean | ProductoDefaultArgs<ExtArgs>
@@ -21357,6 +21407,7 @@ export namespace Prisma {
       pedidoId: string
       productoId: string
       cantidad: number
+      cantidadEntregada: number
       completado: boolean
       createdAt: Date
     }, ExtArgs["result"]["itemPedido"]>
@@ -21789,6 +21840,7 @@ export namespace Prisma {
     readonly pedidoId: FieldRef<"ItemPedido", 'String'>
     readonly productoId: FieldRef<"ItemPedido", 'String'>
     readonly cantidad: FieldRef<"ItemPedido", 'Int'>
+    readonly cantidadEntregada: FieldRef<"ItemPedido", 'Int'>
     readonly completado: FieldRef<"ItemPedido", 'Boolean'>
     readonly createdAt: FieldRef<"ItemPedido", 'DateTime'>
   }
@@ -22264,6 +22316,7 @@ export namespace Prisma {
     pedidoId: string | null
     loteId: string | null
     reservaId: string | null
+    remitoId: string | null
     origenUbicacionId: string | null
     destinoUbicacionId: string | null
     idempotencyKey: string | null
@@ -22280,6 +22333,7 @@ export namespace Prisma {
     pedidoId: string | null
     loteId: string | null
     reservaId: string | null
+    remitoId: string | null
     origenUbicacionId: string | null
     destinoUbicacionId: string | null
     idempotencyKey: string | null
@@ -22296,6 +22350,7 @@ export namespace Prisma {
     pedidoId: number
     loteId: number
     reservaId: number
+    remitoId: number
     origenUbicacionId: number
     destinoUbicacionId: number
     idempotencyKey: number
@@ -22322,6 +22377,7 @@ export namespace Prisma {
     pedidoId?: true
     loteId?: true
     reservaId?: true
+    remitoId?: true
     origenUbicacionId?: true
     destinoUbicacionId?: true
     idempotencyKey?: true
@@ -22338,6 +22394,7 @@ export namespace Prisma {
     pedidoId?: true
     loteId?: true
     reservaId?: true
+    remitoId?: true
     origenUbicacionId?: true
     destinoUbicacionId?: true
     idempotencyKey?: true
@@ -22354,6 +22411,7 @@ export namespace Prisma {
     pedidoId?: true
     loteId?: true
     reservaId?: true
+    remitoId?: true
     origenUbicacionId?: true
     destinoUbicacionId?: true
     idempotencyKey?: true
@@ -22457,6 +22515,7 @@ export namespace Prisma {
     pedidoId: string | null
     loteId: string | null
     reservaId: string | null
+    remitoId: string | null
     origenUbicacionId: string | null
     destinoUbicacionId: string | null
     idempotencyKey: string | null
@@ -22492,6 +22551,7 @@ export namespace Prisma {
     pedidoId?: boolean
     loteId?: boolean
     reservaId?: boolean
+    remitoId?: boolean
     origenUbicacionId?: boolean
     destinoUbicacionId?: boolean
     idempotencyKey?: boolean
@@ -22510,6 +22570,7 @@ export namespace Prisma {
     pedidoId?: boolean
     loteId?: boolean
     reservaId?: boolean
+    remitoId?: boolean
     origenUbicacionId?: boolean
     destinoUbicacionId?: boolean
     idempotencyKey?: boolean
@@ -22528,6 +22589,7 @@ export namespace Prisma {
     pedidoId?: boolean
     loteId?: boolean
     reservaId?: boolean
+    remitoId?: boolean
     origenUbicacionId?: boolean
     destinoUbicacionId?: boolean
     idempotencyKey?: boolean
@@ -22546,13 +22608,14 @@ export namespace Prisma {
     pedidoId?: boolean
     loteId?: boolean
     reservaId?: boolean
+    remitoId?: boolean
     origenUbicacionId?: boolean
     destinoUbicacionId?: boolean
     idempotencyKey?: boolean
     createdAt?: boolean
   }
 
-  export type MovimientoStockOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "productoId" | "cantidad" | "tipo" | "referencia" | "usuarioId" | "pedidoId" | "loteId" | "reservaId" | "origenUbicacionId" | "destinoUbicacionId" | "idempotencyKey" | "createdAt", ExtArgs["result"]["movimientoStock"]>
+  export type MovimientoStockOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "productoId" | "cantidad" | "tipo" | "referencia" | "usuarioId" | "pedidoId" | "loteId" | "reservaId" | "remitoId" | "origenUbicacionId" | "destinoUbicacionId" | "idempotencyKey" | "createdAt", ExtArgs["result"]["movimientoStock"]>
   export type MovimientoStockInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     origenUbicacion?: boolean | MovimientoStock$origenUbicacionArgs<ExtArgs>
     destinoUbicacion?: boolean | MovimientoStock$destinoUbicacionArgs<ExtArgs>
@@ -22582,6 +22645,7 @@ export namespace Prisma {
       pedidoId: string | null
       loteId: string | null
       reservaId: string | null
+      remitoId: string | null
       origenUbicacionId: string | null
       destinoUbicacionId: string | null
       idempotencyKey: string | null
@@ -23020,6 +23084,7 @@ export namespace Prisma {
     readonly pedidoId: FieldRef<"MovimientoStock", 'String'>
     readonly loteId: FieldRef<"MovimientoStock", 'String'>
     readonly reservaId: FieldRef<"MovimientoStock", 'String'>
+    readonly remitoId: FieldRef<"MovimientoStock", 'String'>
     readonly origenUbicacionId: FieldRef<"MovimientoStock", 'String'>
     readonly destinoUbicacionId: FieldRef<"MovimientoStock", 'String'>
     readonly idempotencyKey: FieldRef<"MovimientoStock", 'String'>
@@ -31560,6 +31625,8 @@ export namespace Prisma {
     transportistaId: string | null
     transporteNombre: string | null
     transporteDireccion: string | null
+    descuentoAprobadoAt: Date | null
+    descuentoAprobadoPor: string | null
     estado: $Enums.EstadoRemito | null
     invalidadoAt: Date | null
     invalidadoPor: string | null
@@ -31576,6 +31643,8 @@ export namespace Prisma {
     transportistaId: string | null
     transporteNombre: string | null
     transporteDireccion: string | null
+    descuentoAprobadoAt: Date | null
+    descuentoAprobadoPor: string | null
     estado: $Enums.EstadoRemito | null
     invalidadoAt: Date | null
     invalidadoPor: string | null
@@ -31596,6 +31665,8 @@ export namespace Prisma {
     transporteSnapshot: number
     itemsSnapshot: number
     caiSnapshot: number
+    descuentoAprobadoAt: number
+    descuentoAprobadoPor: number
     estado: number
     invalidadoAt: number
     invalidadoPor: number
@@ -31614,6 +31685,8 @@ export namespace Prisma {
     transportistaId?: true
     transporteNombre?: true
     transporteDireccion?: true
+    descuentoAprobadoAt?: true
+    descuentoAprobadoPor?: true
     estado?: true
     invalidadoAt?: true
     invalidadoPor?: true
@@ -31630,6 +31703,8 @@ export namespace Prisma {
     transportistaId?: true
     transporteNombre?: true
     transporteDireccion?: true
+    descuentoAprobadoAt?: true
+    descuentoAprobadoPor?: true
     estado?: true
     invalidadoAt?: true
     invalidadoPor?: true
@@ -31650,6 +31725,8 @@ export namespace Prisma {
     transporteSnapshot?: true
     itemsSnapshot?: true
     caiSnapshot?: true
+    descuentoAprobadoAt?: true
+    descuentoAprobadoPor?: true
     estado?: true
     invalidadoAt?: true
     invalidadoPor?: true
@@ -31743,6 +31820,8 @@ export namespace Prisma {
     transporteSnapshot: JsonValue
     itemsSnapshot: JsonValue
     caiSnapshot: JsonValue | null
+    descuentoAprobadoAt: Date | null
+    descuentoAprobadoPor: string | null
     estado: $Enums.EstadoRemito
     invalidadoAt: Date | null
     invalidadoPor: string | null
@@ -31780,6 +31859,8 @@ export namespace Prisma {
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
     caiSnapshot?: boolean
+    descuentoAprobadoAt?: boolean
+    descuentoAprobadoPor?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31802,6 +31883,8 @@ export namespace Prisma {
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
     caiSnapshot?: boolean
+    descuentoAprobadoAt?: boolean
+    descuentoAprobadoPor?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31824,6 +31907,8 @@ export namespace Prisma {
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
     caiSnapshot?: boolean
+    descuentoAprobadoAt?: boolean
+    descuentoAprobadoPor?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31846,6 +31931,8 @@ export namespace Prisma {
     transporteSnapshot?: boolean
     itemsSnapshot?: boolean
     caiSnapshot?: boolean
+    descuentoAprobadoAt?: boolean
+    descuentoAprobadoPor?: boolean
     estado?: boolean
     invalidadoAt?: boolean
     invalidadoPor?: boolean
@@ -31854,7 +31941,7 @@ export namespace Prisma {
     createdAt?: boolean
   }
 
-  export type RemitoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pedidoId" | "numero" | "fecha" | "transportistaId" | "transporteNombre" | "transporteDireccion" | "clienteSnapshot" | "transporteSnapshot" | "itemsSnapshot" | "caiSnapshot" | "estado" | "invalidadoAt" | "invalidadoPor" | "motivoInvalidacion" | "createdBy" | "createdAt", ExtArgs["result"]["remito"]>
+  export type RemitoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "pedidoId" | "numero" | "fecha" | "transportistaId" | "transporteNombre" | "transporteDireccion" | "clienteSnapshot" | "transporteSnapshot" | "itemsSnapshot" | "caiSnapshot" | "descuentoAprobadoAt" | "descuentoAprobadoPor" | "estado" | "invalidadoAt" | "invalidadoPor" | "motivoInvalidacion" | "createdBy" | "createdAt", ExtArgs["result"]["remito"]>
   export type RemitoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     pedido?: boolean | PedidoDefaultArgs<ExtArgs>
     transportista?: boolean | Remito$transportistaArgs<ExtArgs>
@@ -31886,6 +31973,8 @@ export namespace Prisma {
       transporteSnapshot: Prisma.JsonValue
       itemsSnapshot: Prisma.JsonValue
       caiSnapshot: Prisma.JsonValue | null
+      descuentoAprobadoAt: Date | null
+      descuentoAprobadoPor: string | null
       estado: $Enums.EstadoRemito
       invalidadoAt: Date | null
       invalidadoPor: string | null
@@ -32328,6 +32417,8 @@ export namespace Prisma {
     readonly transporteSnapshot: FieldRef<"Remito", 'Json'>
     readonly itemsSnapshot: FieldRef<"Remito", 'Json'>
     readonly caiSnapshot: FieldRef<"Remito", 'Json'>
+    readonly descuentoAprobadoAt: FieldRef<"Remito", 'DateTime'>
+    readonly descuentoAprobadoPor: FieldRef<"Remito", 'String'>
     readonly estado: FieldRef<"Remito", 'EstadoRemito'>
     readonly invalidadoAt: FieldRef<"Remito", 'DateTime'>
     readonly invalidadoPor: FieldRef<"Remito", 'String'>
@@ -46819,6 +46910,7 @@ export namespace Prisma {
     solicitanteId: string | null
     aprobadoPor: string | null
     productoId: string | null
+    grupoId: string | null
     categoria: $Enums.Categoria | null
     productoNombre: string | null
     mercado: $Enums.Mercado | null
@@ -46835,6 +46927,7 @@ export namespace Prisma {
     solicitanteId: string | null
     aprobadoPor: string | null
     productoId: string | null
+    grupoId: string | null
     categoria: $Enums.Categoria | null
     productoNombre: string | null
     mercado: $Enums.Mercado | null
@@ -46851,6 +46944,7 @@ export namespace Prisma {
     solicitanteId: number
     aprobadoPor: number
     productoId: number
+    grupoId: number
     categoria: number
     productoNombre: number
     mercado: number
@@ -46877,6 +46971,7 @@ export namespace Prisma {
     solicitanteId?: true
     aprobadoPor?: true
     productoId?: true
+    grupoId?: true
     categoria?: true
     productoNombre?: true
     mercado?: true
@@ -46893,6 +46988,7 @@ export namespace Prisma {
     solicitanteId?: true
     aprobadoPor?: true
     productoId?: true
+    grupoId?: true
     categoria?: true
     productoNombre?: true
     mercado?: true
@@ -46909,6 +47005,7 @@ export namespace Prisma {
     solicitanteId?: true
     aprobadoPor?: true
     productoId?: true
+    grupoId?: true
     categoria?: true
     productoNombre?: true
     mercado?: true
@@ -47012,6 +47109,7 @@ export namespace Prisma {
     solicitanteId: string
     aprobadoPor: string | null
     productoId: string | null
+    grupoId: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado: $Enums.Mercado | null
@@ -47047,6 +47145,7 @@ export namespace Prisma {
     solicitanteId?: boolean
     aprobadoPor?: boolean
     productoId?: boolean
+    grupoId?: boolean
     categoria?: boolean
     productoNombre?: boolean
     mercado?: boolean
@@ -47066,6 +47165,7 @@ export namespace Prisma {
     solicitanteId?: boolean
     aprobadoPor?: boolean
     productoId?: boolean
+    grupoId?: boolean
     categoria?: boolean
     productoNombre?: boolean
     mercado?: boolean
@@ -47085,6 +47185,7 @@ export namespace Prisma {
     solicitanteId?: boolean
     aprobadoPor?: boolean
     productoId?: boolean
+    grupoId?: boolean
     categoria?: boolean
     productoNombre?: boolean
     mercado?: boolean
@@ -47104,6 +47205,7 @@ export namespace Prisma {
     solicitanteId?: boolean
     aprobadoPor?: boolean
     productoId?: boolean
+    grupoId?: boolean
     categoria?: boolean
     productoNombre?: boolean
     mercado?: boolean
@@ -47115,7 +47217,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type OrdenProduccionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "solicitanteId" | "aprobadoPor" | "productoId" | "categoria" | "productoNombre" | "mercado" | "cantidad" | "urgencia" | "estado" | "motivoRechazo" | "createdAt" | "updatedAt", ExtArgs["result"]["ordenProduccion"]>
+  export type OrdenProduccionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "solicitanteId" | "aprobadoPor" | "productoId" | "grupoId" | "categoria" | "productoNombre" | "mercado" | "cantidad" | "urgencia" | "estado" | "motivoRechazo" | "createdAt" | "updatedAt", ExtArgs["result"]["ordenProduccion"]>
   export type OrdenProduccionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     solicitante?: boolean | UserDefaultArgs<ExtArgs>
     aprobador?: boolean | OrdenProduccion$aprobadorArgs<ExtArgs>
@@ -47144,6 +47246,7 @@ export namespace Prisma {
       solicitanteId: string
       aprobadoPor: string | null
       productoId: string | null
+      grupoId: string | null
       categoria: $Enums.Categoria
       productoNombre: string
       mercado: $Enums.Mercado | null
@@ -47583,6 +47686,7 @@ export namespace Prisma {
     readonly solicitanteId: FieldRef<"OrdenProduccion", 'String'>
     readonly aprobadoPor: FieldRef<"OrdenProduccion", 'String'>
     readonly productoId: FieldRef<"OrdenProduccion", 'String'>
+    readonly grupoId: FieldRef<"OrdenProduccion", 'String'>
     readonly categoria: FieldRef<"OrdenProduccion", 'Categoria'>
     readonly productoNombre: FieldRef<"OrdenProduccion", 'String'>
     readonly mercado: FieldRef<"OrdenProduccion", 'Mercado'>
@@ -58464,6 +58568,8 @@ export namespace Prisma {
     vendedorId: 'vendedorId',
     armadorId: 'armadorId',
     origen: 'origen',
+    esRemitoManual: 'esRemitoManual',
+    descuentoPorRemito: 'descuentoPorRemito',
     estado: 'estado',
     version: 'version',
     cancelacionSolicitadaAt: 'cancelacionSolicitadaAt',
@@ -58485,6 +58591,7 @@ export namespace Prisma {
     pedidoId: 'pedidoId',
     productoId: 'productoId',
     cantidad: 'cantidad',
+    cantidadEntregada: 'cantidadEntregada',
     completado: 'completado',
     createdAt: 'createdAt'
   };
@@ -58502,6 +58609,7 @@ export namespace Prisma {
     pedidoId: 'pedidoId',
     loteId: 'loteId',
     reservaId: 'reservaId',
+    remitoId: 'remitoId',
     origenUbicacionId: 'origenUbicacionId',
     destinoUbicacionId: 'destinoUbicacionId',
     idempotencyKey: 'idempotencyKey',
@@ -58622,6 +58730,8 @@ export namespace Prisma {
     transporteSnapshot: 'transporteSnapshot',
     itemsSnapshot: 'itemsSnapshot',
     caiSnapshot: 'caiSnapshot',
+    descuentoAprobadoAt: 'descuentoAprobadoAt',
+    descuentoAprobadoPor: 'descuentoAprobadoPor',
     estado: 'estado',
     invalidadoAt: 'invalidadoAt',
     invalidadoPor: 'invalidadoPor',
@@ -58812,6 +58922,7 @@ export namespace Prisma {
     solicitanteId: 'solicitanteId',
     aprobadoPor: 'aprobadoPor',
     productoId: 'productoId',
+    grupoId: 'grupoId',
     categoria: 'categoria',
     productoNombre: 'productoNombre',
     mercado: 'mercado',
@@ -60397,6 +60508,8 @@ export namespace Prisma {
     vendedorId?: StringNullableFilter<"Pedido"> | string | null
     armadorId?: StringNullableFilter<"Pedido"> | string | null
     origen?: EnumOrigenPedidoFilter<"Pedido"> | $Enums.OrigenPedido
+    esRemitoManual?: BoolFilter<"Pedido"> | boolean
+    descuentoPorRemito?: BoolFilter<"Pedido"> | boolean
     estado?: EnumEstadoPedidoFilter<"Pedido"> | $Enums.EstadoPedido
     version?: IntFilter<"Pedido"> | number
     cancelacionSolicitadaAt?: DateTimeNullableFilter<"Pedido"> | Date | string | null
@@ -60423,6 +60536,8 @@ export namespace Prisma {
     vendedorId?: SortOrderInput | SortOrder
     armadorId?: SortOrderInput | SortOrder
     origen?: SortOrder
+    esRemitoManual?: SortOrder
+    descuentoPorRemito?: SortOrder
     estado?: SortOrder
     version?: SortOrder
     cancelacionSolicitadaAt?: SortOrderInput | SortOrder
@@ -60452,6 +60567,8 @@ export namespace Prisma {
     vendedorId?: StringNullableFilter<"Pedido"> | string | null
     armadorId?: StringNullableFilter<"Pedido"> | string | null
     origen?: EnumOrigenPedidoFilter<"Pedido"> | $Enums.OrigenPedido
+    esRemitoManual?: BoolFilter<"Pedido"> | boolean
+    descuentoPorRemito?: BoolFilter<"Pedido"> | boolean
     estado?: EnumEstadoPedidoFilter<"Pedido"> | $Enums.EstadoPedido
     version?: IntFilter<"Pedido"> | number
     cancelacionSolicitadaAt?: DateTimeNullableFilter<"Pedido"> | Date | string | null
@@ -60478,6 +60595,8 @@ export namespace Prisma {
     vendedorId?: SortOrderInput | SortOrder
     armadorId?: SortOrderInput | SortOrder
     origen?: SortOrder
+    esRemitoManual?: SortOrder
+    descuentoPorRemito?: SortOrder
     estado?: SortOrder
     version?: SortOrder
     cancelacionSolicitadaAt?: SortOrderInput | SortOrder
@@ -60506,6 +60625,8 @@ export namespace Prisma {
     vendedorId?: StringNullableWithAggregatesFilter<"Pedido"> | string | null
     armadorId?: StringNullableWithAggregatesFilter<"Pedido"> | string | null
     origen?: EnumOrigenPedidoWithAggregatesFilter<"Pedido"> | $Enums.OrigenPedido
+    esRemitoManual?: BoolWithAggregatesFilter<"Pedido"> | boolean
+    descuentoPorRemito?: BoolWithAggregatesFilter<"Pedido"> | boolean
     estado?: EnumEstadoPedidoWithAggregatesFilter<"Pedido"> | $Enums.EstadoPedido
     version?: IntWithAggregatesFilter<"Pedido"> | number
     cancelacionSolicitadaAt?: DateTimeNullableWithAggregatesFilter<"Pedido"> | Date | string | null
@@ -60527,6 +60648,7 @@ export namespace Prisma {
     pedidoId?: StringFilter<"ItemPedido"> | string
     productoId?: StringFilter<"ItemPedido"> | string
     cantidad?: IntFilter<"ItemPedido"> | number
+    cantidadEntregada?: IntFilter<"ItemPedido"> | number
     completado?: BoolFilter<"ItemPedido"> | boolean
     createdAt?: DateTimeFilter<"ItemPedido"> | Date | string
     pedido?: XOR<PedidoScalarRelationFilter, PedidoWhereInput>
@@ -60539,6 +60661,7 @@ export namespace Prisma {
     pedidoId?: SortOrder
     productoId?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     completado?: SortOrder
     createdAt?: SortOrder
     pedido?: PedidoOrderByWithRelationInput
@@ -60554,6 +60677,7 @@ export namespace Prisma {
     pedidoId?: StringFilter<"ItemPedido"> | string
     productoId?: StringFilter<"ItemPedido"> | string
     cantidad?: IntFilter<"ItemPedido"> | number
+    cantidadEntregada?: IntFilter<"ItemPedido"> | number
     completado?: BoolFilter<"ItemPedido"> | boolean
     createdAt?: DateTimeFilter<"ItemPedido"> | Date | string
     pedido?: XOR<PedidoScalarRelationFilter, PedidoWhereInput>
@@ -60566,6 +60690,7 @@ export namespace Prisma {
     pedidoId?: SortOrder
     productoId?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     completado?: SortOrder
     createdAt?: SortOrder
     _count?: ItemPedidoCountOrderByAggregateInput
@@ -60583,6 +60708,7 @@ export namespace Prisma {
     pedidoId?: StringWithAggregatesFilter<"ItemPedido"> | string
     productoId?: StringWithAggregatesFilter<"ItemPedido"> | string
     cantidad?: IntWithAggregatesFilter<"ItemPedido"> | number
+    cantidadEntregada?: IntWithAggregatesFilter<"ItemPedido"> | number
     completado?: BoolWithAggregatesFilter<"ItemPedido"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"ItemPedido"> | Date | string
   }
@@ -60600,6 +60726,7 @@ export namespace Prisma {
     pedidoId?: StringNullableFilter<"MovimientoStock"> | string | null
     loteId?: StringNullableFilter<"MovimientoStock"> | string | null
     reservaId?: StringNullableFilter<"MovimientoStock"> | string | null
+    remitoId?: StringNullableFilter<"MovimientoStock"> | string | null
     origenUbicacionId?: StringNullableFilter<"MovimientoStock"> | string | null
     destinoUbicacionId?: StringNullableFilter<"MovimientoStock"> | string | null
     idempotencyKey?: StringNullableFilter<"MovimientoStock"> | string | null
@@ -60618,6 +60745,7 @@ export namespace Prisma {
     pedidoId?: SortOrderInput | SortOrder
     loteId?: SortOrderInput | SortOrder
     reservaId?: SortOrderInput | SortOrder
+    remitoId?: SortOrderInput | SortOrder
     origenUbicacionId?: SortOrderInput | SortOrder
     destinoUbicacionId?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrderInput | SortOrder
@@ -60640,6 +60768,7 @@ export namespace Prisma {
     pedidoId?: StringNullableFilter<"MovimientoStock"> | string | null
     loteId?: StringNullableFilter<"MovimientoStock"> | string | null
     reservaId?: StringNullableFilter<"MovimientoStock"> | string | null
+    remitoId?: StringNullableFilter<"MovimientoStock"> | string | null
     origenUbicacionId?: StringNullableFilter<"MovimientoStock"> | string | null
     destinoUbicacionId?: StringNullableFilter<"MovimientoStock"> | string | null
     createdAt?: DateTimeFilter<"MovimientoStock"> | Date | string
@@ -60657,6 +60786,7 @@ export namespace Prisma {
     pedidoId?: SortOrderInput | SortOrder
     loteId?: SortOrderInput | SortOrder
     reservaId?: SortOrderInput | SortOrder
+    remitoId?: SortOrderInput | SortOrder
     origenUbicacionId?: SortOrderInput | SortOrder
     destinoUbicacionId?: SortOrderInput | SortOrder
     idempotencyKey?: SortOrderInput | SortOrder
@@ -60681,6 +60811,7 @@ export namespace Prisma {
     pedidoId?: StringNullableWithAggregatesFilter<"MovimientoStock"> | string | null
     loteId?: StringNullableWithAggregatesFilter<"MovimientoStock"> | string | null
     reservaId?: StringNullableWithAggregatesFilter<"MovimientoStock"> | string | null
+    remitoId?: StringNullableWithAggregatesFilter<"MovimientoStock"> | string | null
     origenUbicacionId?: StringNullableWithAggregatesFilter<"MovimientoStock"> | string | null
     destinoUbicacionId?: StringNullableWithAggregatesFilter<"MovimientoStock"> | string | null
     idempotencyKey?: StringNullableWithAggregatesFilter<"MovimientoStock"> | string | null
@@ -60726,7 +60857,6 @@ export namespace Prisma {
 
   export type ReservaStockWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    itemPedidoId_loteId_ubicacionId?: ReservaStockItemPedidoIdLoteIdUbicacionIdCompoundUniqueInput
     AND?: ReservaStockWhereInput | ReservaStockWhereInput[]
     OR?: ReservaStockWhereInput[]
     NOT?: ReservaStockWhereInput | ReservaStockWhereInput[]
@@ -60743,7 +60873,7 @@ export namespace Prisma {
     itemPedido?: XOR<ItemPedidoNullableScalarRelationFilter, ItemPedidoWhereInput> | null
     lote?: XOR<LoteScalarRelationFilter, LoteWhereInput>
     ubicacion?: XOR<UbicacionStockScalarRelationFilter, UbicacionStockWhereInput>
-  }, "id" | "itemPedidoId_loteId_ubicacionId">
+  }, "id">
 
   export type ReservaStockOrderByWithAggregationInput = {
     id?: SortOrder
@@ -61236,6 +61366,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonFilter<"Remito">
     itemsSnapshot?: JsonFilter<"Remito">
     caiSnapshot?: JsonNullableFilter<"Remito">
+    descuentoAprobadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
+    descuentoAprobadoPor?: StringNullableFilter<"Remito"> | string | null
     estado?: EnumEstadoRemitoFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableFilter<"Remito"> | string | null
@@ -61258,6 +61390,8 @@ export namespace Prisma {
     transporteSnapshot?: SortOrder
     itemsSnapshot?: SortOrder
     caiSnapshot?: SortOrderInput | SortOrder
+    descuentoAprobadoAt?: SortOrderInput | SortOrder
+    descuentoAprobadoPor?: SortOrderInput | SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrderInput | SortOrder
     invalidadoPor?: SortOrderInput | SortOrder
@@ -61283,6 +61417,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonFilter<"Remito">
     itemsSnapshot?: JsonFilter<"Remito">
     caiSnapshot?: JsonNullableFilter<"Remito">
+    descuentoAprobadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
+    descuentoAprobadoPor?: StringNullableFilter<"Remito"> | string | null
     estado?: EnumEstadoRemitoFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableFilter<"Remito"> | string | null
@@ -61305,6 +61441,8 @@ export namespace Prisma {
     transporteSnapshot?: SortOrder
     itemsSnapshot?: SortOrder
     caiSnapshot?: SortOrderInput | SortOrder
+    descuentoAprobadoAt?: SortOrderInput | SortOrder
+    descuentoAprobadoPor?: SortOrderInput | SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrderInput | SortOrder
     invalidadoPor?: SortOrderInput | SortOrder
@@ -61331,6 +61469,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonWithAggregatesFilter<"Remito">
     itemsSnapshot?: JsonWithAggregatesFilter<"Remito">
     caiSnapshot?: JsonNullableWithAggregatesFilter<"Remito">
+    descuentoAprobadoAt?: DateTimeNullableWithAggregatesFilter<"Remito"> | Date | string | null
+    descuentoAprobadoPor?: StringNullableWithAggregatesFilter<"Remito"> | string | null
     estado?: EnumEstadoRemitoWithAggregatesFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableWithAggregatesFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableWithAggregatesFilter<"Remito"> | string | null
@@ -62280,6 +62420,7 @@ export namespace Prisma {
     solicitanteId?: StringFilter<"OrdenProduccion"> | string
     aprobadoPor?: StringNullableFilter<"OrdenProduccion"> | string | null
     productoId?: StringNullableFilter<"OrdenProduccion"> | string | null
+    grupoId?: StringNullableFilter<"OrdenProduccion"> | string | null
     categoria?: EnumCategoriaFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
@@ -62299,6 +62440,7 @@ export namespace Prisma {
     solicitanteId?: SortOrder
     aprobadoPor?: SortOrderInput | SortOrder
     productoId?: SortOrderInput | SortOrder
+    grupoId?: SortOrderInput | SortOrder
     categoria?: SortOrder
     productoNombre?: SortOrder
     mercado?: SortOrderInput | SortOrder
@@ -62321,6 +62463,7 @@ export namespace Prisma {
     solicitanteId?: StringFilter<"OrdenProduccion"> | string
     aprobadoPor?: StringNullableFilter<"OrdenProduccion"> | string | null
     productoId?: StringNullableFilter<"OrdenProduccion"> | string | null
+    grupoId?: StringNullableFilter<"OrdenProduccion"> | string | null
     categoria?: EnumCategoriaFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
@@ -62340,6 +62483,7 @@ export namespace Prisma {
     solicitanteId?: SortOrder
     aprobadoPor?: SortOrderInput | SortOrder
     productoId?: SortOrderInput | SortOrder
+    grupoId?: SortOrderInput | SortOrder
     categoria?: SortOrder
     productoNombre?: SortOrder
     mercado?: SortOrderInput | SortOrder
@@ -62364,6 +62508,7 @@ export namespace Prisma {
     solicitanteId?: StringWithAggregatesFilter<"OrdenProduccion"> | string
     aprobadoPor?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
     productoId?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
+    grupoId?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
     categoria?: EnumCategoriaWithAggregatesFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringWithAggregatesFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableWithAggregatesFilter<"OrdenProduccion"> | $Enums.Mercado | null
@@ -64062,6 +64207,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -64088,6 +64235,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -64112,6 +64261,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64138,6 +64289,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64163,6 +64316,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -64182,6 +64337,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64202,6 +64359,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -64218,6 +64377,7 @@ export namespace Prisma {
   export type ItemPedidoCreateInput = {
     id?: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
     pedido: PedidoCreateNestedOneWithoutItemsInput
@@ -64230,6 +64390,7 @@ export namespace Prisma {
     pedidoId: string
     productoId: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
     reservas?: ReservaStockUncheckedCreateNestedManyWithoutItemPedidoInput
@@ -64238,6 +64399,7 @@ export namespace Prisma {
   export type ItemPedidoUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     pedido?: PedidoUpdateOneRequiredWithoutItemsNestedInput
@@ -64250,6 +64412,7 @@ export namespace Prisma {
     pedidoId?: StringFieldUpdateOperationsInput | string
     productoId?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reservas?: ReservaStockUncheckedUpdateManyWithoutItemPedidoNestedInput
@@ -64260,6 +64423,7 @@ export namespace Prisma {
     pedidoId: string
     productoId: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
   }
@@ -64267,6 +64431,7 @@ export namespace Prisma {
   export type ItemPedidoUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -64276,6 +64441,7 @@ export namespace Prisma {
     pedidoId?: StringFieldUpdateOperationsInput | string
     productoId?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -64290,6 +64456,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     idempotencyKey?: string | null
     createdAt?: Date | string
     origenUbicacion?: UbicacionStockCreateNestedOneWithoutMovimientosOrigenInput
@@ -64306,6 +64473,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     origenUbicacionId?: string | null
     destinoUbicacionId?: string | null
     idempotencyKey?: string | null
@@ -64322,6 +64490,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     origenUbicacion?: UbicacionStockUpdateOneWithoutMovimientosOrigenNestedInput
@@ -64338,6 +64507,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     origenUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     destinoUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
@@ -64354,6 +64524,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     origenUbicacionId?: string | null
     destinoUbicacionId?: string | null
     idempotencyKey?: string | null
@@ -64370,6 +64541,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -64384,6 +64556,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     origenUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     destinoUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
@@ -64960,6 +65133,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -64982,6 +65157,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -65000,6 +65177,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65022,6 +65201,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65042,6 +65223,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -65060,6 +65243,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -65080,6 +65265,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66086,6 +66273,7 @@ export namespace Prisma {
 
   export type OrdenProduccionCreateInput = {
     id?: string
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -66105,6 +66293,7 @@ export namespace Prisma {
     solicitanteId: string
     aprobadoPor?: string | null
     productoId?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -66118,6 +66307,7 @@ export namespace Prisma {
 
   export type OrdenProduccionUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -66137,6 +66327,7 @@ export namespace Prisma {
     solicitanteId?: StringFieldUpdateOperationsInput | string
     aprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -66153,6 +66344,7 @@ export namespace Prisma {
     solicitanteId: string
     aprobadoPor?: string | null
     productoId?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -66166,6 +66358,7 @@ export namespace Prisma {
 
   export type OrdenProduccionUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -66182,6 +66375,7 @@ export namespace Prisma {
     solicitanteId?: StringFieldUpdateOperationsInput | string
     aprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -67837,6 +68031,8 @@ export namespace Prisma {
     vendedorId?: SortOrder
     armadorId?: SortOrder
     origen?: SortOrder
+    esRemitoManual?: SortOrder
+    descuentoPorRemito?: SortOrder
     estado?: SortOrder
     version?: SortOrder
     cancelacionSolicitadaAt?: SortOrder
@@ -67861,6 +68057,8 @@ export namespace Prisma {
     vendedorId?: SortOrder
     armadorId?: SortOrder
     origen?: SortOrder
+    esRemitoManual?: SortOrder
+    descuentoPorRemito?: SortOrder
     estado?: SortOrder
     version?: SortOrder
     cancelacionSolicitadaAt?: SortOrder
@@ -67881,6 +68079,8 @@ export namespace Prisma {
     vendedorId?: SortOrder
     armadorId?: SortOrder
     origen?: SortOrder
+    esRemitoManual?: SortOrder
+    descuentoPorRemito?: SortOrder
     estado?: SortOrder
     version?: SortOrder
     cancelacionSolicitadaAt?: SortOrder
@@ -67928,12 +68128,14 @@ export namespace Prisma {
     pedidoId?: SortOrder
     productoId?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     completado?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ItemPedidoAvgOrderByAggregateInput = {
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
   }
 
   export type ItemPedidoMaxOrderByAggregateInput = {
@@ -67941,6 +68143,7 @@ export namespace Prisma {
     pedidoId?: SortOrder
     productoId?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     completado?: SortOrder
     createdAt?: SortOrder
   }
@@ -67950,12 +68153,14 @@ export namespace Prisma {
     pedidoId?: SortOrder
     productoId?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     completado?: SortOrder
     createdAt?: SortOrder
   }
 
   export type ItemPedidoSumOrderByAggregateInput = {
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
   }
 
   export type EnumTipoMovimientoFilter<$PrismaModel = never> = {
@@ -67980,6 +68185,7 @@ export namespace Prisma {
     pedidoId?: SortOrder
     loteId?: SortOrder
     reservaId?: SortOrder
+    remitoId?: SortOrder
     origenUbicacionId?: SortOrder
     destinoUbicacionId?: SortOrder
     idempotencyKey?: SortOrder
@@ -68000,6 +68206,7 @@ export namespace Prisma {
     pedidoId?: SortOrder
     loteId?: SortOrder
     reservaId?: SortOrder
+    remitoId?: SortOrder
     origenUbicacionId?: SortOrder
     destinoUbicacionId?: SortOrder
     idempotencyKey?: SortOrder
@@ -68016,6 +68223,7 @@ export namespace Prisma {
     pedidoId?: SortOrder
     loteId?: SortOrder
     reservaId?: SortOrder
+    remitoId?: SortOrder
     origenUbicacionId?: SortOrder
     destinoUbicacionId?: SortOrder
     idempotencyKey?: SortOrder
@@ -68056,12 +68264,6 @@ export namespace Prisma {
   export type UbicacionStockScalarRelationFilter = {
     is?: UbicacionStockWhereInput
     isNot?: UbicacionStockWhereInput
-  }
-
-  export type ReservaStockItemPedidoIdLoteIdUbicacionIdCompoundUniqueInput = {
-    itemPedidoId: string
-    loteId: string
-    ubicacionId: string
   }
 
   export type ReservaStockCountOrderByAggregateInput = {
@@ -68476,6 +68678,8 @@ export namespace Prisma {
     transporteSnapshot?: SortOrder
     itemsSnapshot?: SortOrder
     caiSnapshot?: SortOrder
+    descuentoAprobadoAt?: SortOrder
+    descuentoAprobadoPor?: SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrder
     invalidadoPor?: SortOrder
@@ -68492,6 +68696,8 @@ export namespace Prisma {
     transportistaId?: SortOrder
     transporteNombre?: SortOrder
     transporteDireccion?: SortOrder
+    descuentoAprobadoAt?: SortOrder
+    descuentoAprobadoPor?: SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrder
     invalidadoPor?: SortOrder
@@ -68508,6 +68714,8 @@ export namespace Prisma {
     transportistaId?: SortOrder
     transporteNombre?: SortOrder
     transporteDireccion?: SortOrder
+    descuentoAprobadoAt?: SortOrder
+    descuentoAprobadoPor?: SortOrder
     estado?: SortOrder
     invalidadoAt?: SortOrder
     invalidadoPor?: SortOrder
@@ -69370,6 +69578,7 @@ export namespace Prisma {
     solicitanteId?: SortOrder
     aprobadoPor?: SortOrder
     productoId?: SortOrder
+    grupoId?: SortOrder
     categoria?: SortOrder
     productoNombre?: SortOrder
     mercado?: SortOrder
@@ -69390,6 +69599,7 @@ export namespace Prisma {
     solicitanteId?: SortOrder
     aprobadoPor?: SortOrder
     productoId?: SortOrder
+    grupoId?: SortOrder
     categoria?: SortOrder
     productoNombre?: SortOrder
     mercado?: SortOrder
@@ -69406,6 +69616,7 @@ export namespace Prisma {
     solicitanteId?: SortOrder
     aprobadoPor?: SortOrder
     productoId?: SortOrder
+    grupoId?: SortOrder
     categoria?: SortOrder
     productoNombre?: SortOrder
     mercado?: SortOrder
@@ -74133,6 +74344,7 @@ export namespace Prisma {
   export type ItemPedidoCreateWithoutProductoInput = {
     id?: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
     pedido: PedidoCreateNestedOneWithoutItemsInput
@@ -74143,6 +74355,7 @@ export namespace Prisma {
     id?: string
     pedidoId: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
     reservas?: ReservaStockUncheckedCreateNestedManyWithoutItemPedidoInput
@@ -74366,6 +74579,7 @@ export namespace Prisma {
     pedidoId?: StringFilter<"ItemPedido"> | string
     productoId?: StringFilter<"ItemPedido"> | string
     cantidad?: IntFilter<"ItemPedido"> | number
+    cantidadEntregada?: IntFilter<"ItemPedido"> | number
     completado?: BoolFilter<"ItemPedido"> | boolean
     createdAt?: DateTimeFilter<"ItemPedido"> | Date | string
   }
@@ -75114,6 +75328,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -75138,6 +75354,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -75249,6 +75467,8 @@ export namespace Prisma {
     vendedorId?: StringNullableFilter<"Pedido"> | string | null
     armadorId?: StringNullableFilter<"Pedido"> | string | null
     origen?: EnumOrigenPedidoFilter<"Pedido"> | $Enums.OrigenPedido
+    esRemitoManual?: BoolFilter<"Pedido"> | boolean
+    descuentoPorRemito?: BoolFilter<"Pedido"> | boolean
     estado?: EnumEstadoPedidoFilter<"Pedido"> | $Enums.EstadoPedido
     version?: IntFilter<"Pedido"> | number
     cancelacionSolicitadaAt?: DateTimeNullableFilter<"Pedido"> | Date | string | null
@@ -75428,6 +75648,7 @@ export namespace Prisma {
   export type ItemPedidoCreateWithoutPedidoInput = {
     id?: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
     producto: ProductoCreateNestedOneWithoutItemsPedidoInput
@@ -75438,6 +75659,7 @@ export namespace Prisma {
     id?: string
     productoId: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
     reservas?: ReservaStockUncheckedCreateNestedManyWithoutItemPedidoInput
@@ -75527,6 +75749,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -75547,6 +75771,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -75738,6 +75964,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonFilter<"Remito">
     itemsSnapshot?: JsonFilter<"Remito">
     caiSnapshot?: JsonNullableFilter<"Remito">
+    descuentoAprobadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
+    descuentoAprobadoPor?: StringNullableFilter<"Remito"> | string | null
     estado?: EnumEstadoRemitoFilter<"Remito"> | $Enums.EstadoRemito
     invalidadoAt?: DateTimeNullableFilter<"Remito"> | Date | string | null
     invalidadoPor?: StringNullableFilter<"Remito"> | string | null
@@ -75789,6 +76017,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -75814,6 +76044,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -75926,6 +76158,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -75951,6 +76185,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76155,6 +76391,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -76180,6 +76418,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -76205,6 +76445,7 @@ export namespace Prisma {
   export type ItemPedidoCreateWithoutReservasInput = {
     id?: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
     pedido: PedidoCreateNestedOneWithoutItemsInput
@@ -76216,6 +76457,7 @@ export namespace Prisma {
     pedidoId: string
     productoId: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
   }
@@ -76304,6 +76546,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76329,6 +76573,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76360,6 +76606,7 @@ export namespace Prisma {
   export type ItemPedidoUpdateWithoutReservasInput = {
     id?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     pedido?: PedidoUpdateOneRequiredWithoutItemsNestedInput
@@ -76371,6 +76618,7 @@ export namespace Prisma {
     pedidoId?: StringFieldUpdateOperationsInput | string
     productoId?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -76521,6 +76769,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     idempotencyKey?: string | null
     createdAt?: Date | string
     destinoUbicacion?: UbicacionStockCreateNestedOneWithoutMovimientosDestinoInput
@@ -76536,6 +76785,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     destinoUbicacionId?: string | null
     idempotencyKey?: string | null
     createdAt?: Date | string
@@ -76561,6 +76811,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     idempotencyKey?: string | null
     createdAt?: Date | string
     origenUbicacion?: UbicacionStockCreateNestedOneWithoutMovimientosOrigenInput
@@ -76576,6 +76827,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     origenUbicacionId?: string | null
     idempotencyKey?: string | null
     createdAt?: Date | string
@@ -76652,6 +76904,7 @@ export namespace Prisma {
     pedidoId?: StringNullableFilter<"MovimientoStock"> | string | null
     loteId?: StringNullableFilter<"MovimientoStock"> | string | null
     reservaId?: StringNullableFilter<"MovimientoStock"> | string | null
+    remitoId?: StringNullableFilter<"MovimientoStock"> | string | null
     origenUbicacionId?: StringNullableFilter<"MovimientoStock"> | string | null
     destinoUbicacionId?: StringNullableFilter<"MovimientoStock"> | string | null
     idempotencyKey?: StringNullableFilter<"MovimientoStock"> | string | null
@@ -76900,6 +77153,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -76925,6 +77180,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -76964,6 +77221,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -76989,6 +77248,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77012,6 +77273,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -77037,6 +77300,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -77076,6 +77341,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77101,6 +77368,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77212,6 +77481,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -77232,6 +77503,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -77357,6 +77630,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -77382,6 +77657,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -77446,6 +77723,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77471,6 +77750,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -77633,6 +77914,7 @@ export namespace Prisma {
 
   export type OrdenProduccionCreateWithoutSolicitanteInput = {
     id?: string
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -77650,6 +77932,7 @@ export namespace Prisma {
     id?: string
     aprobadoPor?: string | null
     productoId?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -77673,6 +77956,7 @@ export namespace Prisma {
 
   export type OrdenProduccionCreateWithoutAprobadorInput = {
     id?: string
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -77690,6 +77974,7 @@ export namespace Prisma {
     id?: string
     solicitanteId: string
     productoId?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -77961,6 +78246,7 @@ export namespace Prisma {
     solicitanteId?: StringFilter<"OrdenProduccion"> | string
     aprobadoPor?: StringNullableFilter<"OrdenProduccion"> | string | null
     productoId?: StringNullableFilter<"OrdenProduccion"> | string | null
+    grupoId?: StringNullableFilter<"OrdenProduccion"> | string | null
     categoria?: EnumCategoriaFilter<"OrdenProduccion"> | $Enums.Categoria
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
@@ -80292,6 +80578,7 @@ export namespace Prisma {
 
   export type OrdenProduccionCreateWithoutProductoInput = {
     id?: string
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -80309,6 +80596,7 @@ export namespace Prisma {
     id?: string
     solicitanteId: string
     aprobadoPor?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -81809,6 +82097,7 @@ export namespace Prisma {
     id?: string
     pedidoId: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
   }
@@ -81909,6 +82198,7 @@ export namespace Prisma {
   export type ItemPedidoUpdateWithoutProductoInput = {
     id?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     pedido?: PedidoUpdateOneRequiredWithoutItemsNestedInput
@@ -81919,6 +82209,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     pedidoId?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reservas?: ReservaStockUncheckedUpdateManyWithoutItemPedidoNestedInput
@@ -81928,6 +82219,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     pedidoId?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -82226,6 +82518,8 @@ export namespace Prisma {
     vendedorId?: string | null
     armadorId?: string | null
     origen?: $Enums.OrigenPedido
+    esRemitoManual?: boolean
+    descuentoPorRemito?: boolean
     estado?: $Enums.EstadoPedido
     version?: number
     cancelacionSolicitadaAt?: Date | string | null
@@ -82253,6 +82547,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -82277,6 +82573,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -82301,6 +82599,8 @@ export namespace Prisma {
     vendedorId?: NullableStringFieldUpdateOperationsInput | string | null
     armadorId?: NullableStringFieldUpdateOperationsInput | string | null
     origen?: EnumOrigenPedidoFieldUpdateOperationsInput | $Enums.OrigenPedido
+    esRemitoManual?: BoolFieldUpdateOperationsInput | boolean
+    descuentoPorRemito?: BoolFieldUpdateOperationsInput | boolean
     estado?: EnumEstadoPedidoFieldUpdateOperationsInput | $Enums.EstadoPedido
     version?: IntFieldUpdateOperationsInput | number
     cancelacionSolicitadaAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -82342,6 +82642,7 @@ export namespace Prisma {
     id?: string
     productoId: string
     cantidad: number
+    cantidadEntregada?: number
     completado?: boolean
     createdAt?: Date | string
   }
@@ -82379,6 +82680,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -82390,6 +82693,7 @@ export namespace Prisma {
   export type ItemPedidoUpdateWithoutPedidoInput = {
     id?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     producto?: ProductoUpdateOneRequiredWithoutItemsPedidoNestedInput
@@ -82400,6 +82704,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     productoId?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reservas?: ReservaStockUncheckedUpdateManyWithoutItemPedidoNestedInput
@@ -82409,6 +82714,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     productoId?: StringFieldUpdateOperationsInput | string
     cantidad?: IntFieldUpdateOperationsInput | number
+    cantidadEntregada?: IntFieldUpdateOperationsInput | number
     completado?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -82489,6 +82795,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -82509,6 +82817,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -82528,6 +82838,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -82615,6 +82927,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     destinoUbicacionId?: string | null
     idempotencyKey?: string | null
     createdAt?: Date | string
@@ -82630,6 +82943,7 @@ export namespace Prisma {
     pedidoId?: string | null
     loteId?: string | null
     reservaId?: string | null
+    remitoId?: string | null
     origenUbicacionId?: string | null
     idempotencyKey?: string | null
     createdAt?: Date | string
@@ -82708,6 +83022,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     destinoUbicacion?: UbicacionStockUpdateOneWithoutMovimientosDestinoNestedInput
@@ -82723,6 +83038,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     destinoUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -82738,6 +83054,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     destinoUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -82753,6 +83070,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     origenUbicacion?: UbicacionStockUpdateOneWithoutMovimientosOrigenNestedInput
@@ -82768,6 +83086,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     origenUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -82783,6 +83102,7 @@ export namespace Prisma {
     pedidoId?: NullableStringFieldUpdateOperationsInput | string | null
     loteId?: NullableStringFieldUpdateOperationsInput | string | null
     reservaId?: NullableStringFieldUpdateOperationsInput | string | null
+    remitoId?: NullableStringFieldUpdateOperationsInput | string | null
     origenUbicacionId?: NullableStringFieldUpdateOperationsInput | string | null
     idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -82799,6 +83119,8 @@ export namespace Prisma {
     transporteSnapshot: JsonNullValueInput | InputJsonValue
     itemsSnapshot: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: Date | string | null
+    descuentoAprobadoPor?: string | null
     estado?: $Enums.EstadoRemito
     invalidadoAt?: Date | string | null
     invalidadoPor?: string | null
@@ -82834,6 +83156,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -82854,6 +83178,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -82873,6 +83199,8 @@ export namespace Prisma {
     transporteSnapshot?: JsonNullValueInput | InputJsonValue
     itemsSnapshot?: JsonNullValueInput | InputJsonValue
     caiSnapshot?: NullableJsonNullValueInput | InputJsonValue
+    descuentoAprobadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    descuentoAprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     estado?: EnumEstadoRemitoFieldUpdateOperationsInput | $Enums.EstadoRemito
     invalidadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     invalidadoPor?: NullableStringFieldUpdateOperationsInput | string | null
@@ -82980,6 +83308,7 @@ export namespace Prisma {
     id?: string
     aprobadoPor?: string | null
     productoId?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -82995,6 +83324,7 @@ export namespace Prisma {
     id?: string
     solicitanteId: string
     productoId?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -83169,6 +83499,7 @@ export namespace Prisma {
 
   export type OrdenProduccionUpdateWithoutSolicitanteInput = {
     id?: StringFieldUpdateOperationsInput | string
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83186,6 +83517,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     aprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83201,6 +83533,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     aprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
     productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83214,6 +83547,7 @@ export namespace Prisma {
 
   export type OrdenProduccionUpdateWithoutAprobadorInput = {
     id?: StringFieldUpdateOperationsInput | string
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83231,6 +83565,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     solicitanteId?: StringFieldUpdateOperationsInput | string
     productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83246,6 +83581,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     solicitanteId?: StringFieldUpdateOperationsInput | string
     productoId?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83513,6 +83849,7 @@ export namespace Prisma {
     id?: string
     solicitanteId: string
     aprobadoPor?: string | null
+    grupoId?: string | null
     categoria: $Enums.Categoria
     productoNombre: string
     mercado?: $Enums.Mercado | null
@@ -83749,6 +84086,7 @@ export namespace Prisma {
 
   export type OrdenProduccionUpdateWithoutProductoInput = {
     id?: StringFieldUpdateOperationsInput | string
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83766,6 +84104,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     solicitanteId?: StringFieldUpdateOperationsInput | string
     aprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
@@ -83781,6 +84120,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     solicitanteId?: StringFieldUpdateOperationsInput | string
     aprobadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    grupoId?: NullableStringFieldUpdateOperationsInput | string | null
     categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null

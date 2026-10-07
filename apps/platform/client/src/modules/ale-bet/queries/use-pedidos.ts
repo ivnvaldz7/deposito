@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { aleBetApi } from '../lib/api'
-import type { Pedido, PedidoEstado, CreatePedidoInput, PedidoDisponibilidadStock, UpdatePedidoInput } from '../lib/api'
+import type { CrearRemitoManualInput, Pedido, PedidoEstado, CreatePedidoInput, PedidoDisponibilidadStock, UpdatePedidoInput } from '../lib/api'
 import { productosKeys } from './use-productos'
 
 export const pedidosKeys = {
@@ -8,6 +8,39 @@ export const pedidosKeys = {
   list: (filters?: { estado?: PedidoEstado; vendedorId?: string; bandeja?: 'FACTURACION' }) => [...pedidosKeys.all, 'list', filters] as const,
   detail: (id: string) => [...pedidosKeys.all, 'detail', id] as const,
   disponibilidad: (id: string) => [...pedidosKeys.detail(id), 'disponibilidad-stock'] as const,
+  manualRemitos: () => [...pedidosKeys.all, 'remitos-manuales'] as const,
+}
+
+export function useRemitosManuales() {
+  return useQuery({
+    queryKey: pedidosKeys.manualRemitos(),
+    queryFn: () => aleBetApi.remitos.manuales.list(),
+  })
+}
+
+export function useCrearRemitoManual() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CrearRemitoManualInput & { idempotencyKey?: string }) =>
+      aleBetApi.remitos.manuales.create(data, data.idempotencyKey ? { idempotencyKey: data.idempotencyKey } : undefined),
+    onSuccess: ({ pedido }) => {
+      invalidatePedido(qc, pedido)
+      qc.invalidateQueries({ queryKey: pedidosKeys.manualRemitos() })
+    },
+  })
+}
+
+export function useAprobarDescuentoRemitoManual() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, selecciones, transferencias, idempotencyKey }: { id: string; expectedVersion: number; selecciones: PedidoDisponibilidadStock['allocations']; transferencias: PedidoDisponibilidadStock['transferencias']; idempotencyKey?: string }) =>
+      aleBetApi.remitos.manuales.aprobarDescuento(id, { expectedVersion, selecciones, transferencias }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+      qc.invalidateQueries({ queryKey: pedidosKeys.manualRemitos() })
+    },
+  })
 }
 
 function invalidatePedido(qc: QueryClient, pedido: Pick<Pedido, 'id'> | string) {
@@ -83,8 +116,8 @@ export function useAmpliarPedidoConfirmado() {
 export function useAprobarPedido() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, expectedVersion, fingerprint, transferencias, idempotencyKey }: { id: string; expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias']; idempotencyKey?: string }) =>
-      aleBetApi.pedidos.aprobar(id, { expectedVersion, fingerprint, transferencias }, idempotencyKey ? { idempotencyKey } : undefined),
+    mutationFn: ({ id, expectedVersion, fingerprint, transferencias, selecciones, idempotencyKey }: { id: string; expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias']; selecciones: PedidoDisponibilidadStock['allocations']; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.aprobar(id, { expectedVersion, fingerprint, transferencias, selecciones }, idempotencyKey ? { idempotencyKey } : undefined),
     onSuccess: (pedido) => {
       invalidatePedido(qc, pedido)
       invalidateProductos(qc)

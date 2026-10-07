@@ -2,7 +2,7 @@ import { apiClient, type ApiRequestOptions } from '@/lib/api-client'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type PedidoEstado = 'BORRADOR' | 'APROBADO' | 'EN_ARMADO' | 'PREPARADO' | 'DESPACHADO' | 'CANCELADO'
+export type PedidoEstado = 'BORRADOR' | 'APROBADO' | 'PENDIENTE_PRODUCCION' | 'PENDIENTE_PARCIAL' | 'EN_ARMADO' | 'PREPARADO' | 'DESPACHADO' | 'CANCELADO'
 export type PedidoOrigen = 'MANUAL' | 'AUTOMATION'
 export type EstadoCliente = 'PENDIENTE_CLIENTE' | 'VALIDADO'
 export type EstadoRemito = 'VIGENTE' | 'INVALIDADO'
@@ -104,6 +104,7 @@ export interface PedidoItem {
   id: string
   productoId: string
   cantidad: number
+  cantidadEntregada: number
   completado: boolean
   producto: { id: string; nombre: string; sku: string; unidadesPorCaja: number }
   reservas?: ReservaStock[]
@@ -127,6 +128,8 @@ export interface Pedido {
   vendedorId: string | null
   armadorId: string | null
   origen: PedidoOrigen
+  esRemitoManual?: boolean
+  descuentoPorRemito?: boolean
   estado: PedidoEstado
   version: number
   cancelacionSolicitadaAt: string | null
@@ -143,6 +146,8 @@ export interface Pedido {
   remitos?: Remito[]
   reservas?: ReservaStock[]
   auditorias?: PedidoAuditoria[]
+  /** True only when the order already produced its stock-exit movement. */
+  stockDescontado?: boolean
   /** Present in list responses only for UI display; the server does not include it in GET /pedidos. */
   vendedorNombre?: string
   armadorNombre?: string | null
@@ -179,6 +184,8 @@ export interface Remito {
   invalidadoPor: string | null
   motivoInvalidacion: string | null
   createdBy: string
+  descuentoAprobadoAt?: string | null
+  descuentoAprobadoPor?: string | null
 }
 
 export type CancelarPedidoResponse =
@@ -200,7 +207,9 @@ export interface MovimientoStock {
   origenUbicacion?: { codigo: string; nombre: string } | null
   destinoUbicacion?: { codigo: string; nombre: string } | null
   motivo?: string | null
-  fechaEfectiva?: string | null
+  usuarioNombre?: string
+  motivoVisible?: string | null
+  saldoPosterior?: number | null
   createdAt: string
 }
 
@@ -216,6 +225,16 @@ export interface PedidoDisponibilidadStock {
   stockAcondicionado: number
   stockDisponiblePedido: number
   allocations: Array<{ itemPedidoId: string; productoId: string; loteId: string; cantidad: number }>
+  lotes: Array<{
+    itemPedidoId: string
+    productoId: string
+    loteId: string
+    numero: string
+    fechaVencimiento: string | null
+    ubicacion: 'DEPOSITO' | 'ACONDICIONADO'
+    disponible: number
+    vencido: boolean
+  }>
   transferencias: Array<{ productoId: string; loteId: string; origen: 'ACONDICIONADO'; destino: 'DEPOSITO'; cantidad: number }>
   shortfall: number
   fingerprint: string
@@ -356,6 +375,7 @@ export interface TransportistaUpdateInput {
 
 export interface EmitirRemitoInput {
   expectedVersion: number
+  items?: PedidoItemInput[]
   transportistaId?: string
   transporteOcasional?: { nombre: string; direccion: string }
 }
@@ -371,6 +391,30 @@ export interface RemitoConfiguration {
   cai: string
   caiVencimiento: string
   caiVencido: boolean
+}
+
+export interface CrearRemitoManualInput {
+  clienteId?: string
+  clienteNuevo?: {
+    nombre: string
+    contacto?: string
+    referencia?: string
+    direccion?: string
+    localidad?: string
+    provincia?: string
+    cuit?: string
+    condicionIva?: string
+    condicionVenta?: string
+    transportistaPredeterminadoId?: string | null
+  }
+  items: PedidoItemInput[]
+  transportistaId?: string
+  transporteOcasional?: { nombre: string; direccion: string }
+}
+
+export interface CrearRemitoManualResponse {
+  pedido: Pedido
+  remito: Remito
 }
 
 // ─── API calls ───────────────────────────────────────────────────────────────
@@ -426,7 +470,7 @@ export const aleBetApi = {
       list: (id: string) => apiClient.get<Lote[]>(`${BASE}/productos/${id}/lotes`),
       create: (id: string, data: { numero?: string; cajas: number; sueltos: number; fechaProduccion: string }) =>
         apiClient.post<Lote>(`${BASE}/productos/${id}/lotes`, data),
-      update: (id: string, loteId: string, data: { cajas?: number; sueltos?: number; activo?: boolean }) =>
+      update: (id: string, loteId: string, data: { cajas?: number; sueltos?: number; activo?: boolean; fechaVencimiento?: string | null }) =>
         apiClient.put<Lote>(`${BASE}/productos/${id}/lotes/${loteId}`, data),
     },
     stock: {
@@ -475,7 +519,7 @@ export const aleBetApi = {
     ampliar: (id: string, data: { expectedVersion: number; items: PedidoItemInput[] }, options?: MutationOptions) =>
       apiClient.post<Pedido>(`${BASE}/pedidos/${id}/ampliaciones`, data, undefined, mutationOptions(options)),
     disponibilidadStock: (id: string) => apiClient.get<PedidoDisponibilidadStock>(`${BASE}/pedidos/${id}/disponibilidad-stock`),
-    aprobar: (id: string, data: { expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
+    aprobar: (id: string, data: { expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias']; selecciones: PedidoDisponibilidadStock['allocations'] }, options?: MutationOptions) =>
       apiClient.put<Pedido>(`${BASE}/pedidos/${id}/aprobar`, data, undefined, mutationOptions(options)),
     tomar: (id: string, data: { expectedVersion: number }, options?: MutationOptions) =>
       apiClient.put<Pedido>(`${BASE}/pedidos/${id}/tomar`, data, undefined, mutationOptions(options)),
@@ -501,7 +545,7 @@ export const aleBetApi = {
       apiClient.get<any>(`${BASE}/automation/drafts/${id}`),
     updateDraft: (id: string, data: any) => 
       apiClient.put<any>(`${BASE}/automation/drafts/${id}`, data),
-    confirmDraft: (id: string, data: { expectedVersion: number }, options?: MutationOptions) => 
+    confirmDraft: (id: string, data: { expectedVersion: number; selecciones?: PedidoDisponibilidadStock['allocations']; transferencias?: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
       apiClient.post<any>(`${BASE}/automation/drafts/${id}/confirm`, data, undefined, mutationOptions(options)),
     getAliases: () => apiClient.get<AutomationAliases>(`${BASE}/automation/aliases`),
     deleteProductAlias: (id: string) => apiClient.del<void>(`${BASE}/automation/product-aliases/${id}`),
@@ -524,14 +568,26 @@ export const aleBetApi = {
     anular: (pedidoId: string, remitoId: string, data: AnularRemitoInput, options?: MutationOptions) =>
       apiClient.put<Remito>(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/anular`, data, undefined, mutationOptions(options)),
     pdf: (pedidoId: string) => apiClient.getBlob(`${BASE}/pedidos/${pedidoId}/remito.pdf`),
+    pdfPorId: (pedidoId: string, remitoId: string) => apiClient.getBlob(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/pdf`),
+    disponibilidadDescuento: (pedidoId: string, remitoId: string) => apiClient.get<PedidoDisponibilidadStock>(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/disponibilidad-stock`),
+    aprobarDescuento: (pedidoId: string, remitoId: string, data: { expectedVersion: number; selecciones: PedidoDisponibilidadStock['allocations']; transferencias: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/aprobar-descuento`, data, undefined, mutationOptions(options)),
     configuracion: () => apiClient.get<RemitoConfiguration>(`${BASE}/remitos/configuracion`),
     actualizarConfiguracion: (data: { proximoCorrelativo?: number; cai?: string; caiVencimiento?: string }) =>
       apiClient.put<RemitoConfiguration>(`${BASE}/remitos/configuracion`, data),
+    manuales: {
+      list: () => apiClient.get<Pedido[]>(`${BASE}/remitos/manuales`),
+      create: (data: CrearRemitoManualInput, options?: MutationOptions) =>
+        apiClient.post<CrearRemitoManualResponse>(`${BASE}/remitos/manuales`, data, undefined, mutationOptions(options)),
+      aprobarDescuento: (pedidoId: string, data: { expectedVersion: number; selecciones: PedidoDisponibilidadStock['allocations']; transferencias: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
+        apiClient.post<Pedido>(`${BASE}/remitos/manuales/${pedidoId}/aprobar-descuento`, data, undefined, mutationOptions(options)),
+    },
   },
 
   // Stock
   stock: {
     get: () => apiClient.get<StockOverview>(`${BASE}/stock`),
+    exportPdf: () => apiClient.getBlob(`${BASE}/stock/export.pdf`),
     movimientos: () => apiClient.get<MovimientoStock[]>(`${BASE}/stock/movimientos`),
     transferRules: (productoId: string) => apiClient.get<{ rules: ProductoTransferRule[] }>(`${BASE}/stock/transfer-rules?productoId=${encodeURIComponent(productoId)}`),
     transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number; transferRuleId?: string }, options?: MutationOptions) =>

@@ -22,6 +22,7 @@ import { CartBottomBar } from '../components/CartBottomBar'
 import { ProductCard, type ProductoCardDatos } from '../components/ProductCard'
 import { QuantityStepper } from '../components/QuantityStepper'
 import { StockIndicator, nivelStock } from '../components/StockIndicator'
+import { LotAllocationSelector } from '../components/LotAllocationSelector'
 
 interface CartLine {
   cajas: number
@@ -461,7 +462,7 @@ export default function NuevoPedidoPage() {
     }
   }
 
-  async function ejecutarAprobacion(pedido: Pedido, disponibilidad: PedidoDisponibilidadStock) {
+  async function ejecutarAprobacion(pedido: Pedido, disponibilidad: PedidoDisponibilidadStock, selecciones: PedidoDisponibilidadStock['allocations']) {
     isExecutingRef.current = true
     setIsSubmitting(true)
     try {
@@ -470,6 +471,7 @@ export default function NuevoPedidoPage() {
         expectedVersion: pedido.version,
         fingerprint: disponibilidad.fingerprint,
         transferencias: disponibilidad.transferencias,
+        selecciones,
         idempotencyKey: newIdempotencyKey(),
       })
       setPendingAprobacion(null)
@@ -520,13 +522,15 @@ export default function NuevoPedidoPage() {
         setIsSubmitting(false)
         return
       }
-      if (disponibilidad.status === 'DISPONIBLE_CON_TRANSFERENCIA' && disponibilidad.transferencias.length > 0) {
-        setPendingAprobacion({ pedido: creado, disponibilidad })
-        isExecutingRef.current = false
-        setIsSubmitting(false)
+      // Keep a safe transition while an older server is still running during
+      // deployment. The current server always supplies lot options.
+      if (!Array.isArray(disponibilidad.lotes)) {
+        await ejecutarAprobacion(creado, disponibilidad, disponibilidad.allocations)
         return
       }
-      await ejecutarAprobacion(creado, disponibilidad)
+      setPendingAprobacion({ pedido: creado, disponibilidad })
+      isExecutingRef.current = false
+      setIsSubmitting(false)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Error al crear el pedido')
       isExecutingRef.current = false
@@ -797,40 +801,15 @@ export default function NuevoPedidoPage() {
         </BottomSheet>
       </div>
 
-      <ConfirmDialog
-        open={pendingAprobacion !== null}
-        titulo="Confirmar aprobación"
-        mensaje={pendingAprobacion && (
-          <div className="space-y-2">
-            <p>¿Aprobar el pedido {pendingAprobacion.pedido.numero}?</p>
-            {pendingAprobacion.disponibilidad.transferencias.length > 0 && (
-              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
-                <p className="font-semibold text-warning text-[12px]">Requiere transferencia interna</p>
-                <ul className="mt-1 space-y-1 font-body text-[12px] text-on-surface-variant">
-                  {pendingAprobacion.disponibilidad.transferencias.map((t, index) => (
-                    <li key={index}>
-                      Transferir {t.cantidad} unidades del lote desde Acondicionado a Depósito
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-        accion="Aprobar y enviar"
-        loading={aprobarPedido.isPending}
-        onCancel={() => {
-          setPendingAprobacion(null)
-          if (pendingAprobacion) {
-            navigate(`/ale-bet/pedidos/${pendingAprobacion.pedido.id}`)
-          }
-        }}
-        onConfirm={() => {
-          if (pendingAprobacion) {
-            void ejecutarAprobacion(pendingAprobacion.pedido, pendingAprobacion.disponibilidad)
-          }
-        }}
-      />
+      {pendingAprobacion && (
+        <LotAllocationSelector
+          items={pendingAprobacion.pedido.items.map((item) => ({ id: item.id, productoId: item.productoId, nombre: item.producto.nombre, cantidad: item.cantidad }))}
+          disponibilidad={pendingAprobacion.disponibilidad}
+          submitting={aprobarPedido.isPending}
+          onCancel={() => navigate(`/ale-bet/pedidos/${pendingAprobacion.pedido.id}`)}
+          onConfirm={(selecciones) => void ejecutarAprobacion(pendingAprobacion.pedido, pendingAprobacion.disponibilidad, selecciones)}
+        />
+      )}
 
       <CartBottomBar
         productos={totalProductos}

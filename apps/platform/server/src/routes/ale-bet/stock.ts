@@ -1,4 +1,5 @@
 import { Router } from 'express'
+import PDFDocument from 'pdfkit'
 import { z } from 'zod'
 import { platformDb as prisma, TipoReglaTransferenciaProducto } from '@platform/db'
 import type { JwtPayload } from '@platform/core'
@@ -9,6 +10,8 @@ import { InventoryConflictError, transferInternal } from './inventory-service'
 import { transferConfiguredPresentation, isSameProductRule } from './presentation-transfer-service'
 import { aggregateProductAvailability } from './stock-aggregation'
 import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
+import { buildStockPdfInput } from './stock-report'
+import { renderStockPdf } from './stock-pdf'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 
 const router = Router()
@@ -66,6 +69,42 @@ router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'
     }),
     movimientos,
   })
+})
+
+/**
+ * Snapshot-at-request-time PDF. It queries the same physical balances used by
+ * the stock screen, so the printed quantities never come from a stale cache.
+ */
+router.get('/export.pdf', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (_req, res) => {
+  try {
+    const productos = await prisma.producto.findMany({
+      where: { activo: true },
+      select: {
+        id: true,
+        nombre: true,
+        lotes: {
+          where: { activo: true },
+          select: {
+            id: true,
+            numero: true,
+            createdAt: true,
+            fechaVencimiento: true,
+            saldos: { select: { cantidad: true, ubicacion: { select: { codigo: true } } } },
+          },
+        },
+      },
+    })
+    const input = buildStockPdfInput(productos)
+    const filenameDate = new Date().toISOString().slice(0, 10)
+    const document = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true })
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename="stock-producto-terminado-${filenameDate}.pdf"`)
+    document.pipe(res)
+    renderStockPdf(document as unknown as import('./stock-pdf').StockPdfDocument, input)
+    document.end()
+  } catch {
+    if (!res.headersSent) res.status(500).json({ error: 'No se pudo exportar el stock' })
+  }
 })
 
 router.get('/movimientos', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (_req, res) => {

@@ -9,6 +9,7 @@ import historialRoutes from './historial'
 import transportistasRoutes from './transportistas'
 import remitosRoutes from './remitos'
 import remitoConfigRoutes from './remito-config'
+import manualRemitosRoutes from './remitos-manuales'
 import facturacionRoutes from './facturacion'
 import { createAutomationRoutes, type AutomationRouteDependencies } from './automation'
 
@@ -28,6 +29,7 @@ export function createAleBetRoutes(options: AleBetRouteOptions = {}): Router {
   router.use('/historial', historialRoutes)
   router.use('/transportistas', transportistasRoutes)
   router.use('/pedidos', remitosRoutes)
+  router.use('/remitos/manuales', manualRemitosRoutes)
   router.use('/remitos', remitoConfigRoutes)
   router.use('/facturacion', facturacionRoutes)
   router.use('/automation', createAutomationRoutes(options.automation))

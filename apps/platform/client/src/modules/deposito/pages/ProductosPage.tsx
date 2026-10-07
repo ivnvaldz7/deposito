@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { Search, Plus, Upload, Trash2, Edit, Play, RotateCcw, Square, AlertTriangle, Check, FileSpreadsheet, X, Download } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -87,6 +87,23 @@ function normalizeFormData(values: FormValues): ProductoFormData {
   }
 
   return data
+}
+
+function ProductoMobileCard({ producto, canManage, onEdit, onAction }: {
+  producto: Producto
+  canManage: boolean
+  onEdit: () => void
+  onAction: (type: 'activar' | 'reactivar' | 'desactivar' | 'eliminar') => void
+}) {
+  const code = producto.categoria === 'droga' ? 'Por ingreso' : producto.codigo ?? 'Código pendiente'
+  const stockMinimo = producto.stockMinimo == null ? 'Sin configurar' : `${producto.stockMinimo}${producto.categoria === 'frasco' ? ' cajas' : producto.categoria === 'material_empaque' ? ' unidades' : ''}`
+
+  return <article className="rounded-xl border border-outline-variant bg-surface-container p-4 shadow-float">
+    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-base font-semibold text-on-surface">{producto.nombreBase}</p><p className="mt-1 text-xs text-on-surface-variant">{CATEGORIA_LABELS[producto.categoria]} · {code}</p></div><EstadoProductoChip estado={producto.estado} /></div>
+    <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm"><div><dt className="text-xs uppercase tracking-wider text-on-surface-variant">Presentación</dt><dd className="mt-1 font-medium text-on-surface">{producto.presentacion != null ? `${producto.presentacion}${producto.categoria === 'frasco' ? ' ml' : ''}` : '—'}</dd></div><div><dt className="text-xs uppercase tracking-wider text-on-surface-variant">Stock mínimo</dt><dd className="mt-1 font-medium text-on-surface">{stockMinimo}</dd></div></dl>
+    {producto.mercadosHabilitados.length > 0 && <div className="mt-4 flex flex-wrap gap-1">{producto.mercadosHabilitados.map((mercado) => <MercadoChip key={mercado} mercado={mercado as Mercado} />)}</div>}
+    {canManage && <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4"><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant text-sm font-semibold text-on-surface hover:bg-surface-bright"><Edit size={16} />Editar</button>{producto.estado === 'PENDIENTE_REVISION' && <button type="button" onClick={() => onAction('activar')} className="min-h-11 rounded-lg bg-primary text-sm font-semibold text-on-primary">Activar</button>}{producto.estado === 'INACTIVO' && <button type="button" onClick={() => onAction('reactivar')} className="min-h-11 rounded-lg bg-primary text-sm font-semibold text-on-primary">Reactivar</button>}{producto.estado === 'ACTIVO' && <button type="button" onClick={() => onAction('desactivar')} className="min-h-11 rounded-lg border border-warning/40 text-sm font-semibold text-warning hover:bg-warning/10">Desactivar</button>}{producto.estado === 'PENDIENTE_REVISION' && <button type="button" onClick={() => onAction('eliminar')} className="col-span-2 min-h-11 rounded-lg border border-error/40 text-sm font-semibold text-error hover:bg-error/10">Eliminar producto pendiente</button>}</div>}
+  </article>
 }
 
 const CODE_REQUIRED_CATEGORIES = ['etiqueta', 'estuche']
@@ -866,6 +883,16 @@ export default function ProductosPage() {
   const [confirmAction, setConfirmAction] = useState<{ type: string; producto: Producto } | null>(null)
   const [categoriaFiltro, setCategoriaFiltro] = useState<CategoriaProducto | 'todos'>('todos')
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoProducto | 'todos'>('todos')
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia?.('(max-width: 767px)')
+    if (!query) return
+    const update = () => setIsMobile(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
 
   const searchFilters = useMemo(() => {
     const filters: { buscar?: string; categoria?: CategoriaProducto; estado?: EstadoProducto } = {}
@@ -984,15 +1011,15 @@ export default function ProductosPage() {
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="relative group">
+        <div className="grid grid-cols-2 items-center gap-2 sm:flex">
+          <div className="relative group col-span-2 sm:col-auto">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por código o nombre..."
-              className="w-56 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
+              className="min-h-11 w-full sm:min-h-0 sm:w-56 bg-surface-container-high border border-outline-variant rounded-lg pl-10 pr-4 py-2 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all"
             />
           </div>
 
@@ -1000,7 +1027,7 @@ export default function ProductosPage() {
             aria-label="Filtrar por categoría"
             value={categoriaFiltro}
             onChange={(event) => setCategoriaFiltro(event.target.value as CategoriaProducto | 'todos')}
-            className="bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 font-body text-sm text-on-surface"
+            className="min-h-11 w-full sm:min-h-0 sm:w-auto bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 font-body text-sm text-on-surface"
           >
             <option value="todos">Todas las categorías</option>
             {Object.entries(CATEGORIA_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
@@ -1010,7 +1037,7 @@ export default function ProductosPage() {
             aria-label="Filtrar por estado"
             value={estadoFiltro}
             onChange={(event) => setEstadoFiltro(event.target.value as EstadoProducto | 'todos')}
-            className="bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 font-body text-sm text-on-surface"
+            className="min-h-11 w-full sm:min-h-0 sm:w-auto bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 font-body text-sm text-on-surface"
           >
             <option value="todos">Todos los estados</option>
             <option value="PENDIENTE_REVISION">Pendiente</option>
@@ -1020,11 +1047,11 @@ export default function ProductosPage() {
 
           {canManage && (
             <>
-              <button type="button" onClick={() => setShowImport(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
+              <button type="button" onClick={() => setShowImport(true)} className="inline-flex min-h-11 items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
                 <Upload size={14} />
                 Importar
               </button>
-              <button type="button" onClick={() => setShowCreate(true)} className="btn-primary inline-flex items-center gap-1.5 px-3 py-2 text-sm">
+              <button type="button" onClick={() => setShowCreate(true)} className="btn-primary inline-flex min-h-11 items-center justify-center gap-1.5 px-3 py-2 text-sm">
                 <Plus size={14} />
                 Nuevo
               </button>
@@ -1047,7 +1074,7 @@ export default function ProductosPage() {
           <EmptyState message="No hay productos en el catálogo." />
         )
       ) : (
-        <div className="bg-surface-container rounded-xl border border-outline-variant shadow-float overflow-hidden">
+        isMobile ? <div className="space-y-3">{productos.map((producto) => <ProductoMobileCard key={producto.id} producto={producto} canManage={canManage} onEdit={() => setEditingProducto(producto)} onAction={(type) => setConfirmAction({ type, producto })} />)}</div> : <div className="bg-surface-container rounded-xl border border-outline-variant shadow-float overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

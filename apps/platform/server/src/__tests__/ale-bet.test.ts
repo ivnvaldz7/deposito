@@ -14,6 +14,7 @@ const {
   reserveFefo,
   consumeActiveReservations,
   returnConsumedReservations,
+  syncStockProjectionAfterCommit,
 } = vi.hoisted(() => ({
   acquireIdempotencyRecord: vi.fn(),
   completeIdempotencyRecord: vi.fn(),
@@ -22,6 +23,7 @@ const {
   reserveFefo: vi.fn(),
   consumeActiveReservations: vi.fn(),
   returnConsumedReservations: vi.fn(),
+  syncStockProjectionAfterCommit: vi.fn(),
   mockDb: {
     producto: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn(), count: vi.fn() },
     lote: { findMany: vi.fn(), findUnique: vi.fn(), create: vi.fn(), update: vi.fn(), count: vi.fn() },
@@ -100,6 +102,10 @@ vi.mock('../routes/ale-bet/inventory-service', () => ({
   transferInternal: vi.fn(),
   getOrderAvailability: vi.fn(),
 }))
+vi.mock('../routes/ale-bet/stock-projection/direct-sync', () => ({
+  syncStockProjectionAfterCommit,
+  syncStockProjectionNow: vi.fn(),
+}))
 import { getOrderAvailability } from '../routes/ale-bet/inventory-service'
 vi.mock('../utils/idempotency', () => ({
   calculateFingerprint: () => 'fingerprint',
@@ -112,13 +118,13 @@ vi.mock('../utils/idempotency', () => ({
   toPersistableResponseBody: <T>(body: T) => body,
 }))
 
-function token(role: 'admin' | 'vendedor' | 'armador' | 'facturacion', subject = `${role}-1`): string {
+function token(role: 'admin' | 'encargado' | 'vendedor' | 'armador' | 'facturacion', subject = `${role}-1`): string {
   return jwt.sign({ sub: subject, apps: { 'ale-bet': { rol: role, activo: true } } }, JWT_SECRET, { expiresIn: '15m' })
 }
 
 function pedido(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'pedido-1', numero: 'P-1', vendedorId: 'vendedor-1', estado: 'BORRADOR', version: 1,
+    id: 'pedido-1', numero: 'P-1', vendedorId: 'vendedor-1', origen: 'MANUAL', estado: 'BORRADOR', version: 1,
     clienteId: 'cliente-1', cliente: { id: 'cliente-1', nombre: 'Cliente', estado: 'VALIDADO' },
     items: [{ id: 'item-1', productoId: 'producto-1', cantidad: 3, completado: false, producto: { id: 'producto-1', nombre: 'Producto' } }],
     ...overrides,
@@ -172,6 +178,40 @@ describe('ALEBET-01 HTTP contracts', () => {
 
     expect(response.body.estado).toBe('BORRADOR')
     expect(reserveFefo).not.toHaveBeenCalled()
+  })
+
+  it('lets Facturación issue a manual remito without reserving or deducting stock', async () => {
+    const manualPedido = pedido({ id: 'manual-1', numero: 'RM-1', vendedorId: null, estado: 'PREPARADO', esRemitoManual: true })
+    mockDb.producto.findMany.mockResolvedValue([{ id: 'producto-1', nombre: 'Producto', activo: true }])
+    mockDb.cliente.findUnique.mockResolvedValue({ id: 'cliente-1', nombre: 'Cliente', activo: true, direccion: 'Calle 123', transportistaPredeterminadoId: null })
+    mockDb.pedido.create.mockResolvedValue(manualPedido)
+    mockDb.remito.create.mockResolvedValue({ id: 'remito-manual-1', pedidoId: 'manual-1', numero: '00001-00013216', estado: 'VIGENTE' })
+    const server = await app()
+
+    const response = await request(server).post('/api/ale-bet/remitos/manuales').set('Authorization', `Bearer ${token('facturacion')}`)
+      .send({ clienteId: 'cliente-1', items: [{ productoId: 'producto-1', cantidad: 3 }] }).expect(201)
+
+    expect(response.body.pedido.esRemitoManual).toBe(true)
+    expect(response.body.remito.numero).toBe('00001-00013216')
+    expect(reserveFefo).not.toHaveBeenCalled()
+    expect(consumeActiveReservations).not.toHaveBeenCalled()
+  })
+
+  it('blocks Facturación from approving a manual remito and lets Encargado deduct it atomically', async () => {
+    const pending = pedido({ id: 'manual-1', vendedorId: null, estado: 'PREPARADO', esRemitoManual: true })
+    mockDb.pedido.findUnique.mockResolvedValue(pending)
+    const server = await app()
+    await request(server).post('/api/ale-bet/remitos/manuales/manual-1/aprobar-descuento').set('Authorization', `Bearer ${token('facturacion')}`)
+      .send({ expectedVersion: 1 }).expect(403)
+    expect(reserveFefo).not.toHaveBeenCalled()
+
+    mockDb.remito.findFirst.mockResolvedValue({ id: 'remito-manual-1', estado: 'VIGENTE' })
+    mockDb.pedido.update.mockResolvedValue(pedido({ id: 'manual-1', vendedorId: null, estado: 'DESPACHADO', version: 2, esRemitoManual: true }))
+    const approved = await request(server).post('/api/ale-bet/remitos/manuales/manual-1/aprobar-descuento').set('Authorization', `Bearer ${token('encargado')}`)
+      .send({ expectedVersion: 1 }).expect(200)
+    expect(approved.body.estado).toBe('DESPACHADO')
+    expect(reserveFefo).toHaveBeenCalledWith(mockDb, 'manual-1', expect.any(Array))
+    expect(consumeActiveReservations).toHaveBeenCalledWith(mockDb, 'manual-1', 'encargado-1')
   })
 
   it('rejects approval for PENDIENTE_CLIENTE before reserving stock', async () => {
@@ -410,6 +450,26 @@ describe('ALEBET-01 HTTP contracts', () => {
     await request(server).patch('/api/ale-bet/pedidos/pedido-1').set('Authorization', `Bearer ${token('vendedor')}`)
       .send({ clienteId: 'cliente-1', items: [{ productoId: 'producto-1', cantidad: 4 }], expectedVersion: 1 }).expect(200)
     expect(mockDb.remito.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ estado: 'INVALIDADO' }) }))
+  })
+
+  it('uses the client address for direct delivery when no transporter is selected', async () => {
+    mockDb.pedido.findUnique.mockResolvedValue(pedido({
+      estado: 'APROBADO',
+      cliente: { id: 'cliente-1', nombre: 'Cliente', direccion: 'Condarco 3071', estado: 'VALIDADO' },
+    }))
+    mockDb.remito.create.mockResolvedValue({ id: 'remito-1', numero: '00001-00013216', estado: 'VIGENTE' })
+    const server = await app()
+
+    await request(server).post('/api/ale-bet/pedidos/pedido-1/remitos')
+      .set('Authorization', `Bearer ${token('facturacion')}`)
+      .send({ expectedVersion: 1 })
+      .expect(201)
+
+    expect(mockDb.remito.create).toHaveBeenCalledWith({ data: expect.objectContaining({
+      transportistaId: undefined,
+      transporteNombre: 'ENTREGA DIRECTA AL CLIENTE',
+      transporteDireccion: 'Condarco 3071',
+    }) })
   })
 
   it('downloads a complete habitual-transport remito from historical snapshots without technical JSON', async () => {

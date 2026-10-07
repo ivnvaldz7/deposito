@@ -151,7 +151,7 @@ describe('ProductosPage', () => {
     await waitFor(() => expect(screen.getByText('LOTE L-2024-001')).toBeInTheDocument())
   })
 
-  it('usuario con full grants (admin): ve acciones de productos y de stock', async () => {
+  it('usuario con full grants (admin): ve acciones de productos y de stock, sin eliminar el catálogo', async () => {
     mockRol('admin')
     vi.mocked(aleBetApi.productos.list).mockResolvedValue(createProductoList())
     
@@ -162,7 +162,7 @@ describe('ProductosPage', () => {
 
     expect(screen.getByRole('button', { name: '+ Nuevo producto' })).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Editar' }).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByRole('button', { name: 'Eliminar' }).length).toBeGreaterThanOrEqual(1)
+    expect(screen.queryAllByRole('button', { name: 'Eliminar' })).toHaveLength(0)
     expect(screen.getAllByRole('button', { name: 'Gestionar stock' }).length).toBeGreaterThanOrEqual(1)
   })
 

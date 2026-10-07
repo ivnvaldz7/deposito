@@ -41,6 +41,20 @@ function lot(
 }
 
 describe('buildStockProjectionSnapshot', () => {
+  it('adds the lot expiration and synchronization timestamp when building the live Sheet projection', () => {
+    const at = new Date('2026-10-05T15:00:00Z')
+    const input = source([
+      product('p1', 'PRODUCTO 100 ML', [
+        lot('l1', 'L1', '2026-01-01', [{ ubicacionId: DEPOSITO.id, cantidad: 3 }], { fechaVencimiento: '2027-04-17' }),
+      ]),
+    ])
+
+    expect(buildStockProjectionSnapshot(input, at).productoTerminado).toEqual([
+      expect.objectContaining({ producto: 'PRODUCTO 100 ML', lote: 'L1', vencimiento: '17/4/2027', total: 3 }),
+    ])
+    expect(buildStockProjectionSnapshot(input, at).productoTerminado[0]?.actualizadoEn).toContain('5/10/26')
+  })
+
   it('maps DEPOSITO to productoTerminado and ACONDICIONADO to sinAcondicionar without adding locations', () => {
     const input = source([
       product('p1', 'CETRI 500 ML', [

@@ -199,13 +199,22 @@ describe('PedidoCard — semantic state styles (UI-01)', () => {
     expect(within(card).getByText('Cliente A')).toBeInTheDocument()
   })
 
-  it('PREPARADO con remito vigente: label is "Listo para despacho"', async () => {
+  it('PREPARADO con remito vigente y stock pendiente: label is "Pendiente a descuento"', async () => {
     vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
       createPedido({ estado: 'PREPARADO', remitos: [createRemito()] }),
     ])
     renderPedidos()
     const card = await screen.findByTestId('pedido-card-pedido-1')
-    expect(within(card).getByText('Listo para despacho')).toBeInTheDocument()
+    expect(within(card).getByText('Pendiente a descuento')).toBeInTheDocument()
+  })
+
+  it('remito vigente con stock consumido: label is "Stock descontado"', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ estado: 'DESPACHADO', remitos: [createRemito()], stockDescontado: true }),
+    ])
+    renderPedidos()
+    const card = await screen.findByTestId('pedido-card-pedido-1')
+    expect(within(card).getAllByText('Stock descontado')).toHaveLength(2)
   })
 
   it('DESPACHADO: card has data-estado DESPACHADO, badge visible, no cancelled styling', async () => {
@@ -215,7 +224,7 @@ describe('PedidoCard — semantic state styles (UI-01)', () => {
     renderPedidos()
     const card = await screen.findByTestId('pedido-card-pedido-1')
     expect(card).toHaveAttribute('data-estado', 'DESPACHADO')
-    expect(within(card).getByText('Despachado')).toBeInTheDocument()
+    expect(within(card).getByText('Stock descontado')).toBeInTheDocument()
     // DESPACHADO is NOT cancelled — should not have grayscale class
     expect(card.className).not.toContain('grayscale')
   })

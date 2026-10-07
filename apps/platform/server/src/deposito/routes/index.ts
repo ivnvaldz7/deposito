@@ -17,6 +17,7 @@ import ingresosRoutes from './ingresos'
 import lotesRoutes from './lotes'
 import importacionInicialEstuchesRoutes from './importacion-inicial-estuches'
 import aperturaRoutes from './apertura'
+import labelsRoutes from './labels'
 
 export function createDepositoRoutes(): Router {
   const router = Router()
@@ -39,6 +40,7 @@ export function createDepositoRoutes(): Router {
   router.use('/lotes', lotesRoutes)
   router.use('/importaciones', importacionInicialEstuchesRoutes)
   router.use('/apertura', aperturaRoutes)
+  router.use('/labels', labelsRoutes)
 
   return router
 }

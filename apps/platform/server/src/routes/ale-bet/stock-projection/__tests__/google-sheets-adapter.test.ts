@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import type { StockProjectionSnapshot } from '../snapshot'
 import type { StockProjectionSheetAdapter, StockProjectionSheetConfig } from '../sheet-adapter'
 import { validateSheetConfig } from '../sheet-adapter'
@@ -164,11 +164,15 @@ describe('createGoogleSheetsAdapter', () => {
 
 describe('Google Sheets integration (mocked googleapis)', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-05T15:00:00Z'))
     vi.clearAllMocks()
     googleMocks.mockGet.mockResolvedValue({
-      data: { sheets: [{ properties: { title: 'Stock', sheetId: 1 } }] },
+      data: { sheets: [{ properties: { title: 'Stock 5-10', sheetId: 1 } }] },
     })
   })
+
+  afterEach(() => vi.useRealTimers())
 
   it('I: creates sheet if not found, then writes snapshot', async () => {
     googleMocks.mockGet.mockResolvedValueOnce({ data: { sheets: [] } })
@@ -198,6 +202,30 @@ describe('Google Sheets integration (mocked googleapis)', () => {
     })
     await adapter.writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })
     expect(googleMocks.mockBatchUpdate).not.toHaveBeenCalled()
+  })
+
+  it('renames yesterday\'s managed tab while keeping the configured base name stable', async () => {
+    googleMocks.mockGet.mockResolvedValueOnce({
+      data: { sheets: [{ properties: { title: 'Stock 4-10', sheetId: 1 } }] },
+    })
+    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
+    const adapter = createGoogleSheetsAdapter({
+      enabled: true, spreadsheetId: 'test-ssid', sheetName: 'Stock', serviceAccountFile: '/tmp/sa.json',
+    })
+
+    await adapter.writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })
+
+    expect(googleMocks.mockBatchUpdate).toHaveBeenCalledWith(expect.objectContaining({
+      requestBody: {
+        requests: [{
+          updateSheetProperties: {
+            properties: { sheetId: 1, title: 'Stock 5-10' },
+            fields: 'title',
+          },
+        }],
+      },
+    }))
+    expect(googleMocks.mockClear.mock.calls[0]![0].requestBody.ranges).toContain('Stock 5-10!A3:E1002')
   })
 
   it('K: no format operations in any call', async () => {
@@ -256,11 +284,26 @@ describe('Google Sheets integration (mocked googleapis)', () => {
     })
     const clearCall = googleMocks.mockClear.mock.calls[0]![0]
     const ranges: string[] = clearCall.requestBody.ranges
-    expect(ranges).toContain('Stock!A3:C1002')
-    expect(ranges).toContain('Stock!E3:G1002')
-    expect(ranges).not.toContain('Stock!A3:C1003')
-    expect(ranges).not.toContain('Stock!A3:C1000')
-    expect(ranges).not.toContain('Stock!E3:G1003')
-    expect(ranges).not.toContain('Stock!E3:G1000')
+    expect(ranges).toContain('Stock 5-10!A3:E1002')
+    expect(ranges).toContain('Stock 5-10!H3:L1002')
+    expect(ranges).toContain('Stock 5-10!E1:G1002')
+    expect(ranges).not.toContain('Stock 5-10!A3:E1003')
+    expect(ranges).not.toContain('Stock 5-10!A3:E1000')
+    expect(ranges).not.toContain('Stock 5-10!H3:L1003')
+    expect(ranges).not.toContain('Stock 5-10!H3:L1000')
+  })
+
+  it('writes vencimiento and actualizado al for both managed tables', async () => {
+    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
+    const adapter = createGoogleSheetsAdapter({
+      enabled: true, spreadsheetId: 'test-ssid', sheetName: 'Stock', serviceAccountFile: '/tmp/sa.json',
+    })
+    await adapter.writeSnapshot({
+      productoTerminado: [{ producto: 'A', lote: 'L1', vencimiento: '17/4/2027', total: 5, actualizadoEn: '5/10/26, 12:00' }],
+      sinAcondicionar: [],
+    })
+    const firstWrite = googleMocks.mockUpdate.mock.calls[0]![0]
+    expect(firstWrite.requestBody.values[1]).toEqual(['PRODUCTO', 'LOTE', 'VENCIMIENTO', 'TOTAL', 'ACTUALIZADO AL'])
+    expect(firstWrite.requestBody.values[2]).toEqual(['A', 'L1', '17/4/2027', 5, '5/10/26, 12:00'])
   })
 })

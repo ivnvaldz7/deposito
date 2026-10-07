@@ -24,7 +24,7 @@ import {
   DialogClose,
 } from '../components/ui/Dialog'
 
-import type { OrdenProduccion, Categoria, EstadoOrden, Urgencia } from '../queries/use-ordenes'
+import type { OrdenProduccion, Categoria, EstadoOrden, OrdenInput } from '../queries/use-ordenes'
 import type { Mercado } from '../components/inventory-shared/mercados'
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,17 +77,6 @@ function EstadoChip({ estado }: { estado: EstadoOrden }) {
   )
 }
 
-function UrgenciaChip({ urgencia }: { urgencia: Urgencia }) {
-  if (urgencia === 'normal') return null
-  return (
-    <span
-      className="inline-block font-body text-xs font-medium px-2 py-0.5 rounded shrink-0 animate-pulse text-error bg-error/10"
-    >
-      Urgente
-    </span>
-  )
-}
-
 // ─── Modal Nueva Orden ────────────────────────────────────────────────────────
 
 const nuevaOrdenSchema = z.object({
@@ -99,7 +88,6 @@ const nuevaOrdenSchema = z.object({
     .string()
     .min(1, 'Requerido')
     .refine((v) => Number.isFinite(Number(v)) && Number(v) > 0, 'Debe ser una cantidad positiva'),
-  urgencia: z.enum(['normal', 'urgente']),
 }).superRefine((data, ctx) => {
   if (data.categoria !== 'droga' && !Number.isInteger(Number(data.cantidad))) {
     ctx.addIssue({ code: 'custom', path: ['cantidad'], message: 'Debe ser un entero para materiales de empaque' })
@@ -125,53 +113,69 @@ function NuevaOrdenModal({
 
   const {
     register,
-    handleSubmit,
     control,
     setValue,
+    getValues,
+    trigger,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<NuevaOrdenForm>({
     resolver: zodResolver(nuevaOrdenSchema),
-    defaultValues: { categoria: 'droga', productoId: undefined, productoNombre: '', mercado: '', cantidad: '', urgencia: 'normal' },
+    defaultValues: { categoria: 'droga', productoId: '', productoNombre: '', mercado: '', cantidad: '' },
   })
 
   const categoria = useWatch({ control, name: 'categoria' })
   const productoId = useWatch({ control, name: 'productoId' })
   const productoNombre = useWatch({ control, name: 'productoNombre' })
   const mercado = useWatch({ control, name: 'mercado' })
+  const [lineas, setLineas] = useState<Array<OrdenInput & { key: string; productoNombre: string }>>([])
   useEffect(() => {
     if (!open) return
-    setValue('productoId', undefined)
+    setValue('productoId', '')
     setValue('productoNombre', '')
     setValue('mercado', '')
   }, [categoria, open, setValue])
 
   function seleccionarMercado(nuevoMercado: Mercado) {
     setValue('mercado', nuevoMercado, { shouldValidate: true })
-    setValue('productoId', undefined, { shouldValidate: true })
+    setValue('productoId', '', { shouldValidate: true })
     setValue('productoNombre', '', { shouldValidate: true })
   }
 
-  async function onSubmit(data: NuevaOrdenForm) {
-    setServerError(null)
+  async function agregarLinea(): Promise<void> {
+    const valid = await trigger()
+    if (!valid) return
+    const data = getValues()
     if (needsMercado(data.categoria) && !data.mercado) {
       setServerError('Seleccioná el país')
       return
     }
+    setLineas((current) => [...current, {
+      key: `${data.productoId}-${Date.now()}`,
+      categoria: data.categoria,
+      productoId: data.productoId,
+      productoNombre: data.productoNombre,
+      cantidad: Number(data.cantidad),
+      ...(needsMercado(data.categoria) && data.mercado ? { mercado: data.mercado as Mercado } : {}),
+    }])
+    setValue('productoId', '')
+    setValue('productoNombre', '')
+    setValue('cantidad', '')
+    setServerError(null)
+  }
+
+  async function onSubmit() {
+    setServerError(null)
+    if (lineas.length === 0) {
+      setServerError('Agregá al menos un producto a la solicitud')
+      return
+    }
     try {
-      const body: { categoria: Categoria; productoId: string; cantidad: number; urgencia: Urgencia; mercado?: Mercado } = {
-        categoria: data.categoria,
-        productoId: data.productoId,
-        cantidad: Number(data.cantidad),
-        urgencia: data.urgencia,
-      }
-      if (needsMercado(data.categoria) && data.mercado) {
-        body.mercado = data.mercado as Mercado
-      }
-      const orden = await createMutation.mutateAsync(body)
-      toast.info(`Orden creada para "${orden.productoNombre}".`)
+      const solicitud = await createMutation.mutateAsync({ items: lineas.map(({ key: _key, productoNombre: _nombre, ...linea }) => linea) })
+      toast.info(`Solicitud creada con ${solicitud.ordenes.length} producto${solicitud.ordenes.length === 1 ? '' : 's'}.`)
       reset()
       setFamilia(null)
+      setLineas([])
       onOpenChange(false)
     } catch (err) {
       setServerError(err instanceof ApiError ? err.message : 'Error al crear la orden')
@@ -179,7 +183,7 @@ function NuevaOrdenModal({
   }
 
   function handleOpenChange(next: boolean) {
-    if (!next) { reset(); setServerError(null); setFamilia(null) }
+    if (!next) { reset(); setServerError(null); setFamilia(null); setLineas([]) }
     onOpenChange(next)
   }
 
@@ -193,7 +197,7 @@ function NuevaOrdenModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
+        <form onSubmit={(event) => { event.preventDefault(); void onSubmit() }} noValidate className="space-y-4">
           {/* Categoría */}
           <div className="space-y-1">
             <label className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
@@ -254,7 +258,7 @@ function NuevaOrdenModal({
               mercadoFiltro={needsMercado(categoria) && mercado ? mercado as Mercado : null}
               displayValue={productoNombre}
               onChange={(id, nombre) => {
-                setValue('productoId', id || undefined, { shouldValidate: true })
+                setValue('productoId', id ?? '', { shouldValidate: true })
                 setValue('productoNombre', nombre, { shouldValidate: true })
               }}
               placeholder={needsMercado(categoria) && !mercado
@@ -284,24 +288,26 @@ function NuevaOrdenModal({
             {errors.cantidad && <p className="font-body text-error text-xs">{errors.cantidad.message}</p>}
           </div>
 
-          {/* Urgencia */}
-          <div className="space-y-1">
-            <label htmlFor="orden-urgencia" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">
-              Urgencia
-            </label>
-            <select id="orden-urgencia" {...register('urgencia')} className="input-field">
-              <option value="normal">Normal</option>
-              <option value="urgente">Urgente</option>
-            </select>
-          </div>
+          <button type="button" onClick={() => void agregarLinea()} className="btn-secondary w-full py-2.5 text-sm">
+            + Agregar producto a la solicitud
+          </button>
+
+          {lineas.length > 0 && (
+            <section aria-label="Productos de la solicitud" className="rounded-xl border border-outline-variant/50 bg-surface-container-low p-3">
+              <div className="mb-2 flex items-center justify-between gap-2"><p className="font-body text-xs font-semibold uppercase tracking-wide text-on-surface-variant">Productos agregados</p><span className="font-body text-xs text-primary">{lineas.length}</span></div>
+              <div className="space-y-2">
+                {lineas.map((linea) => <div key={linea.key} className="flex items-center justify-between gap-3 rounded-lg bg-surface-container-high px-3 py-2"><div className="min-w-0"><p className="truncate text-sm font-semibold text-on-surface">{linea.productoNombre}</p><p className="text-xs text-on-surface-variant">{CATEGORIA_LABELS[linea.categoria]}{linea.mercado ? ` · ${formatMercadoLabel(linea.mercado)}` : ''} · {linea.cantidad}</p></div><button type="button" aria-label={`Quitar ${linea.productoNombre}`} onClick={() => setLineas((current) => current.filter((candidate) => candidate.key !== linea.key))} className="rounded p-1.5 text-error hover:bg-error/10"><X size={16} /></button></div>)}
+              </div>
+            </section>
+          )}
 
           {serverError && (
             <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>
           )}
 
           <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={isSubmitting} className="btn-primary flex-1 py-2.5 text-sm">
-              {isSubmitting ? 'Enviando...' : 'Enviar orden'}
+            <button type="submit" disabled={isSubmitting || lineas.length === 0} className="btn-primary flex-1 py-2.5 text-sm">
+              {isSubmitting ? 'Enviando...' : `Enviar solicitud${lineas.length > 0 ? ` (${lineas.length})` : ''}`}
             </button>
             <DialogClose asChild>
               <button type="button" className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
@@ -406,7 +412,6 @@ function OrdenCard({
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <UrgenciaChip urgencia={orden.urgencia} />
           <EstadoChip estado={orden.estado} />
         </div>
       </div>
@@ -467,6 +472,38 @@ function OrdenCard({
   )
 }
 
+function SolicitudCard({
+  grupoId,
+  ordenes,
+  canAprobarPerm,
+  canRechazarPerm,
+}: {
+  grupoId: string
+  ordenes: OrdenProduccion[]
+  canAprobarPerm: boolean
+  canRechazarPerm: boolean
+}) {
+  const confirmadas = ordenes.filter((orden) => ['aprobada', 'ejecutada', 'completada'].includes(orden.estado)).length
+  const pendientes = ordenes.filter((orden) => orden.estado === 'solicitada').length
+  const rechazadas = ordenes.filter((orden) => orden.estado === 'rechazada').length
+  const porcentaje = ordenes.length === 0 ? 0 : Math.round((confirmadas / ordenes.length) * 100)
+  const fecha = ordenes[0]?.createdAt ? formatFecha(ordenes[0].createdAt) : ''
+
+  return (
+    <section className="rounded-xl border border-outline-variant/50 bg-surface-container-low p-3 sm:p-4" aria-label={`Solicitud ${grupoId}`}>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div><h2 className="font-body text-sm font-bold text-on-surface">Solicitud de producción</h2><p className="text-xs text-on-surface-variant">{ordenes.length} producto{ordenes.length === 1 ? '' : 's'} · {fecha}</p></div>
+        <div className="text-right"><p className="text-sm font-bold tabular-nums text-primary">{porcentaje}%</p><p className="text-xs text-on-surface-variant">{confirmadas}/{ordenes.length} confirmados</p></div>
+      </div>
+      <div className="h-2 overflow-hidden rounded-full bg-surface-container-high" aria-label={`${porcentaje}% cumplido`}><div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${porcentaje}%` }} /></div>
+      <p className="mt-2 text-xs text-on-surface-variant">{pendientes > 0 ? `${pendientes} pendiente${pendientes === 1 ? '' : 's'} de disponibilidad o aprobación` : rechazadas > 0 ? `${rechazadas} sin completar` : 'Solicitud completada'}</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {ordenes.map((orden) => <OrdenCard key={orden.id} orden={orden} canAprobarPerm={canAprobarPerm} canRechazarPerm={canRechazarPerm} />)}
+      </div>
+    </section>
+  )
+}
+
 // ─── Filtro de estado ─────────────────────────────────────────────────────────
 
 const TODOS_LOS_ESTADOS: EstadoOrden[] = ['solicitada', 'aprobada', 'ejecutada', 'completada', 'rechazada']
@@ -515,8 +552,8 @@ export default function OrdenesPage({ archivadas = false }: { archivadas?: boole
     ...(archivadas ? { archivadas: true } : {}),
   })
 
-  const urgentes = ordenes.filter((o) => o.urgencia === 'urgente')
   const pendientesAprobacion = ordenes.filter((o) => o.estado === 'solicitada').length
+  const confirmadas = ordenes.filter((o) => ['aprobada', 'ejecutada', 'completada'].includes(o.estado)).length
   const ordenesOrdenadas = [...ordenes].sort((a, b) => {
     const dateDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     if (dateDiff !== 0) return dateDiff
@@ -525,6 +562,13 @@ export default function OrdenesPage({ archivadas = false }: { archivadas?: boole
     if (b.estado === 'solicitada') return 1
     return 0
   })
+  const solicitudes = Array.from(ordenesOrdenadas.reduce((groups, orden) => {
+    const id = orden.grupoId || orden.id
+    const existing = groups.get(id)
+    if (existing) existing.push(orden)
+    else groups.set(id, [orden])
+    return groups
+  }, new Map<string, OrdenProduccion[]>()).entries())
 
   return (
     <div className="space-y-5">
@@ -532,9 +576,9 @@ export default function OrdenesPage({ archivadas = false }: { archivadas?: boole
         title={archivadas ? 'Órdenes archivadas' : 'Órdenes'}
         description={archivadas ? 'Historial de órdenes finalizadas y cerradas.' : 'Solicitudes de producción, aprobación y despacho.'}
         stats={[
-          { label: 'órdenes', value: isLoading ? '...' : ordenes.length },
-          { label: 'urgentes', value: isLoading ? '...' : urgentes.length, warning: urgentes.length > 0 && !isLoading },
-          { label: 'por aprobar', value: isLoading ? '...' : pendientesAprobacion, warning: pendientesAprobacion > 0 && !isLoading },
+          { label: 'solicitudes', value: isLoading ? '...' : solicitudes.length },
+          { label: 'pendientes', value: isLoading ? '...' : pendientesAprobacion, warning: pendientesAprobacion > 0 && !isLoading },
+          { label: 'confirmadas', value: isLoading ? '...' : confirmadas },
         ]}
         primaryAction={
           canCreate && !archivadas
@@ -574,11 +618,12 @@ export default function OrdenesPage({ archivadas = false }: { archivadas?: boole
           </p>
         </div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {ordenesOrdenadas.map((o) => (
-            <OrdenCard
-              key={o.id}
-              orden={o}
+        <div className="space-y-3">
+          {solicitudes.map(([grupoId, ordenesDeSolicitud]) => (
+            <SolicitudCard
+              key={grupoId}
+              grupoId={grupoId}
+              ordenes={ordenesDeSolicitud}
               canAprobarPerm={can(user, 'deposito', 'ordenes.approve')}
               canRechazarPerm={can(user, 'deposito', 'ordenes.reject')}
             />

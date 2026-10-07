@@ -171,7 +171,7 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
                             <th className="py-2">Ubicación</th>
                             <th className="py-2">Usuario</th>
                             <th className="py-2">Motivo</th>
-                            <th className="py-2">Fecha efectiva</th>
+                            <th className="py-2 text-right">Saldo luego</th>
                             <th className="py-2 text-right">Cantidad</th>
                           </tr>
                         </thead>
@@ -181,9 +181,9 @@ export function HistorialLotesModal({ productos, onClose }: HistorialLotesModalP
                               <td className="py-2 text-on-surface">{new Date(m.createdAt).toLocaleString()}</td>
                               <td className="py-2 text-on-surface">{formatMovementType(m.tipo)}</td>
                               <td className="py-2 text-on-surface-variant">{formatLocation(m)}</td>
-                              <td className="py-2 text-on-surface-variant">{m.usuarioId}</td>
-                              <td className="py-2 text-on-surface-variant">{m.motivo ?? m.referencia ?? '-'}</td>
-                              <td className="py-2 text-on-surface-variant">{m.fechaEfectiva ?? '-'}</td>
+                              <td className="py-2 text-on-surface-variant">{m.usuarioNombre ?? 'Usuario no identificado'}</td>
+                              <td className="py-2 text-on-surface-variant">{m.motivoVisible ?? m.motivo ?? (m.tipo === 'AJUSTE' && m.cantidad < 0 ? 'Descuento local' : '-')}</td>
+                              <td className="py-2 text-right font-semibold text-on-surface">{m.saldoPosterior ?? '-'}</td>
                               <td className={`py-2 text-right font-semibold ${m.cantidad > 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 {m.cantidad > 0 ? '+' : ''}{m.cantidad}
                               </td>

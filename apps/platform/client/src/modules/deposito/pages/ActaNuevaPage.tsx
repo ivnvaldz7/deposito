@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useForm, useWatch, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Package, Hash, FileText, ArrowLeft, Building2 } from 'lucide-react'
+import { Package, Hash, FileText, ArrowLeft, Building2, Printer } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { api } from '../lib/api'
@@ -16,6 +16,7 @@ import { DatePickerInput } from '../components/ui/DatePickerInput'
 import { validateExpirySelection } from '../lib/expiry-month'
 import { useFrascos } from '../queries/use-frascos'
 import { useQuery } from '@tanstack/react-query'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/Dialog'
 
 const ingresoSchema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Fecha inválida'),
@@ -79,6 +80,59 @@ function todayISO(): string {
 
 type TipoIngreso = 'MP' | 'ME'
 
+type EtiquetaCuarentena = {
+  itemId: string
+  producto: string
+  lote: string
+  fecha: string
+}
+
+function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }: {
+  etiqueta: EtiquetaCuarentena
+  printing: boolean
+  error: string | null
+  onPrint: (copias: number) => void
+  onSkip: () => void
+}) {
+  const [copies, setCopies] = useState(1)
+
+  return (
+    <Dialog open onOpenChange={(open) => { if (!open && !printing) onSkip() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>¿Imprimir etiqueta de cuarentena?</DialogTitle>
+          <DialogDescription>El ingreso ya quedó registrado. Elegí si querés imprimir ahora y cuántas copias enviar a la Brother QL-800.</DialogDescription>
+        </DialogHeader>
+        <div className="rounded-lg border border-white/10 bg-surface-container p-4 space-y-2 text-sm">
+          <p><span className="text-on-surface-variant">Producto:</span> <strong>{etiqueta.producto}</strong></p>
+          <p><span className="text-on-surface-variant">Lote:</span> <strong>{etiqueta.lote}</strong></p>
+          <p><span className="text-on-surface-variant">Fecha de ingreso:</span> <strong>{etiqueta.fecha.split('-').reverse().join('/')}</strong></p>
+        </div>
+        <label className="mt-5 block font-body text-sm text-on-surface">
+          Copias
+          <input
+            aria-label="Copias de etiqueta"
+            type="number"
+            min={1}
+            max={100}
+            value={copies}
+            onChange={(event) => setCopies(Math.min(100, Math.max(1, Number(event.target.value) || 1)))}
+            className="input-field mt-2"
+            disabled={printing}
+          />
+        </label>
+        {error && <p role="alert" className="mt-3 rounded border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">{error}</p>}
+        <div className="mt-5 flex gap-3">
+          <button type="button" onClick={onSkip} disabled={printing} className="flex-1 rounded bg-surface-container-high py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-bright disabled:opacity-50">Ahora no</button>
+          <button type="button" onClick={() => onPrint(copies)} disabled={printing} className="btn-primary flex-1 min-h-11 py-3 text-sm disabled:opacity-50">
+            <Printer size={16} className="mr-2 inline" />{printing ? 'Enviando...' : 'Imprimir'}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 const CATEGORIAS_ME: { label: string; value: CategoriaProducto }[] = [
   { label: 'Estuche', value: 'estuche' },
   { label: 'Frasco', value: 'frasco' },
@@ -100,6 +154,9 @@ export default function ActaNuevaPage() {
   const [mercadoCat, setMercadoCat] = useState<CategoriaProducto>('estuche')
   const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoCatalogo | null>(null)
   const [isExpiryBlockTouched, setIsExpiryBlockTouched] = useState(false)
+  const [etiquetaCuarentena, setEtiquetaCuarentena] = useState<EtiquetaCuarentena | null>(null)
+  const [printingLabel, setPrintingLabel] = useState(false)
+  const [labelError, setLabelError] = useState<string | null>(null)
 
   const resolvedCategoria: CategoriaProducto = tipoIngreso === 'MP' ? 'droga' : mercadoCat
   const esME = tipoIngreso === 'ME'
@@ -198,7 +255,7 @@ export default function ActaNuevaPage() {
     setServerError(null)
     setSubmitting(true)
     try {
-      const acta = await api.post<{ id: string }>('/ingresos', {
+      const acta = await api.post<{ id: string; etiquetaCuarentena?: EtiquetaCuarentena | null }>('/ingresos', {
         fecha: data.fecha,
         productoId: data.productoId,
         lote: data.lote?.trim() || undefined,
@@ -210,6 +267,12 @@ export default function ActaNuevaPage() {
         observaciones: data.observaciones?.trim() || undefined,
       })
       toast.success('Ingreso registrado correctamente')
+      submitInFlight.current = false
+      setSubmitting(false)
+      if (acta.etiquetaCuarentena) {
+        setEtiquetaCuarentena(acta.etiquetaCuarentena)
+        return
+      }
       navigate('/deposito/dashboard')
     } catch (err) {
       submitInFlight.current = false
@@ -230,17 +293,33 @@ export default function ActaNuevaPage() {
     }
   }
 
+  async function handlePrintCuarentena(copias: number) {
+    if (!etiquetaCuarentena || printingLabel) return
+    setPrintingLabel(true)
+    setLabelError(null)
+    try {
+      const result = await api.post<{ message: string }>('/labels/cuarentena', { itemId: etiquetaCuarentena.itemId, copias })
+      toast.success(result.message)
+      navigate('/deposito/dashboard')
+    } catch (error) {
+      setLabelError(error instanceof ApiError ? error.message : 'No se pudo comunicar con la impresora.')
+    } finally {
+      setPrintingLabel(false)
+    }
+  }
+
   const isFormValid = isValid && isDirty
 
   return (
-    <div className="min-h-screen bg-surface font-sans text-on-surface pb-24 relative overflow-hidden">
+    <div className="min-h-screen bg-surface font-sans text-on-surface pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-24 relative overflow-hidden">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-3xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/deposito/actas')}
-              className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
+              aria-label="Volver a actas"
+              className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
             >
               <ArrowLeft size={20} className="text-on-surface-variant" />
             </button>
@@ -254,9 +333,9 @@ export default function ActaNuevaPage() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 md:px-6 pt-8 relative z-10">
+      <div className="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 pt-4 sm:pt-8 relative z-10">
         <div className="bg-surface-high rounded-xl border border-white/5 shadow-float overflow-hidden">
-          <div className="p-6 md:p-8">
+          <div className="p-4 sm:p-6 md:p-8">
             <div className="max-w-xl mx-auto">
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" noValidate>
                 
@@ -596,14 +675,14 @@ export default function ActaNuevaPage() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="btn-primary flex-1 py-3 text-sm"
+                      className="btn-primary flex-1 min-h-11 py-3 text-sm"
                     >
                       {submitting ? 'Registrando...' : 'Registrar ingreso'}
                     </button>
                     <button
                       type="button"
                       onClick={() => navigate('/deposito/actas')}
-                      className="flex-1 py-3 text-sm font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors border border-white/5"
+                      className="flex-1 min-h-11 py-3 text-sm font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors border border-white/5"
                     >
                       Cancelar
                     </button>
@@ -617,6 +696,15 @@ export default function ActaNuevaPage() {
 
       {/* Ambient glow */}
       <div className="fixed bottom-0 right-0 w-96 h-96 bg-primary-container/5 rounded-full blur-[100px] pointer-events-none -z-10" />
+      {etiquetaCuarentena && (
+        <EtiquetaCuarentenaDialog
+          etiqueta={etiquetaCuarentena}
+          printing={printingLabel}
+          error={labelError}
+          onPrint={handlePrintCuarentena}
+          onSkip={() => navigate('/deposito/dashboard')}
+        />
+      )}
     </div>
   )
 }

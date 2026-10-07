@@ -1,7 +1,7 @@
-import { useState, Fragment } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useEffect, Fragment } from 'react'
+import { ChevronDown, ChevronUp, FileDown } from 'lucide-react'
 import { useStockOverview } from '../queries'
-import { type Producto, type Lote } from '../lib/api'
+import { aleBetApi, type Producto } from '../lib/api'
 import { matchesFunctionalProductSearch } from '../lib/logistics-display'
 
 function LotesInline({ producto }: { producto: Producto }) {
@@ -44,9 +44,37 @@ export default function StockPage() {
   const { data, isLoading, error } = useStockOverview()
   const [search, setSearch] = useState('')
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+  const [exporting, setExporting] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia?.('(max-width: 767px)')
+    if (!query) return
+    const update = () => setIsMobile(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
 
   function toggleRow(id: string) {
     setExpandedRow((prev) => (prev === id ? null : id))
+  }
+
+  async function exportPdf() {
+    setExporting(true)
+    try {
+      const blob = await aleBetApi.stock.exportPdf()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `stock-producto-terminado-${new Date().toISOString().slice(0, 10)}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } finally {
+      setExporting(false)
+    }
   }
 
   if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando stock...</p>
@@ -61,6 +89,10 @@ export default function StockPage() {
           <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Stock</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Visión consolidada de inventario</p>
         </div>
+        <button type="button" className="btn-secondary inline-flex min-h-11 items-center gap-2" onClick={() => void exportPdf()} disabled={exporting}>
+          <FileDown className="h-4 w-4" />
+          {exporting ? 'Generando PDF...' : 'Exportar PDF'}
+        </button>
       </div>
 
       <input
@@ -68,12 +100,26 @@ export default function StockPage() {
         placeholder="Buscar producto..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="input-field max-w-sm"
+        className="input-field w-full max-w-sm"
       />
 
       <div className="bg-surface-container-high rounded-xl overflow-hidden" data-testid="stock-table">
         {filtered.length === 0 ? (
           <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay productos.</p>
+        ) : isMobile ? (
+          <div className="divide-y divide-white/10">
+            {filtered.map((p) => {
+              const isExpanded = expandedRow === p.id
+              return <div key={p.id}>
+                <button type="button" onClick={() => toggleRow(p.id)} aria-expanded={isExpanded} className={`w-full p-4 text-left transition-colors ${isExpanded ? 'bg-surface-variant/20' : 'hover:bg-surface-variant/20'}`}>
+                  <div className="flex items-start justify-between gap-3"><p className="min-w-0 break-words font-semibold text-on-surface">{p.nombre}</p>{isExpanded ? <ChevronUp className="h-5 w-5 shrink-0 text-on-surface-variant" /> : <ChevronDown className="h-5 w-5 shrink-0 text-on-surface-variant" />}</div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-surface-container-high p-3 text-center"><div><p className="text-[10px] uppercase tracking-wide text-on-surface-variant">Total</p><p className="mt-1 font-semibold tabular-nums text-on-surface">{p.stockTotal}</p></div><div><p className="text-[10px] uppercase tracking-wide text-on-surface-variant">Depósito</p><p className="mt-1 font-semibold tabular-nums text-on-surface">{p.stockDeposito}</p></div><div><p className="text-[10px] uppercase tracking-wide text-on-surface-variant" title="Acondicionado">Acond.</p><p className="mt-1 font-semibold tabular-nums text-on-surface">{p.stockAcondicionado}</p></div></div>
+                  <p className="mt-3 text-xs text-on-surface-variant">{p.lotes?.length ?? 0} lote{(p.lotes?.length ?? 0) === 1 ? '' : 's'} · Tocá para ver el detalle</p>
+                </button>
+                {isExpanded && <LotesInline producto={p} />}
+              </div>
+            })}
+          </div>
         ) : (
           <table className="w-full text-left font-body text-[12px]">
             <thead>

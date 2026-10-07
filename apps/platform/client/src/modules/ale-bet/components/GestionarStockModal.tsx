@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Check, AlertTriangle, X } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { type Producto, type LoteAdminStock } from '../lib/api'
-import { useProductoAdminStock, useAjusteAdminStock, useIngresarAdminStock, useTransferirStock, useCreateAdminLote, useProductTransferRules } from '../queries'
+import { useProductoAdminStock, useAjusteAdminStock, useIngresarAdminStock, useTransferirStock, useCreateAdminLote, useProductTransferRules, useUpdateLote } from '../queries'
 import { formatOptionalDate } from '../lib/logistics-display'
 import { suggestedLotPrefix } from '../lib/lot-prefix'
 
@@ -21,11 +21,13 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
   const [ingresoModal, setIngresoModal] = useState<{ loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; activo: boolean } | null>(null)
   const [transferirModal, setTransferirModal] = useState<{ loteId: string; loteNumero: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; cantidadActual: number } | null>(null)
   const [createLoteModal, setCreateLoteModal] = useState(false)
+  const [editingExpiration, setEditingExpiration] = useState<{ loteId: string; value: string } | null>(null)
+  const updateLote = useUpdateLote()
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-        <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={onClose}>
+        <div className="w-full max-w-2xl rounded-t-2xl border border-white/10 bg-surface-container-low p-4 pb-[max(env(safe-area-inset-bottom),1rem)] sm:rounded-2xl sm:p-6" onClick={(e) => e.stopPropagation()}>
           <p className="font-body text-sm text-on-surface-variant">Cargando información de stock...</p>
         </div>
       </div>
@@ -34,8 +36,8 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
 
   if (error || !stockData) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-        <div className="w-full max-w-2xl rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={onClose}>
+        <div className="w-full max-w-2xl rounded-t-2xl border border-white/10 bg-surface-container-low p-4 pb-[max(env(safe-area-inset-bottom),1rem)] sm:rounded-2xl sm:p-6" onClick={(e) => e.stopPropagation()}>
           <p className="font-body text-sm text-error">Error al cargar información de stock.</p>
           <button onClick={onClose} className="mt-4 rounded-full border border-white/10 px-4 py-2 text-[12px]">Cerrar</button>
         </div>
@@ -52,34 +54,49 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
   const stockAcondicionado = operationalLotes.reduce((acc, lote) => acc + lote.stockAcondicionado, 0)
   const hasPresentationDestinations = transferRulesQuery.data?.rules.some((rule) => rule.tipo === 'PRESENTATION') ?? false
 
+  async function saveExpiration(loteId: string): Promise<void> {
+    if (!editingExpiration) return
+    try {
+      await updateLote.mutateAsync({
+        productoId: producto.id,
+        loteId,
+        fechaVencimiento: editingExpiration.value ? new Date(`${editingExpiration.value}T12:00:00.000Z`).toISOString() : null,
+      })
+      toast.success('Vencimiento del lote actualizado')
+      setEditingExpiration(null)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo actualizar el vencimiento')
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="max-h-[85vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between">
-          <h2 className="text-[20px] font-semibold tracking-tight text-on-surface">{producto.nombre}</h2>
-          <button onClick={onClose} className="text-on-surface-variant hover:text-on-surface"><X className="h-5 w-5" /></button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center sm:p-5" onClick={onClose}>
+      <div className="max-h-[92dvh] w-full max-w-3xl overflow-y-auto rounded-t-2xl border border-white/10 bg-surface-container-low p-4 pb-[max(env(safe-area-inset-bottom),1rem)] sm:max-h-[85dvh] sm:rounded-2xl sm:p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="min-w-0 text-[18px] font-semibold tracking-tight text-on-surface sm:text-[20px]">{producto.nombre}</h2>
+          <button type="button" onClick={onClose} aria-label="Cerrar gestión de stock" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"><X className="h-5 w-5" /></button>
         </div>
         
-        <div className="mt-6 flex justify-between rounded-xl bg-surface-container/50 p-4 text-center border border-white/5">
+        <div className="mt-5 grid grid-cols-3 rounded-xl border border-white/5 bg-surface-container/50 p-2 text-center sm:mt-6 sm:p-4">
           <div>
-            <p className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Total</p>
-            <p className="mt-1 text-[24px] font-semibold text-on-surface">{stockTotal}</p>
+            <p className="font-body text-[10px] font-medium uppercase tracking-wide text-on-surface-variant sm:text-[12px]">Total</p>
+            <p className="mt-1 text-[20px] font-semibold text-on-surface sm:text-[24px]">{stockTotal}</p>
           </div>
           <div>
-            <p className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Depósito</p>
-            <p className="mt-1 text-[24px] font-semibold text-on-surface">{stockDeposito}</p>
+            <p className="font-body text-[10px] font-medium uppercase tracking-wide text-on-surface-variant sm:text-[12px]">Depósito</p>
+            <p className="mt-1 text-[20px] font-semibold text-on-surface sm:text-[24px]">{stockDeposito}</p>
           </div>
           <div>
-            <p className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Acondicionado</p>
-            <p className="mt-1 text-[24px] font-semibold text-on-surface">{stockAcondicionado}</p>
+            <p className="font-body text-[10px] font-medium uppercase tracking-wide text-on-surface-variant sm:text-[12px]" title="Acondicionado"><span className="sm:hidden">Acond.</span><span className="hidden sm:inline">Acondicionado</span></p>
+            <p className="mt-1 text-[20px] font-semibold text-on-surface sm:text-[24px]">{stockAcondicionado}</p>
           </div>
         </div>
 
-        <div className="mt-8 flex items-center justify-between">
+        <div className="mt-6 flex items-center justify-between gap-3 sm:mt-8">
           <h3 className="text-[16px] font-semibold text-on-surface">Lotes</h3>
           <button 
             onClick={() => setCreateLoteModal(true)} 
-            className="rounded-full border border-primary px-3 py-1.5 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
+            className="min-h-11 shrink-0 rounded-xl border border-primary px-3 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
           >
             + Nuevo lote
           </button>
@@ -91,33 +108,41 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
           <div className="mt-4 space-y-3">
             {operationalLotes.map(lote => (
               <div key={lote.id} className={`rounded-xl border p-4 ${lote.activo ? 'border-white/10 bg-surface-container-high' : 'border-white/5 bg-surface-container-high/60'}`}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-2">
                     <span className={`font-semibold text-[15px] ${lote.activo ? 'text-primary' : 'text-on-surface-variant'}`}>LOTE {lote.numero}</span>
                     {!lote.activo && (
                       <span className="rounded-full bg-yellow-500/20 px-2 py-0.5 font-body text-[10px] font-medium text-yellow-400">Inactivo</span>
                     )}
                   </div>
-                  <span className="font-body text-[12px] text-on-surface-variant">Vto: {formatOptionalDate(lote.fechaVencimiento)}</span>
+                  {editingExpiration?.loteId === lote.id ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input aria-label={`Vencimiento del lote ${lote.numero}`} type="date" value={editingExpiration.value} onChange={(event) => setEditingExpiration({ loteId: lote.id, value: event.target.value })} className="min-h-10 rounded border border-white/15 bg-surface-container px-2 text-[14px] text-on-surface" />
+                      <button type="button" disabled={updateLote.isPending} onClick={() => void saveExpiration(lote.id)} className="min-h-10 rounded-lg px-2 text-xs font-semibold text-primary disabled:opacity-50">Guardar</button>
+                      <button type="button" disabled={updateLote.isPending} onClick={() => setEditingExpiration(null)} className="min-h-10 rounded-lg px-2 text-xs text-on-surface-variant">Cancelar</button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setEditingExpiration({ loteId: lote.id, value: lote.fechaVencimiento ? lote.fechaVencimiento.slice(0, 10) : '' })} className="min-h-10 rounded-lg px-2 text-left font-body text-[12px] text-on-surface-variant hover:bg-surface-container hover:text-primary">Vto: {formatOptionalDate(lote.fechaVencimiento)} · Editar</button>
+                  )}
                 </div>
                 
-                <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                   <div className="rounded-lg bg-surface-container/30 p-3">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="mb-3 flex items-center justify-between gap-2">
                       <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Depósito</p>
                       <p className="text-[16px] font-semibold text-on-surface">{lote.stockDeposito}</p>
                     </div>
                     {depositoUbicacion && (
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <button 
                           onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: depositoUbicacion.id, ubicacionNombre: 'Depósito', cantidadActual: lote.stockDeposito, activo: lote.activo })}
-                          className="flex-1 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
+                          className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
                         >
                           Ajustar
                         </button>
                         <button 
                           onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'DEPOSITO', cantidadActual: lote.stockDeposito })}
-                          className="flex-1 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
+                          className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
                         >
                           Transferir
                         </button>
@@ -126,27 +151,27 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
                   </div>
                   
                   <div className="rounded-lg bg-surface-container/30 p-3">
-                    <div className="flex justify-between items-center mb-2">
+                    <div className="mb-3 flex items-center justify-between gap-2">
                       <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Acondicionado</p>
                       <p className="text-[16px] font-semibold text-on-surface">{lote.stockAcondicionado}</p>
                     </div>
                     {acondicionadoUbicacion && (
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <button 
                           onClick={() => setIngresoModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo })}
-                          className={`flex-1 rounded-full border px-2 py-1 font-body text-[11px] font-medium transition ${lote.activo ? 'border-primary/50 text-primary hover:bg-primary/10' : 'border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10'}`}
+                          className={`min-h-10 rounded-full border px-2 py-1 font-body text-[11px] font-medium transition ${lote.activo ? 'border-primary/50 text-primary hover:bg-primary/10' : 'border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10'}`}
                         >
                           {lote.activo ? 'Ingresar' : 'Reactivar e ingresar'}
                         </button>
                         <button 
                           onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo })}
-                          className="flex-1 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
+                          className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
                         >
                           Ajustar
                         </button>
                         <button 
                           onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'ACONDICIONADO', cantidadActual: lote.stockAcondicionado })}
-                          className="flex-1 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
+                          className="col-span-2 min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
                         >
                           {hasPresentationDestinations ? 'Transferir a presentación' : 'Transferir'}
                         </button>

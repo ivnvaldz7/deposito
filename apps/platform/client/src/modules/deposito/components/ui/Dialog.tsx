@@ -31,7 +31,7 @@ export function Dialog({ open, onOpenChange, children, large = false }: DialogPr
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-4"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
       onClick={() => onOpenChange(false)}
     >
@@ -40,8 +40,8 @@ export function Dialog({ open, onOpenChange, children, large = false }: DialogPr
         onClick={(e) => e.stopPropagation()}
         data-size={large ? 'large' : 'default'}
         className={large
-          ? 'relative flex flex-col w-full max-w-[min(90vw,1400px)] h-[85vh] mx-4 rounded-lg shadow-xl overflow-hidden'
-          : 'relative w-full max-w-lg mx-4 rounded-lg shadow-xl'}
+          ? 'relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-xl shadow-xl md:h-[85vh] md:max-w-[min(90vw,1400px)] md:rounded-xl'
+          : 'relative w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-xl shadow-xl md:mx-4 md:rounded-xl'}
         style={{ backgroundColor: 'var(--color-surface)' }}
         role="dialog"
         aria-modal="true"
@@ -54,7 +54,7 @@ export function Dialog({ open, onOpenChange, children, large = false }: DialogPr
 
 export function DialogContent({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`px-6 py-6 ${className ?? ''}`}>
+    <div className={`px-4 py-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:px-6 sm:py-6 ${className ?? ''}`}>
       {children}
     </div>
   )

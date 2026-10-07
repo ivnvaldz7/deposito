@@ -2,7 +2,6 @@ import crypto from 'node:crypto'
 import { Prisma, TipoReglaTransferenciaProducto, platformDb as prisma } from '@platform/db'
 import { descomponerUnidades } from '../constants'
 import { getProductAvailability } from '../inventory-service'
-import { consumeActiveReservations, reserveFefo, StockConflictError } from '../reservas-service'
 import type { InterpretationLineState, MatchProduct, MatchCustomer, ParsedOrder, ParsedOrderLine } from './contracts'
 import { hasStrongMismatch, interpretOrder, normalizeForMatch, presentationMismatch } from './interpreter'
 
@@ -384,6 +383,61 @@ export async function getDraftAvailability(snapshot: ParsedOrder) {
   })
 }
 
+/** Availability shaped like an order so Automation can show the same editable lot selector before creating the final pedido. */
+export async function getDraftLotAvailability(snapshot: ParsedOrder) {
+  // A DRAFT deliberately contains unresolved lines. Reading it must still
+  // work so the operator can correct those lines; only READY confirmation
+  // requires every included line to be valid (enforced by consolidate()).
+  const requested = new Map<string, number>()
+  for (const line of includedLines(snapshot)) {
+    if (lineState(line) !== 'VALID' || !line.productCandidate || !line.quantity.totalUnits) continue
+    requested.set(line.productCandidate.productId, (requested.get(line.productCandidate.productId) ?? 0) + line.quantity.totalUnits)
+  }
+  const items = [...requested.entries()].map(([productId, cantidad]) => ({ productId, cantidad }))
+  if (items.length === 0) {
+    return {
+      status: 'DISPONIBLE' as const,
+      stockTotal: 0,
+      stockDeposito: 0,
+      stockAcondicionado: 0,
+      stockDisponiblePedido: 0,
+      allocations: [],
+      lotes: [],
+      transferencias: [],
+      shortfall: 0,
+      fingerprint: `automation:pending-review:${snapshot.lines.length}`,
+    }
+  }
+  const availability = await getProductAvailability(prisma, items.map((item) => ({ productoId: item.productId, cantidad: item.cantidad })))
+  const productIds = items.map((item) => item.productId)
+  const [balances, reservations] = await Promise.all([
+    prisma.saldoStock.findMany({ where: { productoId: { in: productIds } }, include: { lote: true, ubicacion: true } }),
+    prisma.reservaStock.groupBy({ by: ['loteId', 'ubicacionId'], where: { estado: 'ACTIVA', lote: { productoId: { in: productIds } } }, _sum: { cantidad: true } }),
+  ])
+  const reserved = new Map(reservations.map((row) => [`${row.loteId}:${row.ubicacionId}`, row._sum.cantidad ?? 0]))
+  const now = new Date()
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+  const allocations: Array<{ itemPedidoId: string; productoId: string; loteId: string; cantidad: number }> = []
+  const transferencias: Array<{ productoId: string; loteId: string; origen: 'ACONDICIONADO'; destino: 'DEPOSITO'; cantidad: number }> = []
+  const lotes: Array<{ itemPedidoId: string; productoId: string; loteId: string; numero: string; fechaVencimiento: Date | null; ubicacion: 'DEPOSITO' | 'ACONDICIONADO'; disponible: number; vencido: boolean }> = []
+  let status: 'DISPONIBLE' | 'DISPONIBLE_CON_TRANSFERENCIA' | 'INSUFICIENTE' = 'DISPONIBLE'
+  let stockTotal = 0; let stockDeposito = 0; let stockAcondicionado = 0; let shortfall = 0
+  for (const item of items) {
+    const result = availability.get(item.productId)!
+    if (result.status === 'INSUFICIENTE') status = 'INSUFICIENTE'
+    else if (result.status === 'DISPONIBLE_CON_TRANSFERENCIA' && status === 'DISPONIBLE') status = 'DISPONIBLE_CON_TRANSFERENCIA'
+    stockTotal += result.stockTotal; stockDeposito += result.stockDeposito; stockAcondicionado += result.stockAcondicionado; shortfall += result.shortfall
+    allocations.push(...result.allocations.map((entry) => ({ itemPedidoId: item.productId, productoId: item.productId, ...entry })))
+    allocations.push(...result.transferencias.map((entry) => ({ itemPedidoId: item.productId, productoId: item.productId, loteId: entry.loteId, cantidad: entry.cantidad })))
+    transferencias.push(...result.transferencias.map((entry) => ({ productoId: item.productId, loteId: entry.loteId, origen: 'ACONDICIONADO' as const, destino: 'DEPOSITO' as const, cantidad: entry.cantidad })))
+    for (const balance of balances.filter((candidate) => candidate.productoId === item.productId && (candidate.ubicacion.codigo === 'DEPOSITO' || candidate.ubicacion.codigo === 'ACONDICIONADO'))) {
+      const date = balance.lote.fechaVencimiento
+      lotes.push({ itemPedidoId: item.productId, productoId: item.productId, loteId: balance.loteId, numero: balance.lote.numero, fechaVencimiento: date, ubicacion: balance.ubicacion.codigo as 'DEPOSITO' | 'ACONDICIONADO', disponible: Math.max(0, balance.cantidad - (reserved.get(`${balance.loteId}:${balance.ubicacionId}`) ?? 0)), vencido: Boolean(date && Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()) < today) })
+    }
+  }
+  return { status, stockTotal, stockDeposito, stockAcondicionado, stockDisponiblePedido: stockTotal, allocations, lotes, transferencias, shortfall, fingerprint: `automation:${snapshot.lines.length}:${items.map((item) => `${item.productId}:${item.cantidad}`).join('|')}` }
+}
+
 export async function getDraft(id: string) {
   const draft = await prisma.orderInterpretationDraft.findUnique({ where: { id } })
   if (!draft) throw new AutomationNotFoundError('Borrador de interpretación no encontrado')
@@ -393,6 +447,7 @@ export async function getDraft(id: string) {
     effectiveSnapshot: presentation.snapshot,
     presentationOptions: presentation.presentationOptions,
     availability: await getDraftAvailability(presentation.snapshot),
+    lotAvailability: await getDraftLotAvailability(presentation.snapshot),
   }
 }
 
@@ -406,7 +461,7 @@ function consolidate(snapshot: ParsedOrder): Array<{ productId: string; cantidad
   return [...result.entries()].sort(([left], [right]) => left.localeCompare(right)).map(([productId, cantidad]) => ({ productId, cantidad }))
 }
 
-export async function confirmDraftInTransaction(tx: Prisma.TransactionClient, input: { draftId: string; expectedVersion: number; actorId: string }) {
+export async function confirmDraftInTransaction(tx: Prisma.TransactionClient, input: { draftId: string; expectedVersion: number; actorId: string; selecciones?: Array<{ itemPedidoId: string; productoId: string; loteId: string; cantidad: number }>; transferencias?: Array<{ productoId: string; loteId: string; origen: 'ACONDICIONADO'; destino: 'DEPOSITO'; cantidad: number }> }) {
   await tx.$queryRaw(Prisma.sql`SELECT id FROM "ale_bet"."OrderInterpretationDraft" WHERE id = ${input.draftId} FOR UPDATE`)
   const draft = await tx.orderInterpretationDraft.findUnique({ where: { id: input.draftId } })
   if (!draft) throw new AutomationNotFoundError('Borrador de interpretación no encontrado')
@@ -422,20 +477,16 @@ export async function confirmDraftInTransaction(tx: Prisma.TransactionClient, in
   ])
   if (!customer) throw new AutomationConflictError('El cliente no existe, está inactivo o pendiente de validación')
   if (products.length !== items.length) throw new AutomationConflictError('Uno o más productos no existen o están inactivos')
-  const pedido = await tx.pedido.create({ data: { numero: orderNumber(), clienteId: customer.id, origen: 'AUTOMATION', estado: 'BORRADOR', items: { create: items.map((item) => ({ producto: { connect: { id: item.productId } }, cantidad: item.cantidad })) } }, include: { cliente: true, items: { include: { producto: true } } } })
+  const pedido = await tx.pedido.create({ data: { numero: orderNumber(), clienteId: customer.id, origen: 'AUTOMATION', descuentoPorRemito: true, estado: 'BORRADOR', items: { create: items.map((item) => ({ producto: { connect: { id: item.productId } }, cantidad: item.cantidad })) } }, include: { cliente: true, items: { include: { producto: true } } } })
   await audit(tx, pedido.id, input.actorId, 'BORRADOR_CREADO_AUTOMATION', { draftId: draft.id, items })
-  const { getOrderAvailability, transferInternal } = await import('../inventory-service')
+  const { getOrderAvailability } = await import('../inventory-service')
   const availability = await getOrderAvailability(tx, pedido)
-  if (availability.status === 'INSUFICIENTE') throw new StockConflictError('Stock insuficiente para aprobar el pedido')
-  for (const transfer of availability.transferencias) await transferInternal(tx, { ...transfer, actorId: input.actorId, idempotencyKey: `automation:${draft.id}:${transfer.loteId}`, skipOutbox: true })
-  await reserveFefo(tx, pedido.id, pedido.items)
-  // Reuse the established FEFO reservation path for locks/allocation, then
-  // consume it before commit. Automation therefore has no active reservation
-  // or deferred Armador stock operation after confirmation.
-  await consumeActiveReservations(tx, pedido.id, input.actorId, { skipOutbox: true })
-  const approved = await tx.pedido.update({ where: { id: pedido.id }, data: { estado: 'APROBADO', aprobadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
-  await audit(tx, approved.id, input.actorId, 'PEDIDO_APROBADO_AUTOMATION', { draftId: draft.id, estado: approved.estado })
+  // Do not reserve, transfer or consume anything here. Facturación can issue
+  // one or more partial remitos; Encargado/Admin will choose lots and discount
+  // stock only for each remito that actually leaves the plant.
+  const estado = availability.status === 'INSUFICIENTE' ? 'PENDIENTE_PRODUCCION' : 'APROBADO'
+  const approved = await tx.pedido.update({ where: { id: pedido.id }, data: { estado, aprobadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
+  await audit(tx, approved.id, input.actorId, 'PEDIDO_REGISTRADO_AUTOMATION', { draftId: draft.id, estado: approved.estado, stockDisponible: availability.status !== 'INSUFICIENTE' })
   await tx.orderInterpretationDraft.update({ where: { id: draft.id }, data: { estado: 'CONFIRMED', confirmedBy: input.actorId, pedidoId: approved.id, version: { increment: 1 } } })
-  await tx.stockProjectionOutbox.createMany({ data: items.map((item) => ({ productId: item.productId, causeType: 'PEDIDO_APROBADO', causeId: approved.id, estado: 'PENDING' })), skipDuplicates: true })
-  return { draftId: draft.id, pedido: approved, syncStatus: 'PENDING' as const }
+  return { draftId: draft.id, pedido: approved, syncStatus: 'UNCHANGED' as const }
 }

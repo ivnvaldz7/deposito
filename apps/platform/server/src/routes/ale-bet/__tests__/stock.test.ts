@@ -461,6 +461,35 @@ describe('Ale-Bet Stock', () => {
     })
   })
 
+  describe('GET /api/ale-bet/stock/export.pdf', () => {
+    it('exports a live, printable PDF with the finished stock detail', async () => {
+      mockDb.producto.findMany.mockResolvedValue([
+        {
+          id: 'prod-1', nombre: 'Producto PDF', activo: true,
+          lotes: [{
+            id: 'lote-1', numero: 'LOT-1', createdAt: new Date('2026-01-01'), fechaVencimiento: new Date('2027-04-17'),
+            saldos: [{ cantidad: 7, ubicacion: { codigo: 'DEPOSITO' } }, { cantidad: 2, ubicacion: { codigo: 'ACONDICIONADO' } }],
+          }],
+        },
+      ])
+      const app = await createTestApp()
+      const response = await request(app)
+        .get('/api/ale-bet/stock/export.pdf')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .buffer(true)
+        .parse((res, callback) => {
+          const chunks: Buffer[] = []
+          res.on('data', (chunk) => chunks.push(chunk))
+          res.on('end', () => callback(null, Buffer.concat(chunks)))
+        })
+        .expect(200)
+
+      expect(response.headers['content-type']).toMatch(/application\/pdf/)
+      expect(response.headers['content-disposition']).toContain('stock-producto-terminado-')
+      expect(response.body.subarray(0, 5).toString()).toBe('%PDF-')
+    })
+  })
+
   describe('GET /api/ale-bet/productos/:id/stock', () => {
     it('uses stock.read.archived for product stock as well', async () => {
       mockDb.producto.findUnique.mockResolvedValue({ id: 'prod-1', nombre: 'Producto A', lotes: [] })

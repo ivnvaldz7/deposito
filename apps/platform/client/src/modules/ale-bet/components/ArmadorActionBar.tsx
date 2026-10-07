@@ -86,7 +86,7 @@ export function ArmadorActionBar({
             disabled={despachando}
             className="min-h-11 w-full rounded-full border border-error/40 font-body text-[13px] font-semibold text-error transition hover:bg-error/10 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Confirmar despacho
+            Aprobar descuento
           </button>
         )}
         {canConfirmarCancelacion(pedido, rol, userId) && (

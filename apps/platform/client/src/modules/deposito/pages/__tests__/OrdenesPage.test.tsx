@@ -137,12 +137,24 @@ describe('OrdenesPage', () => {
     await act(async () => selector.focus())
     fireEvent.mouseDown(await screen.findByRole('option', { name: /OLIVITASAN PLUS 500 ML/i }))
     fireEvent.change(screen.getByLabelText('Cantidad'), { target: { value: '10' } })
-    vi.mocked(api.post).mockResolvedValue({ id: 'orden-1', productoNombre: estuche.nombreCompleto } as never)
-    fireEvent.click(screen.getByRole('button', { name: 'Enviar orden' }))
+    vi.mocked(api.post).mockResolvedValue({ grupoId: 'grupo-1', ordenes: [{ id: 'orden-1', productoNombre: estuche.nombreCompleto }] } as never)
+    fireEvent.click(screen.getByRole('button', { name: /Agregar producto a la solicitud/i }))
+    await waitFor(() => expect(screen.getByRole('button', { name: /Enviar solicitud \(1\)/i })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: /Enviar solicitud \(1\)/i }))
     await waitFor(() => expect(api.post).toHaveBeenCalledWith('/ordenes', expect.objectContaining({
-      productoId: estuche.id,
-      mercado: 'argentina',
-      cantidad: 10,
+      items: [expect.objectContaining({ productoId: estuche.id, mercado: 'argentina', cantidad: 10 })],
     })))
+  })
+
+  it('groups lines visually and reports partial fulfillment without an urgency label', async () => {
+    vi.mocked(api.get).mockResolvedValue([
+      createOrden({ id: 'orden-1', grupoId: 'grupo-1', estado: 'aprobada', urgencia: 'urgente' }),
+      createOrden({ id: 'orden-2', grupoId: 'grupo-1', productoNombre: 'Amantina 500 ML', estado: 'solicitada' }),
+    ])
+    render(<MemoryRouter><OrdenesPage /></MemoryRouter>)
+    expect(await screen.findByText('50%')).toBeInTheDocument()
+    expect(screen.getByText('1/2 confirmados')).toBeInTheDocument()
+    expect(screen.getByText('1 pendiente de disponibilidad o aprobación')).toBeInTheDocument()
+    expect(screen.queryByText('Urgente')).not.toBeInTheDocument()
   })
 })

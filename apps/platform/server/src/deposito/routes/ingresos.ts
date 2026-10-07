@@ -73,7 +73,7 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
   try {
     const currentUser = await prisma.user.findUnique({ where: { id: req.depositoUser!.id }, select: { id: true, name: true } })
     if (!currentUser) { res.status(401).json({ message: 'La sesión es inválida. Volvé a iniciar sesión.' }); return }
-    const acta = await prisma.$transaction(async (tx) => {
+    const created = await prisma.$transaction(async (tx) => {
       const actaRecord = await tx.acta.create({ data: { fecha: new Date(`${data.fecha}T00:00:00.000Z`), notas: data.observaciones ?? null, createdBy: currentUser.id } })
       const item = await tx.actaItem.create({
         data: { actaId: actaRecord.id, productoId: producto.id, categoria: producto.categoria, productoNombre: producto.nombreCompleto, lote: loteFinal, vencimiento, mercado: materialConMercado ? data.mercado : null, cantidadIngresada: cantidad, cantidadDistribuida: cantidad },
@@ -110,11 +110,17 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
       }
       await tx.acta.update({ where: { id: actaRecord.id }, data: { estado: 'completada' } })
       await tx.movimiento.create({ data: { tipo: 'ingreso_acta', categoria: producto.categoria, productoNombre: producto.nombreCompleto, lote: producto.categoria === 'droga' || requiereLoteMaterial ? loteFinal : null, cantidad, referenciaId: item.id, referenciaTipo: 'acta_item', createdBy: currentUser.id } })
-      return actaRecord
+      return { acta: actaRecord, item }
     })
+    const { acta, item } = created
     sseManager.broadcastGlobal({ tipo: 'ingreso_creado', mensaje: `Nuevo ingreso de ${producto.nombreCompleto} por ${currentUser.name}`, datos: { actaId: acta.id, fecha: data.fecha, producto: producto.nombreCompleto, cantidad }, timestamp: new Date().toISOString() })
     eventBus.emit({ app: 'deposito', tipo: 'ingreso_creado', titulo: 'Ingreso registrado', mensaje: `${producto.nombreCompleto} — ${cantidad} uds — ${currentUser.name}`, link: `/deposito/actas/${acta.id}`, timestamp: new Date().toISOString() })
-    res.status(201).json(acta)
+    res.status(201).json({
+      ...acta,
+      etiquetaCuarentena: producto.categoria === 'droga'
+        ? { itemId: item.id, producto: producto.nombreCompleto, lote: loteFinal, fecha: data.fecha }
+        : null,
+    })
   } catch (error) {
     console.error(error)
     if (error instanceof DrugLotConflictError) {

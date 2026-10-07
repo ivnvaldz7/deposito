@@ -70,6 +70,18 @@ export const ESTADO_META: Record<PedidoEstado, EstadoMeta> = {
     },
   },
 
+  PENDIENTE_PRODUCCION: {
+    label: 'Pendiente de producción', variant: 'warning', priority: 0,
+    operativeLabel: 'Pendiente de stock para entregar',
+    card: { bg: '#2a2113', border: '#5d4820', accent: '#f3cb66', bgHover: '#332918', borderHover: '#765b28' },
+  },
+
+  PENDIENTE_PARCIAL: {
+    label: 'Entrega parcial', variant: 'info', priority: 1,
+    operativeLabel: 'Quedan productos pendientes',
+    card: { bg: '#13202b', border: '#244c65', accent: '#7fc7ee', bgHover: '#172938', borderHover: '#2e607d' },
+  },
+
   EN_ARMADO: {
     label: 'En armado',
     variant: 'info',
@@ -89,7 +101,7 @@ export const ESTADO_META: Record<PedidoEstado, EstadoMeta> = {
     label: 'Preparado',
     variant: 'info',
     priority: 1,
-    operativeLabel: 'Listo para despacho',
+    operativeLabel: 'Esperando descuento de stock',
     card: {
       // Blue-dark: "ready / waiting next step"
       bg:          '#111e2e',
@@ -101,10 +113,10 @@ export const ESTADO_META: Record<PedidoEstado, EstadoMeta> = {
   },
 
   DESPACHADO: {
-    label: 'Despachado',
+    label: 'Stock descontado',
     variant: 'success',
     priority: 4,
-    operativeLabel: 'Pedido despachado',
+    operativeLabel: 'Stock descontado',
     card: {
       // Green-dark: "done / shipped"
       bg:          '#0f2420',
@@ -182,8 +194,11 @@ export function canDespachar(pedido: Pedido, rol: string, userId: string): boole
 export function canRegistrarDevolucion(pedido: Pedido, rol: string, userId: string): boolean {
   // Automation confirms by consuming stock directly and remains APROBADO; it
   // does not traverse the manual despacho state.
+  // Orders created before partial remitos already consumed stock when
+  // Automation confirmed them. Keep their return path; new orders opt in to
+  // descuentoPorRemito and can return only after their remito is dispatched.
   const tieneStockDescontado = pedido.estado === 'DESPACHADO'
-    || (esPedidoAutomation(pedido) && pedido.estado === 'APROBADO')
+    || (esPedidoAutomation(pedido) && !pedido.descuentoPorRemito && pedido.estado === 'APROBADO')
   if (!tieneStockDescontado) return false
   if (!roleHasPermission('ale-bet', rol, 'pedidos.return')) return false
   return esPedidoAutomation(pedido)
@@ -212,8 +227,8 @@ export function canConfirmarCancelacion(pedido: Pedido, rol: string, userId: str
 
 export function canEmitirRemito(pedido: Pedido, rol: string): boolean {
   if (!roleHasPermission('ale-bet', rol, 'remitos.create')) return false
-  if (pedido.estado !== 'APROBADO' && pedido.estado !== 'EN_ARMADO' && pedido.estado !== 'PREPARADO') return false
-  return !pedido.remitos?.some((r) => r.estado === 'VIGENTE')
+  if (pedido.estado !== 'APROBADO' && pedido.estado !== 'PENDIENTE_PRODUCCION' && pedido.estado !== 'PENDIENTE_PARCIAL' && pedido.estado !== 'EN_ARMADO' && pedido.estado !== 'PREPARADO') return false
+  return pedido.descuentoPorRemito || !pedido.remitos?.some((r) => r.estado === 'VIGENTE')
 }
 
 export function canAccionesBarraArmador(pedido: Pedido, rol: string, userId: string): boolean {

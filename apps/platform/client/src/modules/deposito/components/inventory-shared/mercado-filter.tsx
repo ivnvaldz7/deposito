@@ -15,7 +15,7 @@ export function MercadoFilter({
   countsByMercado,
 }: MercadoFilterProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <section aria-label="Filtros de mercado" className="flex flex-wrap gap-2">
       <button
         type="button"
         onClick={() => onChangeMercado('todos')}
@@ -58,6 +58,6 @@ export function MercadoFilter({
           </button>
         )
       })}
-    </div>
+    </section>
   )
 }

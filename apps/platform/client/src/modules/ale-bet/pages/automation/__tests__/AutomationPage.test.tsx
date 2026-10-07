@@ -413,7 +413,7 @@ describe('AutomationPage', () => {
       
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
       expect(screen.getAllByText('Confirmar pedido').length).toBeGreaterThan(0)
-      expect(screen.getByText('¿Confirmar pedido y descontar stock físico?')).toBeInTheDocument()
+      expect(screen.getByText('¿Registrar pedido? El stock se descontará únicamente cuando se apruebe cada remito.')).toBeInTheDocument()
     })
 
     it('cliente desconocido permite crearlo, seleccionarlo y preservar las líneas', async () => {
@@ -584,6 +584,34 @@ describe('AutomationPage', () => {
         expect(screen.getByText('El stock cambió desde la última revisión.')).toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
       })
+    })
+
+    it('reconsulta el borrador ante un conflicto de idempotencia y no pide cargarlo de nuevo si ya se confirmó', async () => {
+      const refetch = vi.fn().mockResolvedValue({ data: { draft: { id: 'd1', estado: 'CONFIRMED', version: 2, pedidoId: 'pedido-1' } } })
+      const mutateAsync = vi.fn().mockRejectedValue(new Error('Clave de idempotencia reutilizada con distinto payload'))
+      ;(useConfirmDraft as any).mockReturnValue({ mutateAsync })
+      ;(useDraft as any).mockReturnValue({
+        data: {
+          draft: { id: 'd1', estado: 'READY', version: 1 },
+          effectiveSnapshot: {
+            customerCandidate: { customerId: 'c1' },
+            lines: [{ lineId: 'line-valid', originalText: '1 Prod 1', productCandidate: { productId: 'p1' }, warnings: [], requiresReview: false, lineState: 'VALID', quantity: { totalUnits: 1, mode: 'UNITS' } }],
+            warnings: [], requiresReview: false,
+          },
+          availability: [],
+        },
+        refetch,
+      })
+
+      const user = userEvent.setup()
+      renderComponent()
+      await triggerDraftCreation(user)
+      await user.click(await screen.findByRole('button', { name: 'Confirmar pedido' }))
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+
+      await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1))
+      expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()
+      expect(screen.queryByText('No se pudo confirmar el pedido')).not.toBeInTheDocument()
     })
   })
 })

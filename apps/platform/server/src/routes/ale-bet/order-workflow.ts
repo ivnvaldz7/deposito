@@ -1,6 +1,8 @@
 export const orderStates = [
   'BORRADOR',
   'APROBADO',
+  'PENDIENTE_PRODUCCION',
+  'PENDIENTE_PARCIAL',
   'EN_ARMADO',
   'PREPARADO',
   'DESPACHADO',
@@ -12,6 +14,8 @@ export type OrderState = (typeof orderStates)[number]
 const transitions: Readonly<Record<OrderState, readonly OrderState[]>> = {
   BORRADOR: ['APROBADO', 'CANCELADO'],
   APROBADO: ['EN_ARMADO', 'CANCELADO'],
+  PENDIENTE_PRODUCCION: ['PENDIENTE_PARCIAL', 'PREPARADO', 'CANCELADO'],
+  PENDIENTE_PARCIAL: ['PREPARADO', 'DESPACHADO', 'CANCELADO'],
   EN_ARMADO: ['PREPARADO', 'CANCELADO'],
   PREPARADO: ['DESPACHADO', 'CANCELADO'],
   DESPACHADO: [],
@@ -44,7 +48,7 @@ export function canReturnConsumedOrder(origen: 'MANUAL' | 'AUTOMATION', state: O
 }
 
 export function canEmitRemito(state: OrderState): boolean {
-  return state === 'APROBADO' || state === 'EN_ARMADO' || state === 'PREPARADO'
+  return state === 'APROBADO' || state === 'PENDIENTE_PRODUCCION' || state === 'PENDIENTE_PARCIAL' || state === 'EN_ARMADO' || state === 'PREPARADO'
 }
 
 export function canVendorCancelDirectly(state: OrderState): boolean {

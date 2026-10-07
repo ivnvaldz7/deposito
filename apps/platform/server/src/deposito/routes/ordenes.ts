@@ -1,4 +1,5 @@
 import { Request,  Router, Response  } from 'express'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
 import { Mercado } from '@platform/db'
 import { extractDbConstraintViolation, isKnownInventoryConflict } from '../../utils/db-errors'
@@ -25,14 +26,18 @@ function archiveCutoff(): Date {
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
-const crearOrdenSchema = z.object({
+const ordenItemSchema = z.object({
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
   productoId: z.string().uuid(),
   mercado: z.enum(MERCADOS).optional(),
   cantidad: z.number().finite().positive(),
-  urgencia: z.enum(['normal', 'urgente']).default('normal'),
 })
   .refine((data) => data.categoria === 'droga' || Number.isInteger(data.cantidad), { message: 'La cantidad debe ser entera para materiales de empaque', path: ['cantidad'] })
+
+const crearOrdenSchema = z.union([
+  ordenItemSchema,
+  z.object({ items: z.array(ordenItemSchema).min(1).max(30) }),
+])
 
 const rechazarSchema = z.object({ motivoRechazo: z.string().trim().max(500).optional() }).optional().transform((data) => data ?? {})
 
@@ -94,72 +99,89 @@ router.post(
       return
     }
 
-    const { categoria, productoId, mercado, cantidad, urgencia } = result.data
-
-    if ((categoria === 'estuche' || categoria === 'etiqueta') && !mercado) {
-      res.status(400).json({ message: 'El campo mercado es obligatorio para estuches y etiquetas' })
-      return
+    const isMultiorden = 'items' in result.data
+    const items = 'items' in result.data ? result.data.items : [result.data]
+    const seen = new Set<string>()
+    for (const item of items) {
+      if ((item.categoria === 'estuche' || item.categoria === 'etiqueta') && !item.mercado) {
+        res.status(400).json({ message: 'El campo mercado es obligatorio para estuches y etiquetas' })
+        return
+      }
+      if ((item.categoria === 'droga' || item.categoria === 'frasco') && item.mercado) {
+        res.status(400).json({ message: 'El mercado solo aplica a estuches y etiquetas' })
+        return
+      }
+      const duplicateKey = `${item.productoId}:${item.mercado ?? ''}`
+      if (seen.has(duplicateKey)) {
+        res.status(400).json({ message: 'No repitas el mismo producto dentro de una solicitud' })
+        return
+      }
+      seen.add(duplicateKey)
     }
-    if ((categoria === 'droga' || categoria === 'frasco') && mercado) {
-      res.status(400).json({ message: 'El mercado solo aplica a estuches y etiquetas' })
-      return
+
+    const products = await Promise.all(items.map(async (item) => {
+      try {
+        return await prisma.depositoProducto.findUnique({ where: { id: item.productoId } })
+      } catch {
+        return null
+      }
+    }))
+    for (let index = 0; index < items.length; index += 1) {
+      const product = products[index]
+      if (!product || !product.activo || product.categoria !== items[index]!.categoria) {
+        res.status(400).json({ message: 'Elegí productos activos de la categoría correspondiente' })
+        return
+      }
     }
 
-    let producto: Awaited<ReturnType<typeof prisma.depositoProducto.findUnique>>
     try {
-      producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
-    } catch {
-      res.status(500).json({ message: 'No se pudo validar el producto seleccionado' })
-      return
-    }
-    if (!producto || !producto.activo || producto.categoria !== categoria) {
-      res.status(400).json({ message: 'Elegí un producto activo de la categoría correspondiente' })
-      return
-    }
-    const productoNombre = producto.nombreCompleto
-
-    try {
-      const orden = await prisma.ordenProduccion.create({
-        data: {
-          solicitanteId: req.depositoUser!.id,
-          productoId: productoId ?? null,
-          categoria,
-          productoNombre,
-          mercado: mercado ?? null,
-          cantidad,
-          urgencia,
-        },
-        include: {
-          solicitante: { select: { id: true, name: true, role: true } },
-          aprobador: { select: { id: true, name: true } },
-        },
+      const grupoId = randomUUID()
+      const ordenes = await prisma.$transaction(async (tx) => {
+        const created = []
+        for (const [index, item] of items.entries()) {
+          created.push(await tx.ordenProduccion.create({
+          data: {
+            solicitanteId: req.depositoUser!.id,
+            grupoId,
+            productoId: item.productoId,
+            categoria: item.categoria,
+            productoNombre: products[index]!.nombreCompleto,
+            mercado: item.mercado ?? null,
+            cantidad: item.cantidad,
+          },
+          include: {
+            solicitante: { select: { id: true, name: true, role: true } },
+            aprobador: { select: { id: true, name: true } },
+          },
+          }))
+        }
+        return created
       })
 
-      sseManager.broadcastToRoles(
-        {
-          tipo: 'orden_creada',
-          mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad}) — ${req.depositoUser!.name}`,
-          datos: {
-            ordenId: orden.id,
-            producto: productoNombre,
-            cantidad,
-            urgencia,
-            solicitante: req.depositoUser!.name,
-          },
-          timestamp: new Date().toISOString(),
+      const productSummary = ordenes.map((orden) => `${orden.productoNombre} (×${orden.cantidad})`).join(', ')
+      const plural = ordenes.length === 1 ? 'producto' : 'productos'
+      const notification = {
+        tipo: 'orden_creada',
+        mensaje: `Nueva solicitud: ${ordenes.length} ${plural} — ${req.depositoUser!.name}`,
+        datos: {
+          grupoId,
+          ordenIds: ordenes.map((orden) => orden.id),
+          cantidadProductos: ordenes.length,
+          solicitante: req.depositoUser!.name,
         },
-        ['encargado']
-      )
+        timestamp: new Date().toISOString(),
+      }
+      sseManager.broadcastToRoles(notification, ['encargado'])
       eventBus.emit({
         app: 'deposito',
         tipo: 'orden_creada',
-        titulo: 'Orden de producción',
-        mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad})`,
-        link: `/deposito/ordenes/${orden.id}`,
+        titulo: 'Solicitud de producción',
+        mensaje: `Nueva solicitud: ${productSummary}`,
+        link: `/deposito/ordenes/${ordenes[0]!.id}`,
         timestamp: new Date().toISOString(),
       })
 
-      res.status(201).json(orden)
+      res.status(201).json(isMultiorden ? { grupoId, ordenes } : ordenes[0])
     } catch {
       res.status(500).json({ message: 'Error interno del servidor' })
     }

@@ -6,8 +6,6 @@ export type { Mercado } from '../components/inventory-shared/mercados'
 
 export type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
 export type EstadoOrden = 'solicitada' | 'aprobada' | 'ejecutada' | 'completada' | 'rechazada'
-export type Urgencia = 'normal' | 'urgente'
-
 export interface OrdenProduccion {
   id: string
   categoria: Categoria
@@ -15,7 +13,7 @@ export interface OrdenProduccion {
   productoNombre: string
   mercado?: Mercado | null
   cantidad: number
-  urgencia: Urgencia
+  grupoId?: string | null
   estado: EstadoOrden
   solicitante: { id: string; name: string; role: string }
   aprobador: { id: string; name: string } | null
@@ -23,9 +21,18 @@ export interface OrdenProduccion {
   createdAt: string
 }
 
+export type OrdenInput = {
+  categoria: Categoria
+  productoId: string
+  cantidad: number
+  mercado?: Mercado
+}
+
+export type SolicitudOrdenes = { grupoId: string; ordenes: OrdenProduccion[] }
+
 export const ordenesKeys = {
   all: ['deposito', 'ordenes'] as const,
-  list: (filters?: Record<string, string>) => [...ordenesKeys.all, 'list', filters] as const,
+  list: (filters?: { estado?: string; archivadas?: boolean }) => [...ordenesKeys.all, 'list', filters] as const,
 }
 
 export function useOrdenes(filters?: { estado?: string; archivadas?: boolean }) {
@@ -42,8 +49,7 @@ export function useOrdenes(filters?: { estado?: string; archivadas?: boolean }) 
 export function useCreateOrden() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { categoria: Categoria; productoId: string; cantidad: number; mercado?: Mercado; urgencia?: Urgencia }) =>
-      api.post<OrdenProduccion>('/ordenes', data),
+    mutationFn: (data: { items: OrdenInput[] }) => api.post<SolicitudOrdenes>('/ordenes', data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ordenesKeys.all }),
   })
 }

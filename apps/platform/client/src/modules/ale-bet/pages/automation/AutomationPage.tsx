@@ -184,6 +184,16 @@ export default function AutomationPage() {
   const [creatingCliente, setCreatingCliente] = useState(false)
   const [rememberClientAlias, setRememberClientAlias] = useState(true)
   const [presentationPickerLineId, setPresentationPickerLineId] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia?.('(max-width: 767px)')
+    if (!query) return
+    const update = () => setIsMobile(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
 
   useEffect(() => {
     persistAutomationWork({ originalText, draftId })
@@ -399,7 +409,7 @@ export default function AutomationPage() {
     
 
 
-    const handleConfirm = async () => {
+    const handleConfirm = async (selecciones: any, transferencias: any) => {
       setIsProcessing(true)
       try {
         if (!idempotencyKeyRef.current || idempotencyKeyRef.current.version !== draft.version) {
@@ -408,6 +418,8 @@ export default function AutomationPage() {
         await confirmDraft.mutateAsync({
           id: draft.id,
           expectedVersion: draft.version,
+          selecciones,
+          transferencias,
           idempotencyKey: idempotencyKeyRef.current.key
         })
         clearAutomationWork()
@@ -423,9 +435,21 @@ export default function AutomationPage() {
           } else if (e.message.includes('READY antes de confirmar')) {
             setConfirmError('Este pedido ya fue confirmado o procesado.')
             refetchDraft()
-          } else if (e.message.includes('idempotencia')) {
-            setConfirmError('Hubo un conflicto procesando la solicitud, por favor revisá si ya se procesó.')
-            refetchDraft()
+          } else if (e.message.toLowerCase().includes('idempotencia')) {
+            // A delayed/replayed request may have been committed even if this
+            // browser did not receive its first response. Read the draft
+            // before inviting the operator to retry, so we never ask them to
+            // reload or risk submitting a second order.
+            idempotencyKeyRef.current = null
+            const refreshed = await refetchDraft()
+            if (refreshed.data?.draft.estado === 'CONFIRMED') {
+              clearAutomationWork()
+              setConfirmOrderPrompt(false)
+              setConfirmError(null)
+              toast.success('El pedido ya había sido registrado. El stock se descuenta al aprobar cada remito.')
+            } else {
+              setConfirmError('La solicitud anterior no se confirmó. Actualizamos los datos: podés reintentar sin volver a cargar el pedido.')
+            }
           } else {
             setConfirmError(e.message)
           }
@@ -437,13 +461,13 @@ export default function AutomationPage() {
       }
     }
 
-    const canConfirm = draft.estado === 'READY' && Boolean(effectiveSnapshot.customerCandidate) && needsReviewLines.length === 0 && validLines.length > 0 && availability.every((a: any) => a.status !== 'INSUFICIENTE')
+    const canConfirm = draft.estado === 'READY' && Boolean(effectiveSnapshot.customerCandidate) && needsReviewLines.length === 0 && validLines.length > 0
     const confirmTotalUnits = includedLines.reduce((acc: number, line: any) => acc + (line.quantity?.totalUnits ?? 0), 0)
 
     return (
-      <div className={cn("mx-auto max-w-4xl space-y-6 pb-20", isProcessing && "pointer-events-none opacity-50")}>
+      <div className={cn("mx-auto max-w-4xl space-y-5 pb-[calc(env(safe-area-inset-bottom)+9.5rem)] md:space-y-6 md:pb-8", isProcessing && "pointer-events-none opacity-50")}>
         <header>
-          <h1 className="text-[24px] font-bold tracking-tight text-on-surface">Procesar pedido</h1>
+          <h1 className="text-[22px] font-bold tracking-tight text-on-surface sm:text-[24px]">Procesar pedido</h1>
           <p className="font-body text-[13px] text-on-surface-variant">Revisá la interpretación y confirmá.</p>
         </header>
 
@@ -671,7 +695,7 @@ export default function AutomationPage() {
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-xl border border-white/10 bg-surface-container-high p-4">
+            <div className="hidden rounded-xl border border-white/10 bg-surface-container-high p-4 md:block">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-outline">Acciones</h2>
               {includedLines.length === 0 && <p className="mb-3 text-sm text-on-surface-variant">No quedan productos para confirmar.</p>}
               <Button 
@@ -685,6 +709,16 @@ export default function AutomationPage() {
                 Cancelar / Volver
               </Button>
             </div>
+            {isMobile && <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] z-30 border-t border-white/10 bg-surface-container-low p-3 shadow-float">
+              <div className="mx-auto flex max-w-lg gap-2">
+                <Button variant="outline" onClick={handleProcessAnother} className="min-h-11 flex-1 text-[12px]">
+                  Volver
+                </Button>
+                <Button onClick={() => setConfirmOrderPrompt(true)} disabled={!canConfirm} className="min-h-11 flex-[1.55] text-[12px]">
+                  Confirmar pedido
+                </Button>
+              </div>
+            </div>}
             
             <div className="rounded-xl border border-white/10 bg-surface-container p-4">
               <div className="flex items-center justify-between gap-3">
@@ -730,7 +764,7 @@ export default function AutomationPage() {
               <div className="flex items-center gap-3"><div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>Procesando pedido...</div>
             ) : (
               <div className="space-y-3">
-                <p>¿Confirmar pedido y descontar stock físico?</p>
+                <p>¿Registrar pedido? El stock se descontará únicamente cuando se apruebe cada remito.</p>
                 <div className="bg-surface-container p-3 rounded border border-white/5 text-sm">
                   <p className="font-semibold mb-1">{effectiveSnapshot.customerCandidate?.nombre ?? effectiveSnapshot.customerCandidateText ?? 'Cliente pendiente'}</p>
                   <p>{includedLines.length} productos</p>
@@ -746,7 +780,7 @@ export default function AutomationPage() {
           setConfirmOrderPrompt(false)
           setConfirmError(null)
         }}
-        onConfirm={handleConfirm}
+        onConfirm={() => void handleConfirm([], [])}
       />
       
       <ConfirmDialog
@@ -812,9 +846,9 @@ export default function AutomationPage() {
           placeholder="Veterinaria Centro&#10;3 cajas Olivitasan 500&#10;20 Amantina&#10;Enviar por Expreso Central"
           className="h-64 w-full resize-y rounded-xl border border-white/10 bg-surface-container p-4 font-body text-sm text-on-surface focus:border-primary focus:outline-none"
         />
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-outline">Atajo: Ctrl + Enter para interpretar</p>
-          <div className="flex gap-3">
+        <div className="grid grid-cols-2 gap-3 md:flex md:items-center md:justify-end">
+          <p className="hidden text-xs text-outline md:block md:mr-auto">Atajo: Ctrl + Enter para interpretar</p>
+          <div className="contents md:flex md:gap-3">
             <Button variant="outline" onClick={() => {
               clearAutomationWork()
               setOriginalText('')

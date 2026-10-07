@@ -5,7 +5,7 @@ vi.mock('@platform/db', () => ({
   TipoMovimiento: { SALIDA_PEDIDO: 'SALIDA_PEDIDO', DEVOLUCION_PEDIDO: 'DEVOLUCION_PEDIDO' },
 }))
 
-import { consumeActiveReservations, reserveFefo, returnConsumedReservations, StockConflictError } from '../reservas-service'
+import { consumeActiveReservations, reserveFefo, reserveSelectedLots, returnConsumedReservations, StockConflictError } from '../reservas-service'
 
 describe('consumeActiveReservations', () => {
   it('records the exact reservation location on the SALIDA_PEDIDO movement', async () => {
@@ -56,6 +56,37 @@ describe('reserveFefo', () => {
         cantidad: 5,
       },
     })
+  })
+})
+
+describe('reserveSelectedLots', () => {
+  it('records the lot explicitly selected for the order item', async () => {
+    const create = vi.fn().mockResolvedValue({ id: 'reservation-1' })
+    const tx = {
+      ubicacionStock: { findUnique: vi.fn().mockResolvedValue({ id: 'deposito-id' }) },
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'lot-selected', numero: 'PL0614', activo: true, fechaVencimiento: null, fechaProduccion: null, createdAt: new Date('2026-01-01'), cantidad: 10, reservado: 0 }]),
+      reservaStock: { create, groupBy: vi.fn().mockResolvedValue([]) },
+    }
+
+    await reserveSelectedLots(tx as never, 'order-1', [{ id: 'item-1', productoId: 'product-1', cantidad: 4 }], [
+      { itemPedidoId: 'item-1', productoId: 'product-1', loteId: 'lot-selected', cantidad: 4 },
+    ])
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ lote: { connect: { id: 'lot-selected' } }, cantidad: 4 }) }))
+  })
+
+  it('blocks an expired selected lot before creating a reservation', async () => {
+    const create = vi.fn()
+    const tx = {
+      ubicacionStock: { findUnique: vi.fn().mockResolvedValue({ id: 'deposito-id' }) },
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'lot-expired', numero: 'PL0001', activo: true, fechaVencimiento: new Date('2020-01-01'), fechaProduccion: null, createdAt: new Date('2019-01-01'), cantidad: 10, reservado: 0 }]),
+      reservaStock: { create, groupBy: vi.fn().mockResolvedValue([]) },
+    }
+
+    await expect(reserveSelectedLots(tx as never, 'order-1', [{ id: 'item-1', productoId: 'product-1', cantidad: 4 }], [
+      { itemPedidoId: 'item-1', productoId: 'product-1', loteId: 'lot-expired', cantidad: 4 },
+    ])).rejects.toThrow('vencido')
+    expect(create).not.toHaveBeenCalled()
   })
 })
 

@@ -35,8 +35,8 @@ export function useUpdateDraft() {
 export function useConfirmDraft() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, expectedVersion, idempotencyKey }: { id: string; expectedVersion: number; idempotencyKey: string }) =>
-      aleBetApi.automation.confirmDraft(id, { expectedVersion }, { idempotencyKey }),
+    mutationFn: ({ id, expectedVersion, selecciones = [], transferencias = [], idempotencyKey }: { id: string; expectedVersion: number; selecciones?: import('../lib/api').PedidoDisponibilidadStock['allocations']; transferencias?: import('../lib/api').PedidoDisponibilidadStock['transferencias']; idempotencyKey: string }) =>
+      aleBetApi.automation.confirmDraft(id, { expectedVersion, selecciones, transferencias }, { idempotencyKey }),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['pedidos'] })
       queryClient.invalidateQueries({ queryKey: automationKeys.draft(variables.id) })

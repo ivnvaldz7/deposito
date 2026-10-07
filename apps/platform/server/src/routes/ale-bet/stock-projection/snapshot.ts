@@ -5,7 +5,9 @@ export type StockProjectionLocationCode = typeof REQUIRED_STOCK_PROJECTION_LOCAT
 export interface StockProjectionRow {
   producto: string
   lote: string
+  vencimiento?: string
   total: number
+  actualizadoEn?: string
 }
 
 export interface StockProjectionSnapshot {
@@ -165,15 +167,29 @@ function projectedLots(product: SourceProduct, locationId: string): LotQuantity[
   return representative ? [{ ...representative, cantidad: 0 }] : []
 }
 
-function projectTable(products: readonly SourceProduct[], locationId: string): StockProjectionRow[] {
+function formatDate(value: Date | null): string {
+  if (!value) return 'SIN VTO'
+  return new Intl.DateTimeFormat('es-AR', { timeZone: 'UTC' }).format(value)
+}
+
+function formatUpdatedAt(value: Date): string {
+  return new Intl.DateTimeFormat('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(value)
+}
+
+function projectTable(products: readonly SourceProduct[], locationId: string, updatedAt?: Date): StockProjectionRow[] {
   return products.flatMap((product) => projectedLots(product, locationId).map(({ lote, cantidad }) => ({
     producto: product.nombre,
     lote: lote.numero,
     total: cantidad,
+    ...(updatedAt ? { vencimiento: formatDate(lote.fechaVencimiento), actualizadoEn: formatUpdatedAt(updatedAt) } : {}),
   })))
 }
 
-export function buildStockProjectionSnapshot(source: StockProjectionSource): StockProjectionSnapshot {
+export function buildStockProjectionSnapshot(source: StockProjectionSource, updatedAt?: Date): StockProjectionSnapshot {
   const locationIds = assertRequiredProjectionLocations(source.ubicaciones)
   const visibleProducts = source.productos
     .filter((product) => product.activo && product.lotes.length > 0)
@@ -181,7 +197,7 @@ export function buildStockProjectionSnapshot(source: StockProjectionSource): Sto
     .sort(compareStockProjectionProducts)
 
   return {
-    productoTerminado: projectTable(visibleProducts, locationIds.DEPOSITO),
-    sinAcondicionar: projectTable(visibleProducts, locationIds.ACONDICIONADO),
+    productoTerminado: projectTable(visibleProducts, locationIds.DEPOSITO, updatedAt),
+    sinAcondicionar: projectTable(visibleProducts, locationIds.ACONDICIONADO, updatedAt),
   }
 }

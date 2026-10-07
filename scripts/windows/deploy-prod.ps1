@@ -123,6 +123,16 @@ try {
     $task = Get-ScheduledTask -TaskPath '\' -TaskName $TaskName -ErrorAction Stop
     Assert-AleBetServerTaskConfiguration -Task $task -StartScriptPath (Join-Path $PSScriptRoot 'start-prod.ps1') -ConfigPath $resolvedConfig
 
+    # Las migraciones se aplican antes de compilar o detener el servicio. Si la
+    # estructura de datos no puede actualizarse, se corta el despliegue y la
+    # instancia actual permanece intacta.
+    $script:DeployStage = 'DATABASE MIGRATION'
+    Push-Location $repoRoot
+    try {
+        & npm.cmd --workspace @platform/server run db:migrate
+        if ($LASTEXITCODE -ne 0) { throw "La migración de base terminó con código $LASTEXITCODE." }
+    } finally { Pop-Location }
+
     $script:DeployStage = 'BUILD'
     Push-Location $repoRoot
     try {
