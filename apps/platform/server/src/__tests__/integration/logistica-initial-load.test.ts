@@ -5,9 +5,11 @@ import { Client } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@platform/db'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { applyInitialLogisticsLoad, buildTechnicalSku, LogisticsLoadConflict, preflightInitialLogisticsLoad } from '../../routes/ale-bet/logistica-initial-load-service'
+import { applyInitialLogisticsLoad, buildTechnicalSku, LOGISTICA_INITIAL_ROWS, LogisticsLoadConflict, preflightInitialLogisticsLoad } from '../../routes/ale-bet/logistica-initial-load-service'
 
 const migrationsRoot = resolve(process.cwd(), '../../../packages/db/prisma/migrations')
+const catalogReconciliationMigration = '20261001160000_reconcile_alebet_product_catalog'
+const catalogReconciliationFixture = resolve(process.cwd(), '../../../packages/db/scripts/catalog-reconciliation-test-fixture.sql')
 let admin: Client
 let databaseName = ''
 let db: PrismaClient
@@ -25,7 +27,10 @@ describe('initial logistics load physical PostgreSQL contract', () => {
     const migrationClient = new Client({ connectionString: url.toString() }); await migrationClient.connect()
     try {
       const names = (await readdir(migrationsRoot, { withFileTypes: true })).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort()
-      for (const name of names) await migrationClient.query(await readFile(resolve(migrationsRoot, name, 'migration.sql'), 'utf8'))
+      for (const name of names) {
+        if (name === catalogReconciliationMigration) await migrationClient.query(await readFile(catalogReconciliationFixture, 'utf8'))
+        await migrationClient.query(await readFile(resolve(migrationsRoot, name, 'migration.sql'), 'utf8'))
+      }
     } finally { await migrationClient.end() }
     db = new PrismaClient({ adapter: new PrismaPg({ connectionString: url.toString() }) })
   }, 30000)
@@ -40,7 +45,7 @@ describe('initial logistics load physical PostgreSQL contract', () => {
     expect(await applyInitialLogisticsLoad(db)).toEqual({ productsCreated: 43, lotsCreated: 38, totalStock: 17014 })
     expect(await applyInitialLogisticsLoad(db)).toEqual({ productsCreated: 0, lotsCreated: 0, totalStock: 17014 })
     expect(await db.producto.findUnique({ where: { id: demo.id } })).toMatchObject({ nombre: 'DEMO EXISTENTE', sku: 'DEMO-001' })
-    const products = await db.producto.findMany({ where: { sku: { startsWith: 'LOG-' } }, include: { lotes: true } })
+    const products = await db.producto.findMany({ where: { nombre: { in: [...new Set(LOGISTICA_INITIAL_ROWS.map((row) => row.product))] } }, include: { lotes: true } })
     expect(products).toHaveLength(43)
     expect(products.flatMap((product) => product.lotes)).toHaveLength(38)
     expect(products.flatMap((product) => product.lotes).every((lot) => lot.fechaProduccion === null && lot.fechaVencimiento === null)).toBe(true)
