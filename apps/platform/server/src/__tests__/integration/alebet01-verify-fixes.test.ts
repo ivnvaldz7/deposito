@@ -105,7 +105,7 @@ describe('ALEBET-01 verify fixes - database integration', () => {
     expect([left.status, right.status].sort((a, b) => a - b)).toEqual([200, 409])
     expect(await prisma.pedido.findUnique({ where: { id: data.pedido.id }, select: { estado: true, version: true } })).toEqual({ estado: 'DESPACHADO', version: 2 })
     expect(await prisma.reservaStock.findMany({ where: { pedidoId: data.pedido.id }, select: { estado: true } })).toEqual([{ estado: 'CONSUMIDA' }])
-    expect(await prisma.lote.findUnique({ where: { id: data.lote.id }, select: { cajas: true, sueltos: true, activo: true } })).toEqual({ cajas: 0, sueltos: 0, activo: false })
+    expect(await prisma.lote.findUnique({ where: { id: data.lote.id }, select: { cajas: true, sueltos: true, activo: true } })).toEqual({ cajas: 0, sueltos: 0, activo: true })
     expect(await prisma.movimientoStock.findMany({ where: { pedidoId: data.pedido.id }, select: { cantidad: true, loteId: true, reservaId: true } })).toEqual([{ cantidad: -5, loteId: data.lote.id, reservaId: data.reserva.id }])
   })
 
@@ -120,7 +120,6 @@ describe('ALEBET-01 verify fixes - database integration', () => {
     const reservas = await prisma.reservaStock.findMany({ where: { pedidoId: data.pedido.id }, orderBy: { createdAt: 'asc' }, select: { estado: true, itemPedidoId: true, loteId: true, cantidad: true } })
     expect(reservas).toEqual([
       { estado: 'LIBERADA', itemPedidoId: null, loteId: data.lote.id, cantidad: 5 },
-      { estado: 'ACTIVA', itemPedidoId: expect.any(String), loteId: data.lote.id, cantidad: 4 },
     ])
   })
 

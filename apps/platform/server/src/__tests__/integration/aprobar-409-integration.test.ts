@@ -97,7 +97,7 @@ describe('409 Aprobar y enviar reproduction', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200)
 
-    // 3. Aprobar pedido enviando fingerprint + transferencias sugeridas
+    // 3. Aprobar pedido con la selección explícita de lotes sugerida.
     const aprobarRes = await request(app)
       .put(`/api/ale-bet/pedidos/${pedidoCreado.id}/aprobar`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -106,6 +106,7 @@ describe('409 Aprobar y enviar reproduction', () => {
         expectedVersion: pedidoCreado.version,
         fingerprint: disponibilidadRes.body.fingerprint,
         transferencias: disponibilidadRes.body.transferencias,
+        selecciones: disponibilidadRes.body.allocations,
       })
 
     if (aprobarRes.status === 409) {

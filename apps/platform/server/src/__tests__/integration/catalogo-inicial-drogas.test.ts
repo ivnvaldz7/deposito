@@ -14,7 +14,7 @@ const migrationNames = [
   '20260726163214_pr_b3a_idempotency', '20260727125700_inventory_constraints_metadata',
   '20260727125701_inventory_constraints_validate', '20260730111000_mvp01_expand_catalogo',
   '20260730111100_mvp01_migrate_catalogo', '20260730152750_mvp01_correct_codigo_rules',
-  '20260811101500_deposito_initial_estuches_import', '20260812120000_deposito_producto_market_identity',
+  '20260811101500_deposito_initial_estuches_import', '20260824140000_centralize_deposito_stock_minimo', '20260812120000_deposito_producto_market_identity',
   '20260812143000_enforce_estuche_canonical_market', '20260812160000_add_etiqueta_catalog_sequence',
   '20260813102000_add_export_etiqueta_catalog_sequences', '20260813102500_sync_export_etiqueta_catalog_sequences',
   '20260813130000_add_frasco_catalog_sequence', '20260813133000_preserve_legacy_frasco_identity',

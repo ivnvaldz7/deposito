@@ -111,11 +111,12 @@ describe('Ale-Bet pedidos disponibilidad y aprobación', () => {
   }
 
   async function aprobar(pedidoId: string, body: object, idempotencyKey = 'idemp-approve') {
+    const current = await disponibilidad(pedidoId)
     return request(app)
       .put(`/api/ale-bet/pedidos/${pedidoId}/aprobar`)
       .set('Authorization', `Bearer ${adminToken}`)
       .set('Idempotency-Key', idempotencyKey)
-      .send(body)
+      .send({ ...body, selecciones: current.allocations })
   }
 
   it('A. listado y búsqueda reportan el mismo disponible basado en SaldoStock', async () => {
