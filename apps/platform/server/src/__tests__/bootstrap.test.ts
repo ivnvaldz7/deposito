@@ -148,7 +148,7 @@ describe('POST /api/bootstrap', () => {
       password: 'password123',
       appAccess: [
         { app: 'deposito', rol: 'encargado' },
-        { app: 'ale_bet', rol: 'supervisor' },
+        { app: 'ale_bet', rol: 'admin' },
         { app: 'admin', rol: 'admin' },
         { app: 'portal', rol: 'viewer' },
       ],

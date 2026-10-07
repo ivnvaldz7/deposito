@@ -8,13 +8,17 @@ import notificationRoutes from './routes/notifications/index'
 import { createAdminRoutes } from './routes/admin/index'
 import { createAleBetRoutes } from './routes/ale-bet/index'
 import { createDepositoRoutes } from './deposito/routes/index'
+import depositoEventsRoutes from './deposito/routes/events'
 import { verifyToken } from './middlewares/verify-token'
 import { createBootstrapRoutes } from './routes/bootstrap/index'
 import { eventBus, createNotificationHandler } from '@platform/core'
 import { platformDb } from '@platform/db'
+import { getHealthResponse } from './health'
+import { syncStockProjectionAfterCommit } from './routes/ale-bet/stock-projection/direct-sync'
 
 const app = express()
 const PORT = Number(process.env.PORT ?? 3000)
+const HOST = process.env.HOST ?? '0.0.0.0'
 
 const localhostRegex = /^http:\/\/localhost(:\d+)?$/
 const privateNetworkRegex = /^http:\/\/(?:(?:127\.0\.0\.1)|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/
@@ -32,8 +36,9 @@ app.use(cors({
 }))
 app.use(express.json())
 
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', app: 'platform', timestamp: new Date().toISOString() })
+app.get('/api/health', async (_req, res) => {
+  const health = await getHealthResponse(() => platformDb.$queryRaw`SELECT 1`)
+  res.status(health.statusCode).json(health.body)
 })
 
 // Auth routes (public — no JWT required)
@@ -45,6 +50,7 @@ app.use('/api', createBootstrapRoutes())
 // Module routes (JWT required)
 app.use('/api/notifications', verifyToken, notificationRoutes)
 app.use('/api/admin', verifyToken, createAdminRoutes())
+app.use('/api/deposito/events', depositoEventsRoutes)
 app.use('/api/deposito', verifyToken, createDepositoRoutes())
 app.use('/api/ale-bet', verifyToken, createAleBetRoutes())
 
@@ -95,8 +101,11 @@ setInterval(async () => {
   }
 }, PURGE_INTERVAL_MS)
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Platform server running on http://0.0.0.0:${PORT}`)
+app.listen(PORT, HOST, () => {
+  console.log(`Platform server running on http://${HOST}:${PORT}`)
+  // Mantiene STOCK APP sincronizada al publicar una nueva versión, incluso si
+  // todavía no hubo un movimiento de stock desde el reinicio.
+  void syncStockProjectionAfterCommit()
 })
 
 export default app

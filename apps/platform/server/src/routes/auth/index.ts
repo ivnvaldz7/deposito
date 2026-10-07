@@ -6,6 +6,7 @@ import devLoginRoutes from './dev-login'
 import refreshRoutes from './refresh'
 import logoutRoutes from './logout'
 import meRoutes from './me'
+import changePasswordRoutes from './change-password'
 
 const router = Router()
 
@@ -15,6 +16,7 @@ router.use(callbackRoutes)
 router.use(devLoginRoutes)
 router.use(refreshRoutes)
 router.use(logoutRoutes)
+router.use(changePasswordRoutes)
 router.use(meRoutes)
 
 export default router

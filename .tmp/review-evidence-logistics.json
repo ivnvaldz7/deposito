@@ -1,0 +1,14 @@
+{
+  "commands": [
+    "npm --workspace @platform/server run test -- src/routes/ale-bet/__tests__/reservas-service.test.ts src/routes/ale-bet/__tests__/inventory-service.test.ts src/routes/ale-bet/__tests__/stock.test.ts",
+    "npm --workspace @platform/server run test:integration -- src/__tests__/integration/alebet01-verify-fixes.test.ts src/__tests__/integration/concurrencia.test.ts"
+  ],
+  "results": [
+    "18/18 PASS",
+    "17/17 PASS"
+  ],
+  "scope": [
+    "4 staged files only",
+    "unrelated dirty paths preserved unstaged"
+  ]
+}

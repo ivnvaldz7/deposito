@@ -2,7 +2,7 @@ import { Request,  Router, Response  } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -14,7 +14,7 @@ const editRoleSchema = z.object({
 router.get(
   '/',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'usuarios_deposito.read'),
   async (_req: Request, res: Response): Promise<void> => {
     try {
       const users = await prisma.user.findMany({
@@ -32,7 +32,7 @@ router.get(
 router.put(
   '/:id',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'usuarios_deposito.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
@@ -59,7 +59,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'usuarios_deposito.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 

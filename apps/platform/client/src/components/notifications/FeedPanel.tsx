@@ -9,7 +9,7 @@ type FilterTab = 'all' | AppId
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: 'all', label: 'Todos' },
   { key: 'deposito', label: 'Depósito' },
-  { key: 'ale_bet', label: 'Ale-Bet' },
+  { key: 'ale_bet', label: 'Logística' },
   { key: 'admin', label: 'Admin' },
 ]
 
@@ -38,7 +38,7 @@ export function FeedPanel() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/15">
-        <span className="font-heading font-semibold text-on-surface text-sm">
+        <span className="font-semibold text-on-surface text-sm">
           Actividad
         </span>
         <button

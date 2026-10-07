@@ -128,6 +128,7 @@ exports.Prisma.PlatformUserScalarFieldEnum = {
   activo: 'activo',
   estado: 'estado',
   isPlatformAdmin: 'isPlatformAdmin',
+  mustChangePassword: 'mustChangePassword',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -154,6 +155,30 @@ exports.Prisma.NotificationScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.SessionScalarFieldEnum = {
+  id: 'id',
+  platformUserId: 'platformUserId',
+  tokenHash: 'tokenHash',
+  createdAt: 'createdAt',
+  expiresAt: 'expiresAt',
+  revokedAt: 'revokedAt',
+  userAgent: 'userAgent',
+  ip: 'ip'
+};
+
+exports.Prisma.PlatformAuditoriaScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  targetUserId: 'targetUserId',
+  action: 'action',
+  app: 'app',
+  previous: 'previous',
+  next: 'next',
+  ip: 'ip',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.IdempotencyRecordScalarFieldEnum = {
   id: 'id',
   actorId: 'actorId',
@@ -173,7 +198,17 @@ exports.Prisma.ProductoScalarFieldEnum = {
   nombre: 'nombre',
   sku: 'sku',
   stockMinimo: 'stockMinimo',
+  unidadesPorCaja: 'unidadesPorCaja',
   activo: 'activo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProductAliasScalarFieldEnum = {
+  id: 'id',
+  alias: 'alias',
+  aliasNormalized: 'aliasNormalized',
+  productId: 'productId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -187,16 +222,47 @@ exports.Prisma.LoteScalarFieldEnum = {
   fechaProduccion: 'fechaProduccion',
   fechaVencimiento: 'fechaVencimiento',
   activo: 'activo',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  derivedFromLoteId: 'derivedFromLoteId'
+};
+
+exports.Prisma.ProductoTransferRuleScalarFieldEnum = {
+  id: 'id',
+  sourceProductId: 'sourceProductId',
+  targetProductId: 'targetProductId',
+  label: 'label',
+  tipo: 'tipo',
+  activo: 'activo',
+  orden: 'orden',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ClienteScalarFieldEnum = {
   id: 'id',
   nombre: 'nombre',
   contacto: 'contacto',
+  referencia: 'referencia',
   direccion: 'direccion',
+  localidad: 'localidad',
+  provincia: 'provincia',
+  cuit: 'cuit',
+  condicionIva: 'condicionIva',
+  condicionVenta: 'condicionVenta',
+  transportistaPredeterminadoId: 'transportistaPredeterminadoId',
+  estado: 'estado',
   activo: 'activo',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ClientAliasScalarFieldEnum = {
+  id: 'id',
+  alias: 'alias',
+  aliasNormalized: 'aliasNormalized',
+  clientId: 'clientId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PedidoScalarFieldEnum = {
@@ -205,7 +271,18 @@ exports.Prisma.PedidoScalarFieldEnum = {
   clienteId: 'clienteId',
   vendedorId: 'vendedorId',
   armadorId: 'armadorId',
+  origen: 'origen',
+  esRemitoManual: 'esRemitoManual',
+  descuentoPorRemito: 'descuentoPorRemito',
   estado: 'estado',
+  version: 'version',
+  cancelacionSolicitadaAt: 'cancelacionSolicitadaAt',
+  cancelacionSolicitadaPor: 'cancelacionSolicitadaPor',
+  motivoCancelacion: 'motivoCancelacion',
+  aprobadoAt: 'aprobadoAt',
+  preparadoAt: 'preparadoAt',
+  despachadoAt: 'despachadoAt',
+  canceladoAt: 'canceladoAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -215,6 +292,7 @@ exports.Prisma.ItemPedidoScalarFieldEnum = {
   pedidoId: 'pedidoId',
   productoId: 'productoId',
   cantidad: 'cantidad',
+  cantidadEntregada: 'cantidadEntregada',
   completado: 'completado',
   createdAt: 'createdAt'
 };
@@ -226,7 +304,124 @@ exports.Prisma.MovimientoStockScalarFieldEnum = {
   tipo: 'tipo',
   referencia: 'referencia',
   usuarioId: 'usuarioId',
+  pedidoId: 'pedidoId',
+  loteId: 'loteId',
+  reservaId: 'reservaId',
+  remitoId: 'remitoId',
+  origenUbicacionId: 'origenUbicacionId',
+  destinoUbicacionId: 'destinoUbicacionId',
+  idempotencyKey: 'idempotencyKey',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.ReservaStockScalarFieldEnum = {
+  id: 'id',
+  pedidoId: 'pedidoId',
+  itemPedidoId: 'itemPedidoId',
+  loteId: 'loteId',
+  ubicacionId: 'ubicacionId',
+  cantidad: 'cantidad',
+  estado: 'estado',
+  createdAt: 'createdAt',
+  releasedAt: 'releasedAt',
+  consumedAt: 'consumedAt'
+};
+
+exports.Prisma.UbicacionStockScalarFieldEnum = {
+  id: 'id',
+  codigo: 'codigo',
+  nombre: 'nombre',
+  activo: 'activo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.SaldoStockScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  loteId: 'loteId',
+  ubicacionId: 'ubicacionId',
+  cantidad: 'cantidad',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PedidoAuditoriaScalarFieldEnum = {
+  id: 'id',
+  pedidoId: 'pedidoId',
+  actorId: 'actorId',
+  accion: 'accion',
+  motivo: 'motivo',
+  anterior: 'anterior',
+  nuevo: 'nuevo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.OrderInterpretationDraftScalarFieldEnum = {
+  id: 'id',
+  originalText: 'originalText',
+  proposedSnapshot: 'proposedSnapshot',
+  editedSnapshot: 'editedSnapshot',
+  estado: 'estado',
+  version: 'version',
+  createdBy: 'createdBy',
+  confirmedBy: 'confirmedBy',
+  pedidoId: 'pedidoId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.StockProjectionOutboxScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  causeType: 'causeType',
+  causeId: 'causeId',
+  estado: 'estado',
+  attempts: 'attempts',
+  nextRetryAt: 'nextRetryAt',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.TransportistaScalarFieldEnum = {
+  id: 'id',
+  nombre: 'nombre',
+  direccion: 'direccion',
+  activo: 'activo',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RemitoScalarFieldEnum = {
+  id: 'id',
+  pedidoId: 'pedidoId',
+  numero: 'numero',
+  fecha: 'fecha',
+  transportistaId: 'transportistaId',
+  transporteNombre: 'transporteNombre',
+  transporteDireccion: 'transporteDireccion',
+  clienteSnapshot: 'clienteSnapshot',
+  transporteSnapshot: 'transporteSnapshot',
+  itemsSnapshot: 'itemsSnapshot',
+  caiSnapshot: 'caiSnapshot',
+  descuentoAprobadoAt: 'descuentoAprobadoAt',
+  descuentoAprobadoPor: 'descuentoAprobadoPor',
+  estado: 'estado',
+  invalidadoAt: 'invalidadoAt',
+  invalidadoPor: 'invalidadoPor',
+  motivoInvalidacion: 'motivoInvalidacion',
+  createdBy: 'createdBy',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ConfiguracionRemitoScalarFieldEnum = {
+  id: 'id',
+  puntoVenta: 'puntoVenta',
+  proximoCorrelativo: 'proximoCorrelativo',
+  numeracionInicializadaAt: 'numeracionInicializadaAt',
+  cai: 'cai',
+  caiVencimiento: 'caiVencimiento',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.UserScalarFieldEnum = {
@@ -267,6 +462,16 @@ exports.Prisma.ActaItemScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.AuditoriaCatalogoProductoScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  tipo: 'tipo',
+  valorAnterior: 'valorAnterior',
+  valorNuevo: 'valorNuevo',
+  usuarioId: 'usuarioId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.InventarioDrogaScalarFieldEnum = {
   id: 'id',
   productoId: 'productoId',
@@ -274,6 +479,7 @@ exports.Prisma.InventarioDrogaScalarFieldEnum = {
   lote: 'lote',
   vencimiento: 'vencimiento',
   cantidad: 'cantidad',
+  createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
@@ -305,6 +511,14 @@ exports.Prisma.InventarioFrascoScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.InventarioMaterialEmpaqueScalarFieldEnum = {
+  id: 'id',
+  productoId: 'productoId',
+  articulo: 'articulo',
+  cantidad: 'cantidad',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.MovimientoScalarFieldEnum = {
   id: 'id',
   tipo: 'tipo',
@@ -314,6 +528,9 @@ exports.Prisma.MovimientoScalarFieldEnum = {
   cantidad: 'cantidad',
   referenciaId: 'referenciaId',
   referenciaTipo: 'referenciaTipo',
+  productoId: 'productoId',
+  fechaEfectiva: 'fechaEfectiva',
+  importacionInicialEstucheItemId: 'importacionInicialEstucheItemId',
   justificacion: 'justificacion',
   createdBy: 'createdBy',
   createdAt: 'createdAt'
@@ -340,6 +557,7 @@ exports.Prisma.OrdenProduccionScalarFieldEnum = {
   solicitanteId: 'solicitanteId',
   aprobadoPor: 'aprobadoPor',
   productoId: 'productoId',
+  grupoId: 'grupoId',
   categoria: 'categoria',
   productoNombre: 'productoNombre',
   mercado: 'mercado',
@@ -360,8 +578,80 @@ exports.Prisma.DepositoProductoScalarFieldEnum = {
   categoria: 'categoria',
   nombreCompleto: 'nombreCompleto',
   activo: 'activo',
+  estado: 'estado',
+  codigo: 'codigo',
+  origen: 'origen',
+  presentacion: 'presentacion',
+  stockMinimo: 'stockMinimo',
+  mercadosHabilitados: 'mercadosHabilitados',
+  mercado: 'mercado',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SecuenciaCodigoEstucheScalarFieldEnum = {
+  mercado: 'mercado',
+  ultimo: 'ultimo'
+};
+
+exports.Prisma.SecuenciaCodigoEtiquetaScalarFieldEnum = {
+  mercado: 'mercado',
+  ultimo: 'ultimo'
+};
+
+exports.Prisma.SecuenciaCodigoFrascoScalarFieldEnum = {
+  id: 'id',
+  ultimo: 'ultimo'
+};
+
+exports.Prisma.ImportacionInicialEstucheBatchScalarFieldEnum = {
+  id: 'id',
+  idempotencyKey: 'idempotencyKey',
+  checksum: 'checksum',
+  actorId: 'actorId',
+  effectiveDate: 'effectiveDate',
+  result: 'result',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ImportacionInicialEstucheIdempotencyKeyScalarFieldEnum = {
+  id: 'id',
+  idempotencyKey: 'idempotencyKey',
+  batchId: 'batchId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ImportacionInicialEstucheItemScalarFieldEnum = {
+  id: 'id',
+  batchId: 'batchId',
+  productoId: 'productoId',
+  inventarioEstucheId: 'inventarioEstucheId',
+  mercado: 'mercado',
+  codigo: 'codigo',
+  sourceRow: 'sourceRow',
+  cantidad: 'cantidad',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PartidaProduccionScalarFieldEnum = {
+  id: 'id',
+  solicitanteId: 'solicitanteId',
+  confirmadoPorId: 'confirmadoPorId',
+  confirmadoAt: 'confirmadoAt',
+  estado: 'estado',
+  notas: 'notas',
+  motivoRechazo: 'motivoRechazo',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItemSolicitudScalarFieldEnum = {
+  id: 'id',
+  partidaId: 'partidaId',
+  productoId: 'productoId',
+  mercado: 'mercado',
+  cantidadSolicitada: 'cantidadSolicitada',
+  cantidadFinal: 'cantidadFinal'
 };
 
 exports.Prisma.SortOrder = {
@@ -371,6 +661,10 @@ exports.Prisma.SortOrder = {
 
 exports.Prisma.NullableJsonNullValueInput = {
   DbNull: Prisma.DbNull,
+  JsonNull: Prisma.JsonNull
+};
+
+exports.Prisma.JsonNullValueInput = {
   JsonNull: Prisma.JsonNull
 };
 
@@ -401,18 +695,63 @@ exports.IdempotencyStatus = exports.$Enums.IdempotencyStatus = {
   COMPLETED: 'COMPLETED'
 };
 
+exports.TipoReglaTransferenciaProducto = exports.$Enums.TipoReglaTransferenciaProducto = {
+  SAME_PRODUCT: 'SAME_PRODUCT',
+  PRESENTATION: 'PRESENTATION'
+};
+
+exports.EstadoCliente = exports.$Enums.EstadoCliente = {
+  PENDIENTE_CLIENTE: 'PENDIENTE_CLIENTE',
+  VALIDADO: 'VALIDADO'
+};
+
+exports.OrigenPedido = exports.$Enums.OrigenPedido = {
+  MANUAL: 'MANUAL',
+  AUTOMATION: 'AUTOMATION'
+};
+
 exports.EstadoPedido = exports.$Enums.EstadoPedido = {
-  PENDIENTE: 'PENDIENTE',
+  BORRADOR: 'BORRADOR',
   APROBADO: 'APROBADO',
   EN_ARMADO: 'EN_ARMADO',
-  COMPLETADO: 'COMPLETADO',
+  PREPARADO: 'PREPARADO',
+  PENDIENTE_PRODUCCION: 'PENDIENTE_PRODUCCION',
+  PENDIENTE_PARCIAL: 'PENDIENTE_PARCIAL',
+  DESPACHADO: 'DESPACHADO',
   CANCELADO: 'CANCELADO'
 };
 
 exports.TipoMovimiento = exports.$Enums.TipoMovimiento = {
   ENTRADA_MANUAL: 'ENTRADA_MANUAL',
   SALIDA_PEDIDO: 'SALIDA_PEDIDO',
-  AJUSTE: 'AJUSTE'
+  DEVOLUCION_PEDIDO: 'DEVOLUCION_PEDIDO',
+  AJUSTE: 'AJUSTE',
+  SALDO_APERTURA: 'SALDO_APERTURA',
+  TRANSFERENCIA_INTERNA: 'TRANSFERENCIA_INTERNA'
+};
+
+exports.EstadoReserva = exports.$Enums.EstadoReserva = {
+  ACTIVA: 'ACTIVA',
+  LIBERADA: 'LIBERADA',
+  CONSUMIDA: 'CONSUMIDA'
+};
+
+exports.EstadoOrderInterpretationDraft = exports.$Enums.EstadoOrderInterpretationDraft = {
+  DRAFT: 'DRAFT',
+  READY: 'READY',
+  CONFIRMED: 'CONFIRMED',
+  CANCELLED: 'CANCELLED'
+};
+
+exports.EstadoStockProjectionOutbox = exports.$Enums.EstadoStockProjectionOutbox = {
+  PENDING: 'PENDING',
+  SYNCED: 'SYNCED',
+  ERROR: 'ERROR'
+};
+
+exports.EstadoRemito = exports.$Enums.EstadoRemito = {
+  VIGENTE: 'VIGENTE',
+  INVALIDADO: 'INVALIDADO'
 };
 
 exports.Role = exports.$Enums.Role = {
@@ -431,7 +770,8 @@ exports.Categoria = exports.$Enums.Categoria = {
   droga: 'droga',
   estuche: 'estuche',
   etiqueta: 'etiqueta',
-  frasco: 'frasco'
+  frasco: 'frasco',
+  material_empaque: 'material_empaque'
 };
 
 exports.CondicionEmbalaje = exports.$Enums.CondicionEmbalaje = {
@@ -447,18 +787,35 @@ exports.Mercado = exports.$Enums.Mercado = {
   ecuador: 'ecuador',
   bolivia: 'bolivia',
   paraguay: 'paraguay',
+  VENEZUELA: 'VENEZUELA',
   no_exportable: 'no_exportable'
+};
+
+exports.TipoAuditoriaCatalogo = exports.$Enums.TipoAuditoriaCatalogo = {
+  CREADO: 'CREADO',
+  EDITADO: 'EDITADO',
+  CODIGO_ACTUALIZADO: 'CODIGO_ACTUALIZADO',
+  NOMBRE_ACTUALIZADO: 'NOMBRE_ACTUALIZADO',
+  PRESENTACION_ACTUALIZADA: 'PRESENTACION_ACTUALIZADA',
+  ACTIVADO: 'ACTIVADO',
+  REACTIVADO: 'REACTIVADO',
+  DESACTIVADO: 'DESACTIVADO',
+  IMPORTACION_CREADA: 'IMPORTACION_CREADA',
+  IMPORTACION_APROBADA: 'IMPORTACION_APROBADA'
 };
 
 exports.DepositoTipoMovimiento = exports.$Enums.DepositoTipoMovimiento = {
   ingreso_acta: 'ingreso_acta',
   egreso_orden: 'egreso_orden',
-  ajuste_manual: 'ajuste_manual'
+  egreso_partida: 'egreso_partida',
+  ajuste_manual: 'ajuste_manual',
+  stock_inicial: 'stock_inicial'
 };
 
 exports.RefTipo = exports.$Enums.RefTipo = {
   acta_item: 'acta_item',
-  orden: 'orden'
+  orden: 'orden',
+  partida: 'partida'
 };
 
 exports.EstadoPendiente = exports.$Enums.EstadoPendiente = {
@@ -479,28 +836,71 @@ exports.EstadoOrden = exports.$Enums.EstadoOrden = {
   rechazada: 'rechazada'
 };
 
+exports.EstadoProductoCatalogo = exports.$Enums.EstadoProductoCatalogo = {
+  PENDIENTE_REVISION: 'PENDIENTE_REVISION',
+  ACTIVO: 'ACTIVO',
+  INACTIVO: 'INACTIVO'
+};
+
+exports.OrigenProductoCatalogo = exports.$Enums.OrigenProductoCatalogo = {
+  MANUAL: 'MANUAL',
+  IMPORTACION: 'IMPORTACION',
+  IMPORTACION_INICIAL_ESTUCHES: 'IMPORTACION_INICIAL_ESTUCHES',
+  MIGRACION: 'MIGRACION'
+};
+
+exports.EstadoPartida = exports.$Enums.EstadoPartida = {
+  SOLICITADO: 'SOLICITADO',
+  CONFIRMADO: 'CONFIRMADO',
+  RECHAZADO: 'RECHAZADO'
+};
+
 exports.Prisma.ModelName = {
   PlatformUser: 'PlatformUser',
   AppAccess: 'AppAccess',
   Notification: 'Notification',
+  Session: 'Session',
+  PlatformAuditoria: 'PlatformAuditoria',
   IdempotencyRecord: 'IdempotencyRecord',
   Producto: 'Producto',
+  ProductAlias: 'ProductAlias',
   Lote: 'Lote',
+  ProductoTransferRule: 'ProductoTransferRule',
   Cliente: 'Cliente',
+  ClientAlias: 'ClientAlias',
   Pedido: 'Pedido',
   ItemPedido: 'ItemPedido',
   MovimientoStock: 'MovimientoStock',
+  ReservaStock: 'ReservaStock',
+  UbicacionStock: 'UbicacionStock',
+  SaldoStock: 'SaldoStock',
+  PedidoAuditoria: 'PedidoAuditoria',
+  OrderInterpretationDraft: 'OrderInterpretationDraft',
+  StockProjectionOutbox: 'StockProjectionOutbox',
+  Transportista: 'Transportista',
+  Remito: 'Remito',
+  ConfiguracionRemito: 'ConfiguracionRemito',
   User: 'User',
   Acta: 'Acta',
   ActaItem: 'ActaItem',
+  AuditoriaCatalogoProducto: 'AuditoriaCatalogoProducto',
   InventarioDroga: 'InventarioDroga',
   InventarioEstuche: 'InventarioEstuche',
   InventarioEtiqueta: 'InventarioEtiqueta',
   InventarioFrasco: 'InventarioFrasco',
+  InventarioMaterialEmpaque: 'InventarioMaterialEmpaque',
   Movimiento: 'Movimiento',
   InsumoPendiente: 'InsumoPendiente',
   OrdenProduccion: 'OrdenProduccion',
-  DepositoProducto: 'DepositoProducto'
+  DepositoProducto: 'DepositoProducto',
+  SecuenciaCodigoEstuche: 'SecuenciaCodigoEstuche',
+  SecuenciaCodigoEtiqueta: 'SecuenciaCodigoEtiqueta',
+  SecuenciaCodigoFrasco: 'SecuenciaCodigoFrasco',
+  ImportacionInicialEstucheBatch: 'ImportacionInicialEstucheBatch',
+  ImportacionInicialEstucheIdempotencyKey: 'ImportacionInicialEstucheIdempotencyKey',
+  ImportacionInicialEstucheItem: 'ImportacionInicialEstucheItem',
+  PartidaProduccion: 'PartidaProduccion',
+  ItemSolicitud: 'ItemSolicitud'
 };
 
 /**

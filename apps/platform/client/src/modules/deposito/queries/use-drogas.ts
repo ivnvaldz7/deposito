@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { api } from '../lib/api'
 
 // Types (copied from DrogasPage — only the ones needed for API responses)
@@ -10,6 +10,16 @@ export interface DrogaRecord {
   vencimiento: string | null
   cantidad: number
   updatedAt: string
+  stockMinimo?: number | null
+  codigo?: string | null
+}
+
+interface CatalogDrugResponse {
+  productoId: string
+  codigo?: string | null
+  nombre: string
+  stockMinimo: number | null
+  lotes: Array<Omit<DrogaRecord, 'productoId' | 'nombre' | 'stockMinimo' | 'updatedAt'> & { updatedAt?: string; createdAt?: string }>
 }
 
 // Query keys
@@ -22,32 +32,32 @@ export const drogasKeys = {
 export function useDrogas() {
   return useQuery({
     queryKey: drogasKeys.list(),
-    queryFn: () => api.get<DrogaRecord[]>('/drogas'),
+    queryFn: async () => {
+      const response = await api.get<DrogaRecord[] | CatalogDrugResponse[]>('/drogas')
+      if (response.length === 0 || 'cantidad' in response[0]!) return response as DrogaRecord[]
+      return (response as CatalogDrugResponse[]).flatMap((product) => {
+        if (product.lotes.length === 0) return [{
+          id: `catalog:${product.productoId}`,
+          productoId: product.productoId,
+          codigo: product.codigo ?? null,
+          nombre: product.nombre,
+          lote: null,
+          vencimiento: null,
+          cantidad: 0,
+          stockMinimo: product.stockMinimo,
+          updatedAt: '',
+        }]
+        return product.lotes.map((lot) => ({
+          ...lot,
+          productoId: product.productoId,
+          codigo: product.codigo ?? null,
+          nombre: product.nombre,
+          stockMinimo: product.stockMinimo,
+          updatedAt: lot.updatedAt ?? lot.createdAt ?? new Date(0).toISOString(),
+        }))
+      })
+    },
   })
 }
 
-export function useCreateDroga() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (data: { nombre: string; cantidad: number; lote?: string; vencimiento?: string }) =>
-      api.post<DrogaRecord>('/drogas', data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: drogasKeys.all }),
-  })
-}
 
-export function useUpdateDroga() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; lote?: string | null; cantidad?: number }) =>
-      api.put<DrogaRecord>(`/drogas/${id}`, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: drogasKeys.all }),
-  })
-}
-
-export function useDeleteDroga() {
-  const qc = useQueryClient()
-  return useMutation({
-    mutationFn: (id: string) => api.del(`/drogas/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: drogasKeys.all }),
-  })
-}

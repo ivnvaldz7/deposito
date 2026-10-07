@@ -44,7 +44,19 @@ export function createActaListItem(overrides: Record<string, unknown> = {}) {
     user: { name: 'María López' },
     _count: { items: 3 },
     items: [
-      { lote: 'L2401', productoNombre: 'Vitamina B12', temperaturaTransporte: null, condicionEmbalaje: null, observacionesCalidad: null, aprobadoCalidad: false },
+      {
+        id: 'acta-item-1',
+        lote: 'L2401',
+        categoria: 'droga' as const,
+        productoNombre: 'Vitamina B12',
+        cantidadIngresada: 100,
+        cantidadDistribuida: 0,
+        mercado: null,
+        temperaturaTransporte: null,
+        condicionEmbalaje: null,
+        observacionesCalidad: null,
+        aprobadoCalidad: false,
+      },
     ],
     ...overrides,
   }
@@ -277,5 +289,51 @@ export function createUsuarioList() {
     createUsuario(),
     createUsuario({ id: 'user-2', email: 'juan@test.com', name: 'Juan Pérez', role: 'solicitante' as const }),
     createUsuario({ id: 'user-3', email: 'ana@test.com', name: 'Ana García', role: 'observador' as const }),
+  ]
+}
+
+// ─── Productos ─────────────────────────────────────────────────────────────────
+
+export function createProducto(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'prod-1',
+    nombreBase: 'AMANTINA',
+    codigo: 'AMT-001',
+    categoria: 'droga',
+    nombreCompleto: 'AMANTINA - MP',
+    presentacion: null,
+    estado: 'ACTIVO',
+    mercadosHabilitados: [],
+    activo: true,
+    origen: 'MANUAL',
+    volumen: null,
+    unidad: null,
+    variante: null,
+    createdAt: '2026-07-01T00:00:00.000Z',
+    updatedAt: '2026-07-01T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+export function createProductoList() {
+  return [
+    createProducto(),
+    createProducto({
+      id: 'prod-2',
+      nombreBase: 'VITAMINA B12',
+      codigo: 'VIT-001',
+      categoria: 'etiqueta',
+      presentacion: 250,
+      mercadosHabilitados: ['argentina', 'colombia'],
+      estado: 'PENDIENTE_REVISION',
+    }),
+    createProducto({
+      id: 'prod-3',
+      nombreBase: 'PARACETAMOL',
+      codigo: null,
+      categoria: 'frasco',
+      presentacion: 500,
+      estado: 'INACTIVO',
+    }),
   ]
 }

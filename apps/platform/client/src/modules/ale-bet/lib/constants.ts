@@ -1,6 +1,7 @@
-export const UNIDADES_POR_CAJA = 15
-export const MAX_SUELTOS = UNIDADES_POR_CAJA - 1
+export function calcularUnidades(cajas: number, sueltos: number, unidadesPorCaja: number): number {
+  return cajas * unidadesPorCaja + sueltos
+}
 
-export function calcularUnidades(cajas: number, sueltos: number): number {
-  return cajas * UNIDADES_POR_CAJA + sueltos
+export function maxSueltos(unidadesPorCaja: number): number {
+  return unidadesPorCaja - 1
 }

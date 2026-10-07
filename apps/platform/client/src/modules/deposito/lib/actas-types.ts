@@ -1,5 +1,5 @@
 export type EstadoActa = 'pendiente' | 'parcial' | 'completada'
-export type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type Categoria = 'droga' | 'estuche' | 'etiqueta' | 'frasco' | 'material_empaque'
 export type CondicionEmbalaje = 'bueno' | 'regular' | 'malo'
 
 export type Mercado =
@@ -9,6 +9,7 @@ export type Mercado =
   | 'ecuador'
   | 'bolivia'
   | 'paraguay'
+  | 'VENEZUELA'
   | 'no_exportable'
 
 export interface ActaItem {
@@ -29,10 +30,13 @@ export interface ActaItem {
 }
 
 export interface ActaItemSummary {
+  id: string
   lote: string
+  categoria: Categoria
   productoNombre: string
   cantidadIngresada: number
   cantidadDistribuida: number
+  mercado: Mercado | null
   temperaturaTransporte: string | null
   condicionEmbalaje: CondicionEmbalaje | null
   observacionesCalidad: string | null

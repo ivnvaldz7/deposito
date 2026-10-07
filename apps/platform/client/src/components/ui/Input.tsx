@@ -30,7 +30,7 @@ export function Input({
       {label && (
         <label
           htmlFor={inputId}
-          className="font-heading text-sm font-semibold text-on-surface-variant"
+          className="text-sm font-semibold text-on-surface-variant"
         >
           {label}
         </label>

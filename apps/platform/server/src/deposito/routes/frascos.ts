@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -24,11 +24,17 @@ const editarFrascoSchema = z
   )
 
 // GET /api/frascos
-router.get('/', authenticate, async (_req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, requirePermission('deposito', 'frascos.read'), async (_req: Request, res: Response): Promise<void> => {
   try {
-    const frascos = await prisma.inventarioFrasco.findMany({
-      orderBy: { articulo: 'asc' },
-    })
+    const [productos, inventario] = await Promise.all([
+      prisma.depositoProducto.findMany({ where: { categoria: 'frasco', activo: true }, orderBy: { nombreCompleto: 'asc' } }),
+      prisma.inventarioFrasco.findMany({ orderBy: { articulo: 'asc' } }),
+    ])
+    const byProduct = new Map(inventario.filter((row) => row.productoId).map((row) => [row.productoId!, row]))
+    const frascos = productos.map((producto) => byProduct.get(producto.id) ?? ({
+      id: producto.id, productoId: producto.id, articulo: producto.nombreCompleto,
+      unidadesPorCaja: producto.presentacion ?? 1, cantidadCajas: 0, total: 0, updatedAt: producto.updatedAt,
+    }))
     res.json(frascos)
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
@@ -39,7 +45,7 @@ router.get('/', authenticate, async (_req: Request, res: Response): Promise<void
 router.post(
   '/',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'frascos.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const result = crearFrascoSchema.safeParse(req.body)
     if (!result.success) {
@@ -50,7 +56,7 @@ router.post(
     const { articulo, unidadesPorCaja, cantidadCajas } = result.data
 
     try {
-      const existing = await prisma.inventarioFrasco.findUnique({ where: { articulo } })
+      const existing = await prisma.inventarioFrasco.findFirst({ where: { articulo } })
       if (existing) {
         res.status(409).json({ message: 'Ya existe ese artículo' })
         return
@@ -75,7 +81,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'frascos.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
@@ -102,15 +108,21 @@ router.put(
       }
 
       const newUnidades = unidadesPorCaja ?? existing.unidadesPorCaja
-      const newCajas = cantidadCajas ?? existing.cantidadCajas
+      const restoAnterior = existing.total % newUnidades
+      const newCajas = cantidadCajas ?? (unidadesPorCaja !== undefined
+        ? Math.floor(existing.total / newUnidades)
+        : existing.cantidadCajas)
+      const newTotal = cantidadCajas !== undefined
+        ? newUnidades * newCajas + restoAnterior
+        : existing.total
 
       const frasco = await prisma.inventarioFrasco.update({
         where: { id },
         data: {
           ...(articulo !== undefined ? { articulo } : {}),
           ...(unidadesPorCaja !== undefined ? { unidadesPorCaja } : {}),
-          ...(cantidadCajas !== undefined ? { cantidadCajas } : {}),
-          total: newUnidades * newCajas,
+          ...(cantidadCajas !== undefined || unidadesPorCaja !== undefined ? { cantidadCajas: newCajas } : {}),
+          total: newTotal,
         },
       })
       res.json(frasco)
@@ -124,7 +136,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'frascos.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
     try {

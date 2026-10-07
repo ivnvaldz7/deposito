@@ -1,7 +1,5 @@
 export {
   useDrogas,
-  useCreateDroga,
-  useDeleteDroga,
   drogasKeys,
 } from './use-drogas'
 export type { DrogaRecord } from './use-drogas'
@@ -34,6 +32,13 @@ export {
 export type { Frasco } from './use-frascos'
 
 export {
+  useMaterialesEmpaque,
+  useUpdateMaterialEmpaque,
+  materialesEmpaqueKeys,
+} from './use-materiales-empaque'
+export type { MaterialEmpaque } from './use-materiales-empaque'
+
+export {
   useActas,
   useActa,
   useCreateActa,
@@ -45,9 +50,6 @@ export {
 
 export {
   useUsuarios,
-  useCreateUsuario,
-  useUpdateUsuarioRole,
-  useDeleteUsuario,
   usuariosKeys,
 } from './use-usuarios'
 export type { DepositoUser } from './use-usuarios'
@@ -57,8 +59,6 @@ export {
   useCreateOrden,
   useAprobarOrden,
   useRechazarOrden,
-  useEjecutarOrden,
-  useCompletarOrden,
   ordenesKeys,
 } from './use-ordenes'
 export type { OrdenProduccion } from './use-ordenes'
@@ -84,6 +84,27 @@ export {
   metricasKeys,
 } from './use-metricas'
 export type { MetricasData } from './use-metricas'
+
+export {
+  useProductos,
+  useCreateProducto,
+  useUpdateProducto,
+  useDeleteProducto,
+  useActivarProducto,
+  useReactivarProducto,
+  useDesactivarProducto,
+  useImportDryRun,
+  useImportConfirmar,
+  productosKeys,
+} from './use-productos'
+export type {
+  Producto,
+  ProductoFormData,
+  EstadoProducto,
+  CategoriaProducto,
+  ImportDryRunResult,
+  ImportConfirmResult,
+} from './use-productos'
 
 export {
   useDashboard,

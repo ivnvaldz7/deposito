@@ -1,176 +1,148 @@
-import { Router, Request, Response } from 'express'
+import { Request, Response, Router } from 'express'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
+import { aggregateDrugCatalog } from '../services/droga-inventory-service'
 
 const router = Router()
 
-// ─── Schemas ──────────────────────────────────────────────────────────────────
-
-const crearDrogaSchema = z.object({
-  nombre: z.string().min(2).max(100),
-  lote: z.string().min(1).max(50).optional(),
-  vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)').optional(),
-  cantidad: z.number().int().min(0).default(0),
+const ajustarCantidadSchema = z.object({
+  cantidad: z.number().finite().min(0, 'La cantidad no puede ser negativa'),
+  motivo: z.string().trim().min(3, 'Indicá el motivo del ajuste').max(500),
 })
 
-const editarDrogaSchema = z
-  .object({
-    nombre: z.string().min(2).max(100).optional(),
-    lote: z.string().min(1).max(50).optional().nullable(),
-    vencimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-    cantidad: z.number().int().min(0).optional(),
-  })
-  .refine(
-    (d) =>
-      d.nombre !== undefined ||
-      d.lote !== undefined ||
-      d.vencimiento !== undefined ||
-      d.cantidad !== undefined,
-    { message: 'Al menos un campo requerido' }
-  )
-
-// ─── GET /api/drogas — listar (con filtro opcional por nombre) ─────────────────
-
-router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const nombreFilter = typeof req.query['nombre'] === 'string' ? req.query['nombre'] : undefined
-
+router.get('/', authenticate, requirePermission('deposito', 'drogas.read'), async (req: Request, res: Response): Promise<void> => {
+  const nombre = typeof req.query['nombre'] === 'string' ? req.query['nombre'].trim() : ''
+  const orderByExpiry = req.query['orden'] === 'proximo-vencimiento'
   try {
-    const drogas = await prisma.inventarioDroga.findMany({
-      where: nombreFilter ? { nombre: nombreFilter } : undefined,
-      orderBy: [{ nombre: 'asc' }, { vencimiento: 'asc' }],
-    })
-    res.json(drogas)
-  } catch {
-    res.status(500).json({ message: 'Error interno del servidor' })
-  }
-})
-
-// ─── GET /api/drogas/por-vencer?dias=30 ───────────────────────────────────────
-
-router.get('/por-vencer', authenticate, async (req: Request, res: Response): Promise<void> => {
-  const dias = typeof req.query['dias'] === 'string' ? parseInt(req.query['dias'], 10) : 30
-  const validDias = isNaN(dias) || dias <= 0 ? 30 : Math.min(dias, 365)
-
-  const limitDate = new Date()
-  limitDate.setDate(limitDate.getDate() + validDias)
-  limitDate.setUTCHours(23, 59, 59, 999)
-
-  try {
-    const drogas = await prisma.inventarioDroga.findMany({
+    const products = await prisma.depositoProducto.findMany({
       where: {
-        vencimiento: { lte: limitDate },
-        cantidad: { gt: 0 },
+        categoria: 'droga',
+        activo: true,
+        ...(nombre ? { nombreCompleto: { contains: nombre, mode: 'insensitive' } } : {}),
       },
-      orderBy: { vencimiento: 'asc' },
+      select: {
+        id: true,
+        codigo: true,
+        nombreCompleto: true,
+        stockMinimo: true,
+        inventarioDrogas: {
+          select: { id: true, lote: true, vencimiento: true, cantidad: true, createdAt: true },
+          orderBy: [{ vencimiento: { sort: 'asc', nulls: 'last' } }, { id: 'asc' }],
+        },
+      },
+      orderBy: { nombreCompleto: 'asc' },
     })
-    res.json(drogas)
+    const result = aggregateDrugCatalog(products)
+    if (orderByExpiry) {
+      result.sort((left, right) => {
+        const leftDate = left.proximoVencimiento?.getTime() ?? Number.POSITIVE_INFINITY
+        const rightDate = right.proximoVencimiento?.getTime() ?? Number.POSITIVE_INFINITY
+        return leftDate - rightDate || left.nombre.localeCompare(right.nombre)
+      })
+    }
+    res.json(result)
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
   }
 })
 
-// ─── POST /api/drogas — crear nueva (encargado) ───────────────────────────────
-
-router.post(
-  '/',
-  authenticate,
-  requireRole('encargado'),
-  async (req: Request, res: Response): Promise<void> => {
-    const result = crearDrogaSchema.safeParse(req.body)
-    if (!result.success) {
-      res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() })
-      return
-    }
-
-    const { nombre, lote, vencimiento, cantidad } = result.data
-    const loteValue = lote ?? null
-    const vencimientoValue = vencimiento ? new Date(vencimiento + 'T00:00:00.000Z') : null
-
-    try {
-      // For null lote: enforce app-level uniqueness (PG unique doesn't catch NULL+NULL)
-      if (!loteValue) {
-        const existing = await prisma.inventarioDroga.findFirst({
-          where: { nombre, lote: null },
-        })
-        if (existing) {
-          res.status(409).json({ message: 'Ya existe una droga con ese nombre sin lote específico' })
-          return
-        }
-      }
-
-      const droga = await prisma.inventarioDroga.create({
-        data: { nombre, lote: loteValue, vencimiento: vencimientoValue, cantidad },
-      })
-      res.status(201).json(droga)
-    } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: string }).code === 'P2002'
-      ) {
-        res.status(409).json({ message: `Ya existe una droga "${nombre}" con lote "${loteValue}"` })
-        return
-      }
-      res.status(500).json({ message: 'Error interno del servidor' })
-    }
+router.get('/por-vencer', authenticate, requirePermission('deposito', 'drogas.read.por_vencer'), async (req: Request, res: Response): Promise<void> => {
+  const parsedDays = typeof req.query['dias'] === 'string' ? Number.parseInt(req.query['dias'], 10) : 30
+  const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 30
+  const limit = new Date()
+  limit.setUTCDate(limit.getUTCDate() + days)
+  limit.setUTCHours(23, 59, 59, 999)
+  try {
+    const products = await prisma.depositoProducto.findMany({
+      where: { categoria: 'droga', estado: 'ACTIVO' },
+      select: {
+        id: true,
+        nombreCompleto: true,
+        stockMinimo: true,
+        inventarioDrogas: {
+          where: { cantidad: { gt: 0 }, vencimiento: { lte: limit } },
+          select: { id: true, lote: true, vencimiento: true, cantidad: true, createdAt: true },
+          orderBy: [{ vencimiento: 'asc' }, { id: 'asc' }],
+        },
+      },
+      orderBy: { nombreCompleto: 'asc' },
+    })
+    res.json(aggregateDrugCatalog(products).filter((product) => product.lotes.length > 0))
+  } catch {
+    res.status(500).json({ message: 'Error interno del servidor' })
   }
-)
+})
 
-// ─── PUT /api/drogas/:id — editar registro (encargado) ────────────────────────
+// An adjustment never rewrites the original ingress. It changes only the
+// current lot balance and creates an auditable delta in Movimientos.
+router.patch('/:inventarioId/cantidad', authenticate, requirePermission('deposito', 'ingresos.create'), async (req: Request, res: Response): Promise<void> => {
+  const parsedId = z.string().uuid().safeParse(req.params.inventarioId)
+  const parsedBody = ajustarCantidadSchema.safeParse(req.body)
+  if (!parsedId.success || !parsedBody.success) {
+    res.status(400).json({ message: 'Datos de ajuste inválidos', errors: parsedBody.success ? undefined : parsedBody.error.flatten() })
+    return
+  }
 
-router.put(
-  '/:id',
-  authenticate,
-  requireRole('encargado'),
-  async (req: Request, res: Response): Promise<void> => {
-    const id = req.params['id'] as string
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const inventario = await tx.inventarioDroga.findUnique({
+        where: { id: parsedId.data },
+        select: { id: true, productoId: true, nombre: true, lote: true, cantidad: true },
+      })
+      if (!inventario) return null
 
-    const result = editarDrogaSchema.safeParse(req.body)
-    if (!result.success) {
-      res.status(400).json({ message: 'Datos inválidos', errors: result.error.flatten() })
-      return
-    }
+      const cantidadAnterior = inventario.cantidad
+      const cantidadNueva = parsedBody.data.cantidad
+      const diferencia = cantidadNueva - cantidadAnterior
+      if (diferencia === 0) return { inventario, diferencia: 0 }
 
-    const { nombre, lote, vencimiento, cantidad } = result.data
-
-    try {
-      const droga = await prisma.inventarioDroga.update({
-        where: { id },
+      const actualizado = await tx.inventarioDroga.update({
+        where: { id: inventario.id },
+        data: { cantidad: cantidadNueva },
+      })
+      await tx.movimiento.create({
         data: {
-          ...(nombre !== undefined ? { nombre } : {}),
-          ...(lote !== undefined ? { lote: lote ?? null } : {}),
-          ...(vencimiento !== undefined
-            ? { vencimiento: vencimiento ? new Date(vencimiento + 'T00:00:00.000Z') : null }
-            : {}),
-          ...(cantidad !== undefined ? { cantidad } : {}),
+          tipo: 'ajuste_manual',
+          categoria: 'droga',
+          productoNombre: inventario.nombre,
+          productoId: inventario.productoId,
+          lote: inventario.lote,
+          cantidad: diferencia,
+          referenciaId: inventario.id,
+          justificacion: parsedBody.data.motivo,
+          createdBy: req.depositoUser!.id,
         },
       })
-      res.json(droga)
-    } catch {
-      res.status(404).json({ message: 'Droga no encontrada' })
+      return { inventario: actualizado, diferencia }
+    })
+
+    if (!result) {
+      res.status(404).json({ message: 'Lote de droga no encontrado' })
+      return
     }
+    res.json(result)
+  } catch (error) {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? (error as { code?: unknown }).code
+      : undefined
+    console.error('[deposito:drogas] No se pudo ajustar la cantidad', {
+      inventarioId: parsedId.data,
+      actorId: req.depositoUser?.id,
+      code,
+      message: error instanceof Error ? error.message : String(error),
+    })
+    res.status(500).json({ message: 'No se pudo ajustar la cantidad' })
   }
-)
+})
 
-// ─── DELETE /api/drogas/:id — eliminar (encargado) ───────────────────────────
-
-router.delete(
-  '/:id',
-  authenticate,
-  requireRole('encargado'),
-  async (req: Request, res: Response): Promise<void> => {
-    const id = req.params['id'] as string
-
-    try {
-      await prisma.inventarioDroga.delete({ where: { id } })
-      res.status(204).send()
-    } catch {
-      res.status(404).json({ message: 'Droga no encontrada' })
-    }
-  }
-)
+// Kept as an explicit, authenticated compatibility boundary. Historic opening
+// data stays available from inventory and traceability reads, but cannot change.
+router.patch('/:productoId/apertura/:inventarioId', authenticate, requirePermission('deposito', 'ingresos.create'), async (_req: Request, res: Response): Promise<void> => {
+  res.status(410).json({
+    error: 'La edición de apertura está cerrada para la operación normal. Usá un ajuste de stock; el historial existente no se modifica.',
+  })
+})
 
 export default router

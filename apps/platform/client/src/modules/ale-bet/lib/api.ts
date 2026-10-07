@@ -1,16 +1,40 @@
-import { apiClient } from '@/lib/api-client'
+import { apiClient, type ApiRequestOptions } from '@/lib/api-client'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
+
+export type PedidoEstado = 'BORRADOR' | 'APROBADO' | 'PENDIENTE_PRODUCCION' | 'PENDIENTE_PARCIAL' | 'EN_ARMADO' | 'PREPARADO' | 'DESPACHADO' | 'CANCELADO'
+export type PedidoOrigen = 'MANUAL' | 'AUTOMATION'
+export type EstadoCliente = 'PENDIENTE_CLIENTE' | 'VALIDADO'
+export type EstadoRemito = 'VIGENTE' | 'INVALIDADO'
+export type EstadoReserva = 'ACTIVA' | 'LIBERADA' | 'CONSUMIDA'
 
 export interface Producto {
   id: string
   nombre: string
   sku: string
-  stockMinimo: number
+  stockMinimo: number | null
+  unidadesPorCaja: number
   activo: boolean
   stock: number
+  fisico: number
+  reservado: number
+  disponible: number
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
+  stockDisponiblePedido?: number
   stockBajo: boolean
   lotes?: Lote[]
+}
+
+export interface ProductoSearchResult {
+  id: string
+  nombre: string
+  sku: string
+  unidadesPorCaja: number
+  fisico: number
+  reservado: number
+  disponible: number
 }
 
 export interface Lote {
@@ -18,27 +42,174 @@ export interface Lote {
   numero: string
   cajas: number
   sueltos: number
-  fechaProduccion: string
-  fechaVencimiento: string
+  fechaProduccion: string | null
+  fechaVencimiento: string | null
   activo: boolean
-  unidades: number
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
+}
+
+export interface LoteHistorial extends Lote {
+  movimientos: MovimientoStock[]
 }
 
 export interface Cliente {
   id: string
   nombre: string
   contacto: string | null
+  referencia: string | null
   direccion: string | null
+  localidad: string | null
+  provincia: string | null
+  cuit: string | null
+  condicionIva: string | null
+  condicionVenta: string | null
+  transportistaPredeterminadoId?: string | null
+  transportistaPredeterminado?: Pick<Transportista, 'id' | 'nombre' | 'direccion'> | null
+  estado: EstadoCliente
   activo: boolean
+  createdAt: string
+  updatedAt: string
 }
+
+export interface AutomationAlias {
+  id: string
+  alias: string
+  aliasNormalized: string
+  createdAt: string
+  producto?: { id: string; nombre: string }
+  cliente?: { id: string; nombre: string }
+}
+
+export interface AutomationAliases {
+  productAliases: AutomationAlias[]
+  clientAliases: AutomationAlias[]
+}
+
+export interface ReservaStock {
+  id: string
+  pedidoId: string
+  itemPedidoId: string | null
+  loteId: string
+  ubicacionId?: string
+  cantidad: number
+  estado: EstadoReserva
+  createdAt: string
+  releasedAt: string | null
+  consumedAt: string | null
+}
+
+export interface PedidoItem {
+  id: string
+  productoId: string
+  cantidad: number
+  cantidadEntregada: number
+  completado: boolean
+  producto: { id: string; nombre: string; sku: string; unidadesPorCaja: number }
+  reservas?: ReservaStock[]
+}
+
+export interface PedidoAuditoria {
+  id: string
+  pedidoId: string
+  actorId: string
+  accion: string
+  motivo: string | null
+  anterior: unknown
+  nuevo: unknown
+  createdAt: string
+}
+
+export interface Pedido {
+  id: string
+  numero: string
+  clienteId: string
+  vendedorId: string | null
+  armadorId: string | null
+  origen: PedidoOrigen
+  esRemitoManual?: boolean
+  descuentoPorRemito?: boolean
+  estado: PedidoEstado
+  version: number
+  cancelacionSolicitadaAt: string | null
+  cancelacionSolicitadaPor: string | null
+  motivoCancelacion: string | null
+  aprobadoAt: string | null
+  preparadoAt: string | null
+  despachadoAt: string | null
+  canceladoAt: string | null
+  createdAt: string
+  updatedAt: string
+  cliente: Cliente
+  items: PedidoItem[]
+  remitos?: Remito[]
+  reservas?: ReservaStock[]
+  auditorias?: PedidoAuditoria[]
+  /** True only when the order already produced its stock-exit movement. */
+  stockDescontado?: boolean
+  /** Present in list responses only for UI display; the server does not include it in GET /pedidos. */
+  vendedorNombre?: string
+  armadorNombre?: string | null
+}
+
+export interface Transportista {
+  id: string
+  nombre: string
+  direccion: string
+  activo: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RemitoItemSnapshot {
+  productoId: string
+  nombre: string
+  cantidad: number
+}
+
+export interface Remito {
+  id: string
+  pedidoId: string
+  numero: string
+  fecha: string
+  transportistaId: string | null
+  transporteNombre: string
+  transporteDireccion: string
+  clienteSnapshot: Record<string, unknown>
+  transporteSnapshot: Record<string, unknown>
+  itemsSnapshot: RemitoItemSnapshot[]
+  estado: EstadoRemito
+  invalidadoAt: string | null
+  invalidadoPor: string | null
+  motivoInvalidacion: string | null
+  createdBy: string
+  descuentoAprobadoAt?: string | null
+  descuentoAprobadoPor?: string | null
+}
+
+export type CancelarPedidoResponse =
+  | { discarded: true; requested: false; pedidoId: string }
+  | { discarded?: false; requested: boolean; pedido: Pedido }
+
+// ─── Legacy types (dashboard/stock/historial remain misaligned on the server) ─
 
 export interface MovimientoStock {
   id: string
   productoId: string
   cantidad: number
-  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'AJUSTE'
+  tipo: 'ENTRADA_MANUAL' | 'SALIDA_PEDIDO' | 'DEVOLUCION_PEDIDO' | 'AJUSTE' | 'SALDO_APERTURA' | 'TRANSFERENCIA_INTERNA'
   referencia: string | null
   usuarioId: string
+  loteId?: string | null
+  origenUbicacionId?: string | null
+  destinoUbicacionId?: string | null
+  origenUbicacion?: { codigo: string; nombre: string } | null
+  destinoUbicacion?: { codigo: string; nombre: string } | null
+  motivo?: string | null
+  usuarioNombre?: string
+  motivoVisible?: string | null
+  saldoPosterior?: number | null
   createdAt: string
 }
 
@@ -47,33 +218,34 @@ export interface StockOverview {
   movimientos: MovimientoStock[]
 }
 
-export interface PedidoItem {
-  id: string
-  productoId: string
-  cantidad: number
-  completado: boolean
-  producto: { id: string; nombre: string; sku: string }
-}
-
-export interface Pedido {
-  id: string
-  numero: string
-  clienteId: string
-  vendedorId: string
-  armadorId: string | null
-  estado: 'PENDIENTE' | 'APROBADO' | 'EN_ARMADO' | 'COMPLETADO' | 'CANCELADO'
-  createdAt: string
-  updatedAt: string
-  cliente: Cliente
-  items: PedidoItem[]
-  vendedorNombre?: string
-  armadorNombre?: string | null
+export interface PedidoDisponibilidadStock {
+  status: 'DISPONIBLE' | 'DISPONIBLE_CON_TRANSFERENCIA' | 'INSUFICIENTE'
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
+  stockDisponiblePedido: number
+  allocations: Array<{ itemPedidoId: string; productoId: string; loteId: string; cantidad: number }>
+  lotes: Array<{
+    itemPedidoId: string
+    productoId: string
+    loteId: string
+    numero: string
+    fechaVencimiento: string | null
+    ubicacion: 'DEPOSITO' | 'ACONDICIONADO'
+    disponible: number
+    vencido: boolean
+  }>
+  transferencias: Array<{ productoId: string; loteId: string; origen: 'ACONDICIONADO'; destino: 'DEPOSITO'; cantidad: number }>
+  shortfall: number
+  fingerprint: string
 }
 
 export interface DashboardPedidoReciente {
   id: string
   numero: string
-  estado: Pedido['estado']
+  /** Server still returns legacy states here; keep tolerant. */
+  estado: string
+  origen?: PedidoOrigen
   clienteNombre: string
   vendedorNombre: string
   armadorNombre: string | null
@@ -84,7 +256,11 @@ export interface DashboardPedidoReciente {
 export interface DashboardOverview {
   stockCritico: number
   pedidosHoy: number
+  pendientesRemito: number
   enArmado: number
+  pendientesTomar: number
+  preparados: number
+  esperandoProduccion: number
   totalProductos: number
   pedidosRecientes: DashboardPedidoReciente[]
 }
@@ -97,7 +273,8 @@ export interface HistorialPedidoItem {
 export interface HistorialPedido {
   id: string
   numero: string
-  estado: Pedido['estado']
+  /** Server still returns legacy states here; keep tolerant. */
+  estado: string
   createdAt: string
   clienteNombre: string
   vendedorNombre: string
@@ -105,65 +282,319 @@ export interface HistorialPedido {
   items: HistorialPedidoItem[]
 }
 
+// ─── Facturación / ventas report types ───────────────────────────────────────
+// Mirror the server contract in apps/platform/server/src/routes/ale-bet/facturacion.ts
+// verbatim. The `modo` field discriminates monthly vs annual reports.
+
+export interface ProductoAgregado {
+  productoId: string
+  nombre: string
+  sku: string
+  unidadesPorCaja: number
+  cajas: number
+  sueltos: number
+  unidades: number
+}
+
+export interface ResumenMes {
+  month: number
+  pedidosDespachados: number
+  productosDistintos: number
+  unidadesTotales: number
+  productos: ProductoAgregado[]
+}
+
+export interface ReporteVentasMensual {
+  modo: 'mensual'
+  clienteId: string
+  year: number
+  month: number
+  pedidosDespachados: number
+  productosDistintos: number
+  unidadesTotales: number
+  productos: ProductoAgregado[]
+}
+
+export interface ReporteVentasAnual {
+  modo: 'anual'
+  clienteId: string
+  year: number
+  pedidosDespachados: number
+  productosDistintos: number
+  unidadesTotales: number
+  productos: ProductoAgregado[]
+  meses: ResumenMes[]
+}
+
+export type ReporteVentas = ReporteVentasMensual | ReporteVentasAnual
+
+// ─── Input types ─────────────────────────────────────────────────────────────
+
+export interface PedidoItemInput {
+  productoId: string
+  cantidad: number
+}
+
+export interface CreatePedidoInput {
+  clienteId: string
+  items: PedidoItemInput[]
+}
+
+export interface UpdatePedidoInput {
+  clienteId: string
+  items: PedidoItemInput[]
+  expectedVersion: number
+}
+
+export interface ClienteUpdateInput {
+  nombre?: string
+  contacto?: string | null
+  referencia?: string | null
+  direccion?: string | null
+  localidad?: string | null
+  provincia?: string | null
+  cuit?: string | null
+  condicionIva?: string | null
+  condicionVenta?: string | null
+  transportistaPredeterminadoId?: string | null
+  activo?: boolean
+  estado?: EstadoCliente
+}
+
+export interface TransportistaInput {
+  nombre: string
+  direccion: string
+  activo?: boolean
+}
+
+export interface TransportistaUpdateInput {
+  nombre?: string
+  direccion?: string
+  activo?: boolean
+}
+
+export interface EmitirRemitoInput {
+  expectedVersion: number
+  items?: PedidoItemInput[]
+  transportistaId?: string
+  transporteOcasional?: { nombre: string; direccion: string }
+}
+
+export interface AnularRemitoInput {
+  motivo: string
+}
+
+export interface RemitoConfiguration {
+  puntoVenta: string
+  proximoCorrelativo: number | null
+  numeracionInicializadaAt: string | null
+  cai: string
+  caiVencimiento: string
+  caiVencido: boolean
+}
+
+export interface CrearRemitoManualInput {
+  clienteId?: string
+  clienteNuevo?: {
+    nombre: string
+    contacto?: string
+    referencia?: string
+    direccion?: string
+    localidad?: string
+    provincia?: string
+    cuit?: string
+    condicionIva?: string
+    condicionVenta?: string
+    transportistaPredeterminadoId?: string | null
+  }
+  items: PedidoItemInput[]
+  transportistaId?: string
+  transporteOcasional?: { nombre: string; direccion: string }
+}
+
+export interface CrearRemitoManualResponse {
+  pedido: Pedido
+  remito: Remito
+}
+
 // ─── API calls ───────────────────────────────────────────────────────────────
 
 const BASE = '/ale-bet'
 
+interface MutationOptions {
+  idempotencyKey?: string
+}
+
+function mutationOptions(options?: MutationOptions): ApiRequestOptions | undefined {
+  return options?.idempotencyKey ? { headers: { 'Idempotency-Key': options.idempotencyKey } } : undefined
+}
+
+export interface LoteAdminStock {
+  id: string
+  numero: string
+  fechaProduccion: string | null
+  fechaVencimiento: string | null
+  activo: boolean
+  stockTotal: number
+  stockDeposito: number
+  stockAcondicionado: number
+}
+
+export interface ProductoAdminStock {
+  producto: { id: string; nombre: string }
+  lotes: LoteAdminStock[]
+  ubicaciones: Array<{ id: string; codigo: string; nombre: string }>
+}
+
+export interface ProductoTransferRule {
+  id: string
+  label: string
+  tipo: 'SAME_PRODUCT' | 'PRESENTATION'
+  targetProduct: { id: string; nombre: string }
+}
+
 export const aleBetApi = {
-  // Dashboard
+  // Dashboard (legacy, still unaligned on the server)
   dashboard: () => apiClient.get<DashboardOverview>(`${BASE}/dashboard`),
 
   // Productos
   productos: {
     list: () => apiClient.get<Producto[]>(`${BASE}/productos`),
-    create: (data: { nombre: string; sku: string; stockMinimo?: number }) =>
+    search: (q: string) => apiClient.get<ProductoSearchResult[]>(`${BASE}/productos/search?q=${encodeURIComponent(q)}`),
+    create: (data: { nombre: string; sku: string; stockMinimo?: number; unidadesPorCaja: number }) =>
       apiClient.post<Producto>(`${BASE}/productos`, data),
-    update: (id: string, data: { nombre?: string; stockMinimo?: number; activo?: boolean }) =>
+    update: (id: string, data: { nombre?: string; stockMinimo?: number | null; activo?: boolean; unidadesPorCaja?: number }) =>
       apiClient.put<Producto>(`${BASE}/productos/${id}`, data),
     delete: (id: string) => apiClient.del<void>(`${BASE}/productos/${id}`),
     lotes: {
       list: (id: string) => apiClient.get<Lote[]>(`${BASE}/productos/${id}/lotes`),
       create: (id: string, data: { numero?: string; cajas: number; sueltos: number; fechaProduccion: string }) =>
         apiClient.post<Lote>(`${BASE}/productos/${id}/lotes`, data),
-      update: (id: string, loteId: string, data: { cajas?: number; sueltos?: number; activo?: boolean }) =>
+      update: (id: string, loteId: string, data: { cajas?: number; sueltos?: number; activo?: boolean; fechaVencimiento?: string | null }) =>
         apiClient.put<Lote>(`${BASE}/productos/${id}/lotes/${loteId}`, data),
+    },
+    stock: {
+      get: (id: string, options?: { includeArchived?: boolean; includeZero?: boolean }) => {
+        const params = new URLSearchParams()
+        if (options?.includeArchived) params.set('includeArchived', 'true')
+        if (options?.includeZero) params.set('includeZero', 'true')
+        const query = params.toString()
+        return apiClient.get<ProductoAdminStock>(`${BASE}/productos/${id}/stock${query ? `?${query}` : ''}`)
+      },
+      lotes: {
+        create: (id: string, data: { numero: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null }, options?: MutationOptions) =>
+          apiClient.post<{ id: string; numero: string; fechaProduccion: string | null; fechaVencimiento: string | null; activo: boolean; stockTotal: number; stockDeposito: number; stockAcondicionado: number }>(`${BASE}/productos/${id}/stock/lotes`, data, undefined, mutationOptions(options)),
+        ajuste: (id: string, loteId: string, data: { ubicacionId: string; cantidadFinal: number; motivo?: string }, options?: MutationOptions) =>
+          apiClient.patch<{ loteId: string; ubicacionId: string; anterior: number; nuevo: number; delta: number; movimientoId: string | null }>(`${BASE}/productos/${id}/stock/lotes/${loteId}/ajuste`, data, undefined, mutationOptions(options)),
+        ingreso: (id: string, loteId: string, data: { ubicacionId: string; cantidad: number; motivo?: string; fechaEfectiva?: string }, options?: MutationOptions) =>
+          apiClient.patch<{ loteId: string; ubicacionId: string; anterior: number; nuevo: number; delta: number; movimientoId: string | null }>(`${BASE}/productos/${id}/stock/lotes/${loteId}/ingreso`, data, undefined, mutationOptions(options)),
+      },
     },
   },
 
   // Clientes
   clientes: {
     list: () => apiClient.get<Cliente[]>(`${BASE}/clientes`),
-    create: (data: { nombre: string; contacto?: string; direccion?: string }) =>
-      apiClient.post<Cliente>(`${BASE}/clientes`, data),
-    update: (id: string, data: { nombre?: string; contacto?: string | null; direccion?: string | null; activo?: boolean }) =>
-      apiClient.put<Cliente>(`${BASE}/clientes/${id}`, data),
+    create: (data: { nombre: string; contacto?: string; referencia?: string; direccion?: string; localidad?: string; provincia?: string; cuit?: string; condicionIva?: string; condicionVenta?: string; transportistaPredeterminadoId?: string | null; activo?: boolean }, options?: MutationOptions) =>
+      apiClient.post<Cliente>(`${BASE}/clientes`, data, undefined, mutationOptions(options)),
+    update: (id: string, data: ClienteUpdateInput, options?: MutationOptions) =>
+      apiClient.put<Cliente>(`${BASE}/clientes/${id}`, data, undefined, mutationOptions(options)),
   },
 
   // Pedidos
   pedidos: {
-    list: (params?: { estado?: string; vendedorId?: string }) => {
+    list: (params?: { estado?: PedidoEstado; vendedorId?: string; bandeja?: 'FACTURACION' }) => {
       const searchParams = new URLSearchParams()
       if (params?.estado) searchParams.set('estado', params.estado)
       if (params?.vendedorId) searchParams.set('vendedorId', params.vendedorId)
+      if (params?.bandeja) searchParams.set('bandeja', params.bandeja)
       const qs = searchParams.toString()
       return apiClient.get<Pedido[]>(`${BASE}/pedidos${qs ? `?${qs}` : ''}`)
     },
-    create: (data: { clienteId: string; items: Array<{ productoId: string; cantidad: number }> }) =>
-      apiClient.post<Pedido>(`${BASE}/pedidos`, data),
-    aprobar: (id: string) => apiClient.put<Pedido>(`${BASE}/pedidos/${id}/aprobar`),
-    tomar: (id: string) => apiClient.put<Pedido>(`${BASE}/pedidos/${id}/tomar`),
-    completarItem: (pedidoId: string, itemId: string) =>
-      apiClient.put<Pedido>(`${BASE}/pedidos/${pedidoId}/items/${itemId}/completar`),
-    cancelar: (id: string) => apiClient.put<Pedido>(`${BASE}/pedidos/${id}/cancelar`),
+    get: (id: string) => apiClient.get<Pedido>(`${BASE}/pedidos/${id}`),
+    create: (data: CreatePedidoInput, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos`, data, undefined, mutationOptions(options)),
+    update: (id: string, data: UpdatePedidoInput, options?: MutationOptions) =>
+      apiClient.patch<Pedido>(`${BASE}/pedidos/${id}`, data, undefined, mutationOptions(options)),
+    ampliar: (id: string, data: { expectedVersion: number; items: PedidoItemInput[] }, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos/${id}/ampliaciones`, data, undefined, mutationOptions(options)),
+    disponibilidadStock: (id: string) => apiClient.get<PedidoDisponibilidadStock>(`${BASE}/pedidos/${id}/disponibilidad-stock`),
+    aprobar: (id: string, data: { expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias']; selecciones: PedidoDisponibilidadStock['allocations'] }, options?: MutationOptions) =>
+      apiClient.put<Pedido>(`${BASE}/pedidos/${id}/aprobar`, data, undefined, mutationOptions(options)),
+    tomar: (id: string, data: { expectedVersion: number }, options?: MutationOptions) =>
+      apiClient.put<Pedido>(`${BASE}/pedidos/${id}/tomar`, data, undefined, mutationOptions(options)),
+    completarItem: (pedidoId: string, itemId: string, data: { expectedVersion: number }, options?: MutationOptions) =>
+      apiClient.put<Pedido>(`${BASE}/pedidos/${pedidoId}/items/${itemId}/completar`, data, undefined, mutationOptions(options)),
+    preparar: (id: string, data: { expectedVersion: number }, options?: MutationOptions) =>
+      apiClient.put<Pedido>(`${BASE}/pedidos/${id}/preparar`, data, undefined, mutationOptions(options)),
+    cancelar: (id: string, data: { expectedVersion: number; motivo?: string }, options?: MutationOptions) =>
+      apiClient.put<CancelarPedidoResponse>(`${BASE}/pedidos/${id}/cancelar`, data, undefined, mutationOptions(options)),
+    confirmarCancelacion: (id: string, data: { expectedVersion: number; motivo: string }, options?: MutationOptions) =>
+      apiClient.put<Pedido>(`${BASE}/pedidos/${id}/confirmar-cancelacion`, data, undefined, mutationOptions(options)),
+    despachar: (id: string, data: { expectedVersion: number }, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos/${id}/despachar`, data, undefined, mutationOptions(options)),
+    devolver: (id: string, data: { expectedVersion: number; items: PedidoItemInput[]; motivo: string }, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos/${id}/devoluciones`, data, undefined, mutationOptions(options)),
+  },
+
+  // Automation
+  automation: {
+    createDraft: (data: { originalText: string }) => 
+      apiClient.post<any>(`${BASE}/automation/drafts`, data),
+    getDraft: (id: string) => 
+      apiClient.get<any>(`${BASE}/automation/drafts/${id}`),
+    updateDraft: (id: string, data: any) => 
+      apiClient.put<any>(`${BASE}/automation/drafts/${id}`, data),
+    confirmDraft: (id: string, data: { expectedVersion: number; selecciones?: PedidoDisponibilidadStock['allocations']; transferencias?: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
+      apiClient.post<any>(`${BASE}/automation/drafts/${id}/confirm`, data, undefined, mutationOptions(options)),
+    getAliases: () => apiClient.get<AutomationAliases>(`${BASE}/automation/aliases`),
+    deleteProductAlias: (id: string) => apiClient.del<void>(`${BASE}/automation/product-aliases/${id}`),
+    deleteClientAlias: (id: string) => apiClient.del<void>(`${BASE}/automation/client-aliases/${id}`),
+  },
+
+  // Transportistas
+  transportistas: {
+    list: () => apiClient.get<Transportista[]>(`${BASE}/transportistas`),
+    create: (data: TransportistaInput, options?: MutationOptions) =>
+      apiClient.post<Transportista>(`${BASE}/transportistas`, data, undefined, mutationOptions(options)),
+    update: (id: string, data: TransportistaUpdateInput, options?: MutationOptions) =>
+      apiClient.patch<Transportista>(`${BASE}/transportistas/${id}`, data, undefined, mutationOptions(options)),
+  },
+
+  // Remitos
+  remitos: {
+    emitir: (pedidoId: string, data: EmitirRemitoInput, options?: MutationOptions) =>
+      apiClient.post<Remito>(`${BASE}/pedidos/${pedidoId}/remitos`, data, undefined, mutationOptions(options)),
+    anular: (pedidoId: string, remitoId: string, data: AnularRemitoInput, options?: MutationOptions) =>
+      apiClient.put<Remito>(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/anular`, data, undefined, mutationOptions(options)),
+    pdf: (pedidoId: string) => apiClient.getBlob(`${BASE}/pedidos/${pedidoId}/remito.pdf`),
+    pdfPorId: (pedidoId: string, remitoId: string) => apiClient.getBlob(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/pdf`),
+    disponibilidadDescuento: (pedidoId: string, remitoId: string) => apiClient.get<PedidoDisponibilidadStock>(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/disponibilidad-stock`),
+    aprobarDescuento: (pedidoId: string, remitoId: string, data: { expectedVersion: number; selecciones: PedidoDisponibilidadStock['allocations']; transferencias: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
+      apiClient.post<Pedido>(`${BASE}/pedidos/${pedidoId}/remitos/${remitoId}/aprobar-descuento`, data, undefined, mutationOptions(options)),
+    configuracion: () => apiClient.get<RemitoConfiguration>(`${BASE}/remitos/configuracion`),
+    actualizarConfiguracion: (data: { proximoCorrelativo?: number; cai?: string; caiVencimiento?: string }) =>
+      apiClient.put<RemitoConfiguration>(`${BASE}/remitos/configuracion`, data),
+    manuales: {
+      list: () => apiClient.get<Pedido[]>(`${BASE}/remitos/manuales`),
+      create: (data: CrearRemitoManualInput, options?: MutationOptions) =>
+        apiClient.post<CrearRemitoManualResponse>(`${BASE}/remitos/manuales`, data, undefined, mutationOptions(options)),
+      aprobarDescuento: (pedidoId: string, data: { expectedVersion: number; selecciones: PedidoDisponibilidadStock['allocations']; transferencias: PedidoDisponibilidadStock['transferencias'] }, options?: MutationOptions) =>
+        apiClient.post<Pedido>(`${BASE}/remitos/manuales/${pedidoId}/aprobar-descuento`, data, undefined, mutationOptions(options)),
+    },
   },
 
   // Stock
   stock: {
     get: () => apiClient.get<StockOverview>(`${BASE}/stock`),
+    exportPdf: () => apiClient.getBlob(`${BASE}/stock/export.pdf`),
     movimientos: () => apiClient.get<MovimientoStock[]>(`${BASE}/stock/movimientos`),
+    transferRules: (productoId: string) => apiClient.get<{ rules: ProductoTransferRule[] }>(`${BASE}/stock/transfer-rules?productoId=${encodeURIComponent(productoId)}`),
+    transferir: (data: { productoId: string; loteId: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; destino: 'DEPOSITO' | 'ACONDICIONADO'; cantidad: number; transferRuleId?: string }, options?: MutationOptions) =>
+      apiClient.post<{ movimientoId: string }>(`${BASE}/stock/transferencias`, data, undefined, mutationOptions(options)),
   },
 
-  // Historial
+  // Historial (legacy)
   historial: {
     list: (params?: { desde?: string; hasta?: string; estado?: string; clienteId?: string; vendedorId?: string }) => {
       const searchParams = new URLSearchParams()
@@ -177,4 +608,24 @@ export const aleBetApi = {
     },
     exportDownload: () => apiClient.getBlob(`${BASE}/historial/export`),
   },
+
+  // Facturación
+  facturacion: {
+    ventas: (params: { clienteId: string; year: number; month?: number }) => {
+      const searchParams = new URLSearchParams({ clienteId: params.clienteId, year: String(params.year) })
+      // Month presence switches mode server-side: with month → mensual, without → anual.
+      if (params.month) searchParams.set('month', String(params.month))
+      return apiClient.get<ReporteVentas>(`${BASE}/facturacion/ventas?${searchParams}`)
+    },
+    /** Download the ventas report as an A4 PDF. Returns a Blob (application/pdf). */
+    ventasPdf: (params: { clienteId: string; year: number; month?: number }) => {
+      const searchParams = new URLSearchParams({ clienteId: params.clienteId, year: String(params.year) })
+      if (params.month) searchParams.set('month', String(params.month))
+      return apiClient.getBlob(`${BASE}/facturacion/ventas/pdf?${searchParams}`)
+    },
+  },
+}
+
+export async function getHistorialLotes(productoId: string): Promise<LoteHistorial[]> {
+  return apiClient.get<LoteHistorial[]>(`${BASE}/productos/${productoId}/lotes/historial`)
 }

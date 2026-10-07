@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../lib/api'
 import type { Acta, ActaItem, ActaListItem } from '../lib/actas-types'
+import { dashboardKeys } from './use-dashboard'
 
 export const actasKeys = {
   all: ['deposito', 'actas'] as const,
@@ -55,6 +56,7 @@ export function useDistribuirItem() {
     onSuccess: (_data, variables) => {
       qc.invalidateQueries({ queryKey: actasKeys.detail(variables.actaId) })
       qc.invalidateQueries({ queryKey: actasKeys.all })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
     },
   })
 }

@@ -1,0 +1,2816 @@
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Search, ChevronDown, Check, X, FileText, FlaskConical, TriangleAlert, Package, Printer, LogOut, ArrowLeft } from 'lucide-react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { ApiError } from '@/lib/api-client'
+import { toast } from '@/lib/toast'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { cn } from '@/lib/utils'
+
+import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
+import {
+  ESTADO_META,
+  canAccionesBarraArmador,
+  canAprobar,
+  canCancelarDirecto,
+  canConfirmarCancelacion,
+  canDespachar,
+  canEditarPedido,
+  canEmitirRemito,
+  canPreparar,
+  canRegistrarDevolucion,
+  canSolicitarCancelacion,
+  canTomar,
+  cantidadLinea,
+  calcularCajasSueltos,
+  esArmadorAsignado,
+  pedidoClientePendiente,
+} from '../lib/estados'
+import { roleHasPermission } from '@platform/core/permissions'
+import { aleBetApi, type Cliente, type Pedido, type PedidoItemInput, type PedidoDisponibilidadStock } from '../lib/api'
+import {
+  descargarRemitoPdf,
+  pedidosKeys,
+  useAnularRemito,
+  useAprobarDescuentoRemito,
+  useAmpliarPedidoConfirmado,
+  useAprobarPedido,
+  useAprobarDescuentoRemitoManual,
+  useCancelarPedido,
+  useClientes,
+  useCompletarItemPedido,
+  useConfirmarCancelacionPedido,
+  useCreateCliente,
+  useDespacharPedido,
+  useEmitirRemito,
+  usePedidoDetalle,
+  usePedidoDisponibilidad,
+  usePedidos,
+  usePrepararPedido,
+  useProductos,
+  useProductosSearch,
+  useRegistrarDevolucionPedido,
+  useActualizarRemitoConfiguracion,
+  useRemitoConfiguracion,
+  useTomarPedido,
+  useTransportistas,
+  useUpdatePedido,
+} from '../queries'
+import { BottomSheet } from '../components/BottomSheet'
+import { ArmadorActionBar } from '../components/ArmadorActionBar'
+import { ProductCard, type ProductoCardDatos } from '../components/ProductCard'
+import { QuantityStepper } from '../components/QuantityStepper'
+import { LotAllocationSelector } from '../components/LotAllocationSelector'
+
+
+interface CartLine {
+  cajas: number
+  sueltos: number
+}
+
+type Carrito = Record<string, CartLine>
+
+type ConfirmAccion = 'aprobar' | 'tomar' | 'cancelar' | 'guardar-aprobado' | 'preparar' | 'despachar'
+
+const ESTADOS_CON_REMITO = ['APROBADO', 'EN_ARMADO', 'PREPARADO']
+
+function newIdempotencyKey(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `idem-${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(t)
+  }, [value, delay])
+  return debounced
+}
+
+function formatFecha(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+function formatFechaHora(dateString: string): string {
+  return new Date(dateString).toLocaleDateString('es-AR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const porActualizadoDesc = (a: { updatedAt: string }, b: { updatedAt: string }) =>
+  new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+
+interface ConfirmDialogProps {
+  open: boolean
+  titulo: string
+  mensaje: React.ReactNode
+  accion: string
+  loading: boolean
+  onCancel: () => void
+  onConfirm: () => void
+}
+
+function ConfirmDialog({ open, titulo, mensaje, accion, loading, onCancel, onConfirm }: ConfirmDialogProps) {
+  if (!open) return null
+  return (
+    <div
+      data-testid="confirm-dialog"
+      // DESIGN-01: backdrop fades in; surface slides in slightly from below
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-backdrop-in bg-black/50"
+      onClick={onCancel}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={titulo}
+        className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container-low p-5 animate-dialog-in"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-[16px] font-bold text-on-surface">{titulo}</h2>
+        <div className="mt-2 font-body text-[13px] leading-relaxed text-on-surface-variant">{mensaje}</div>
+        <div className="mt-5 flex justify-end gap-3">
+          <Button variant="outline" onClick={onCancel} disabled={loading}>
+            Volver
+          </Button>
+          <Button onClick={onConfirm} loading={loading}>
+            {accion}
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ClienteOption({ cliente, onSelect }: { cliente: Cliente; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className="flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-surface-container-high p-4 text-left transition enabled:active:scale-[0.99]"
+    >
+      <div className="min-w-0">
+        <p className="truncate text-[16px] font-semibold text-on-surface">{cliente.nombre}</p>
+        <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">
+          {cliente.contacto ?? cliente.referencia ?? '—'}
+        </p>
+      </div>
+      {cliente.estado === 'PENDIENTE_CLIENTE' && <Badge variant="warning">Pendiente de validación</Badge>}
+    </button>
+  )
+}
+
+interface CambiarClienteSheetProps {
+  open: boolean
+  onClose: () => void
+  clientes: Cliente[]
+  recientes: Cliente[]
+  onSelect: (cliente: Cliente) => void
+}
+
+function CambiarClienteSheet({ open, onClose, clientes, recientes, onSelect }: CambiarClienteSheetProps) {
+  const [busqueda, setBusqueda] = useState('')
+  const [mostrarNuevo, setMostrarNuevo] = useState(false)
+  const [nombre, setNombre] = useState('')
+  const [contacto, setContacto] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [error, setError] = useState<string | null>(null)
+  const createCliente = useCreateCliente()
+
+  const filtrados = useMemo(() => {
+    const q = busqueda.trim().toLowerCase()
+    if (!q) return clientes
+    return clientes.filter((c) => `${c.nombre} ${c.contacto ?? ''} ${c.referencia ?? ''}`.toLowerCase().includes(q))
+  }, [clientes, busqueda])
+
+  const lista = useMemo(() => {
+    if (busqueda.trim() !== '') return filtrados
+    const recientesIds = new Set(recientes.map((c) => c.id))
+    return filtrados.filter((c) => !recientesIds.has(c.id))
+  }, [busqueda, filtrados, recientes])
+
+  function reset() {
+    setBusqueda('')
+    setMostrarNuevo(false)
+    setNombre('')
+    setContacto('')
+    setError(null)
+  }
+
+  async function crearCliente() {
+    const name = nombre.trim()
+    if (!name) {
+      setError('El nombre es obligatorio')
+      inputRef.current?.focus()
+      return
+    }
+    const cont = contacto.trim()
+    if (!cont) {
+      setError('Debe informar un contacto o referencia')
+      return
+    }
+    setError(null)
+    try {
+      const creado = await createCliente.mutateAsync({
+        nombre: name,
+        contacto: cont,
+      })
+      reset()
+      onSelect(creado)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al crear el cliente')
+    }
+  }
+
+  return (
+    <BottomSheet open={open} onClose={() => { reset(); onClose() }} title={mostrarNuevo ? "NUEVO CLIENTE" : "Cambiar cliente"} desktop="modal">
+      {mostrarNuevo ? (
+        <div className="space-y-5">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            Cargá lo mínimo. Facturación completará los datos fiscales.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="nuevo-cliente-nombre" className="font-body text-[12px] font-semibold text-on-surface">
+              Nombre del cliente *
+            </label>
+            <input
+              id="nuevo-cliente-nombre"
+              ref={inputRef}
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="Ej: Veterinaria Central"
+              className="w-full rounded-xl border border-white/10 bg-surface-container-high px-4 py-3 font-body text-[16px] text-on-surface focus:border-primary focus:outline-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="nuevo-cliente-contacto" className="font-body text-[12px] font-semibold text-on-surface">
+              Contacto o referencia *
+            </label>
+            <input
+              id="nuevo-cliente-contacto"
+              value={contacto}
+              onChange={(e) => setContacto(e.target.value)}
+              placeholder="Teléfono, mail o detalle…"
+              className="w-full rounded-xl border border-white/10 bg-surface-container-high px-4 py-3 font-body text-[16px] text-on-surface focus:border-primary focus:outline-none"
+            />
+          </div>
+          {error && (
+            <p role="alert" className="font-body text-[13px] font-medium text-error">
+              {error}
+            </p>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setMostrarNuevo(false)}
+              disabled={createCliente.isPending}
+              className="flex-1 rounded-full border border-white/10 px-4 py-3 font-body text-[14px] font-medium text-outline transition hover:bg-surface-variant hover:text-on-surface disabled:opacity-50"
+            >
+              Volver
+            </button>
+            <button
+              type="button"
+              onClick={() => void crearCliente()}
+              disabled={createCliente.isPending}
+              className="flex-[2] rounded-full bg-primary px-4 py-3 font-body text-[14px] font-bold text-on-primary transition hover:bg-primary/90 disabled:opacity-50"
+            >
+              {createCliente.isPending ? 'Creando...' : 'Crear cliente'}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <input
+            autoFocus
+            type="search"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            aria-label="Buscar cliente"
+            placeholder="Buscar por nombre, contacto o referencia"
+            className="input-field text-base"
+          />
+          {busqueda.trim() === '' && recientes.length > 0 && (
+            <section aria-label="Clientes recientes" className="space-y-2">
+              <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Recientes</h2>
+              {recientes.map((c) => (
+                <ClienteOption key={c.id} cliente={c} onSelect={() => onSelect(c)} />
+              ))}
+            </section>
+          )}
+          <section aria-label="Lista de clientes" className="space-y-2">
+            <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+              {busqueda.trim() === '' ? 'Todos los clientes' : 'Resultados'}
+            </h2>
+            {lista.length === 0 ? (
+              <p className="py-6 text-center font-body text-[13px] text-on-surface-variant">
+                Sin resultados para “{busqueda}”
+              </p>
+            ) : (
+              lista.map((c) => <ClienteOption key={c.id} cliente={c} onSelect={() => onSelect(c)} />)
+            )}
+          </section>
+          <button
+            type="button"
+            onClick={() => setMostrarNuevo(true)}
+            className="w-full rounded-xl border border-dashed border-primary/50 p-4 font-body text-[13px] font-semibold text-primary transition hover:bg-primary/10"
+          >
+            + Cliente nuevo
+          </button>
+        </div>
+      )}
+    </BottomSheet>
+  )
+}
+
+interface LineaDetalleProps {
+  productoId: string
+  nombre: string
+  sku: string
+  cajas: number
+  sueltos: number
+  unidades: number
+  unidadesPorCaja: number
+  disponible?: number
+  reservado?: number
+  completado: boolean
+  editable: boolean
+  completable: boolean
+  isFacturacion?: boolean
+  isArmador?: boolean
+  esperaProduccion?: boolean // BACKEND PENDIENTE
+  onChange?: (cajas: number, sueltos: number) => void
+  onEliminar?: () => void
+  onToggleCompletar?: () => void
+  onToggleEspera?: () => void // BACKEND PENDIENTE
+}
+
+function LineaDetalle({
+  productoId,
+  nombre,
+  sku,
+  cajas,
+  sueltos,
+  unidades,
+  unidadesPorCaja,
+  disponible,
+  reservado,
+  completado,
+  editable,
+  completable,
+  isFacturacion,
+  isArmador,
+  esperaProduccion,
+  onChange,
+  onEliminar,
+  onToggleCompletar,
+  onToggleEspera,
+}: LineaDetalleProps) {
+  const ceroUnidades = unidades === 0
+  const mostrarStock = !isFacturacion && !isArmador && (disponible !== undefined || reservado !== undefined)
+
+  if (isArmador) {
+    const isEspera = esperaProduccion
+    const isListo = completado
+
+    return (
+      <div
+        data-testid={`linea-${productoId}`}
+        className={cn(
+          'flex flex-col gap-4 py-5 px-4 lg:px-8 border-b border-white/5 last:border-0 transition-all duration-250',
+          isListo ? 'bg-success/5 border-success/20' : isEspera ? 'bg-[#F5ECEC] border-[#D5B4B5]' : 'hover:bg-white/[0.02]',
+        )}
+      >
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <p className={cn('text-[16px] font-bold transition-colors', isEspera ? 'text-[#8E5A5B]' : isListo ? 'text-success/90' : 'text-on-surface')}>
+              {nombre}
+            </p>
+            {isListo && <Badge variant="success" className="h-5 px-1.5 text-[10px] animate-check-pop">✓ PREPARADO</Badge>}
+            {isEspera && <Badge className="bg-[#A06869] text-white h-5 px-2 text-[10px] uppercase whitespace-nowrap shrink-0 animate-check-pop">ESPERA PRODUCCIÓN</Badge>}
+            {!isListo && !isEspera && completable && <Badge className="bg-transparent border border-primary/50 text-primary h-5 px-1.5 text-[10px]">PREPARAR</Badge>}
+          </div>
+
+        </div>
+
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-baseline gap-2">
+            <span className={cn('text-[28px] md:text-[32px] font-bold leading-none', isEspera ? 'text-[#8E5A5B]' : 'text-on-surface')}>{cajas}</span>
+            <span className={cn('text-[14px] font-semibold tracking-wider uppercase', isEspera ? 'text-[#8E5A5B]/80' : 'text-on-surface-variant')}>CAJAS</span>
+          </div>
+          <div className={cn('w-px h-8', isEspera ? 'bg-[#D5B4B5]' : 'bg-white/10')} />
+          <div className="flex items-baseline gap-2">
+            <span className={cn('text-[28px] md:text-[32px] font-bold leading-none', isEspera ? 'text-[#8E5A5B]' : 'text-on-surface')}>{sueltos}</span>
+            <span className={cn('text-[14px] font-semibold tracking-wider uppercase', isEspera ? 'text-[#8E5A5B]/80' : 'text-on-surface-variant')}>SUELTOS</span>
+          </div>
+        </div>
+
+        {completable && (
+          <div className="flex flex-wrap gap-2 mt-2">
+            {onToggleCompletar && (
+              <button
+                type="button"
+                onClick={onToggleCompletar}
+                className={cn(
+                  'flex-1 min-w-[140px] flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-body text-[14px] font-bold transition-all h-12',
+                  isListo
+                    ? 'border-white/20 text-on-surface-variant hover:border-error/50 hover:text-error hover:bg-error/10'
+                    : isEspera 
+                      ? 'border-[#A06869]/20 text-[#A06869] hover:bg-[#A06869]/10'
+                      : 'border-primary text-primary hover:bg-primary/10'
+                )}
+              >
+                {isListo ? (
+                  <>
+                    <X className="w-4 h-4" />
+                    Desmarcar
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    MARCAR PREPARADO
+                  </>
+                )}
+              </button>
+            )}
+            
+            {onToggleEspera && !isListo && (
+              <button
+                type="button"
+                onClick={onToggleEspera}
+                className={cn(
+                  'flex-1 min-w-[140px] flex items-center justify-center gap-2 rounded-lg border-2 px-4 py-3 font-body text-[14px] font-bold transition-all h-12',
+                  isEspera
+                    ? 'border-[#A06869] bg-[#A06869] text-white hover:bg-[#8E5A5B]'
+                    : 'border-white/10 text-on-surface-variant hover:border-[#D5B4B5] hover:text-[#A06869] hover:bg-[#F5ECEC]'
+                )}
+              >
+                {isEspera ? 'Disponible para preparar' : '⏳ ESPERA PRODUCCIÓN'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      data-testid={`linea-${productoId}`}
+      className={cn(
+        'group flex flex-col lg:flex-row lg:items-center justify-between gap-4 py-4 px-4 lg:px-8 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors',
+        ceroUnidades && 'opacity-50 bg-error/5',
+      )}
+    >
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-[14px] font-semibold text-on-surface">{nombre}</p>
+          {completado && <Badge variant="success" className="h-5 px-1.5 text-[10px]">Listo</Badge>}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[12px] text-on-surface-variant">
+
+
+          {mostrarStock && (
+            <div className="flex items-center gap-2 border-l border-white/10 pl-3">
+              {disponible !== undefined && (
+                <span className={cn(disponible <= 0 && 'text-warning font-medium')}>
+                  Disp: {disponible}
+                </span>
+              )}
+              {reservado !== undefined && reservado > 0 && (
+                <span className="text-on-surface/60">
+                  Res: {reservado}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        {ceroUnidades && (
+          <p className="mt-1 font-body text-[11px] font-medium text-warning">0 unidades — se eliminará al guardar</p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap lg:flex-nowrap items-center gap-4 lg:gap-6 shrink-0 lg:w-auto">
+        <div className="flex-1 lg:flex-none">
+          {editable && onChange ? (
+            <QuantityStepper cajas={cajas} sueltos={sueltos} unidadesPorCaja={unidadesPorCaja} onChange={onChange} />
+          ) : (
+            <div className="font-body text-[13px] text-on-surface-variant flex items-center gap-3">
+              <span className="text-on-surface">{cajas} caja{cajas !== 1 ? 's' : ''}</span>
+              <span>·</span>
+              <span className="text-on-surface">{sueltos} unidad{sueltos !== 1 ? 'es' : ''}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="w-20 text-right font-body text-[15px] font-bold text-on-surface">
+          {unidades} un
+        </div>
+
+        <div className="w-24 flex justify-end gap-2 shrink-0">
+          {completable && onToggleCompletar && (
+            <button
+              type="button"
+              onClick={onToggleCompletar}
+              className={cn(
+                'rounded border px-3 py-1 font-body text-[11px] font-bold transition h-8',
+                completado
+                  ? 'border-success/30 text-success bg-success/10 hover:bg-success/20'
+                  : 'border-primary/40 text-primary hover:bg-primary/10',
+              )}
+            >
+              {completado ? 'Desmarcar' : 'Preparar'}
+            </button>
+          )}
+          {editable && onEliminar && (
+            <button
+              type="button"
+              onClick={onEliminar}
+              aria-label={`Eliminar ${nombre}`}
+              className="flex h-8 w-8 items-center justify-center rounded-full text-outline hover:text-error hover:bg-error/10 transition lg:opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+interface TransportSelectorProps {
+  transportistas: { id: string; nombre: string; direccion?: string | null }[]
+  transporteId: string
+  setTransporteId: (id: string) => void
+  usarOcasional: boolean
+  setUsarOcasional: (v: boolean) => void
+  entregaDirectaDisponible: boolean
+  usarEntregaDirecta: boolean
+  setUsarEntregaDirecta: (v: boolean) => void
+}
+
+function TransportSelector({ transportistas, transporteId, setTransporteId, usarOcasional, setUsarOcasional, entregaDirectaDisponible, usarEntregaDirecta, setUsarEntregaDirecta }: TransportSelectorProps) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  const selectedT = transportistas.find(t => t.id === transporteId)
+
+  useEffect(() => {
+    if (!open) {
+      if (usarOcasional) {
+        setSearch("OTRO / TRANSPORTE OCASIONAL")
+      } else if (usarEntregaDirecta) {
+        setSearch("ENTREGA DIRECTA AL CLIENTE")
+      } else if (selectedT) {
+        setSearch(selectedT.nombre)
+      } else {
+        setSearch("")
+      }
+    }
+  }, [open, usarOcasional, selectedT])
+
+  const filtered = useMemo(() => {
+    if (!search || (selectedT && search === selectedT.nombre) || (usarOcasional && search === "OTRO / TRANSPORTE OCASIONAL") || (usarEntregaDirecta && search === "ENTREGA DIRECTA AL CLIENTE")) return transportistas
+    const s = search.toLowerCase()
+    return transportistas.filter(t => t.nombre.toLowerCase().includes(s) || (t.direccion && t.direccion.toLowerCase().includes(s)))
+  }, [transportistas, search, selectedT, usarOcasional, usarEntregaDirecta])
+
+  return (
+    <div className="relative w-full md:w-[320px]" ref={ref}>
+      <div className="relative">
+        <input
+          role="combobox"
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          type="text"
+          className="w-full h-11 px-4 pr-10 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+          placeholder="Buscar transportista..."
+          value={search}
+          onChange={e => {
+            setSearch(e.target.value)
+            setOpen(true)
+            if (transporteId) setTransporteId("")
+            if (usarOcasional) setUsarOcasional(false)
+            if (usarEntregaDirecta) setUsarEntregaDirecta(false)
+          }}
+          onFocus={() => setOpen(true)}
+          onClick={() => setOpen(true)}
+        />
+        {(search || transporteId || usarOcasional) ? (
+          <button
+            type="button"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors"
+            onClick={() => {
+              setSearch("")
+              setTransporteId("")
+              setUsarOcasional(false)
+              setUsarEntregaDirecta(false)
+              setOpen(true)
+            }}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        ) : (
+          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-on-surface-variant pointer-events-none" />
+        )}
+      </div>
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 z-50 mt-2 max-h-60 overflow-y-auto rounded-xl border border-white/10 bg-surface-container-high shadow-float shadow-xl p-1 animate-in fade-in zoom-in-95">
+          {filtered.length > 0 ? (
+            filtered.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => { setUsarOcasional(false); setUsarEntregaDirecta(false); setTransporteId(t.id); setOpen(false) }}
+                className={cn(
+                  "flex flex-col w-full px-3 py-2 text-left rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
+                  !usarOcasional && transporteId === t.id ? "bg-primary/10" : ""
+                )}
+              >
+                <span className={cn("text-[14px] font-body", !usarOcasional && transporteId === t.id ? "text-primary font-semibold" : "text-on-surface")}>{t.nombre}</span>
+                {t.direccion && <span className="text-[11px] font-body text-on-surface-variant truncate">{t.direccion}</span>}
+              </button>
+            ))
+          ) : (
+            <div className="px-3 py-4 text-center text-[12px] font-body text-on-surface-variant">No se encontraron resultados</div>
+          )}
+          <div className="my-1 h-[1px] w-full bg-white/10" />
+          <button
+            type="button"
+            onClick={() => { setUsarOcasional(true); setUsarEntregaDirecta(false); setTransporteId(''); setOpen(false) }}
+            className={cn(
+              "flex w-full items-center px-3 py-2.5 text-left text-[14px] font-body rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
+              usarOcasional ? "bg-primary/10 text-primary font-semibold" : "font-semibold text-primary/80"
+            )}
+          >
+            OTRO / TRANSPORTE OCASIONAL
+          </button>
+          {entregaDirectaDisponible && (
+            <button
+              type="button"
+              onClick={() => { setUsarOcasional(false); setUsarEntregaDirecta(true); setTransporteId(''); setOpen(false) }}
+              className={cn(
+                "flex w-full items-center px-3 py-2.5 text-left text-[14px] font-body rounded-lg transition-colors hover:bg-surface-high focus:bg-surface-high focus:outline-none",
+                usarEntregaDirecta ? "bg-primary/10 text-primary font-semibold" : "font-semibold text-primary/80"
+              )}
+            >
+              ENTREGA DIRECTA AL CLIENTE
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RemitoNumerationSetup({ enabled }: { enabled: boolean }) {
+  const { data: configuracion, isLoading } = useRemitoConfiguracion(enabled)
+  const actualizar = useActualizarRemitoConfiguracion()
+  const [correlativo, setCorrelativo] = useState('')
+
+  if (!enabled || isLoading || !configuracion || configuracion.proximoCorrelativo !== null) return null
+  const configuracionLista = configuracion
+
+  async function guardar(): Promise<void> {
+    const value = Number(correlativo)
+    if (!Number.isInteger(value) || value < 1) {
+      toast.error('Ingresá el próximo número de remito, sin el punto de venta')
+      return
+    }
+    try {
+      await actualizar.mutateAsync({ proximoCorrelativo: value })
+      toast.success(`Numeración configurada: ${configuracionLista.puntoVenta}-${String(value).padStart(8, '0')}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo configurar la numeración')
+    }
+  }
+
+  return (
+    <section aria-label="Numeración de remitos pendiente" className="mb-4 rounded-xl border border-warning/40 bg-warning/10 p-4">
+      <h2 className="font-body text-[13px] font-bold text-on-surface">Antes de emitir el primer remito</h2>
+      <p className="mt-1 font-body text-[12px] text-on-surface-variant">Indicá el próximo número. El punto de venta es fijo: {configuracionLista.puntoVenta}. Luego el sistema continúa la numeración automáticamente.</p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input aria-label="Próximo número de remito" value={correlativo} inputMode="numeric" onChange={(event) => setCorrelativo(event.target.value.replace(/\D/g, ''))} placeholder="Ej: 13216" className="input-field" />
+        <Button onClick={() => void guardar()} loading={actualizar.isPending} className="shrink-0">Guardar numeración</Button>
+      </div>
+    </section>
+  )
+}
+
+
+export default function PedidoDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { data: pedido, isLoading, error } = usePedidoDetalle(id);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <Skeleton variant="card" className="h-28" />
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6">
+          <div className="space-y-5">
+            <Skeleton variant="card" className="h-40" />
+            <Skeleton variant="card" className="h-56" />
+          </div>
+          <div className="mt-5 space-y-5 lg:mt-0">
+            <Skeleton variant="card" className="h-40" />
+            <Skeleton variant="card" className="h-40" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !pedido) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-[22px] font-bold tracking-tight text-on-surface">Detalle de pedido</h1>
+        <p className="font-body text-[13px] text-error">{error instanceof Error ? error.message : 'Pedido no encontrado'}</p>
+      </div>
+    )
+  }
+
+  if (pedido.origen === 'AUTOMATION') {
+    return <AutomationPedidoDetail pedido={pedido} />
+  }
+
+  if (pedido.esRemitoManual && pedido.estado === 'PREPARADO') {
+    return <RemitoManualPendienteDetalle pedido={pedido} />
+  }
+
+  return <PedidoDetailPageLegacy pedidoData={pedido} />
+}
+
+function RemitoManualPendienteDetalle({ pedido }: { pedido: Pedido }) {
+  const user = useAuthStore((state) => state.user)
+  const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const approve = useAprobarDescuentoRemitoManual()
+  const { data: disponibilidad } = usePedidoDisponibilidad(pedido.id)
+  const [lotSelectorOpen, setLotSelectorOpen] = useState(false)
+  const remito = pedido.remitos?.find((candidate) => candidate.estado === 'VIGENTE')
+  const puedeAprobar = (rol === 'admin' || rol === 'encargado') && Boolean(remito)
+
+  async function aprobarDescuento(selecciones: import('../lib/api').PedidoDisponibilidadStock['allocations']) {
+    try {
+      await approve.mutateAsync({ id: pedido.id, expectedVersion: pedido.version, selecciones, transferencias: disponibilidad?.transferencias ?? [], idempotencyKey: newIdempotencyKey() })
+      toast.success('Stock descontado correctamente por lote.')
+      setLotSelectorOpen(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo descontar el stock.')
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 pb-10">
+      <header className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container p-6">
+        <div>
+          <p className="font-body text-xs font-semibold uppercase tracking-[0.16em] text-primary">Remito manual</p>
+          <h1 className="mt-1 font-display text-2xl font-semibold text-on-surface">{pedido.cliente.nombre}</h1>
+          <p className="mt-1 font-body text-sm text-on-surface-variant">{remito?.numero ?? pedido.numero} · Emitido y pendiente a descuento</p>
+        </div>
+        <Badge variant="warning">Pendiente a descuento</Badge>
+      </header>
+      <section className="rounded-xl border border-outline-variant bg-surface-container p-5">
+        <h2 className="font-display text-lg font-semibold">Productos</h2>
+        <div className="mt-4 divide-y divide-outline-variant/70">{pedido.items.map((item) => <div key={item.id} className="flex items-center justify-between gap-4 py-3"><span className="font-body text-sm font-semibold">{item.producto.nombre}</span><span className="font-body text-sm">{item.cantidad} un</span></div>)}</div>
+      </section>
+      <section className="rounded-xl border border-warning/40 bg-warning/10 p-5">
+        <h2 className="font-display text-lg font-semibold text-on-surface">Aprobación de stock</h2>
+        <p className="mt-1 font-body text-sm text-on-surface-variant">Al aprobar elegís los lotes, se valida el stock actual y recién entonces se descuenta. Si no alcanza, no se modifica nada.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button variant="outline" onClick={() => void descargarRemitoPdf(pedido.id)}>Abrir remito</Button>
+          {puedeAprobar && <Button loading={approve.isPending} disabled={!disponibilidad || disponibilidad.status === 'INSUFICIENTE'} onClick={() => setLotSelectorOpen(true)}>Elegir lotes y aprobar</Button>}
+          {!puedeAprobar && <p className="self-center font-body text-sm text-on-surface-variant">Sólo Encargado o Admin puede aprobar el descuento.</p>}
+        </div>
+      </section>
+      {lotSelectorOpen && disponibilidad && (
+        <LotAllocationSelector
+          items={pedido.items.map((item) => ({ id: item.id, productoId: item.productoId, nombre: item.producto.nombre, cantidad: item.cantidad }))}
+          disponibilidad={disponibilidad}
+          mode="descuento"
+          submitting={approve.isPending}
+          onCancel={() => setLotSelectorOpen(false)}
+          onConfirm={(selecciones) => void aprobarDescuento(selecciones)}
+        />
+      )}
+    </div>
+  )
+}
+function PedidoDetailPageLegacy({ pedidoData }: { pedidoData: any }) {
+  const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const qc = useQueryClient()
+  const user = useAuthStore((state) => state.user)
+  const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const userId = user?.sub ?? ''
+  const esFacturacion = rol === 'facturacion'
+  const esRemitos = can(user, 'ale-bet', 'remitos.create')
+  const { data: pedido, isLoading, error, refetch: refetchPedido } = usePedidoDetalle(id)
+  const { data: disponibilidad } = usePedidoDisponibilidad(id)
+  const { data: productos = [], refetch: refetchProductos } = useProductos()
+  const { data: clientes = [] } = useClientes()
+  const { data: transportistas = [] } = useTransportistas({ enabled: esRemitos })
+  const { data: pedidosList = [] } = usePedidos()
+
+  const [carrito, setCarrito] = useState<Carrito>({})
+  const [clienteIdLocal, setClienteIdLocal] = useState<string | null>(null)
+
+  const [sheetProductos, setSheetProductos] = useState(false)
+  const [sheetCliente, setSheetCliente] = useState(false)
+  const [solicitarOpen, setSolicitarOpen] = useState(false)
+  const [confirmarOpen, setConfirmarOpen] = useState(false)
+  const [anularOpen, setAnularOpen] = useState(false)
+  const [confirm, setConfirm] = useState<ConfirmAccion | null>(null)
+  const [lotSelectorOpen, setLotSelectorOpen] = useState(false)
+  const [guardando, setGuardando] = useState(false)
+  const [esperas, setEsperas] = useState<Record<string, boolean>>({})
+  const [finalizandoArmado, setFinalizandoArmado] = useState(false)
+
+  const isExecutingRef = useRef(false)
+
+  const [motivoSolicitud, setMotivoSolicitud] = useState('')
+  const [motivoSolicitudError, setMotivoSolicitudError] = useState<string | null>(null)
+  const [motivoConfirmar, setMotivoConfirmar] = useState('')
+  const [motivoConfirmarError, setMotivoConfirmarError] = useState<string | null>(null)
+  const [motivoAnular, setMotivoAnular] = useState('')
+  const [motivoAnularError, setMotivoAnularError] = useState<string | null>(null)
+  const [devolucionOpen, setDevolucionOpen] = useState(false)
+  const [devolucionCarrito, setDevolucionCarrito] = useState<Carrito>({})
+  const [motivoDevolucion, setMotivoDevolucion] = useState('')
+  const [motivoDevolucionError, setMotivoDevolucionError] = useState<string | null>(null)
+
+  const [transporteId, setTransporteId] = useState('')
+  const [usarOcasional, setUsarOcasional] = useState(false)
+  const [usarEntregaDirecta, setUsarEntregaDirecta] = useState(false)
+  const [ocasionalNombre, setOcasionalNombre] = useState('')
+  const [ocasionalDireccion, setOcasionalDireccion] = useState('')
+  const [remitoError, setRemitoError] = useState<string | null>(null)
+  const ocasionalNombreRef = useRef<HTMLInputElement>(null)
+  const ocasionalDireccionRef = useRef<HTMLInputElement>(null)
+
+  const [busquedaProducto, setBusquedaProducto] = useState('')
+  const qProductoDebounced = useDebouncedValue(busquedaProducto.trim(), 250)
+  const { data: resultadosBusqueda = [] } = useProductosSearch(qProductoDebounced)
+
+  const updatePedido = useUpdatePedido()
+  const aprobarMutation = useAprobarPedido()
+  const tomarMutation = useTomarPedido()
+  const completarMutation = useCompletarItemPedido()
+  const prepararMutation = usePrepararPedido()
+  const cancelarMutation = useCancelarPedido()
+  const confirmarCancelacionMutation = useConfirmarCancelacionPedido()
+  const despacharMutation = useDespacharPedido()
+  const devolucionMutation = useRegistrarDevolucionPedido()
+  const emitirRemitoMutation = useEmitirRemito()
+  const anularRemitoMutation = useAnularRemito()
+
+  useEffect(() => {
+    if (!pedido) return
+    const next: Carrito = {}
+    for (const item of pedido.items) {
+      const { cajas, sueltos } = calcularCajasSueltos(item.cantidad, item.producto.unidadesPorCaja)
+      next[item.productoId] = { cajas, sueltos }
+    }
+    setCarrito(next)
+    setClienteIdLocal(pedido.clienteId)
+  }, [pedido])
+
+  const productoPorId = useMemo(() => {
+    const map = new Map<string, ProductoCardDatos>()
+    for (const p of productos) map.set(p.id, p)
+    for (const r of resultadosBusqueda) if (!map.has(r.id)) map.set(r.id, r)
+    return map
+  }, [productos, resultadosBusqueda])
+
+  const lineas = useMemo(() => {
+    if (!pedido) return []
+    return pedido.items.map((item) => {
+      const linea = carrito[item.productoId]
+      const base = calcularCajasSueltos(item.cantidad, item.producto.unidadesPorCaja)
+      const cajas = linea?.cajas ?? base.cajas
+      const sueltos = linea?.sueltos ?? base.sueltos
+      return {
+        item,
+        cajas,
+        sueltos,
+        unidades: cantidadLinea(cajas, sueltos, item.producto.unidadesPorCaja),
+        producto: productoPorId.get(item.productoId),
+      }
+    })
+  }, [pedido, carrito, productoPorId])
+
+  const carritoIgual = useMemo(() => {
+    if (!pedido) return true
+    const actual = new Map(pedido.items.map((i) => [i.productoId, i.cantidad]))
+    const aEditar = Object.entries(carrito).filter(([, l]) => l.cajas > 0 || l.sueltos > 0)
+    if (aEditar.length !== actual.size) return false
+    for (const [productoId, l] of aEditar) {
+      const ubc = productoPorId.get(productoId)?.unidadesPorCaja ?? 1
+      if (actual.get(productoId) !== cantidadLinea(l.cajas, l.sueltos, ubc)) return false
+    }
+    return true
+  }, [pedido, carrito, productoPorId])
+
+  const canEditar = pedido ? canEditarPedido(pedido, rol, userId) : false
+  const canDevolver = pedido ? canRegistrarDevolucion(pedido, rol, userId) : false
+  const clientePendiente = pedido ? pedidoClientePendiente(pedido) : false
+  const remitoVigente = pedido?.remitos?.find((r) => r.estado === 'VIGENTE') ?? null
+  const remitosInvalidados = pedido?.remitos?.filter((r) => r.estado === 'INVALIDADO') ?? []
+
+  const clienteCambio = Boolean(pedido) && clienteIdLocal !== pedido?.clienteId
+  const hayCambios = Boolean(pedido) && (clienteCambio || !carritoIgual)
+  const clienteActual = clientes.find((c) => c.id === clienteIdLocal) ?? pedido?.cliente ?? null
+
+  useEffect(() => {
+    const defaultId = clienteActual?.transportistaPredeterminadoId
+    if (!usarOcasional && defaultId && transportistas.some((transportista) => transportista.id === defaultId)) {
+      setTransporteId((current) => current || defaultId)
+    }
+  }, [clienteActual?.transportistaPredeterminadoId, transportistas, usarOcasional])
+
+  const pedidosActivos = useMemo(
+    () => pedidosList.filter((p) => p.estado !== 'CANCELADO').sort(porActualizadoDesc),
+    [pedidosList],
+  )
+
+  const clientesRecientes = useMemo(() => {
+    const vistos = new Set<string>()
+    const out: Cliente[] = []
+    for (const p of pedidosActivos) {
+      if (vistos.has(p.clienteId)) continue
+      vistos.add(p.clienteId)
+      out.push(p.cliente)
+      if (out.length >= 5) break
+    }
+    return out
+  }, [pedidosActivos])
+
+  const frecuentesIds = useMemo(() => {
+    if (!clienteIdLocal) return []
+    const counts = new Map<string, number>()
+    for (const p of pedidosActivos) {
+      if (p.clienteId !== clienteIdLocal) continue
+      for (const item of p.items) counts.set(item.productoId, (counts.get(item.productoId) ?? 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([entryId]) => entryId)
+  }, [pedidosActivos, clienteIdLocal])
+
+  const recientesIds = useMemo(() => {
+    const vistos = new Set(frecuentesIds)
+    const out: string[] = []
+    for (const p of pedidosActivos) {
+      for (const item of p.items) {
+        if (!vistos.has(item.productoId)) {
+          vistos.add(item.productoId)
+          out.push(item.productoId)
+          if (out.length >= 5) return out
+        }
+      }
+    }
+    return out
+  }, [pedidosActivos, frecuentesIds])
+
+  const frecuentes = useMemo(
+    () => frecuentesIds.map((productoId) => productoPorId.get(productoId)).filter((p): p is ProductoCardDatos => Boolean(p)),
+    [frecuentesIds, productoPorId],
+  )
+
+  const recientes = useMemo(
+    () => recientesIds.map((productoId) => productoPorId.get(productoId)).filter((p): p is ProductoCardDatos => Boolean(p)),
+    [recientesIds, productoPorId],
+  )
+
+  const puedeProgreso = pedido
+    ? pedido.estado === 'EN_ARMADO' && roleHasPermission('ale-bet', rol, 'pedidos.complete_items') && (esArmadorAsignado(pedido, userId) || rol === 'admin' || rol === 'encargado')
+    : false
+  const prepararListo = pedido ? canPreparar(pedido, rol, userId) : false
+  const itemsCompletados = pedido?.items.filter((i) => i.completado).length ?? 0
+  const itemsPendientes = pedido ? pedido.items.length - itemsCompletados : 0
+
+  const [modalCarrito, setModalCarrito] = useState<Carrito | null>(null)
+
+  function cambiarCantidad(productoId: string, cajas: number, sueltos: number) {
+    setCarrito((prev) => ({ ...prev, [productoId]: { cajas, sueltos } }))
+  }
+
+  function eliminarLinea(productoId: string) {
+    setCarrito((prev) => {
+      const next = { ...prev }
+      delete next[productoId]
+      return next
+    })
+  }
+
+  function abrirModalProductos() {
+    setBusquedaProducto('')
+    setModalCarrito({ ...carrito })
+    setSheetProductos(true)
+  }
+
+  function cerrarModalProductos() {
+    setModalCarrito(null)
+    setSheetProductos(false)
+  }
+
+  function confirmarModalProductos() {
+    if (modalCarrito) setCarrito(modalCarrito)
+    cerrarModalProductos()
+  }
+
+  function cambiarCantidadModal(productoId: string, cajas: number, sueltos: number) {
+    setModalCarrito((prev) => prev ? { ...prev, [productoId]: { cajas, sueltos } } : null)
+  }
+
+  function agregarAlCarritoModal(producto: ProductoCardDatos) {
+    setModalCarrito((prev) => {
+      if (!prev) return null
+      const actual = prev[producto.id]
+      return { ...prev, [producto.id]: { cajas: (actual?.cajas ?? 0) + 1, sueltos: actual?.sueltos ?? 0 } }
+    })
+  }
+
+  const modalHayCambios = useMemo(() => {
+    if (!modalCarrito) return false
+    return JSON.stringify(modalCarrito) !== JSON.stringify(carrito)
+  }, [modalCarrito, carrito])
+
+  const modalResumen = useMemo(() => {
+    if (!modalCarrito) return null
+    let productos = 0
+    let cajas = 0
+    let sueltos = 0
+    for (const v of Object.values(modalCarrito)) {
+      if (v.cajas > 0 || v.sueltos > 0) {
+        productos++
+        cajas += v.cajas
+        sueltos += v.sueltos
+      }
+    }
+    if (productos === 0) return 'Sin productos'
+    return `${productos} producto${productos === 1 ? '' : 's'} · ${cajas} caja${cajas === 1 ? '' : 's'} · ${sueltos} suelto${sueltos === 1 ? '' : 's'}`
+  }, [modalCarrito])
+
+  function buildItems(): PedidoItemInput[] {
+    return Object.entries(carrito)
+      .filter(([, l]) => l.cajas > 0 || l.sueltos > 0)
+      .map(([productoId, l]) => {
+        const ubc = productoPorId.get(productoId)?.unidadesPorCaja ?? 1
+        return { productoId, cantidad: cantidadLinea(l.cajas, l.sueltos, ubc) }
+      })
+  }
+
+  function abrirDevolucion() {
+    if (!pedido) return
+    const initial: Carrito = {}
+    for (const item of pedido.items) initial[item.productoId] = { cajas: 0, sueltos: 0 }
+    setDevolucionCarrito(initial)
+    setMotivoDevolucion('')
+    setMotivoDevolucionError(null)
+    setDevolucionOpen(true)
+  }
+
+  function cambiarCantidadDevolucion(productoId: string, cajas: number, sueltos: number) {
+    setDevolucionCarrito((previous) => ({ ...previous, [productoId]: { cajas, sueltos } }))
+  }
+
+  async function registrarDevolucion() {
+    if (!pedido) return
+    const motivo = motivoDevolucion.trim()
+    if (motivo.length < 3) {
+      setMotivoDevolucionError(motivo.length === 0 ? 'Indicá el motivo de la devolución' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    const items = pedido.items.flatMap((item) => {
+      const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+      const cantidad = cantidadLinea(line.cajas, line.sueltos, item.producto.unidadesPorCaja)
+      return cantidad > 0 ? [{ productoId: item.productoId, cantidad }] : []
+    })
+    if (items.length === 0) {
+      setMotivoDevolucionError('Indicá al menos una cantidad para devolver')
+      return
+    }
+    setMotivoDevolucionError(null)
+    try {
+      await devolucionMutation.mutateAsync({
+        id: pedido.id,
+        expectedVersion: pedido.version,
+        items,
+        motivo,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Devolución registrada y stock repuesto')
+      setDevolucionOpen(false)
+      invalidarTodo()
+    } catch (e) {
+      setMotivoDevolucionError(e instanceof Error ? e.message : 'No se pudo registrar la devolución')
+    }
+  }
+
+  function invalidarTodo() {
+    void qc.invalidateQueries({ queryKey: pedidosKeys.all })
+    void refetchProductos()
+  }
+
+  async function ejecutarGuardar() {
+    if (!pedido || !clienteIdLocal) return
+    const items = buildItems()
+    if (items.length === 0) {
+      toast.warning('Agregá al menos un producto al pedido')
+      return
+    }
+    setGuardando(true)
+    try {
+      const actualizado = await updatePedido.mutateAsync({
+        id: pedido.id,
+        clienteId: clienteIdLocal,
+        items,
+        expectedVersion: pedido.version,
+      })
+      toast.success(actualizado.estado === 'BORRADOR' && pedido.estado === 'APROBADO'
+        ? `Pedido ${actualizado.numero} modificado: requiere nueva aprobación`
+        : `Pedido ${actualizado.numero} actualizado`)
+      invalidarTodo()
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 409 && e.message.includes('versión')) {
+        toast.error('La versión del pedido cambió; se recargó. Reintentá.')
+        void refetchPedido()
+      } else if (e instanceof ApiError && e.status === 409) {
+        toast.error(e.message)
+        void refetchProductos()
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Error al guardar los cambios')
+      }
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  function handleGuardar() {
+    if (pedido?.estado === 'APROBADO') {
+      setConfirm('guardar-aprobado')
+      return
+    }
+    void ejecutarGuardar()
+  }
+
+  async function ejecutarConfirm() {
+    if (!pedido || !confirm || isExecutingRef.current) return
+    isExecutingRef.current = true
+    try {
+      if (confirm === 'aprobar') {
+        if (!disponibilidad || disponibilidad.status === 'INSUFICIENTE') {
+          toast.error('No hay disponibilidad vigente para aprobar el pedido')
+          return
+        }
+        if (!Array.isArray(disponibilidad.lotes)) {
+          isExecutingRef.current = false
+          await confirmarLotesSeleccionados(disponibilidad.allocations)
+          return
+        }
+        setLotSelectorOpen(true)
+        return
+      } else if (confirm === 'tomar') {
+        await tomarMutation.mutateAsync({
+          id: pedido.id,
+          expectedVersion: pedido.version,
+          idempotencyKey: newIdempotencyKey(),
+        })
+        toast.success(`Pedido ${pedido.numero} tomado`)
+        invalidarTodo()
+      } else if (confirm === 'cancelar') {
+        const res = await cancelarMutation.mutateAsync({
+          id: pedido.id,
+          expectedVersion: pedido.version,
+          idempotencyKey: newIdempotencyKey(),
+        })
+        if (res.requested) {
+          toast.success('Solicitud enviada')
+        } else if (res.discarded) {
+          toast.success('Borrador descartado')
+          invalidarTodo()
+          navigate('/ale-bet/pedidos')
+          return
+        } else {
+          toast.success(pedido.estado === 'APROBADO' ? 'Pedido cancelado y reserva liberada' : 'Pedido cancelado')
+        }
+        invalidarTodo()
+      } else if (confirm === 'preparar') {
+        setFinalizandoArmado(true)
+        await prepararMutation.mutateAsync({
+          id: pedido.id,
+          expectedVersion: pedido.version,
+          idempotencyKey: newIdempotencyKey(),
+        })
+        
+        // Mantener el feedback visual por un breve tiempo para que el usuario entienda que terminó
+        await new Promise(resolve => setTimeout(resolve, 700))
+        
+        toast.success('Pedido preparado')
+        setFinalizandoArmado(false)
+        invalidarTodo()
+      } else if (confirm === 'despachar') {
+        await despacharMutation.mutateAsync({
+          id: pedido.id,
+          expectedVersion: pedido.version,
+          idempotencyKey: newIdempotencyKey(),
+        })
+        toast.success('Stock descontado')
+        invalidarTodo()
+      } else if (confirm === 'guardar-aprobado') {
+        await ejecutarGuardar()
+      }
+    } catch (e) {
+      // DESIGN-01 bug fix: reset finalizandoArmado on error so the UI
+      // never stays stuck in the "armado finalizado" visual state after a failure.
+      if (confirm === 'preparar') setFinalizandoArmado(false)
+      toast.error(e instanceof Error ? e.message : 'Error al ejecutar la acción')
+    } finally {
+      isExecutingRef.current = false
+      setConfirm(null)
+    }
+  }
+
+  async function confirmarLotesSeleccionados(selecciones: import('../lib/api').PedidoDisponibilidadStock['allocations']) {
+    if (!pedido || !disponibilidad || isExecutingRef.current) return
+    isExecutingRef.current = true
+    try {
+      const aprobado = await aprobarMutation.mutateAsync({
+        id: pedido.id,
+        expectedVersion: pedido.version,
+        fingerprint: disponibilidad.fingerprint,
+        transferencias: disponibilidad.transferencias,
+        selecciones,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success(`Pedido ${aprobado.numero} aprobado`)
+      setLotSelectorOpen(false)
+      invalidarTodo()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'No se pudo reservar la selección de lotes')
+    } finally {
+      isExecutingRef.current = false
+    }
+  }
+
+  async function toggleCompletar(itemId: string) {
+    if (!pedido) return
+    try {
+      await completarMutation.mutateAsync({
+        pedidoId: pedido.id,
+        itemId,
+        expectedVersion: pedido.version,
+        idempotencyKey: newIdempotencyKey(),
+      })
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al actualizar el item')
+      void refetchPedido()
+    }
+  }
+
+  function abrirSolicitarCancelacion() {
+    setMotivoSolicitud('')
+    setMotivoSolicitudError(null)
+    setSolicitarOpen(true)
+  }
+
+  async function enviarSolicitud() {
+    const motivo = motivoSolicitud.trim()
+    if (motivo.length < 3) {
+      setMotivoSolicitudError(motivo.length === 0 ? 'El motivo es obligatorio' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    setMotivoSolicitudError(null)
+    if (!pedido) return
+    try {
+      const res = await cancelarMutation.mutateAsync({
+        id: pedido.id,
+        expectedVersion: pedido.version,
+        motivo,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success(res.requested ? 'Solicitud enviada' : 'Pedido cancelado')
+      setSolicitarOpen(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al solicitar la cancelación')
+    }
+  }
+
+  function abrirConfirmarCancelacion() {
+    setMotivoConfirmar(pedido?.motivoCancelacion ?? '')
+    setMotivoConfirmarError(null)
+    setConfirmarOpen(true)
+  }
+
+  async function confirmarCancelacion() {
+    const motivo = motivoConfirmar.trim()
+    if (!motivo) {
+      setMotivoConfirmarError('El motivo es obligatorio')
+      return
+    }
+    setMotivoConfirmarError(null)
+    if (!pedido) return
+    try {
+      await confirmarCancelacionMutation.mutateAsync({
+        id: pedido.id,
+        expectedVersion: pedido.version,
+        motivo,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Pedido cancelado')
+      setConfirmarOpen(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al confirmar la cancelación')
+    }
+  }
+
+  function abrirAnular() {
+    setMotivoAnular('')
+    setMotivoAnularError(null)
+    setAnularOpen(true)
+  }
+
+  async function anularRemito() {
+    const motivo = motivoAnular.trim()
+    if (motivo.length < 3) {
+      setMotivoAnularError(motivo.length === 0 ? 'El motivo es obligatorio' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    setMotivoAnularError(null)
+    if (!pedido || !remitoVigente) return
+    try {
+      await anularRemitoMutation.mutateAsync({
+        pedidoId: pedido.id,
+        remitoId: remitoVigente.id,
+        motivo,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Remito anulado')
+      setAnularOpen(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al anular el remito')
+    }
+  }
+
+  async function emitirRemito() {
+    if (usarOcasional) {
+      const nombreValido = ocasionalNombre.trim().length >= 2
+      const direccionValida = ocasionalDireccion.trim().length >= 2
+      if (!nombreValido || !direccionValida) {
+        setRemitoError('El transporte ocasional requiere nombre y dirección de al menos 2 caracteres')
+        toast.error('Completá nombre y dirección del transporte ocasional')
+        if (!nombreValido) {
+          ocasionalNombreRef.current?.focus()
+          ocasionalNombreRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        } else {
+          ocasionalDireccionRef.current?.focus()
+          ocasionalDireccionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        }
+        return
+      }
+    } else if (!transporteId && !pedido?.cliente.direccion?.trim()) {
+      setRemitoError('Seleccioná un transporte o cargá el domicilio del cliente para entrega directa')
+      return
+    }
+    setRemitoError(null)
+    if (!pedido) return
+    try {
+      await emitirRemitoMutation.mutateAsync({
+        pedidoId: pedido.id,
+        expectedVersion: pedido.version,
+        ...(usarOcasional
+          ? { transporteOcasional: { nombre: ocasionalNombre.trim(), direccion: ocasionalDireccion.trim() } }
+          : transporteId ? { transportistaId: transporteId } : {}),
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Remito emitido')
+      setTransporteId('')
+      setUsarOcasional(false)
+      setUsarEntregaDirecta(false)
+      setOcasionalNombre('')
+      setOcasionalDireccion('')
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Error al emitir el remito'
+      setRemitoError(message)
+      toast.error(message)
+    }
+  }
+
+  async function descargarRemito() {
+    if (!pedido) return
+    try {
+      await descargarRemitoPdf(pedido.id)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al descargar el remito')
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        <Skeleton variant="card" className="h-28" />
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6">
+          <div className="space-y-5">
+            <Skeleton variant="card" className="h-40" />
+            <Skeleton variant="card" className="h-56" />
+          </div>
+          <div className="mt-5 space-y-5 lg:mt-0">
+            <Skeleton variant="card" className="h-40" />
+            <Skeleton variant="card" className="h-40" />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !pedido) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-[22px] font-bold tracking-tight text-on-surface">Detalle de pedido</h1>
+        <p className="font-body text-[13px] text-error">{error instanceof Error ? error.message : 'Pedido no encontrado'}</p>
+      </div>
+    )
+  }
+
+  const meta = ESTADO_META[pedido.estado]
+  const puedeVerPanelRemito = esRemitos && ESTADOS_CON_REMITO.includes(pedido.estado)
+  const clienteActualNombre = clienteActual?.nombre ?? pedido.cliente.nombre
+  const barraArmadorVisible = canAccionesBarraArmador(pedido, rol, userId)
+
+  return (
+    <div className={cn('mx-auto w-full max-w-[1000px] flex flex-col', barraArmadorVisible && 'pb-[calc(env(safe-area-inset-bottom)+7rem)] lg:pb-0')}>
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={() => {
+            if (location.key !== 'default' && window.history.length > 1) {
+              navigate(-1)
+            } else {
+              navigate('/ale-bet/pedidos')
+            }
+          }}
+          className="inline-flex items-center gap-1.5 font-body text-[13px] font-medium text-outline transition hover:text-on-surface focus:outline-none focus:text-on-surface"
+        >
+          <ArrowLeft size={16} strokeWidth={2} />
+          Pedidos
+        </button>
+      </div>
+
+      <section className="bg-surface-container-high shadow-sm lg:rounded-2xl">
+        {/* Header Compacto */}
+        <div className="px-4 py-5 lg:px-8 lg:py-7 border-b border-white/10 bg-surface-container-low">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <Badge variant={meta.variant}>{meta.label}</Badge>
+                {clientePendiente && <Badge variant="warning">Pendiente de validación</Badge>}
+              </div>
+              <h1 className="text-[22px] md:text-[26px] font-bold tracking-tight text-on-surface leading-tight">
+                {clienteActualNombre}
+              </h1>
+              <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                <span data-testid="pedido-numero" className="font-semibold text-on-surface">Pedido {pedido.numero}</span>
+                <span className="hidden md:inline text-outline/40">•</span>
+                <span>Creado {formatFechaHora(pedido.createdAt)}</span>
+                {pedido.vendedorNombre && (
+                  <>
+                    <span className="hidden md:inline text-outline/40">•</span>
+                    <span>Vendedor: {pedido.vendedorNombre}</span>
+                  </>
+                )}
+                {!esFacturacion && pedido.armadorNombre && (
+                  <>
+                    <span className="hidden md:inline text-outline/40">•</span>
+                    <span>Armador: {pedido.armadorNombre}</span>
+                  </>
+                )}
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                {clienteActual?.cuit && <span>CUIT {clienteActual.cuit}</span>}
+                {clienteActual?.direccion && (
+                  <>
+                    {clienteActual?.cuit && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>{clienteActual.direccion}{clienteActual?.localidad ? `, ${clienteActual.localidad}` : ''}</span>
+                  </>
+                )}
+                {clienteActual?.contacto && (
+                  <>
+                    {(clienteActual?.cuit || clienteActual?.direccion) && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>Contacto: {clienteActual.contacto}</span>
+                  </>
+                )}
+              </div>
+              {clientePendiente && <p className="mt-2 font-body text-[12px] font-medium text-warning">Facturación debe completar los datos</p>}
+              {clienteCambio && <p className="mt-2 font-body text-[12px] font-medium text-warning">Cambio de cliente sin guardar</p>}
+            </div>
+
+            <div className="flex flex-wrap md:flex-col md:items-end justify-start gap-2 shrink-0 md:w-56">
+              {canAprobar(pedido, rol, userId) && (
+                <div className="w-full md:w-auto">
+                  <Button onClick={() => setConfirm('aprobar')} disabled={clientePendiente} className="h-9 w-full md:w-auto px-4 text-[13px]">Aprobar</Button>
+                  {clientePendiente && <p className="font-body text-[11px] font-medium text-warning text-center md:text-right mt-1">Requiere validación</p>}
+                </div>
+              )}
+              {canTomar(pedido, rol, userId) && (
+                <div data-testid="accion-tomar-desktop" className="hidden lg:block w-full md:w-auto">
+                  <Button variant="outline" onClick={() => setConfirm('tomar')} className="h-9 w-full md:w-auto px-4 text-[13px]">Tomar</Button>
+                </div>
+              )}
+              {canSolicitarCancelacion(pedido, rol, userId) && (
+                <Button variant="outline" onClick={abrirSolicitarCancelacion} className="h-9 w-full md:w-auto px-4 text-[13px]">Solicitar cancelación</Button>
+              )}
+              {pedido.estado === 'PREPARADO' && !remitoVigente && (
+                <p className="rounded-lg border border-primary-container/30 bg-primary-container/10 p-2 font-body text-[11px] font-medium text-primary-container text-center w-full">
+                  Esperando remito
+                </p>
+              )}
+              {canDespachar(pedido, rol, userId) && (
+                <div data-testid="accion-despachar-desktop" className="hidden lg:block w-full md:w-auto">
+                  <button type="button" onClick={() => setConfirm('despachar')} disabled={despacharMutation.isPending} className="h-9 w-full md:w-auto px-4 rounded-full border border-error/40 font-body text-[13px] font-semibold text-error transition hover:bg-error/10 disabled:opacity-50">Aprobar descuento</button>
+                </div>
+              )}
+
+              {canEditar && (
+                <div className="flex flex-wrap items-center gap-2 mt-2 w-full md:w-auto md:justify-end">
+                  <button type="button" onClick={() => setSheetCliente(true)} className="flex h-8 items-center justify-center rounded-full border border-outline/20 bg-surface px-4 font-body text-[12px] font-semibold text-on-surface-variant transition-colors hover:bg-surface-variant/30 active:scale-95">
+                    Cambiar cliente
+                  </button>
+                  {canCancelarDirecto(pedido, rol, userId) && (
+                    <button type="button" onClick={() => setConfirm('cancelar')} className="flex h-8 items-center justify-center rounded-full border border-error/20 bg-surface px-4 font-body text-[12px] font-semibold text-error transition-colors hover:bg-error/10 active:scale-95">
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {pedido.estado === 'DESPACHADO' && (
+                <div className="text-left md:text-right w-full">
+                  <p className="font-semibold text-[14px] text-success">Stock descontado</p>
+                  {pedido.despachadoAt && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">Aprobado el {formatFechaHora(pedido.despachadoAt)}</p>}
+                  {canDevolver && <Button variant="outline" onClick={abrirDevolucion} className="mt-3 h-9 w-full md:w-auto px-4 text-[12px]">Registrar devolución</Button>}
+                </div>
+              )}
+              {pedido.estado === 'CANCELADO' && (
+                <div className="text-left md:text-right w-full">
+                  <p className="font-semibold text-[14px] text-error">Pedido cancelado</p>
+                  {pedido.motivoCancelacion && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">Motivo: {pedido.motivoCancelacion}</p>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {pedido.cancelacionSolicitadaAt && pedido.estado === 'EN_ARMADO' && (
+          <div role="status" data-testid="banner-cancelacion" className="flex flex-wrap items-center justify-between gap-3 border-b border-warning/40 bg-warning/10 p-4 lg:px-8">
+            <div className="min-w-0">
+              <p className="font-semibold text-[14px] text-warning">Cancelación solicitada</p>
+              {pedido.motivoCancelacion && <p className="mt-0.5 font-body text-[12px] text-on-surface-variant">Motivo: {pedido.motivoCancelacion}</p>}
+            </div>
+            {canConfirmarCancelacion(pedido, rol, userId) ? (
+              <div className="hidden lg:block" data-testid="accion-cancelacion-desktop">
+                <button type="button" onClick={abrirConfirmarCancelacion} className="rounded-full border border-warning/50 px-4 py-2 font-body text-[12px] font-semibold text-warning transition hover:bg-warning/20">Confirmar cancelación</button>
+              </div>
+            ) : (
+              <p className="font-body text-[11px] text-on-surface-variant">Esperando confirmación del armador</p>
+            )}
+          </div>
+        )}
+
+        <div className="p-4 lg:p-8 space-y-6">
+          {puedeProgreso && (
+            <section aria-label="Progreso de armado" className="hidden lg:block rounded-xl border border-white/10 bg-surface-container p-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1">
+                  <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">Armado</h2>
+                  {finalizandoArmado ? (
+                    <p className="mt-1 font-body text-[13px] font-semibold text-success animate-in slide-in-from-bottom-1 fade-in zoom-in-95 duration-200">
+                      ✓ ARMADO FINALIZADO
+                    </p>
+                  ) : Object.keys(esperas).filter(k => esperas[k]).length > 0 ? (
+                    <p className="mt-1 font-body text-[13px] font-semibold text-on-surface">
+                      {itemsCompletados} preparados · {Object.keys(esperas).filter(k => esperas[k]).length} esperando producción · {pedido.items.length - itemsCompletados - Object.keys(esperas).filter(k => esperas[k]).length} pendiente
+                    </p>
+                  ) : (
+                    <p className="mt-1 font-body text-[13px] font-semibold text-on-surface">
+                      {itemsCompletados} de {pedido.items.length} productos preparados
+                    </p>
+                  )}
+                  <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-highest">
+                    <div className="h-full rounded-full bg-success transition-all duration-500 ease-out" style={{ width: `${finalizandoArmado ? 100 : (pedido.items.length === 0 ? 0 : (itemsCompletados / pedido.items.length) * 100)}%` }} />
+                  </div>
+                </div>
+                <div className="shrink-0 w-48 text-center">
+                  <Button onClick={() => setConfirm('preparar')} disabled={finalizandoArmado || !prepararListo || Object.keys(esperas).some(k => esperas[k])} loading={prepararMutation.isPending} className="h-10 w-full transition-all">FINALIZAR ARMADO</Button>
+                  {!finalizandoArmado && itemsPendientes > 0 && <p className="mt-2 text-center font-body text-[11px] font-medium text-warning">Faltan items o hay esperas</p>}
+                </div>
+              </div>
+            </section>
+          )}
+
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <h2 className="text-[20px] font-bold tracking-tight text-on-surface">Productos</h2>
+              {canEditar && (
+                <button type="button" onClick={abrirModalProductos} className="rounded-full border border-primary/40 px-3 py-1 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/10">+ Agregar producto</button>
+              )}
+            </div>
+
+            {pedido.estado === 'APROBADO' && canEditar && (
+              <p className="mb-4 rounded-md bg-surface-variant/30 px-3 py-2 font-body text-[12px] font-medium text-on-surface-variant inline-block">
+                ℹ️ Al guardar, se libera la reserva actual y el pedido vuelve a borrador para aprobarlo nuevamente.
+              </p>
+            )}
+
+            <div className="flex flex-col border-t border-white/10">
+              {lineas.map(({ item, cajas, sueltos, unidades, producto }) => (
+                <LineaDetalle
+                  key={item.productoId}
+                  productoId={item.productoId}
+                  nombre={item.producto.nombre}
+                  sku={item.producto.sku}
+                  cajas={cajas}
+                  sueltos={sueltos}
+                  unidades={unidades}
+                  unidadesPorCaja={item.producto.unidadesPorCaja}
+                  disponible={producto?.disponible}
+                  reservado={producto?.reservado}
+                  completado={item.completado}
+                  editable={canEditar}
+                  completable={puedeProgreso}
+                  isFacturacion={rol === 'facturacion'}
+                  isArmador={rol === 'armador'}
+                  esperaProduccion={esperas[item.productoId]}
+                  onChange={(nCajas, nSueltos) => cambiarCantidad(item.productoId, nCajas, nSueltos)}
+                  onEliminar={canEditar ? () => eliminarLinea(item.productoId) : undefined}
+                  onToggleCompletar={puedeProgreso ? () => void toggleCompletar(item.id) : undefined}
+                  onToggleEspera={puedeProgreso ? () => {
+                    setEsperas(prev => ({ ...prev, [item.productoId]: !prev[item.productoId] }))
+                    if (!esperas[item.productoId]) toast.info('Backend pendiente: soporte para ESPERA_PRODUCCION')
+                  } : undefined}
+                />
+              ))}
+            </div>
+
+            {canEditar && (
+              <div className="mt-6 flex flex-col md:flex-row md:items-center justify-end gap-4 border-t border-white/10 pt-6">
+                <Button onClick={handleGuardar} loading={guardando} disabled={!hayCambios} className="h-10 w-full md:w-auto px-6 font-semibold">Guardar cambios</Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {puedeVerPanelRemito && (
+          <div className="border-t border-white/10 bg-surface-container/30 p-4 lg:p-8">
+            {remitoVigente ? (
+              <div className="md:flex md:items-center md:justify-between md:gap-6">
+                <div className="flex-1">
+                  <h2 className="font-body text-[13px] font-bold text-on-surface">Remito Vigente</h2>
+                  <div className="mt-2 rounded-lg border border-white/10 bg-surface-container-low p-3 flex flex-wrap gap-4 items-center">
+                    <div>
+                      <p className="font-semibold text-[14px] text-on-surface">Remito {remitoVigente.numero}</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{formatFecha(remitoVigente.fecha)}</p>
+                    </div>
+                    <div className="hidden md:block w-[1px] h-8 bg-white/10"></div>
+                    <div>
+                      <p className="font-body text-[12px] font-medium text-on-surface">Transporte</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{remitoVigente.transporteNombre}{remitoVigente.transporteDireccion ? ` · ${remitoVigente.transporteDireccion}` : ''}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 md:mt-0 shrink-0 flex flex-row md:flex-col gap-2 md:w-40">
+                  {can(user, 'ale-bet', 'remitos.read.pdf') && (
+                    <Button variant="outline" onClick={() => void descargarRemito()} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
+                  )}
+                  {can(user, 'ale-bet', 'remitos.void') && (
+                    <Button variant="outline" onClick={abrirAnular} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
+                  )}
+                </div>
+              </div>
+            ) : canEmitirRemito(pedido, rol) ? (
+              <div>
+                <RemitoNumerationSetup enabled={esRemitos} />
+                <h2 className="font-body text-[13px] font-bold tracking-wide text-on-surface-variant uppercase mb-3">Transporte</h2>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col md:flex-row md:items-start gap-3">
+                    <TransportSelector
+                      transportistas={transportistas}
+                      transporteId={transporteId}
+                      setTransporteId={setTransporteId}
+                      usarOcasional={usarOcasional}
+                      setUsarOcasional={setUsarOcasional}
+                      entregaDirectaDisponible={Boolean(pedido.cliente.direccion?.trim())}
+                      usarEntregaDirecta={usarEntregaDirecta}
+                      setUsarEntregaDirecta={setUsarEntregaDirecta}
+                    />
+                    <Button onClick={() => void emitirRemito()} loading={emitirRemitoMutation.isPending} className="h-11 w-full md:w-auto px-6 font-semibold">
+                      Emitir remito
+                    </Button>
+                  </div>
+                  {usarOcasional && (
+                    <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-surface-container-low p-4 w-full">
+                      <p className="font-body text-[13px] font-medium text-on-surface">Datos del transporte ocasional</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Nombre / Razón Social <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalNombreRef} 
+                            value={ocasionalNombre} 
+                            onChange={(e) => setOcasionalNombre(e.target.value)} 
+                            aria-label="Nombre del transporte ocasional"
+                            placeholder="Ej: Flete particular" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Dirección / Referencia <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalDireccionRef} 
+                            value={ocasionalDireccion} 
+                            onChange={(e) => setOcasionalDireccion(e.target.value)} 
+                            aria-label="Dirección del transporte ocasional"
+                            placeholder="Ej: Av. Siempreviva 123" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {usarEntregaDirecta && (
+                    <p className="mt-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 font-body text-[12px] text-on-surface">Se emitirá como entrega directa a: <strong>{pedido.cliente.direccion}</strong>.</p>
+                  )}
+                  {!transporteId && !usarOcasional && !pedido.cliente.direccion?.trim() && (
+                    <p className="mt-3 font-body text-[12px] text-warning">Este cliente no tiene domicilio cargado. Para entrega directa, completalo en Clientes; también podés seleccionar un transportista u “Otro”.</p>
+                  )}
+                  {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error mt-2">{remitoError}</p>}
+                </div>
+              </div>
+            ) : null}
+            {remitosInvalidados.length > 0 && (
+              <div className="mt-6 space-y-3 border-t border-white/5 pt-4">
+                <h3 className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Remitos anteriores</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {remitosInvalidados.map((r) => (
+                    <div key={r.id} className="rounded-lg border border-white/5 bg-surface-container-low p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-body text-[13px] font-semibold text-on-surface">Remito {r.numero}</p>
+                        <Badge variant="error" className="h-5 px-1.5 text-[10px]">Anulado</Badge>
+                      </div>
+                      <p className="mt-1 font-body text-[11px] text-outline">{formatFecha(r.fecha)}</p>
+                      {r.motivoInvalidacion && <p className="mt-1 font-body text-[11px] text-on-surface-variant">Motivo: {r.motivoInvalidacion}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <CambiarClienteSheet
+        open={sheetCliente}
+        onClose={() => setSheetCliente(false)}
+        clientes={clientes}
+        recientes={clientesRecientes}
+        onSelect={(cliente) => {
+          setClienteIdLocal(cliente.id)
+          setSheetCliente(false)
+        }}
+      />
+
+      <BottomSheet open={sheetProductos} onClose={cerrarModalProductos} title="Agregar producto" desktop="modal">
+        <div className="flex flex-col h-full max-h-[85vh] lg:w-[750px] lg:max-w-full">
+          <div className="px-4 py-4 lg:px-6 space-y-4 flex-1 overflow-y-auto">
+            <input
+              autoFocus
+              type="search"
+              value={busquedaProducto}
+              onChange={(e) => setBusquedaProducto(e.target.value)}
+              aria-label="Buscar producto"
+              placeholder="Buscar producto por nombre o SKU"
+              className="input-field text-base"
+            />
+            {busquedaProducto.trim() !== '' ? (
+              <section aria-label="Resultados de búsqueda" className="space-y-2 pb-6">
+                <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+                  Resultados para “{busquedaProducto.trim()}”
+                </h2>
+                {resultadosBusqueda.length === 0 ? (
+                  <p className="py-6 text-center font-body text-[13px] text-on-surface-variant">
+                    Sin resultados para “{busquedaProducto.trim()}”
+                  </p>
+                ) : (
+                  resultadosBusqueda.map((r) => (
+                    <ProductCard
+                      key={r.id}
+                      producto={r}
+                      agregadoCajas={modalCarrito?.[r.id]?.cajas}
+                      agregadoSueltos={modalCarrito?.[r.id]?.sueltos}
+                      onChangeSueltos={(sueltos) => cambiarCantidadModal(r.id, modalCarrito?.[r.id]?.cajas ?? 0, sueltos)}
+                      onTap={() => agregarAlCarritoModal(r)}
+                    />
+                  ))
+                )}
+              </section>
+            ) : (
+              <div className="pb-6">
+                {frecuentes.length > 0 && (
+                  <section aria-label="Frecuentes" className="space-y-2">
+                    <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+                      Frecuentes del cliente
+                    </h2>
+                    {frecuentes.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        producto={p}
+                        agregadoCajas={modalCarrito?.[p.id]?.cajas}
+                        agregadoSueltos={modalCarrito?.[p.id]?.sueltos}
+                        onChangeSueltos={(sueltos) => cambiarCantidadModal(p.id, modalCarrito?.[p.id]?.cajas ?? 0, sueltos)}
+                        onTap={() => agregarAlCarritoModal(p)}
+                      />
+                    ))}
+                  </section>
+                )}
+                {recientes.length > 0 && (
+                  <section aria-label="Recientes" className="mt-6 space-y-2">
+                    <h2 className="font-body text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+                      Recientes
+                    </h2>
+                    {recientes.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        producto={p}
+                        agregadoCajas={modalCarrito?.[p.id]?.cajas}
+                        agregadoSueltos={modalCarrito?.[p.id]?.sueltos}
+                        onChangeSueltos={(sueltos) => cambiarCantidadModal(p.id, modalCarrito?.[p.id]?.cajas ?? 0, sueltos)}
+                        onTap={() => agregarAlCarritoModal(p)}
+                      />
+                    ))}
+                  </section>
+                )}
+                {frecuentes.length === 0 && recientes.length === 0 && (
+                  <p className="py-6 text-center font-body text-[13px] text-on-surface-variant">
+                    Sin pedidos previos: buscá un producto para agregar
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="border-t border-white/10 bg-surface-container-low p-4 lg:px-6 flex flex-col md:flex-row items-center justify-between gap-4 shrink-0">
+            <p className="font-body text-[13px] font-medium text-on-surface-variant w-full text-center md:text-left md:w-auto">
+              {modalResumen}
+            </p>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <Button variant="outline" onClick={cerrarModalProductos} className="h-10 flex-1 md:flex-none md:w-32">
+                Cancelar
+              </Button>
+              <Button onClick={confirmarModalProductos} disabled={!modalHayCambios} className="h-10 flex-1 md:flex-none md:w-40">
+                Confirmar cambios
+              </Button>
+            </div>
+          </div>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet open={solicitarOpen} onClose={() => setSolicitarOpen(false)} title="Solicitar cancelación" desktop="sheet">
+        <div className="space-y-4">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            El armador deberá confirmar. La reserva no se libera hasta entonces.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-solicitud" className="font-body text-[12px] font-medium text-on-surface-variant">
+              Motivo *
+            </label>
+            <textarea
+              id="motivo-solicitud"
+              value={motivoSolicitud}
+              onChange={(e) => setMotivoSolicitud(e.target.value)}
+              rows={3}
+              placeholder="¿Por qué querés cancelar el pedido?"
+              className="input-field text-base"
+            />
+          </div>
+          {motivoSolicitudError && (
+            <p role="alert" className="font-body text-[12px] font-medium text-error">
+              {motivoSolicitudError}
+            </p>
+          )}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setSolicitarOpen(false)} disabled={cancelarMutation.isPending} className="min-h-11 flex-1">
+              Volver
+            </Button>
+            <Button onClick={() => void enviarSolicitud()} loading={cancelarMutation.isPending} className="min-h-11 flex-1">
+              Enviar solicitud
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet open={confirmarOpen} onClose={() => setConfirmarOpen(false)} title="Confirmar cancelación" desktop="sheet">
+        <div className="space-y-4">
+          <p className="font-body text-[12px] leading-relaxed text-on-surface-variant">
+            Confirmá la cancelación solicitada. Se liberará la reserva de stock.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-confirmar" className="font-body text-[12px] font-medium text-on-surface-variant">
+              Motivo
+            </label>
+            <textarea
+              id="motivo-confirmar"
+              value={motivoConfirmar}
+              onChange={(e) => setMotivoConfirmar(e.target.value)}
+              rows={3}
+              className="input-field text-base"
+            />
+          </div>
+          {motivoConfirmarError && (
+            <p role="alert" className="font-body text-[12px] font-medium text-error">
+              {motivoConfirmarError}
+            </p>
+          )}
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setConfirmarOpen(false)} disabled={confirmarCancelacionMutation.isPending} className="min-h-11 flex-1">
+              Volver
+            </Button>
+            <Button
+              onClick={() => void confirmarCancelacion()}
+              loading={confirmarCancelacionMutation.isPending}
+              className="min-h-11 flex-1"
+            >
+              Confirmar cancelación
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={anularOpen}
+        onClose={() => setAnularOpen(false)}
+        title="Anular remito"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setAnularOpen(false)} disabled={anularRemitoMutation.isPending} className="flex-1 md:flex-none h-10 px-6">
+              Volver
+            </Button>
+            <button
+              onClick={() => void anularRemito()}
+              disabled={anularRemitoMutation.isPending}
+              className="flex-1 md:flex-none inline-flex h-10 items-center justify-center gap-2 rounded border px-6 py-2 text-[13px] font-semibold transition-colors text-[#A06869] border-[#D5B4B5] bg-[#F5ECEC] hover:bg-[#F5ECEC]/80 disabled:opacity-50"
+            >
+              Anular remito
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="font-body text-[13px] leading-relaxed text-on-surface-variant">
+            El remito dejará de estar vigente y podrá emitirse uno nuevo.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-anular" className="font-body text-[13px] font-medium text-on-surface">
+              Motivo <span className="text-error">*</span>
+            </label>
+            <textarea
+              id="motivo-anular"
+              value={motivoAnular}
+              onChange={(e) => setMotivoAnular(e.target.value)}
+              rows={3}
+              placeholder="Indicá el motivo de la anulación"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
+            />
+          </div>
+          {motivoAnularError && (
+            <p role="alert" className="font-body text-[12px] font-medium text-[#A06869] bg-[#F5ECEC] border border-[#D5B4B5] p-2 rounded">
+              {motivoAnularError}
+            </p>
+          )}
+        </div>
+      </BottomSheet>
+
+      {lotSelectorOpen && disponibilidad && (
+        <LotAllocationSelector
+          items={pedido.items.map((item) => ({ id: item.id, productoId: item.productoId, nombre: item.producto.nombre, cantidad: item.cantidad }))}
+          disponibilidad={disponibilidad}
+          submitting={aprobarMutation.isPending}
+          onCancel={() => setLotSelectorOpen(false)}
+          onConfirm={(selecciones) => void confirmarLotesSeleccionados(selecciones)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={confirm === 'aprobar'}
+        titulo="Aprobar pedido"
+        mensaje={disponibilidad?.status === 'DISPONIBLE_CON_TRANSFERENCIA'
+          ? `¿Aprobar ${pedido.numero}? Confirmarás ${disponibilidad.transferencias.length} traslado(s) internos antes de reservar.`
+          : `¿Aprobar ${pedido.numero}? Se reservará el stock disponible en depósito.`}
+        accion="Aprobar"
+        loading={aprobarMutation.isPending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void ejecutarConfirm()}
+      />
+      <ConfirmDialog
+        open={confirm === 'tomar'}
+        titulo="TOMAR PEDIDO"
+        mensaje={
+          <div className="flex flex-col gap-2">
+            <span className="text-[16px] font-bold text-on-surface">{pedido?.cliente.nombre}</span>
+            <span className="text-on-surface-variant">Quedará asignado a vos para el armado.</span>
+            <span className="text-[12px] opacity-70">Pedido {pedido?.numero}</span>
+          </div>
+        }
+        accion="Tomar pedido"
+        loading={tomarMutation.isPending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={ejecutarConfirm}
+      />
+      <ConfirmDialog
+        open={confirm === 'cancelar'}
+        titulo={pedido.estado === 'BORRADOR' ? 'Descartar borrador' : 'Cancelar pedido'}
+        mensaje={pedido.estado === 'BORRADOR' ? 'Este borrador se eliminará.' : pedido.estado === 'APROBADO' ? 'Se liberará la reserva de stock' : 'Se descartará el pedido'}
+        accion={pedido.estado === 'BORRADOR' ? 'Descartar borrador' : 'Cancelar'}
+        loading={cancelarMutation.isPending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void ejecutarConfirm()}
+      />
+      <ConfirmDialog
+        open={confirm === 'guardar-aprobado'}
+        titulo="Guardar cambios"
+        mensaje="Esto libera la reserva actual y devuelve el pedido a borrador. Deberá aprobarse nuevamente antes de armarlo. ¿Continuar?"
+        accion="Continuar"
+        loading={guardando}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void ejecutarConfirm()}
+      />
+      <ConfirmDialog
+        open={confirm === 'preparar'}
+        titulo="FINALIZAR ARMADO"
+        mensaje={`¿Marcar ${pedido.numero} como completamente armado y listo para remito?`}
+        accion="FINALIZAR ARMADO"
+        loading={prepararMutation.isPending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void ejecutarConfirm()}
+      />
+      <ConfirmDialog
+        open={confirm === 'despachar'}
+        titulo="Aprobar descuento de stock"
+        mensaje="Esta acción descontará definitivamente el stock."
+        accion="Aprobar descuento"
+        loading={despacharMutation.isPending}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void ejecutarConfirm()}
+      />
+
+      <BottomSheet
+        open={devolucionOpen}
+        onClose={() => setDevolucionOpen(false)}
+        title="Registrar devolución"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setDevolucionOpen(false)} disabled={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Volver</Button>
+            <Button onClick={() => void registrarDevolucion()} loading={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Reponer stock</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            Las unidades se reingresarán automáticamente en los lotes desde los que se despacharon. Solo podés devolver hasta la cantidad enviada.
+          </p>
+          <div className="space-y-3">
+            {pedido.items.map((item) => {
+              const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+              return (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-surface-container-high p-3">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="min-w-0 truncate font-body text-[13px] font-semibold text-on-surface">{item.producto.nombre}</p>
+                    <span className="shrink-0 font-body text-[11px] text-on-surface-variant">Enviado: {item.cantidad} un</span>
+                  </div>
+                  <QuantityStepper
+                    cajas={line.cajas}
+                    sueltos={line.sueltos}
+                    unidadesPorCaja={item.producto.unidadesPorCaja}
+                    onChange={(cajas, sueltos) => cambiarCantidadDevolucion(item.productoId, cajas, sueltos)}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-devolucion" className="font-body text-[13px] font-medium text-on-surface">Motivo <span className="text-error">*</span></label>
+            <textarea
+              id="motivo-devolucion"
+              value={motivoDevolucion}
+              onChange={(event) => setMotivoDevolucion(event.target.value)}
+              rows={3}
+              placeholder="Ej.: mercadería devuelta por el cliente"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
+            />
+          </div>
+          {motivoDevolucionError && <p role="alert" className="font-body text-[12px] font-medium text-error">{motivoDevolucionError}</p>}
+        </div>
+      </BottomSheet>
+
+      <ArmadorActionBar
+        pedido={pedido}
+        rol={rol}
+        userId={userId}
+        despachando={despacharMutation.isPending}
+        hayEsperas={Object.keys(esperas).some(k => esperas[k])}
+        finalizandoArmado={finalizandoArmado}
+        onTomar={() => setConfirm('tomar')}
+        onPreparar={() => setConfirm('preparar')}
+        onDespachar={() => setConfirm('despachar')}
+        onConfirmarCancelacion={abrirConfirmarCancelacion}
+      />
+    </div>
+  )
+}
+
+function AutomationPedidoDetail({ pedido }: { pedido: any }) {
+  const qc = useQueryClient()
+  const user = useAuthStore((state) => state.user)
+  const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const esFacturacion = rol === 'facturacion'
+  const userId = user?.sub ?? ''
+  const esRemitos = can(user, 'ale-bet', 'remitos.create')
+  
+  const { data: transportistas = [] } = useTransportistas({ enabled: esRemitos })
+  
+  const [transporteId, setTransporteId] = useState('')
+  const [usarOcasional, setUsarOcasional] = useState(false)
+  const [usarEntregaDirecta, setUsarEntregaDirecta] = useState(false)
+  const [ocasionalNombre, setOcasionalNombre] = useState('')
+  const [ocasionalDireccion, setOcasionalDireccion] = useState('')
+  const [remitoError, setRemitoError] = useState<string | null>(null)
+  const [anularOpen, setAnularOpen] = useState(false)
+  const [motivoAnular, setMotivoAnular] = useState('')
+  const [motivoAnularError, setMotivoAnularError] = useState<string | null>(null)
+  const [remitoAnular, setRemitoAnular] = useState<any | null>(null)
+  const [entregaCantidades, setEntregaCantidades] = useState<Record<string, number>>({})
+  const [remitoParaDescuento, setRemitoParaDescuento] = useState<any | null>(null)
+  const [disponibilidadDescuento, setDisponibilidadDescuento] = useState<PedidoDisponibilidadStock | null>(null)
+  const [devolucionOpen, setDevolucionOpen] = useState(false)
+  const [devolucionCarrito, setDevolucionCarrito] = useState<Carrito>({})
+  const [motivoDevolucion, setMotivoDevolucion] = useState('')
+  const [motivoDevolucionError, setMotivoDevolucionError] = useState<string | null>(null)
+  const [ampliacionOpen, setAmpliacionOpen] = useState(false)
+  const [ampliacionBusqueda, setAmpliacionBusqueda] = useState('')
+  const [ampliacionCarrito, setAmpliacionCarrito] = useState<Carrito>({})
+  const [ampliacionProductos, setAmpliacionProductos] = useState<Record<string, ProductoCardDatos>>({})
+  const [ampliacionError, setAmpliacionError] = useState<string | null>(null)
+
+  const ampliacionBusquedaDebounced = useDebouncedValue(ampliacionBusqueda, 200)
+  const { data: resultadosAmpliacion = [] } = useProductosSearch(ampliacionBusquedaDebounced)
+
+  const ocasionalNombreRef = useRef<HTMLInputElement>(null)
+  const ocasionalDireccionRef = useRef<HTMLInputElement>(null)
+
+  const emitirRemitoMutation = useEmitirRemito()
+  const anularRemitoMutation = useAnularRemito()
+  const aprobarDescuentoRemitoMutation = useAprobarDescuentoRemito()
+  const devolucionMutation = useRegistrarDevolucionPedido()
+  const ampliacionMutation = useAmpliarPedidoConfirmado()
+
+  const remitosVigentes = pedido?.remitos?.filter((r: any) => r.estado === 'VIGENTE') ?? []
+  const remitoVigente = remitosVigentes[0] ?? null
+  const remitosInvalidados = pedido?.remitos?.filter((r: any) => r.estado === 'INVALIDADO') ?? []
+
+  useEffect(() => {
+    const defaultId = pedido?.cliente?.transportistaPredeterminadoId
+    if (!usarOcasional && defaultId && transportistas.some((transportista) => transportista.id === defaultId)) {
+      setTransporteId((current) => current || defaultId)
+    }
+  }, [pedido?.cliente?.transportistaPredeterminadoId, transportistas, usarOcasional])
+  const canDevolver = canRegistrarDevolucion(pedido, rol, userId)
+  const canAmpliar = rol === 'admin' && can(user, 'ale-bet', 'pedidos.edit') && pedido.estado === 'APROBADO'
+  const itemsAgrupados = useMemo(() => {
+    const grouped = new Map<string, any>()
+    for (const item of pedido.items) {
+      const previous = grouped.get(item.productoId)
+      grouped.set(item.productoId, previous ? { ...previous, cantidad: previous.cantidad + item.cantidad } : item)
+    }
+    return [...grouped.values()]
+  }, [pedido.items])
+  const entregaParcial = Boolean(pedido?.descuentoPorRemito)
+  const puedeEmitirParcial = esRemitos && canEmitirRemito(pedido, rol) && itemsAgrupados.some((item: any) => Math.max(0, item.cantidad - (item.cantidadEntregada ?? 0)) > 0)
+
+  function abrirAmpliacion() {
+    setAmpliacionBusqueda('')
+    setAmpliacionCarrito({})
+    setAmpliacionProductos({})
+    setAmpliacionError(null)
+    setAmpliacionOpen(true)
+  }
+
+  function agregarProducto(producto: ProductoCardDatos) {
+    setAmpliacionProductos((previous) => ({ ...previous, [producto.id]: producto }))
+    setAmpliacionCarrito((previous) => {
+      const current = previous[producto.id] ?? { cajas: 0, sueltos: 0 }
+      const next = calcularCajasSueltos(cantidadLinea(current.cajas, current.sueltos, producto.unidadesPorCaja) + 1, producto.unidadesPorCaja)
+      return { ...previous, [producto.id]: next }
+    })
+  }
+
+  function cambiarAmpliacion(productoId: string, cajas: number, sueltos: number) {
+    setAmpliacionCarrito((previous) => ({ ...previous, [productoId]: { cajas, sueltos } }))
+  }
+
+  function quitarAmpliacion(productoId: string) {
+    setAmpliacionCarrito((previous) => {
+      const { [productoId]: _, ...rest } = previous
+      return rest
+    })
+    setAmpliacionProductos((previous) => {
+      const { [productoId]: _, ...rest } = previous
+      return rest
+    })
+  }
+
+  async function guardarAmpliacion() {
+    const items = Object.entries(ampliacionCarrito).flatMap(([productoId, line]) => {
+      const producto = ampliacionProductos[productoId]
+      if (!producto) return []
+      const cantidad = cantidadLinea(line.cajas, line.sueltos, producto.unidadesPorCaja)
+      return cantidad > 0 ? [{ productoId, cantidad }] : []
+    })
+    if (items.length === 0) {
+      setAmpliacionError('Agregá al menos una unidad al pedido')
+      return
+    }
+    setAmpliacionError(null)
+    try {
+      await ampliacionMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version, items, idempotencyKey: newIdempotencyKey() })
+      toast.success('Pedido actualizado y stock adicional descontado')
+      setAmpliacionOpen(false)
+      void qc.invalidateQueries({ queryKey: pedidosKeys.all })
+    } catch (error) {
+      setAmpliacionError(error instanceof Error ? error.message : 'No se pudo actualizar el pedido')
+    }
+  }
+
+  function abrirDevolucion() {
+    const initial: Carrito = {}
+    for (const item of itemsAgrupados) initial[item.productoId] = { cajas: 0, sueltos: 0 }
+    setDevolucionCarrito(initial)
+    setMotivoDevolucion('')
+    setMotivoDevolucionError(null)
+    setDevolucionOpen(true)
+  }
+
+  async function registrarDevolucion() {
+    const motivo = motivoDevolucion.trim()
+    if (motivo.length < 3) {
+      setMotivoDevolucionError(motivo.length === 0 ? 'Indicá el motivo de la devolución' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    const items = itemsAgrupados.flatMap((item: any) => {
+      const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+      const cantidad = cantidadLinea(line.cajas, line.sueltos, item.producto.unidadesPorCaja)
+      return cantidad > 0 ? [{ productoId: item.productoId, cantidad }] : []
+    })
+    if (items.length === 0) {
+      setMotivoDevolucionError('Indicá al menos una cantidad para devolver')
+      return
+    }
+    setMotivoDevolucionError(null)
+    try {
+      await devolucionMutation.mutateAsync({ id: pedido.id, expectedVersion: pedido.version, items, motivo, idempotencyKey: newIdempotencyKey() })
+      toast.success('Devolución registrada y stock repuesto')
+      setDevolucionOpen(false)
+      void qc.invalidateQueries({ queryKey: pedidosKeys.all })
+    } catch (error) {
+      setMotivoDevolucionError(error instanceof Error ? error.message : 'No se pudo registrar la devolución')
+    }
+  }
+
+  function abrirAnular(remito = remitoVigente) {
+    setMotivoAnular('')
+    setMotivoAnularError(null)
+    setRemitoAnular(remito)
+    setAnularOpen(true)
+  }
+
+  async function anularRemito() {
+    const motivo = motivoAnular.trim()
+    if (motivo.length < 3) {
+      setMotivoAnularError(motivo.length === 0 ? 'El motivo es obligatorio' : 'El motivo debe tener al menos 3 caracteres')
+      return
+    }
+    setMotivoAnularError(null)
+    if (!pedido || !remitoAnular) return
+    try {
+      await anularRemitoMutation.mutateAsync({
+        pedidoId: pedido.id,
+        remitoId: remitoAnular.id,
+        motivo,
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Remito anulado')
+      setAnularOpen(false)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al anular el remito')
+    }
+  }
+
+  async function emitirRemito() {
+    if (usarOcasional) {
+      const nombreValido = ocasionalNombre.trim().length >= 2
+      const direccionValida = ocasionalDireccion.trim().length >= 2
+      if (!nombreValido || !direccionValida) {
+        setRemitoError('El transporte ocasional requiere nombre y dirección de al menos 2 caracteres')
+        toast.error('Completá nombre y dirección del transporte ocasional')
+        if (!nombreValido) {
+          ocasionalNombreRef.current?.focus()
+          ocasionalNombreRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        } else {
+          ocasionalDireccionRef.current?.focus()
+          ocasionalDireccionRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'center' })
+        }
+        return
+      }
+    } else if (!transporteId && !pedido?.cliente.direccion?.trim()) {
+      setRemitoError('Seleccioná un transporte o cargá el domicilio del cliente para entrega directa')
+      return
+    }
+    setRemitoError(null)
+    if (!pedido) return
+    const items = entregaParcial ? itemsAgrupados.flatMap((item: any) => {
+      const cantidad = Number(entregaCantidades[item.productoId] ?? 0)
+      const pendiente = Math.max(0, item.cantidad - (item.cantidadEntregada ?? 0))
+      return Number.isInteger(cantidad) && cantidad > 0 && cantidad <= pendiente ? [{ productoId: item.productoId, cantidad }] : []
+    }) : undefined
+    if (entregaParcial && (!items || items.length === 0)) {
+      setRemitoError('Elegí al menos una cantidad pendiente para esta entrega')
+      return
+    }
+    if (entregaParcial && items!.some((item) => item.cantidad !== entregaCantidades[item.productoId])) {
+      setRemitoError('Una cantidad supera lo pendiente de entregar')
+      return
+    }
+    try {
+      await emitirRemitoMutation.mutateAsync({
+        pedidoId: pedido.id,
+        expectedVersion: pedido.version,
+        ...(items ? { items } : {}),
+        ...(usarOcasional
+          ? { transporteOcasional: { nombre: ocasionalNombre.trim(), direccion: ocasionalDireccion.trim() } }
+          : transporteId ? { transportistaId: transporteId } : {}),
+        idempotencyKey: newIdempotencyKey(),
+      })
+      toast.success('Remito emitido')
+      setTransporteId('')
+      setUsarOcasional(false)
+      setUsarEntregaDirecta(false)
+      setOcasionalNombre('')
+      setOcasionalDireccion('')
+      setEntregaCantidades({})
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Error al emitir el remito'
+      setRemitoError(message)
+      toast.error(message)
+    }
+  }
+
+  async function descargarRemito(remitoId?: string) {
+    if (!pedido) return
+    try {
+      await descargarRemitoPdf(pedido.id, remitoId)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Error al descargar el remito')
+    }
+  }
+
+  async function abrirDescuento(remito: any) {
+    try {
+      const disponibilidad = await aleBetApi.remitos.disponibilidadDescuento(pedido.id, remito.id)
+      setDisponibilidadDescuento(disponibilidad)
+      setRemitoParaDescuento(remito)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo consultar el stock actual')
+    }
+  }
+
+  async function aprobarDescuento(selecciones: PedidoDisponibilidadStock['allocations']) {
+    if (!remitoParaDescuento || !disponibilidadDescuento) return
+    try {
+      await aprobarDescuentoRemitoMutation.mutateAsync({ pedidoId: pedido.id, remitoId: remitoParaDescuento.id, expectedVersion: pedido.version, selecciones, transferencias: disponibilidadDescuento.transferencias, idempotencyKey: newIdempotencyKey() })
+      toast.success('Stock descontado y remito aprobado')
+      setRemitoParaDescuento(null)
+      setDisponibilidadDescuento(null)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'No se pudo aprobar el descuento')
+    }
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[1000px] flex flex-col">
+      {entregaParcial && remitosVigentes.length > 0 && (
+        <section className="mb-4 space-y-3 rounded-xl border border-white/10 bg-surface-container-low p-4">
+          <h2 className="font-body text-[12px] font-bold uppercase tracking-wide text-on-surface-variant">Entregas emitidas</h2>
+          {remitosVigentes.map((remito: any) => {
+            const aprobado = Boolean(remito.descuentoAprobadoAt)
+            const puedeAprobar = (rol === 'admin' || rol === 'encargado') && !aprobado
+            return <article key={remito.id} className="rounded-lg border border-white/10 bg-surface-container p-3"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><p className="font-body text-[14px] font-bold text-on-surface">Remito {remito.numero}</p><Badge variant={aprobado ? 'success' : 'warning'}>{aprobado ? 'Stock descontado' : 'Pendiente a descuento'}</Badge></div><p className="mt-1 font-body text-[12px] text-on-surface-variant">{(remito.itemsSnapshot ?? []).map((item: any) => `${item.nombre}: ${item.cantidad} un`).join(' · ')}</p></div><div className="flex flex-wrap gap-2">{can(user, 'ale-bet', 'remitos.read.pdf') && <Button variant="outline" onClick={() => void descargarRemito(remito.id)} className="h-9 px-3 text-[12px]">Descargar</Button>}{puedeAprobar && <Button onClick={() => void abrirDescuento(remito)} className="h-9 px-3 text-[12px]">Elegir lotes y descontar</Button>}{!aprobado && can(user, 'ale-bet', 'remitos.void') && <Button variant="outline" onClick={() => abrirAnular(remito)} className="h-9 px-3 text-[12px] text-error border-error/20">Anular</Button>}</div></div></article>
+          })}
+        </section>
+      )}
+      <section className="bg-surface-container-high shadow-sm lg:rounded-2xl">
+        <div className="px-4 py-5 lg:px-8 lg:py-7 border-b border-white/10 bg-surface-container-low">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-[22px] md:text-[26px] font-bold tracking-tight text-on-surface leading-tight">
+                {pedido.cliente.nombre}
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                {pedido.cliente?.cuit && <span>CUIT {pedido.cliente.cuit}</span>}
+                {pedido.cliente?.direccion && (
+                  <>
+                    {pedido.cliente?.cuit && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>{pedido.cliente.direccion}{pedido.cliente?.localidad ? `, ${pedido.cliente.localidad}` : ''}</span>
+                  </>
+                )}
+                {pedido.cliente?.contacto && (
+                  <>
+                    {(pedido.cliente?.cuit || pedido.cliente?.direccion) && <span className="hidden md:inline text-outline/40">•</span>}
+                    <span>Contacto: {pedido.cliente.contacto}</span>
+                  </>
+                )}
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 font-body text-[13px] text-on-surface-variant">
+                <span data-testid="pedido-numero" className="font-semibold text-on-surface">Pedido {pedido.numero}</span>
+                <span className="hidden md:inline text-outline/40">•</span>
+                <span>Creado {formatFechaHora(pedido.createdAt)}</span>
+                <span className="hidden md:inline text-outline/40">•</span>
+                <span className="font-semibold text-on-surface">Automation · Confirmado</span>
+              </div>
+            </div>
+            
+            <div className="flex flex-col md:items-end justify-start gap-2 shrink-0 md:w-56">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/20 bg-primary/10">
+                <FileText size={16} className="text-primary" />
+                <span className="font-body text-[13px] font-medium text-primary">
+                  {entregaParcial ? `${remitosVigentes.length} entrega${remitosVigentes.length === 1 ? '' : 's'} emitida${remitosVigentes.length === 1 ? '' : 's'}` : remitoVigente ? 'Remito emitido' : 'Pendiente de remito'}
+                </span>
+              </div>
+              {canDevolver && (
+                <Button variant="outline" onClick={abrirDevolucion} className="h-9 w-full px-4 text-[12px]">
+                  Registrar devolución
+                </Button>
+              )}
+              {canAmpliar && (
+                <Button variant="outline" onClick={abrirAmpliacion} className="h-9 w-full px-4 text-[12px]">
+                  Modificar pedido
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 lg:p-8 space-y-6">
+          <div>
+            <h2 className="text-[20px] font-bold tracking-tight text-on-surface mb-4">Productos</h2>
+            <div className="flex flex-col border-t border-white/10">
+              {itemsAgrupados.map((item: any) => {
+                const base = calcularCajasSueltos(item.cantidad, item.producto.unidadesPorCaja)
+                const entregado = item.cantidadEntregada ?? 0
+                const pendiente = Math.max(0, item.cantidad - entregado)
+                return (
+                  <div key={item.productoId}>
+                    <LineaDetalle
+                      productoId={item.productoId}
+                      nombre={item.producto.nombre}
+                      sku={item.producto.sku}
+                      cajas={base.cajas}
+                      sueltos={base.sueltos}
+                      unidades={item.cantidad}
+                      unidadesPorCaja={item.producto.unidadesPorCaja}
+                      completado={item.completado}
+                      editable={false}
+                      completable={false}
+                      isFacturacion={true}
+                    />
+                    {entregaParcial && <p className="-mt-2 pb-3 pl-1 font-body text-[12px] text-on-surface-variant">Entregado: <strong className="text-on-surface">{entregado} un</strong> · Pendiente: <strong className="text-primary">{pendiente} un</strong></p>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {esRemitos && (
+          <div className="border-t border-white/10 bg-surface-container/30 p-4 lg:p-8">
+            {!entregaParcial && remitoVigente ? (
+              <div className="md:flex md:items-center md:justify-between md:gap-6">
+                <div className="flex-1">
+                  <h2 className="font-body text-[13px] font-bold text-on-surface">Remito Vigente</h2>
+                  <div className="mt-2 rounded-lg border border-white/10 bg-surface-container-low p-3 flex flex-wrap gap-4 items-center">
+                    <div>
+                      <p className="font-semibold text-[14px] text-on-surface">Remito {remitoVigente.numero}</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{formatFecha(remitoVigente.fecha)}</p>
+                    </div>
+                    <div className="hidden md:block w-[1px] h-8 bg-white/10"></div>
+                    <div>
+                      <p className="font-body text-[12px] font-medium text-on-surface">Transporte</p>
+                      <p className="font-body text-[12px] text-on-surface-variant">{remitoVigente.transporteNombre}{remitoVigente.transporteDireccion ? ` · ${remitoVigente.transporteDireccion}` : ''}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 md:mt-0 shrink-0 flex flex-row md:flex-col gap-2 md:w-40">
+                  {can(user, 'ale-bet', 'remitos.read.pdf') && (
+                    <Button variant="outline" onClick={() => void descargarRemito(remitoVigente.id)} className="h-9 w-full flex-1 text-[13px]">Descargar</Button>
+                  )}
+                  {can(user, 'ale-bet', 'remitos.void') && (
+                    <Button variant="outline" onClick={() => abrirAnular(remitoVigente)} className="h-9 w-full flex-1 text-[13px] text-error hover:bg-error/10 border-error/20">Anular</Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <RemitoNumerationSetup enabled={esRemitos} />
+                {entregaParcial && (
+                  <div className="mb-5 rounded-xl border border-primary/25 bg-primary/5 p-4">
+                    <h2 className="font-body text-[13px] font-bold text-on-surface">Nueva entrega parcial</h2>
+                    <p className="mt-1 font-body text-[12px] text-on-surface-variant">Indicá solamente lo que sale ahora. Lo restante queda pendiente para un próximo remito.</p>
+                    <div className="mt-3 space-y-2">
+                      {itemsAgrupados.map((item: any) => {
+                        const pendiente = Math.max(0, item.cantidad - (item.cantidadEntregada ?? 0))
+                        if (pendiente === 0) return null
+                        return <label key={item.productoId} className="grid grid-cols-[1fr_92px] items-center gap-3 rounded-lg border border-white/10 bg-surface-container-low px-3 py-2">
+                          <span className="min-w-0"><span className="block truncate font-body text-[13px] font-semibold text-on-surface">{item.producto.nombre}</span><span className="font-body text-[11px] text-on-surface-variant">Pendiente: {pendiente} un</span></span>
+                          <input aria-label={`Cantidad a entregar de ${item.producto.nombre}`} type="number" min="0" max={pendiente} step="1" value={entregaCantidades[item.productoId] ?? ''} onChange={(event) => setEntregaCantidades((current) => ({ ...current, [item.productoId]: event.target.value === '' ? 0 : Number(event.target.value) }))} className="input-field h-10 w-full text-center text-[13px]" placeholder="0" />
+                        </label>
+                      })}
+                    </div>
+                  </div>
+                )}
+                <h2 className="font-body text-[13px] font-bold tracking-wide text-on-surface-variant uppercase mb-3">Transporte</h2>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-col md:flex-row md:items-start gap-3">
+                    <TransportSelector
+                      transportistas={transportistas}
+                      transporteId={transporteId}
+                      setTransporteId={setTransporteId}
+                      usarOcasional={usarOcasional}
+                      setUsarOcasional={setUsarOcasional}
+                      entregaDirectaDisponible={Boolean(pedido.cliente.direccion?.trim())}
+                      usarEntregaDirecta={usarEntregaDirecta}
+                      setUsarEntregaDirecta={setUsarEntregaDirecta}
+                    />
+                    <Button onClick={() => void emitirRemito()} disabled={entregaParcial && !puedeEmitirParcial} loading={emitirRemitoMutation.isPending} className="h-11 w-full md:w-auto px-6 font-semibold">
+                      {entregaParcial ? 'Emitir esta entrega' : 'Emitir remito'}
+                    </Button>
+                  </div>
+                  {usarOcasional && (
+                    <div className="mt-3 flex flex-col gap-3 rounded-xl border border-white/10 bg-surface-container-low p-4 w-full">
+                      <p className="font-body text-[13px] font-medium text-on-surface">Datos del transporte ocasional</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Nombre / Razón Social <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalNombreRef} 
+                            value={ocasionalNombre} 
+                            onChange={(e) => setOcasionalNombre(e.target.value)} 
+                            aria-label="Nombre del transporte ocasional"
+                            placeholder="Ej: Flete particular" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="font-body text-[11px] font-medium text-outline">Dirección / Referencia <span className="text-primary">*</span></label>
+                          <input 
+                            ref={ocasionalDireccionRef} 
+                            value={ocasionalDireccion} 
+                            onChange={(e) => setOcasionalDireccion(e.target.value)} 
+                            aria-label="Dirección del transporte ocasional"
+                            placeholder="Ej: Av. Siempreviva 123" 
+                            className="w-full h-11 px-4 text-left text-[14px] font-body bg-surface-container-high border border-white/10 transition-all shadow-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-lg text-on-surface placeholder:text-on-surface-variant/70"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {usarEntregaDirecta && (
+                    <p className="mt-3 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 font-body text-[12px] text-on-surface">Se emitirá como entrega directa a: <strong>{pedido.cliente.direccion}</strong>.</p>
+                  )}
+                  {!transporteId && !usarOcasional && !pedido.cliente.direccion?.trim() && (
+                    <p className="mt-3 font-body text-[12px] text-warning">Este cliente no tiene domicilio cargado. Para entrega directa, completalo en Clientes; también podés seleccionar un transportista u “Otro”.</p>
+                  )}
+                  {remitoError && <p role="alert" className="font-body text-[12px] font-medium text-error mt-2">{remitoError}</p>}
+                </div>
+              </div>
+            )}
+            {remitosInvalidados.length > 0 && (
+              <div className="mt-6 space-y-3 border-t border-white/5 pt-4">
+                <h3 className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Remitos anteriores</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {remitosInvalidados.map((r: any) => (
+                    <div key={r.id} className="rounded-lg border border-white/5 bg-surface-container-low p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-body text-[13px] font-semibold text-on-surface">Remito {r.numero}</p>
+                        <Badge variant="error" className="h-5 px-1.5 text-[10px]">Anulado</Badge>
+                      </div>
+                      <p className="mt-1 font-body text-[11px] text-outline">{formatFecha(r.fecha)}</p>
+                      {r.motivoInvalidacion && <p className="mt-1 font-body text-[11px] text-on-surface-variant">Motivo: {r.motivoInvalidacion}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <BottomSheet
+        open={anularOpen}
+        onClose={() => setAnularOpen(false)}
+        title="Anular remito"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setAnularOpen(false)} disabled={anularRemitoMutation.isPending} className="flex-1 md:flex-none h-10 px-6">
+              Volver
+            </Button>
+            <button
+              onClick={() => void anularRemito()}
+              disabled={anularRemitoMutation.isPending}
+              className="flex-1 md:flex-none inline-flex h-10 items-center justify-center gap-2 rounded border px-6 py-2 text-[13px] font-semibold transition-colors text-[#A06869] border-[#D5B4B5] bg-[#F5ECEC] hover:bg-[#F5ECEC]/80 disabled:opacity-50"
+            >
+              Anular remito
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="font-body text-[13px] leading-relaxed text-on-surface-variant">
+            El remito dejará de estar vigente y podrá emitirse uno nuevo.
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-anular" className="font-body text-[13px] font-medium text-on-surface">
+              Motivo <span className="text-error">*</span>
+            </label>
+            <textarea
+              id="motivo-anular"
+              value={motivoAnular}
+              onChange={(e) => setMotivoAnular(e.target.value)}
+              rows={3}
+              placeholder="Indicá el motivo de la anulación"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
+            />
+          </div>
+          {motivoAnularError && (
+            <p role="alert" className="font-body text-[12px] font-medium text-[#A06869] bg-[#F5ECEC] border border-[#D5B4B5] p-2 rounded">
+              {motivoAnularError}
+            </p>
+          )}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={ampliacionOpen}
+        onClose={() => setAmpliacionOpen(false)}
+        title="Modificar pedido"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setAmpliacionOpen(false)} disabled={ampliacionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Volver</Button>
+            <Button onClick={() => void guardarAmpliacion()} loading={ampliacionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Confirmar ampliación</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            Sumá productos o cantidades al pedido confirmado. Solo se descuenta el adicional; si hay un remito vigente se anula para emitir uno actualizado.
+          </p>
+          {Object.entries(ampliacionCarrito).length > 0 && (
+            <div className="space-y-3">
+              <p className="font-body text-[12px] font-semibold uppercase tracking-wide text-on-surface-variant">A agregar</p>
+              {Object.entries(ampliacionCarrito).map(([productoId, line]) => {
+                const producto = ampliacionProductos[productoId]
+                if (!producto) return null
+                return (
+                  <div key={productoId} className="rounded-xl border border-white/10 bg-surface-container-high p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="min-w-0 truncate font-body text-[13px] font-semibold text-on-surface">{producto.nombre}</p>
+                      <button type="button" onClick={() => quitarAmpliacion(productoId)} className="shrink-0 font-body text-[11px] font-semibold text-error hover:underline">Quitar</button>
+                    </div>
+                    <QuantityStepper
+                      cajas={line.cajas}
+                      sueltos={line.sueltos}
+                      unidadesPorCaja={producto.unidadesPorCaja}
+                      onChange={(cajas, sueltos) => cambiarAmpliacion(productoId, cajas, sueltos)}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <div className="space-y-2">
+            <label htmlFor="buscar-producto-ampliacion" className="font-body text-[13px] font-medium text-on-surface">Buscar producto para sumar</label>
+            <input
+              id="buscar-producto-ampliacion"
+              value={ampliacionBusqueda}
+              onChange={(event) => setAmpliacionBusqueda(event.target.value)}
+              placeholder="Buscá un producto..."
+              className="input-field w-full text-[13px]"
+            />
+          </div>
+          {ampliacionBusqueda.trim().length > 0 && (
+            <div role="region" aria-label="Resultados para sumar" className="overflow-hidden rounded-xl border border-white/10 bg-surface-container-high">
+              {resultadosAmpliacion.length === 0 ? (
+                <p className="p-4 font-body text-[13px] text-on-surface-variant">No se encontraron productos.</p>
+              ) : resultadosAmpliacion.map((producto) => (
+                <div key={producto.id} className="flex items-center justify-between gap-3 border-b border-white/5 p-3 last:border-b-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-body text-[13px] font-semibold text-on-surface">{producto.nombre}</p>
+                    <p className="mt-0.5 font-body text-[11px] text-on-surface-variant">Disponible: {producto.disponible}</p>
+                  </div>
+                  <Button variant="outline" onClick={() => agregarProducto(producto)} className="h-8 shrink-0 px-3 text-[11px]">Agregar</Button>
+                </div>
+              ))}
+            </div>
+          )}
+          {ampliacionError && <p role="alert" className="font-body text-[12px] font-medium text-error">{ampliacionError}</p>}
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={devolucionOpen}
+        onClose={() => setDevolucionOpen(false)}
+        title="Registrar devolución"
+        desktop="modal"
+        footer={
+          <div className="flex flex-wrap md:justify-end gap-3 w-full">
+            <Button variant="outline" onClick={() => setDevolucionOpen(false)} disabled={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Volver</Button>
+            <Button onClick={() => void registrarDevolucion()} loading={devolucionMutation.isPending} className="flex-1 md:flex-none h-10 px-6">Reponer stock</Button>
+          </div>
+        }
+      >
+        <div className="space-y-4 py-2">
+          <p className="rounded-lg border border-primary/30 bg-primary/10 p-3 font-body text-[12px] leading-relaxed text-primary">
+            Las unidades se reingresarán automáticamente en los lotes desde los que se descontaron al confirmar el pedido.
+          </p>
+          <div className="space-y-3">
+            {itemsAgrupados.map((item: any) => {
+              const line = devolucionCarrito[item.productoId] ?? { cajas: 0, sueltos: 0 }
+              return (
+                <div key={item.id} className="rounded-xl border border-white/10 bg-surface-container-high p-3">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <p className="min-w-0 truncate font-body text-[13px] font-semibold text-on-surface">{item.producto.nombre}</p>
+                    <span className="shrink-0 font-body text-[11px] text-on-surface-variant">Confirmado: {item.cantidad} un</span>
+                  </div>
+                  <QuantityStepper
+                    cajas={line.cajas}
+                    sueltos={line.sueltos}
+                    unidadesPorCaja={item.producto.unidadesPorCaja}
+                    onChange={(cajas, sueltos) => setDevolucionCarrito((previous) => ({ ...previous, [item.productoId]: { cajas, sueltos } }))}
+                  />
+                </div>
+              )
+            })}
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="motivo-devolucion-automation" className="font-body text-[13px] font-medium text-on-surface">Motivo <span className="text-error">*</span></label>
+            <textarea
+              id="motivo-devolucion-automation"
+              value={motivoDevolucion}
+              onChange={(event) => setMotivoDevolucion(event.target.value)}
+              rows={3}
+              placeholder="Ej.: mercadería devuelta por el cliente"
+              className="input-field w-full text-[13px] min-h-[80px] py-2.5 resize-none"
+            />
+          </div>
+          {motivoDevolucionError && <p role="alert" className="font-body text-[12px] font-medium text-error">{motivoDevolucionError}</p>}
+        </div>
+      </BottomSheet>
+      {remitoParaDescuento && disponibilidadDescuento && (
+        <LotAllocationSelector
+          items={itemsAgrupados.flatMap((item: any) => {
+            const snapshot = (remitoParaDescuento.itemsSnapshot ?? []).find((entry: any) => entry.productoId === item.productoId)
+            return snapshot ? [{ id: item.id, productoId: item.productoId, nombre: item.producto.nombre, cantidad: snapshot.cantidad }] : []
+          })}
+          disponibilidad={disponibilidadDescuento}
+          mode="descuento"
+          submitting={aprobarDescuentoRemitoMutation.isPending}
+          onCancel={() => { setRemitoParaDescuento(null); setDisponibilidadDescuento(null) }}
+          onConfirm={(selecciones) => void aprobarDescuento(selecciones)}
+        />
+      )}
+    </div>
+  )
+}

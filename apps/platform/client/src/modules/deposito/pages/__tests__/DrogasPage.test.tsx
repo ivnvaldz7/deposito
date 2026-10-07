@@ -1,59 +1,50 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
-import { renderWithQueryClient as render } from '@/test-utils'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { api } from '../../lib/api'
+import { renderWithQueryClient as render } from '@/test-utils'
 import DrogasPage from '../DrogasPage'
-import { createDrogaRecords } from './fixtures/deposito-mock-factories'
-import { createMockUser } from '@/test-utils'
-import { useAuthStore } from '@/stores/auth-store'
 
-vi.mock('../../lib/api', () => ({
-  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), del: vi.fn() },
-  ApiError: class ApiError extends Error {
-    constructor(public status: number, message: string) { super(message); this.name = 'ApiError' }
-  },
-}))
+const apiMock = vi.hoisted(() => ({ get: vi.fn(), patch: vi.fn() }))
 
-vi.mock('../../lib/toast', () => ({
-  toast: { info: vi.fn(), error: vi.fn(), success: vi.fn(), warning: vi.fn() },
-}))
-
-vi.mock('../../lib/catalogo-productos', () => ({
-  fetchCatalogoProductos: vi.fn().mockResolvedValue([]),
-}))
-
-vi.mock('@/stores/auth-store', () => ({ useAuthStore: vi.fn() }))
+vi.mock('../../lib/api', () => ({ api: apiMock, ApiError: class ApiError extends Error {} }))
+vi.mock('../../lib/catalogo-productos', () => ({ fetchCatalogoProductos: vi.fn().mockResolvedValue([]) }))
 
 describe('DrogasPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    ;(useAuthStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ user: createMockUser(), token: 'token' })
+  it('does not expose historical opening edits when inventory is empty', async () => {
+    apiMock.get.mockResolvedValue([])
+    render(<MemoryRouter><DrogasPage /></MemoryRouter>)
+    expect(await screen.findByText('No hay drogas cargadas todavía.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /carga inicial|apertura/i })).not.toBeInTheDocument()
   })
 
-  it('renders loading state', () => {
-    vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
+  it('shows an audited quantity adjustment for an existing drug lot', async () => {
+    apiMock.get.mockResolvedValue([{
+      productoId: 'product-1', nombre: 'VITAMINA A', stockMinimo: null,
+      lotes: [{ id: 'lot-1', lote: 'APERTURA', vencimiento: null, cantidad: 240, createdAt: '2026-09-24T00:00:00.000Z' }],
+    }])
     render(<MemoryRouter><DrogasPage /></MemoryRouter>)
-    expect(screen.getByText('Cargando...')).toBeInTheDocument()
+
+    fireEvent.click((await screen.findAllByRole('button', { name: /vitamina a/i }))[0])
+    expect((await screen.findAllByRole('button', { name: 'Ajustar cantidad' })).length).toBeGreaterThan(0)
   })
 
-  it('renders error state', async () => {
-    vi.mocked(api.get).mockRejectedValue(new Error('Error'))
+  it('sends the adjustment to the deposit API', async () => {
+    apiMock.get.mockResolvedValue([{
+      productoId: 'product-1', nombre: 'VITAMINA A', stockMinimo: null,
+      lotes: [{ id: 'lot-1', lote: 'APERTURA', vencimiento: null, cantidad: 240, createdAt: '2026-09-24T00:00:00.000Z' }],
+    }])
+    apiMock.patch.mockResolvedValue({ diferencia: -60 })
     render(<MemoryRouter><DrogasPage /></MemoryRouter>)
-    await waitFor(() => expect(screen.queryByText(/no se pudo cargar/i)).toBeInTheDocument())
-  })
 
-  it('renders grouped lotes list', async () => {
-    vi.mocked(api.get).mockImplementation(async url => {
-      if (url.startsWith('/drogas')) return createDrogaRecords()
-      throw new Error(`Endpoint inesperado en test: ${url}`)
-    })
-    render(<MemoryRouter><DrogasPage /></MemoryRouter>)
-    await waitFor(() => {
-      expect(screen.queryByText(/Cargando/i)).not.toBeInTheDocument()
-    })
-    expect(screen.getByText('Drogas', { selector: 'h1' })).toBeInTheDocument()
-    expect(screen.getAllByText(/paracetamol/i).length).toBeGreaterThan(0)
-    expect(screen.getAllByText(/Ibuprofeno/i)[0]).toBeInTheDocument()
+    fireEvent.click((await screen.findAllByRole('button', { name: /vitamina a/i }))[0])
+    fireEvent.click((await screen.findAllByRole('button', { name: 'Ajustar cantidad' }))[0])
+    fireEvent.change(screen.getByLabelText('Cantidad final'), { target: { value: '180' } })
+    fireEvent.change(screen.getByLabelText('Motivo del ajuste'), { target: { value: 'Recuento físico' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar ajuste' }))
+
+    await waitFor(() => expect(apiMock.patch).toHaveBeenCalledWith('/drogas/lot-1/cantidad', {
+      cantidad: 180,
+      motivo: 'Recuento físico',
+    }))
   })
 })

@@ -32,8 +32,10 @@ const UUID_A = '550e8400-e29b-41d4-a716-446655440000'
 const UUID_B = '550e8400-e29b-41d4-a716-446655440001'
 
 const PRODUCTOS_MOCK = [
-  { id: UUID_A, nombreBase: 'AMOXICILINA', volumen: '500', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'AMOXICILINA 500 ML', activo: true },
-  { id: UUID_B, nombreBase: 'VITAMINA B12', volumen: '100', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'VITAMINA B12 100 ML', activo: true },
+  { id: UUID_A, nombreBase: 'AMOXICILINA', volumen: '500', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'AMOXICILINA 500 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
+  { id: UUID_B, nombreBase: 'VITAMINA B12', volumen: '100', unidad: 'ML', variante: null, categoria: 'droga', nombreCompleto: 'VITAMINA B12 100 ML', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
+  { id: '550e8400-e29b-41d4-a716-446655440002', nombreBase: 'CAJA N°1', volumen: null, unidad: 'UN', variante: null, categoria: 'material_empaque', nombreCompleto: 'CAJA N°1', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
+  { id: '550e8400-e29b-41d4-a716-446655440003', nombreBase: 'TAPA VERDE', volumen: null, unidad: 'UN', variante: null, categoria: 'material_empaque', nombreCompleto: 'TAPA VERDE', activo: true, estado: 'ACTIVO', mercadosHabilitados: [] },
 ]
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,9 +71,9 @@ describe('ActaNuevaPage', () => {
       user: createMockUser(),
       token: 'token',
     })
-    // Mock catalog fetch for ProductoSelector + lote autofill
+    // Mock active catalog fetch for ProductoSelector.
     vi.mocked(api.get).mockImplementation((path: string) => {
-      if (path === '/lotes/siguiente') return Promise.resolve({ lote: '1' })
+      if (path === '/lotes/siguiente') return Promise.resolve({ lote: '500' })
       return Promise.resolve(PRODUCTOS_MOCK)
     })
   })
@@ -82,18 +84,17 @@ describe('ActaNuevaPage', () => {
       expect(screen.getByText('Nuevo Ingreso')).toBeInTheDocument()
     })
 
-    // Header (h2)
-    expect(screen.getByRole('heading', { name: 'Registrar ingreso' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Nuevo Ingreso' })).toBeInTheDocument()
 
     // Toggle buttons
-    expect(screen.getByText('Drogas')).toBeInTheDocument()
+    expect(screen.getByText('Materia Prima')).toBeInTheDocument()
     expect(screen.getByText('Material de Empaque')).toBeInTheDocument()
 
     // Form fields
-    expect(screen.getByText('Fecha')).toBeInTheDocument()
-    expect(screen.getByText('Producto')).toBeInTheDocument()
-    expect(screen.getByText('Lote')).toBeInTheDocument()
-    expect(screen.getByText('Cantidad')).toBeInTheDocument()
+    expect(screen.getByText('Fecha del acta')).toBeInTheDocument()
+    expect(screen.getByText(/Producto/)).toBeInTheDocument()
+    expect(screen.getByText(/Lote/)).toBeInTheDocument()
+    expect(screen.getByText(/Cantidad/)).toBeInTheDocument()
     expect(screen.getByText('Observaciones')).toBeInTheDocument()
 
     // Actions
@@ -121,10 +122,34 @@ describe('ActaNuevaPage', () => {
       expect(screen.getByText('Estuche')).toBeInTheDocument()
       expect(screen.getByText('Frasco')).toBeInTheDocument()
       expect(screen.getByText('Etiqueta')).toBeInTheDocument()
+      expect(screen.getByText('Material auxiliar')).toBeInTheDocument()
     })
 
     // Placeholder should change for the active subcategory
     expect(screen.getByPlaceholderText('Buscá un estuche del catálogo...')).toBeInTheDocument()
+  })
+
+  it('lets material auxiliar enter by quantity without market or lote fields', async () => {
+    render(<ActaNuevaPage />)
+    fireEvent.click(screen.getByText('Material de Empaque'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Material auxiliar' }))
+
+    await waitFor(() => expect(screen.getByPlaceholderText('Buscá un material auxiliar del catálogo...')).toBeInTheDocument())
+    expect(screen.queryByLabelText('Mercado *')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Lote sugerido')).not.toBeInTheDocument()
+  })
+
+  it('requires a lot reference after selecting a tapa or prospecto', async () => {
+    render(<ActaNuevaPage />)
+    fireEvent.click(screen.getByText('Material de Empaque'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Material auxiliar' }))
+    const productoInput = await screen.findByPlaceholderText('Buscá un material auxiliar del catálogo...')
+    fireEvent.focus(productoInput)
+    fireEvent.change(productoInput, { target: { value: 'TAPA VERDE' } })
+    fireEvent.mouseDown(await screen.findByText('TAPA VERDE'))
+
+    expect(await screen.findByLabelText(/Lote/)).toHaveValue('500')
+    expect(screen.getByText('El lote es obligatorio para Tapas y Prospectos.')).toBeInTheDocument()
   })
 
   it('switches subcategories in ME mode and updates placeholder', async () => {
@@ -163,23 +188,39 @@ describe('ActaNuevaPage', () => {
     })
   })
 
-  it('shows lote as optional for drogas with helper text', async () => {
+  it('requires lote and vencimiento for MP', async () => {
     render(<ActaNuevaPage />)
     await waitFor(() => {
-      expect(screen.getByText('El lote es obligatorio para drogas.')).toBeInTheDocument()
+      expect(screen.getByLabelText(/Lote/)).toBeInTheDocument()
+      expect(screen.getByLabelText('Mes de vencimiento')).toBeInTheDocument()
     })
   })
 
-  it('shows lote placeholder with auto-generation hint for ME category', async () => {
+  it('uses the packaging reference only for estuches, frascos and etiquetas', async () => {
     render(<ActaNuevaPage />)
     fireEvent.click(screen.getByText('Material de Empaque'))
 
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Auto-generado, editable')).toBeInTheDocument()
+      expect(screen.queryByLabelText(/^Lote \*$/)).not.toBeInTheDocument()
+      expect(screen.getByLabelText(/Mercado/)).toBeInTheDocument()
     })
   })
 
-  it('submits the form successfully and navigates to /actas', async () => {
+  it('preloads an editable lot suggestion for packaging', async () => {
+    render(<ActaNuevaPage />)
+    fireEvent.click(screen.getByText('Material de Empaque'))
+
+    const loteInput = await screen.findByLabelText('Lote sugerido')
+    await waitFor(() => {
+      expect(loteInput).toHaveValue('500')
+    })
+    expect(loteInput).toBeEnabled()
+
+    fireEvent.change(loteInput, { target: { value: '900' } })
+    expect(loteInput).toHaveValue('900')
+  })
+
+  it('submits the form successfully and navigates to /deposito/actas', async () => {
     vi.mocked(api.post).mockResolvedValue({
       id: 'acta-1',
       fecha: '2026-07-23',
@@ -200,6 +241,7 @@ describe('ActaNuevaPage', () => {
 
     // Select product
     const productoInput = screen.getByPlaceholderText('Buscá una droga del catálogo...')
+    fireEvent.focus(productoInput)
     fireEvent.change(productoInput, { target: { value: 'AMOXICILINA' } })
 
     await waitFor(() => {
@@ -208,8 +250,11 @@ describe('ActaNuevaPage', () => {
     fireEvent.mouseDown(screen.getByText('AMOXICILINA 500 ML'))
 
     // Fill cantidad
-    const cantidadInput = screen.getByPlaceholderText('0')
+    const cantidadInput = screen.getByLabelText(/Cantidad/)
     fireEvent.change(cantidadInput, { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText(/Lote/), { target: { value: 'MP-001' } })
+    fireEvent.change(screen.getByLabelText('Mes de vencimiento'), { target: { value: '07' } })
+    fireEvent.change(screen.getByLabelText('Año de vencimiento'), { target: { value: '2027' } })
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))
@@ -218,12 +263,38 @@ describe('ActaNuevaPage', () => {
       expect(api.post).toHaveBeenCalledWith('/ingresos', {
         fecha: '2026-07-23',
         productoId: UUID_A,
-        lote: undefined,
+        lote: 'MP-001',
+        vencimientoMes: '2027-07',
+        mercado: undefined,
         cantidad: 100,
+        cantidadCajas: undefined,
+        unidadesPorCaja: undefined,
         observaciones: undefined,
       })
-      expect(mockNavigate).toHaveBeenCalledWith('/actas')
+      expect(mockNavigate).toHaveBeenCalledWith('/deposito/dashboard')
     })
+  })
+
+  it('accepts a fractional drug quantity in kg, including a decimal comma', async () => {
+    vi.mocked(api.post).mockResolvedValue({ id: 'acta-decimal' })
+    render(<ActaNuevaPage />)
+    const productoInput = await screen.findByPlaceholderText('Buscá una droga del catálogo...')
+    fireEvent.focus(productoInput)
+    fireEvent.change(productoInput, { target: { value: 'VITAMINA B12' } })
+    fireEvent.mouseDown(await screen.findByText('VITAMINA B12 100 ML'))
+    fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '0,2' } })
+    fireEvent.change(screen.getByLabelText(/Lote/), { target: { value: 'B12-002' } })
+    fireEvent.change(screen.getByLabelText('Mes de vencimiento'), { target: { value: '07' } })
+    fireEvent.change(screen.getByLabelText('Año de vencimiento'), { target: { value: '2027' } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/ingresos', expect.objectContaining({
+      productoId: UUID_B,
+      lote: 'B12-002',
+      cantidad: 0.2,
+      vencimientoMes: '2027-07',
+    })))
   })
 
   it('navigates back on Cancel', async () => {
@@ -232,7 +303,7 @@ describe('ActaNuevaPage', () => {
       expect(screen.getByText('Cancelar')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByText('Cancelar'))
-    expect(mockNavigate).toHaveBeenCalledWith('/actas')
+    expect(mockNavigate).toHaveBeenCalledWith('/deposito/actas')
   })
 
   it('requires encargado role to show the form', async () => {
@@ -260,6 +331,7 @@ describe('ActaNuevaPage', () => {
 
     // Select product
     const productoInput = screen.getByPlaceholderText('Buscá una droga del catálogo...')
+    fireEvent.focus(productoInput)
     fireEvent.change(productoInput, { target: { value: 'AMOXICILINA' } })
     await waitFor(() => {
       expect(screen.getByText('AMOXICILINA 500 ML')).toBeInTheDocument()
@@ -267,7 +339,10 @@ describe('ActaNuevaPage', () => {
     fireEvent.mouseDown(screen.getByText('AMOXICILINA 500 ML'))
 
     // Fill cantidad
-    fireEvent.change(screen.getByPlaceholderText('0'), { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText(/Cantidad/), { target: { value: '100' } })
+    fireEvent.change(screen.getByLabelText(/Lote/), { target: { value: 'MP-001' } })
+    fireEvent.change(screen.getByLabelText('Mes de vencimiento'), { target: { value: '07' } })
+    fireEvent.change(screen.getByLabelText('Año de vencimiento'), { target: { value: '2027' } })
 
     // Submit
     fireEvent.click(screen.getByRole('button', { name: 'Registrar ingreso' }))

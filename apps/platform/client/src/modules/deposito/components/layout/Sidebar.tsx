@@ -1,52 +1,36 @@
-import { useState, useRef, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import {
   LayoutDashboard, FlaskConical, Package, Tag, Box, BookOpen,
-  ArrowLeftRight, BarChart2, LogOut, AppWindow,
+  ArrowLeftRight, BarChart2, LogOut, Users, Menu, X
 } from 'lucide-react'
-import { cn } from '../../lib/utils'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'
-import { useSidebarStore } from '../../stores/sidebar-store'
+import { can } from '@/lib/permissions'
+import { AppSidebarLayout, SidebarNavItem } from '@/components/layout/AppSidebar'
+import type { NavItemDef } from '@/components/layout/AppSidebar'
 
-const navItems = [
+const navItems: NavItemDef[] = [
   { path: '/deposito/dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
-  { path: '/deposito/drogas',      label: 'Drogas',       icon: FlaskConical },
+  { path: '/deposito/actas',       label: 'Actas',        icon: BookOpen },
+  { path: '/deposito/ordenes',     label: 'Órdenes',      icon: BookOpen },
   { path: '/deposito/estuches',    label: 'Estuches',     icon: Package },
   { path: '/deposito/etiquetas',   label: 'Etiquetas',    icon: Tag },
   { path: '/deposito/frascos',     label: 'Frascos',      icon: Box },
-  { path: '/deposito/actas',       label: 'Actas',        icon: BookOpen },
+  { path: '/deposito/drogas',      label: 'Drogas',       icon: FlaskConical },
+  { path: '/deposito/materiales-empaque', label: 'Material de empaque', icon: Package },
   { path: '/deposito/movimientos', label: 'Movimientos',  icon: ArrowLeftRight },
+  { path: '/deposito/pendientes', label: 'Pendientes', icon: ArrowLeftRight },
+  { path: '/deposito/ordenes/archivadas', label: 'Órdenes archivadas', icon: BookOpen },
+  { path: '/deposito/metricas', label: 'Métricas', icon: BarChart2 },
 ]
 
 export function Sidebar() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
   const depositoRole = user?.apps?.['deposito']?.rol
-  const isEncargado = depositoRole === 'encargado'
   const navigate = useNavigate()
-  const collapsed = useSidebarStore((s) => s.collapsed)
-  const [hoverOpen, setHoverOpen] = useState(false)
-  const hoverTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
-
-  const isOpen = collapsed ? hoverOpen : true
-
-  useEffect(() => {
-    return () => { if (hoverTimer.current) clearTimeout(hoverTimer.current) }
-  }, [])
-
-  function handleMouseEnter() {
-    if (collapsed) {
-      if (hoverTimer.current) clearTimeout(hoverTimer.current)
-      setHoverOpen(true)
-    }
-  }
-
-  function handleMouseLeave() {
-    if (collapsed) {
-      hoverTimer.current = setTimeout(() => setHoverOpen(false), 300)
-    }
-  }
+  const [moreOpen, setMoreOpen] = useState(false)
 
   async function handleLogout() {
     try {
@@ -56,121 +40,88 @@ export function Sidebar() {
     navigate('/login', { replace: true })
   }
 
-  return (
+  const roleLabel = depositoRole === 'encargado' ? 'Encargado' : depositoRole === 'observador' ? 'Observador' : depositoRole === 'solicitante' ? 'Solicitante' : 'Operador'
+  
+  const allItems = [
+    ...navItems,
+  ]
+
+  const items = allItems.filter(item => {
+    switch(item.path) {
+      case '/deposito/dashboard': return can(user, 'deposito', 'dashboard.read')
+      case '/deposito/productos': return can(user, 'deposito', 'productos_catalogo.read')
+      case '/deposito/drogas': return can(user, 'deposito', 'drogas.read')
+      case '/deposito/estuches': return can(user, 'deposito', 'estuches.read')
+      case '/deposito/etiquetas': return can(user, 'deposito', 'etiquetas.read')
+      case '/deposito/frascos': return can(user, 'deposito', 'frascos.read')
+      case '/deposito/materiales-empaque': return can(user, 'deposito', 'productos_catalogo.read')
+      case '/deposito/actas': return can(user, 'deposito', 'actas.read')
+      case '/deposito/ingresos': return can(user, 'deposito', 'ingresos.create')
+      case '/deposito/movimientos': return can(user, 'deposito', 'movimientos.read')
+      case '/deposito/pendientes': return can(user, 'deposito', 'pendientes.read')
+      case '/deposito/ordenes': return can(user, 'deposito', 'ordenes.read')
+      case '/deposito/ordenes/archivadas': return can(user, 'deposito', 'ordenes.read')
+      case '/deposito/metricas': return can(user, 'deposito', 'metricas.read')
+      default: return true
+    }
+  })
+
+  const mobilePrimaryPaths = [
+    '/deposito/dashboard',
+    '/deposito/actas',
+    '/deposito/ordenes',
+    '/deposito/pendientes',
+  ]
+  const mobileItems = items.filter((item) => mobilePrimaryPaths.includes(item.path))
+  const moreItems = items.filter((item) => !mobilePrimaryPaths.includes(item.path))
+
+  const mobileNav = (
     <>
-      {collapsed && (
-        <div
-          className="fixed top-0 left-0 w-1 h-full z-50 cursor-pointer"
-          onMouseEnter={handleMouseEnter}
-        />
-      )}
-
-      <aside
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        className={cn(
-          'hidden md:flex flex-col transition-all duration-300 ease-in-out',
-          isOpen
-            ? 'w-72 border-r border-white/10 rounded-r-xl bg-surface-container-low shadow-float py-lg'
-            : 'w-0 overflow-hidden border-0 rounded-none bg-surface-container-low',
-        )}
-      >
-        <div className="flex items-center gap-2 px-4 mb-xl">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-surface-variant border-2 border-primary flex items-center justify-center text-primary font-heading font-bold text-sm shrink-0">
-              {user?.name?.charAt(0)?.toUpperCase() ?? '?'}
-            </div>
-            <div className="min-w-0">
-              <div className="font-heading text-sm font-semibold text-primary truncate">
-                {user?.name ?? 'Sin usuario'}
-              </div>
-              <div className="font-body text-xs text-on-surface-variant truncate">
-                {depositoRole === 'encargado' ? 'Encargado' : depositoRole === 'observador' ? 'Observador' : 'Operador'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation Links */}
-        <nav className="flex-1 flex flex-col gap-1 px-3">
-          {navItems.map(({ path, label, icon: Icon }, index) => (
-            <NavLink
-              key={path}
-              to={path}
-              style={{ animationDelay: `${index * 0.04}s` }}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-4 py-2.5 rounded-lg font-body text-sm transition-all duration-200 scale-hover whitespace-nowrap',
-                  isOpen ? 'animate-slide-in-left' : 'opacity-0',
-                  isActive
-                    ? 'bg-primary-container/20 text-primary border-l-4 border-primary font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
-                )
-              }
-            >
-              <Icon size={16} strokeWidth={1.5} className="shrink-0" />
-              {label}
-            </NavLink>
-          ))}
-
-          {(isEncargado || depositoRole === 'observador') && (
-            <NavLink
-              to="/deposito/metricas"
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-4 py-2.5 rounded-lg font-body text-sm transition-all duration-200 scale-hover whitespace-nowrap',
-                  isOpen ? 'animate-slide-in-left' : 'opacity-0',
-                  isActive
-                    ? 'bg-primary-container/20 text-primary border-l-4 border-primary font-semibold'
-                    : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
-                )
-              }
-              style={{ animationDelay: `${navItems.length * 0.04}s` }}
-            >
-              <BarChart2 size={16} strokeWidth={1.5} className="shrink-0" />
-              Métricas
-            </NavLink>
-          )}
-        </nav>
-
-        {/* Bottom */}
-        <div className={cn('border-t border-white/5 px-3 py-2', isOpen ? 'animate-slide-in-left' : 'opacity-0')}
-             style={{ animationDelay: '0.4s' }}>
-          <NavLink
-            to="/app-selector"
-            className={({ isActive }) =>
-              cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg font-body text-sm transition-all duration-200 scale-hover whitespace-nowrap',
-                isActive
-                  ? 'bg-primary-container/20 text-primary border-l-4 border-primary'
-                  : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
-              )
-            }
-          >
-            <AppWindow size={16} strokeWidth={1.5} className="shrink-0" />
-            Cambiar app
-          </NavLink>
-        </div>
-
-        <div className="border-t border-white/5 px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="truncate font-body text-sm font-medium text-on-surface">{user?.name ?? 'Sin usuario'}</p>
-              <p className="truncate font-body text-xs text-on-surface-variant">
-                {depositoRole === 'encargado' ? 'Encargado' : depositoRole === 'observador' ? 'Observador' : 'Operador'}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              title="Cerrar sesión"
-              className="text-on-surface-variant hover:text-on-surface transition-colors"
-            >
-              <LogOut size={16} strokeWidth={1.5} />
+      {moreOpen && (
+        <div className="absolute bottom-full left-0 right-0 border-t border-white/10 bg-surface-container-low px-3 pb-3 pt-3 shadow-float">
+          <div className="mx-auto grid max-w-md grid-cols-2 gap-2">
+            {moreItems.map(({ path, label, icon: Icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                onClick={() => setMoreOpen(false)}
+                className={({ isActive }) => `flex min-h-11 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${isActive ? 'border-primary/50 bg-primary/10 text-primary' : 'border-white/10 bg-surface-container-high text-on-surface-variant'}`}
+              >
+                <Icon size={17} />
+                <span className="truncate">{label}</span>
+              </NavLink>
+            ))}
+            <button type="button" onClick={() => navigate('/app-selector')} className="flex min-h-11 items-center gap-2 rounded-lg border border-white/10 bg-surface-container-high px-3 py-2 text-left text-sm font-medium text-on-surface-variant">
+              <ArrowLeftRight size={17} /> Cambiar módulo
+            </button>
+            <button type="button" onClick={handleLogout} className="flex min-h-11 items-center gap-2 rounded-lg border border-error/20 bg-error/5 px-3 py-2 text-left text-sm font-medium text-error">
+              <LogOut size={17} /> Cerrar sesión
             </button>
           </div>
         </div>
-      </aside>
+      )}
+      {mobileItems.map(({ path, label, icon: Icon }) => (
+        <NavLink key={path} to={path} onClick={() => setMoreOpen(false)} className={({ isActive }) => `flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-medium transition-colors ${isActive ? 'text-primary' : 'text-on-surface-variant'}`}>
+          <Icon size={19} strokeWidth={2} />
+          <span className="truncate">{label}</span>
+        </NavLink>
+      ))}
+      <button type="button" aria-label="Más opciones" aria-expanded={moreOpen} onClick={() => setMoreOpen((open) => !open)} className={`flex min-h-12 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-medium ${moreOpen ? 'text-primary' : 'text-on-surface-variant'}`}>
+        {moreOpen ? <X size={19} /> : <Menu size={19} />}
+        <span>Más</span>
+      </button>
     </>
+  )
+
+  return (
+    <AppSidebarLayout
+      appName="Depósito"
+      userInitials={user?.name?.charAt(0)?.toUpperCase() ?? '?'}
+      userName={user?.name ?? 'Sin usuario'}
+      userRole={roleLabel}
+      onLogout={handleLogout}
+      navItems={items.map((item) => <SidebarNavItem key={item.path} item={item} />)}
+      bottomMobileContent={mobileNav}
+    />
   )
 }

@@ -11,6 +11,7 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    public readonly details?: Record<string, string[]>
   ) {
     super(message)
     this.name = 'ApiError'
@@ -25,8 +26,21 @@ interface RefreshResponse {
 let refreshPromise: Promise<string | null> | null = null
 
 async function parseError(res: Response): Promise<ApiError> {
-  const body = await res.json().catch(() => ({ error: 'Error desconocido' })) as { message?: string; error?: string }
-  return new ApiError(res.status, body.message ?? body.error ?? 'Error del servidor')
+  const body = await res.json().catch(() => ({ error: 'Error desconocido' })) as { 
+    message?: string; 
+    error?: string;
+    errors?: { fieldErrors?: Record<string, string[]> }
+  }
+  
+  if (body.errors?.fieldErrors) {
+    console.error('Backend validation error:', JSON.stringify(body.errors.fieldErrors, null, 2))
+  }
+
+  return new ApiError(
+    res.status, 
+    body.message ?? body.error ?? 'Error del servidor',
+    body.errors?.fieldErrors
+  )
 }
 
 async function refreshAccessToken(): Promise<string | null> {
@@ -65,8 +79,12 @@ async function request<T>(
   attemptRefresh = true,
 ): Promise<T> {
   const activeToken = token ?? useAuthStore.getState().token
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+  const headers: Record<string, string> = {}
+
+  // Let the browser set `multipart/form-data` with its own boundary for FormData
+  // bodies — hardcoding a Content-Type here would break multipart uploads.
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
   }
 
   if (activeToken) {
@@ -94,24 +112,33 @@ async function request<T>(
   return res.json() as Promise<T>
 }
 
+export interface ApiRequestOptions {
+  headers?: Record<string, string>
+  signal?: AbortSignal
+}
+
 export const apiClient = {
-  get: <T>(path: string, token?: string | null) =>
-    request<T>(path, { method: 'GET' }, token),
+  get: <T>(path: string, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'GET', headers: options?.headers, signal: options?.signal }, token),
 
-  post: <T>(path: string, body?: unknown, token?: string | null) =>
-    request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body) }, token),
+  post: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'POST', body: body === undefined ? undefined : JSON.stringify(body), headers: options?.headers, signal: options?.signal }, token),
 
-  put: <T>(path: string, body?: unknown, token?: string | null) =>
-    request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body) }, token),
+  /** POST a multipart/form-data body (eg. file import). */
+  postForm: <T>(path: string, formData: FormData, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'POST', body: formData, headers: options?.headers, signal: options?.signal }, token),
 
-  patch: <T>(path: string, body?: unknown, token?: string | null) =>
-    request<T>(path, { method: 'PATCH', body: body === undefined ? undefined : JSON.stringify(body) }, token),
+  put: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'PUT', body: body === undefined ? undefined : JSON.stringify(body), headers: options?.headers, signal: options?.signal }, token),
 
-  del: <T>(path: string, token?: string | null) =>
-    request<T>(path, { method: 'DELETE' }, token),
+  patch: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'PATCH', body: body === undefined ? undefined : JSON.stringify(body), headers: options?.headers, signal: options?.signal }, token),
 
-  /** Download a blob (eg. Excel export) */
-  getBlob: async (path: string): Promise<Blob> => {
+  del: <T>(path: string, token?: string | null, options?: ApiRequestOptions) =>
+    request<T>(path, { method: 'DELETE', headers: options?.headers, signal: options?.signal }, token),
+
+  /** Download a blob (eg. Excel export, PDF remito) */
+  getBlob: async (path: string, options?: ApiRequestOptions): Promise<Blob> => {
     const token = useAuthStore.getState().token
     const headers: Record<string, string> = {}
 
@@ -122,7 +149,8 @@ export const apiClient = {
     const res = await fetch(buildApiUrl(path), {
       method: 'GET',
       credentials: 'include',
-      headers,
+      headers: { ...headers, ...(options?.headers ?? {}) },
+      signal: options?.signal,
     })
 
     if (!res.ok) {

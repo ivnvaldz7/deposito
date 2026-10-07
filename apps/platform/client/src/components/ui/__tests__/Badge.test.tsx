@@ -16,7 +16,7 @@ describe('Badge', () => {
     expect(screen.getByText('Default')).toHaveClass('bg-surface-highest')
 
     rerender(<Badge variant="success">Success</Badge>)
-    expect(screen.getByText('Success')).toHaveClass('bg-success/20')
+    expect(screen.getByText('Success')).toHaveClass('bg-[#E7EFEA]')
 
     rerender(<Badge variant="warning">Warning</Badge>)
     expect(screen.getByText('Warning')).toHaveClass('bg-warning/20')
@@ -25,7 +25,7 @@ describe('Badge', () => {
     expect(screen.getByText('Error')).toHaveClass('bg-error/20')
 
     rerender(<Badge variant="info">Info</Badge>)
-    expect(screen.getByText('Info')).toHaveClass('bg-primary-container/20')
+    expect(screen.getByText('Info')).toHaveClass('bg-[#E7EFEA]')
   })
 
   it('renders children text', () => {

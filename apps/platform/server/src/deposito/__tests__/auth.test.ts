@@ -50,8 +50,12 @@ vi.mock('@platform/db', () => {
       ecuador: 'ecuador',
       bolivia: 'bolivia',
       paraguay: 'paraguay',
+      VENEZUELA: 'VENEZUELA',
       no_exportable: 'no_exportable',
     },
+    EstadoProductoCatalogo: { PENDIENTE_REVISION: 'PENDIENTE_REVISION', ACTIVO: 'ACTIVO', INACTIVO: 'INACTIVO' },
+    OrigenProductoCatalogo: { MANUAL: 'MANUAL', IMPORTACION: 'IMPORTACION', MIGRACION: 'MIGRACION' },
+    TipoAuditoriaCatalogo: {},
     CondicionEmbalaje: {
       bueno: 'bueno',
       regular: 'regular',
@@ -108,6 +112,19 @@ vi.mock('../middleware/auth', () => ({
       id: req.header('x-test-user-id') ?? 'enc-1',
       role,
       name: 'Usuario Test',
+    }
+    req.user = { sub: req.depositoUser.id, apps: { deposito: { rol: role, activo: true } } }
+    next()
+  },
+}))
+
+vi.mock('../../middlewares/require-permission', () => ({
+  requirePermission: (_app: string, permission: string) => (req: any, res: any, next: any) => {
+    const role = req.depositoUser?.role
+    const canManage = role === 'encargado'
+    if (!role || (permission === 'productos_catalogo.manage' && !canManage)) {
+      res.status(403).json({ error: 'Permiso insuficiente' })
+      return
     }
     next()
   },

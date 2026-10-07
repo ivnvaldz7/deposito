@@ -20,7 +20,7 @@ jobs:
       postgres:
         image: postgres:18-alpine
         env:
-          POSTGRES_DB: deposito_test
+          POSTGRES_DB: platform_test_automation
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
@@ -35,9 +35,8 @@ jobs:
       CI: true
       NODE_ENV: test
       ALLOW_TEST_DB_RESET: "true"
-      PLATFORM_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deposito_ci_test
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/deposito_ci_test
-      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/deposito_test
+      PLATFORM_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform_test_automation
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/platform_test_automation
 
     steps:
       - name: Checkout Repository
@@ -58,13 +57,10 @@ jobs:
 
       - name: Guard Database URLs
         run: |
-          for url in "$PLATFORM_DATABASE_URL" "$DATABASE_URL" "$DATABASE_URL_TEST"; do
-            if [[ ! "$url" =~ "localhost" && ! "$url" =~ "127.0.0.1" ]]; then
-              echo "Error: Database URL does not point to localhost."
-              exit 1
-            fi
-            if [[ ! "$url" =~ "_test" ]]; then
-              echo "Error: Database URL does not point to a test database."
+          expected="postgresql://postgres:postgres@localhost:5432/platform_test_automation"
+          for url in "$PLATFORM_DATABASE_URL" "$DATABASE_URL"; do
+            if [[ "$url" != "$expected" ]]; then
+              echo "Error: Database URL is not the exact automation database."
               exit 1
             fi
           done
@@ -92,14 +88,9 @@ jobs:
         run: npm --workspace @platform/client run test
 
       - name: Database Migrations
-        env:
-          PLATFORM_DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
-          DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
-        run: npm --workspace @platform/server run db:migrate
+        run: npm --workspace @platform/server run db:migrate:automation
 
       - name: Verify Constraints PR-C1
-        env:
-          PLATFORM_DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
         run: |
           node -e "
           const { Client } = require('pg');

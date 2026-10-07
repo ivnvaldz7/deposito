@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -12,7 +13,7 @@ const router = Router()
  *
  * Response: { lote: "3436" }
  */
-router.get('/siguiente', authenticate, async (_req: Request, res: Response): Promise<void> => {
+router.get('/siguiente', authenticate, requirePermission('deposito', 'lotes.read.next'), async (_req: Request, res: Response): Promise<void> => {
   try {
     const result = await prisma.$queryRaw<{ max_num: number | null }[]>`
       SELECT MAX(CAST(REGEXP_REPLACE(lote, '[^0-9]', '', 'g') AS INTEGER)) as max_num

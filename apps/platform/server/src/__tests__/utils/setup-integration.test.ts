@@ -2,31 +2,25 @@ import { describe, it, expect, vi } from 'vitest'
 
 // We set SKIP_INTEGRATION_SETUP_EXECUTION before importing so the file doesn't run the side-effects.
 process.env.SKIP_INTEGRATION_SETUP_EXECUTION = 'true'
-import { validateTestEnvironment } from './setup-integration'
+import { AUTOMATION_TEST_DATABASE_URL, assertAutomationDatabaseUrl, validateTestEnvironment } from './setup-integration'
 
 describe('Integration Setup Guard', () => {
   const validBaseEnv = {
     NODE_ENV: 'test',
     ALLOW_TEST_DB_RESET: 'true',
-    PLATFORM_DATABASE_URL: 'postgresql://u:p@l:5/dev',
-    DATABASE_URL_TEST: 'postgresql://u:p@l:5/deposito_test'
+    PLATFORM_DATABASE_URL: AUTOMATION_TEST_DATABASE_URL,
+    DATABASE_URL: AUTOMATION_TEST_DATABASE_URL,
   }
 
-  it('valida un entorno correcto con sufijo _test', () => {
-    expect(() => validateTestEnvironment(validBaseEnv)).not.toThrow()
+  it('acepta únicamente las URLs efectivas explícitas de automation', () => {
+    expect(validateTestEnvironment(validBaseEnv).testDbUrl).toBe(validBaseEnv.DATABASE_URL)
   })
 
-  it('valida un entorno correcto con prefijo test_', () => {
-    expect(() => validateTestEnvironment({
-      ...validBaseEnv,
-      DATABASE_URL_TEST: 'postgresql://u:p@l:5/test_deposito'
-    })).not.toThrow()
-  })
-
-  it('aborta si falta DATABASE_URL_TEST', () => {
+  it('aborta si falta DATABASE_URL aunque exista un fallback *_TEST', () => {
     const env: NodeJS.ProcessEnv = { ...validBaseEnv }
-    delete env.DATABASE_URL_TEST
-    expect(() => validateTestEnvironment(env)).toThrow(/no están definidos/)
+    delete env.DATABASE_URL
+    env.DATABASE_URL_TEST = 'postgresql://u:p@l:5/platform_test'
+    expect(() => validateTestEnvironment(env)).toThrow(/deben definirse explícitamente/)
   })
 
   it('aborta si NODE_ENV es incorrecto', () => {
@@ -39,52 +33,34 @@ describe('Integration Setup Guard', () => {
     expect(() => validateTestEnvironment(env)).toThrow(/ALLOW_TEST_DB_RESET/)
   })
 
-  it('aborta si URL es igual a desarrollo', () => {
+  it('aborta si las dos URLs efectivas no coinciden', () => {
     expect(() => validateTestEnvironment({
       ...validBaseEnv,
-      DATABASE_URL_TEST: 'postgresql://u:p@l:5/dev'
-    })).toThrow(/idéntica a la de desarrollo/)
+      DATABASE_URL: 'postgresql://u:p@l:5/otra',
+    })).toThrow(/misma base automática/)
   })
 
-  it('aborta con nombre platform_contest (falso positivo)', () => {
+  it('aborta si las URLs explícitas apuntan a platform_test', () => {
     expect(() => validateTestEnvironment({
       ...validBaseEnv,
-      DATABASE_URL_TEST: 'postgresql://u:p@l:5/platform_contest'
-    })).toThrow(/no cumple la convención estricta/)
+      DATABASE_URL: 'postgresql://u:p@l:5/platform_test',
+      PLATFORM_DATABASE_URL: 'postgresql://u:p@l:5/platform_test',
+    })).toThrow(/TRUNCATE permitido únicamente/)
   })
 
-  it('aborta con nombre platform_testing_prod', () => {
-    expect(() => validateTestEnvironment({
-      ...validBaseEnv,
-      DATABASE_URL_TEST: 'postgresql://u:p@l:5/platform_testing_prod'
-    })).toThrow(/no cumple la convención estricta/)
-  })
-
-  it('aborta si nombre es exactamente test', () => {
-    expect(() => validateTestEnvironment({
-      ...validBaseEnv,
-      DATABASE_URL_TEST: 'postgresql://u:p@l:5/test'
-    })).toThrow(/exactamente "test"/)
-  })
-
-  it('aborta con nombre latest', () => {
-    expect(() => validateTestEnvironment({
-      ...validBaseEnv,
-      DATABASE_URL_TEST: 'postgresql://u:p@l:5/latest'
-    })).toThrow(/no cumple la convención estricta/)
-  })
-
-  it('aborta con nombre vacío', () => {
-    expect(() => validateTestEnvironment({
-      ...validBaseEnv,
-      DATABASE_URL_TEST: 'postgresql://u:p@l:5/'
-    })).toThrow(/está vacío/)
+  it('aborta truncate directo para platform, platform_test y cualquier otro destino', () => {
+    expect(() => assertAutomationDatabaseUrl('postgresql://u:p@l:5/platform')).toThrow(/TRUNCATE permitido únicamente/)
+    expect(() => assertAutomationDatabaseUrl('postgresql://u:p@l:5/platform_test')).toThrow(/TRUNCATE permitido únicamente/)
+    expect(() => assertAutomationDatabaseUrl('postgresql://u:p@l:5/otro')).toThrow(/TRUNCATE permitido únicamente/)
+    expect(() => assertAutomationDatabaseUrl('postgresql://u:p@otro-host:5/platform_test_automation')).toThrow(/URL local exacta/)
+    expect(() => assertAutomationDatabaseUrl(AUTOMATION_TEST_DATABASE_URL)).not.toThrow()
   })
 
   it('aborta con URL inválida', () => {
     expect(() => validateTestEnvironment({
       ...validBaseEnv,
-      DATABASE_URL_TEST: 'not-a-url'
+      DATABASE_URL: 'not-a-url',
+      PLATFORM_DATABASE_URL: 'not-a-url',
     })).toThrow(/parseada correctamente/)
   })
 })

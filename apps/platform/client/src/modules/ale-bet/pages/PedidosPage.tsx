@@ -1,486 +1,237 @@
-import { useEffect, useState, useMemo } from 'react'
-import { useLocation } from 'react-router-dom'
-import { type Pedido } from '../lib/api'
+import { useEffect, useMemo, useState } from 'react'
+import { roleHasPermission } from '@platform/core/permissions'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { ChevronRight, FileText, Plus } from 'lucide-react'
+import { type Pedido, type PedidoEstado } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { Badge } from '@/components/ui/Badge'
-import { UNIDADES_POR_CAJA, MAX_SUELTOS } from '../lib/constants'
-import { usePedidos, useCreatePedido, useAprobarPedido, useTomarPedido, useCompletarItemPedido, useCancelarPedido } from '../queries'
-import { useClientes } from '../queries'
-import { useProductos } from '../queries'
-import { toast } from '@/lib/toast'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { cn } from '@/lib/utils'
+import {
+  ESTADO_META,
+  esArmadorAsignado,
+  esPedidoAutomation,
+  pedidoClientePendiente,
+} from '../lib/estados'
+import { usePedidos } from '../queries'
 
-const ESTADO_PRIORITY: Record<Pedido['estado'], number> = {
-  APROBADO: 0,
-  EN_ARMADO: 1,
-  PENDIENTE: 2,
-  COMPLETADO: 3,
-  CANCELADO: 4,
+const FILTROS: Array<{ valor: PedidoEstado | ''; etiqueta: string }> = [
+  { valor: '', etiqueta: 'Todos' },
+  { valor: 'BORRADOR', etiqueta: 'Borrador' },
+  { valor: 'APROBADO', etiqueta: 'Aprobado' },
+  { valor: 'EN_ARMADO', etiqueta: 'En armado' },
+  { valor: 'PREPARADO', etiqueta: 'Preparado' },
+  { valor: 'DESPACHADO', etiqueta: 'Despachado' },
+  { valor: 'CANCELADO', etiqueta: 'Cancelado' },
+]
+
+function porActualizadoDesc(a: { updatedAt: string }, b: { updatedAt: string }): number {
+  return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 }
 
-function getEstadoVariant(estado: Pedido['estado']): 'default' | 'success' | 'warning' | 'error' | 'info' {
-  switch (estado) {
-    case 'PENDIENTE': return 'default'
-    case 'APROBADO': return 'warning'
-    case 'EN_ARMADO': return 'info'
-    case 'COMPLETADO': return 'success'
-    case 'CANCELADO': return 'error'
-  }
+function rankBandeja(pedido: Pedido, rol: string, userId: string): number {
+  const propioEnArmado = pedido.estado === 'EN_ARMADO' && (roleHasPermission('ale-bet', rol, 'pedidos.take') || esArmadorAsignado(pedido, userId))
+  if (propioEnArmado) return 0.5
+  return ESTADO_META[pedido.estado].priority
 }
 
+function formatFecha(dateString: string): string {
+  const date = new Date(dateString)
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  return `${day}/${month}/${date.getFullYear()}`
+}
+
+interface PedidoCardProps {
+  pedido: Pedido
+  onAbrir: () => void
+}
+
+function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
+  const meta = ESTADO_META[pedido.estado]
+  const remitoVigente = Boolean(pedido.remitos?.some((r) => r.estado === 'VIGENTE'))
+  const clientePendiente = pedidoClientePendiente(pedido)
+  const cancelacionSolicitada = Boolean(pedido.cancelacionSolicitadaAt)
+  const esCancelado = pedido.estado === 'CANCELADO'
+  const isAuto = esPedidoAutomation(pedido)
+  const stockDescontado = pedido.stockDescontado === true || pedido.estado === 'DESPACHADO' || isAuto
+
+  let senalOperativa = ''
+  if (cancelacionSolicitada) senalOperativa = 'Cancelación solicitada'
+  else if (clientePendiente) senalOperativa = 'Pendiente de validación'
+  else if (remitoVigente) senalOperativa = stockDescontado ? 'Stock descontado' : 'Pendiente a descuento'
+  else if (isAuto) senalOperativa = 'Pendiente de remito'
+  else if (pedido.estado === 'APROBADO') senalOperativa = 'Pendiente de armado'
+  else if (pedido.estado === 'EN_ARMADO') senalOperativa = 'En preparación'
+  else if (pedido.estado === 'PREPARADO' && !remitoVigente) senalOperativa = 'Esperando remito'
+
+  return (
+    <article
+      data-testid={`pedido-card-${pedido.id}`}
+      data-estado={pedido.estado}
+      onClick={onAbrir}
+      className={cn(
+        'group relative grid min-h-16 cursor-pointer grid-cols-1 items-center gap-2 border-b border-white/10 px-3 py-3 transition-colors hover:bg-surface-variant/20 md:grid-cols-[minmax(12rem,1.4fr)_minmax(8rem,1fr)_minmax(7rem,.8fr)_minmax(10rem,1fr)_auto]',
+        esCancelado && 'opacity-60 grayscale-[50%]'
+      )}
+    >
+      <header className="min-w-0">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[18px] font-bold text-on-surface">
+            {pedido.cliente.nombre}
+          </p>
+          {isAuto ? (
+            <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">Automation · Confirmado</p>
+          ) : (
+            <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">
+              {pedido.vendedorNombre ? `Vendedor ${pedido.vendedorNombre}` : 'Vendedor sin asignar'}
+            </p>
+          )}
+        </div>
+        {!isAuto && (
+          <div className="shrink-0 pt-0.5">
+            <Badge variant={meta.variant} className="shadow-sm">
+              {meta.label}
+            </Badge>
+          </div>
+        )}
+      </header>
+
+      <p className="truncate font-body text-[12px] text-on-surface-variant md:block">
+        {pedido.numero ?? pedido.id} · {pedido.items?.length ?? 0} items
+      </p>
+      <p className="font-body text-[12px] text-on-surface-variant">Automation</p>
+      <p className="font-body text-[12px] text-on-surface-variant">{formatFecha(pedido.updatedAt)}</p>
+      <div className="flex min-w-0 items-center justify-end gap-2">
+        <div className="min-w-0 flex-1">
+          {senalOperativa && (
+            <div className="flex items-center gap-1.5">
+              {isAuto && <FileText size={14} className="text-on-surface-variant" />}
+              <p
+                className="truncate font-body text-[13px] font-medium text-on-surface-variant"
+              >
+                {senalOperativa}
+              </p>
+            </div>
+          )}
+        </div>
+        <ChevronRight
+          size={18}
+          className="shrink-0 text-on-surface-variant transition-colors"
+        />
+      </div>
+    </article>
+  )
+}
 export default function PedidosPage() {
   const location = useLocation()
+  const navigate = useNavigate()
   const user = useAuthStore((state) => state.user)
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
+  const userId = user?.sub ?? ''
+  const esFacturacion = rol === 'facturacion'
+  const esOperativo = can(user, 'ale-bet', 'pedidos.prepare') || can(user, 'ale-bet', 'pedidos.take')
+  const puedeCrearPedidos = can(user, 'ale-bet', 'pedidos.create') && !esFacturacion
 
-  const [estadoFilter, setEstadoFilter] = useState<string>('')
-  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const armadorFiltros = [
+    { valor: '', etiqueta: 'Todos' },
+    { valor: 'APROBADO', etiqueta: 'Aprobados' },
+    { valor: 'EN_ARMADO', etiqueta: 'En armado' },
+    { valor: 'PREPARADO', etiqueta: 'Preparados' },
+  ] as const
 
-  // Create modal state
-  const [showCreate, setShowCreate] = useState(false)
-  const [createForm, setCreateForm] = useState<{ clienteId: string; items: Array<{ productoId: string; cajas: number; sueltos: number }> }>({
-    clienteId: '',
-    items: [{ productoId: '', cajas: 0, sueltos: 0 }],
-  })
 
-  const isAdmin = rol === 'admin'
-  const isSupervisor = rol === 'supervisor'
-  const isVendedor = rol === 'vendedor'
-  const isArmador = rol === 'armador'
-
-  const filters = useMemo(() => {
-    const f: { estado?: string; vendedorId?: string } = {}
-    if (estadoFilter) f.estado = estadoFilter
-    if (isVendedor && user?.sub) f.vendedorId = user.sub
-    return f
-  }, [estadoFilter, isVendedor, user?.sub])
-
-  const { data: pedidos = [], isLoading, error } = usePedidos(filters)
-  const { data: clientes = [] } = useClientes()
-  const { data: productos = [] } = useProductos()
-  const createMutation = useCreatePedido()
-  const aprobarMutation = useAprobarPedido()
-  const tomarMutation = useTomarPedido()
-  const completarItemMutation = useCompletarItemPedido()
-  const cancelarMutation = useCancelarPedido()
-
-  const sortedPedidos = useMemo(() => {
-    return [...pedidos].sort((a, b) => {
-      const pa = ESTADO_PRIORITY[a.estado]
-      const pb = ESTADO_PRIORITY[b.estado]
-      if (pa !== pb) return pa - pb
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    })
-  }, [pedidos])
-
-  const activeClientes = useMemo(() => clientes.filter((c) => c.activo), [clientes])
-  const activeProductos = useMemo(() => productos.filter((p) => p.activo), [productos])
+  const { data: pedidos = [], isLoading, error } = usePedidos(esFacturacion ? { bandeja: 'FACTURACION' } : undefined)
 
   useEffect(() => {
     const id = (location.state as { openPedidoId?: string } | null)?.openPedidoId
-    if (id) setExpandedId(id)
-  }, [location.state])
+    if (id) navigate(`/ale-bet/pedidos/${id}`)
+  }, [location.state, navigate])
 
-  function itemTotalUnidades(item: { cajas: number; sueltos: number }): number {
-    return item.cajas * UNIDADES_POR_CAJA + item.sueltos
-  }
-
-  function openCreateModal() {
-    setCreateForm({ clienteId: '', items: [{ productoId: '', cajas: 0, sueltos: 0 }] })
-    setShowCreate(true)
-  }
-
-  function addItemRow() {
-    setCreateForm((f) => ({ ...f, items: [...f.items, { productoId: '', cajas: 0, sueltos: 0 }] }))
-  }
-
-  function removeItemRow(idx: number) {
-    setCreateForm((f) => {
-      const items = f.items.filter((_, i) => i !== idx)
-      return { ...f, items }
-    })
-  }
-
-  function updateItemField(idx: number, field: 'productoId' | 'cajas' | 'sueltos', value: string | number) {
-    setCreateForm((f) => {
-      const items = f.items.map((item, i) => (i === idx ? { ...item, [field]: value } : item))
-      return { ...f, items }
-    })
-  }
-
-  async function handleCreate() {
-    const totalUnidades = (i: { productoId: string; cajas: number; sueltos: number }) => i.cajas * UNIDADES_POR_CAJA + i.sueltos
-    if (!createForm.clienteId || createForm.items.some((i) => !i.productoId || totalUnidades(i) < 1)) {
-      toast.warning('Completá todos los campos')
-      return
+  const filtrados = useMemo(() => {
+    let result = pedidos
+    
+    if (rol === 'armador') {
+      result = result.filter(p => p.origen === 'MANUAL' && (p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO'))
     }
-    try {
-      const payload = {
-        clienteId: createForm.clienteId,
-        items: createForm.items.map((i) => ({ productoId: i.productoId, cantidad: totalUnidades(i) })),
-      }
-      await createMutation.mutateAsync(payload)
-      setShowCreate(false)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error al crear pedido')
-    }
-  }
 
-  function handleAprobar(id: string) {
-    aprobarMutation.mutate(id, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al aprobar'),
+    return result
+  }, [pedidos, rol])
+
+  const ordenados = useMemo(() => {
+    const lista = [...filtrados]
+    if (!esOperativo) return lista.sort(porActualizadoDesc)
+    return lista.sort((a, b) => {
+      const ra = rankBandeja(a, rol, userId)
+      const rb = rankBandeja(b, rol, userId)
+      if (ra !== rb) return ra - rb
+      return porActualizadoDesc(a, b)
     })
+  }, [filtrados, esOperativo, rol, userId])
+
+  const header = (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <h1 className="text-[24px] font-bold tracking-tight text-on-surface sm:text-[28px]">Pedidos</h1>
+        <p className="font-body text-[13px] text-on-surface-variant">{esFacturacion ? 'Pendientes de remito' : 'Bandeja operativa de pedidos'}</p>
+      </div>
+      {puedeCrearPedidos && (
+        <button
+          type="button"
+          onClick={() => navigate('/ale-bet/pedidos/nuevo')}
+          className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl bg-primary px-3 font-body text-[13px] font-semibold text-on-primary btn-press"
+        >
+          <Plus size={18} aria-hidden="true" />
+          Nuevo
+        </button>
+      )}
+    </div>
+  )
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-surface-container-high">
+          <Skeleton variant="card" className="h-44" />
+          <Skeleton variant="card" className="h-44" />
+          <Skeleton variant="card" className="h-44" />
+        </div>
+        <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
+      </div>
+    )
   }
 
-  function handleTomar(id: string) {
-    tomarMutation.mutate(id, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al tomar pedido'),
-    })
+  if (error) {
+    return (
+      <div className="space-y-6">
+        {header}
+        <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar pedidos'}</p>
+      </div>
+    )
   }
-
-  function handleCompletarItem(pedidoId: string, itemId: string) {
-    completarItemMutation.mutate({ pedidoId, itemId }, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al completar item'),
-    })
-  }
-
-  function handleCancelar(id: string) {
-    if (!confirm('¿Cancelar este pedido?')) return
-    cancelarMutation.mutate(id, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al cancelar'),
-    })
-  }
-
-  function canAprobar(p: Pedido) {
-    if (p.estado !== 'PENDIENTE') return false
-    if (isAdmin || isSupervisor) return true
-    if (isVendedor) return p.vendedorId === user?.sub
-    return false
-  }
-
-  function canTomar(p: Pedido) {
-    if (p.estado !== 'APROBADO') return false
-    return isAdmin || isSupervisor || isArmador
-  }
-
-  function canCompletarItems(p: Pedido) {
-    if (p.estado !== 'EN_ARMADO') return false
-    return isAdmin || isSupervisor || isArmador
-  }
-
-  function canCancelar(p: Pedido) {
-    if (p.estado === 'COMPLETADO' || p.estado === 'CANCELADO') return false
-    if (isAdmin || isSupervisor) return true
-    if (isVendedor) return p.estado === 'PENDIENTE' && p.vendedorId === user?.sub
-    return false
-  }
-
-  function canCreate() {
-    return isAdmin || isVendedor
-  }
-
-  if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando pedidos...</p>
-  if (error) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar pedidos'}</p>
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Pedidos</h1>
-          <p className="font-body text-[13px] text-on-surface-variant">Gestión de pedidos y armado</p>
-        </div>
-        {canCreate() && (
-          <button onClick={openCreateModal} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
-            + Nuevo pedido
-          </button>
-        )}
-      </div>
+    <div className="space-y-5">
+      {header}
 
-      <div className="flex gap-4">
-        <select
-          value={estadoFilter}
-          onChange={(e) => setEstadoFilter(e.target.value)}
-          className="input-field max-w-xs"
-        >
-          <option value="">Todos los estados</option>
-          <option value="PENDIENTE">Pendiente</option>
-          <option value="APROBADO">Aprobado</option>
-          <option value="EN_ARMADO">En armado</option>
-          <option value="COMPLETADO">Completado</option>
-          <option value="CANCELADO">Cancelado</option>
-        </select>
-      </div>
-
-      <div className="bg-surface-container-high rounded-xl overflow-hidden">
-        {sortedPedidos.length === 0 ? (
-          <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay pedidos.</p>
-        ) : (
-          <table className="w-full text-left font-body text-[12px]">
-            <thead>
-              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                <th className="px-5 py-3 font-medium">N°</th>
-                <th className="px-5 py-3 font-medium">Cliente</th>
-                <th className="px-5 py-3 font-medium">Estado</th>
-                <th className="px-5 py-3 font-medium">Vendedor</th>
-                <th className="px-5 py-3 font-medium text-center">Items</th>
-                <th className="px-5 py-3 font-medium text-center">Fecha</th>
-                <th className="px-5 py-3 font-medium text-center">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sortedPedidos.map((p) => {
-                const isExpanded = expandedId === p.id
-                const variant = getEstadoVariant(p.estado)
-                return (
-                  <tr key={p.id} className="border-b border-white/10 last:border-0">
-                    <td className="px-5 py-4 font-semibold text-on-surface">{p.numero}</td>
-                    <td className="px-5 py-4 text-on-surface">{p.cliente.nombre}</td>
-                    <td className="px-5 py-4"><Badge variant={getEstadoVariant(p.estado)} className="w-[88px] justify-center">{p.estado.replace('_', ' ')}</Badge></td>
-                    <td className="px-5 py-4 text-outline">{p.vendedorNombre ?? '—'}</td>
-                    <td className="px-5 py-4 text-center text-outline">{p.items.length}</td>
-                    <td className="px-5 py-4 text-center text-outline">
-                      {new Date(p.createdAt).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })}
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                          className="font-body text-[11px] text-outline transition hover:text-on-surface"
-                        >
-                          {isExpanded ? 'Cerrar' : 'Ver'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Pedido detail rows */}
-      {sortedPedidos.filter((p) => expandedId === p.id).map((p) => (
-        <div
-          key={`detail-${p.id}`}
-          className="bg-surface-container-high rounded-xl -mt-4"
-          style={{ borderLeft: `3px solid ${
-            p.estado === 'PENDIENTE' ? 'var(--color-on-surface-variant)' :
-            p.estado === 'APROBADO' ? 'var(--color-warning)' :
-            p.estado === 'EN_ARMADO' ? 'var(--color-primary)' :
-            p.estado === 'COMPLETADO' ? 'var(--color-success)' :
-            'var(--color-error)'
-          }` }}
-        >
-          <div className="space-y-4 p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-heading text-[14px] font-bold text-on-surface">
-                  {p.numero} — {p.cliente.nombre}
-                </p>
-                <p className="mt-1 font-body text-[11px] text-outline">
-                  Vendedor: {p.vendedorNombre ?? '—'}{p.armadorNombre ? ` | Armador: ${p.armadorNombre}` : ''}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {canAprobar(p) && (
-                  <button
-                    onClick={() => handleAprobar(p.id)}
-                    className="rounded-full border border-warning/40 px-3 py-[6px] font-body text-[11px] font-semibold text-warning transition hover:bg-warning/20"
-                  >
-                    Aprobar
-                  </button>
-                )}
-                {canTomar(p) && (
-                  <button
-                    onClick={() => handleTomar(p.id)}
-                    className="rounded-full border border-primary/40 px-3 py-[6px] font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
-                  >
-                    Tomar
-                  </button>
-                )}
-                {canCancelar(p) && (
-                  <button
-                    onClick={() => handleCancelar(p.id)}
-                    className="rounded-full border border-error/30 px-3 py-[6px] font-body text-[11px] font-semibold text-error transition hover:bg-error/10"
-                  >
-                    Cancelar
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-lg border border-white/10">
-              <table className="w-full text-left font-body text-[12px]">
-                <thead>
-                  <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                    <th className="px-4 py-2.5 font-medium">Producto</th>
-                    <th className="px-4 py-2.5 font-medium text-right">Cantidad</th>
-                    <th className="px-4 py-2.5 font-medium text-center">Completado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {p.items.map((item) => (
-                    <tr key={item.id} className="border-b border-white/10 last:border-0">
-                      <td className="px-4 py-3 font-medium text-on-surface">{item.producto.nombre}</td>
-                      <td className="px-4 py-3 text-right text-outline">{item.cantidad}</td>
-                      <td className="px-4 py-3 text-center">
-                        {canCompletarItems(p) ? (
-                          <label className="inline-flex cursor-pointer items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={item.completado}
-                              onChange={() => handleCompletarItem(p.id, item.id)}
-                              className="h-4 w-4 rounded border-white/10 bg-surface-container text-primary accent-primary"
-                            />
-                            <span className={`font-body text-[11px] ${item.completado ? 'text-primary' : 'text-outline'}`}>
-                              {item.completado ? 'Listo' : 'Pendiente'}
-                            </span>
-                          </label>
-                        ) : (
-                          <span className={`font-body text-[11px] ${item.completado ? 'text-primary' : 'text-outline'}`}>
-                            {item.completado ? 'Sí' : 'No'}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* Create modal */}
-      {showCreate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreate(false)}>
-          <div className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 font-heading text-[18px] font-bold text-on-surface">
-              Nuevo pedido
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="font-body text-[11px] text-outline">Cliente</label>
-                <select
-                  value={createForm.clienteId}
-                  onChange={(e) => setCreateForm({ ...createForm, clienteId: e.target.value })}
-                  className="input-field mt-1"
-                >
-                  <option value="">Seleccionar cliente</option>
-                   {activeClientes.map((c) => (
-                    <option key={c.id} value={c.id}>{c.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <div className="mb-2 flex items-center justify-between">
-                  <label className="font-body text-[11px] text-outline">Items</label>
-                  <button
-                    type="button"
-                    onClick={addItemRow}
-                    className="rounded-full border border-primary/40 px-3 py-1 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
-                  >
-                    + Agregar item
-                  </button>
-                </div>
-                <div className="space-y-3">
-                  {createForm.items.map((item, idx) => {
-                    const total = itemTotalUnidades(item)
-                    const selectedProducto = activeProductos.find((pr) => pr.id === item.productoId)
-                    return (
-                      <div key={idx} className="rounded-lg border border-white/10 p-3">
-                        <div className="flex items-end gap-2">
-                          <div className="flex-1">
-                            <label className="font-body text-[10px] text-outline">Producto</label>
-                            <select
-                              value={item.productoId}
-                              onChange={(e) => updateItemField(idx, 'productoId', e.target.value)}
-                              className="input-field mt-1"
-                            >
-                              <option value="">Seleccionar</option>
-                              {activeProductos.map((pr) => (
-                                <option key={pr.id} value={pr.id} className="font-body">
-                                  {pr.nombre} ({pr.sku}) — stock: {pr.stock}u
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          {createForm.items.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeItemRow(idx)}
-                              className="mb-1 font-body text-[13px] text-error transition hover:opacity-80"
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-
-                        {selectedProducto && (
-                          <div className="mt-2 grid grid-cols-2 gap-2">
-                            <div>
-                              <label className="font-body text-[10px] text-outline">Cajas ({UNIDADES_POR_CAJA}u c/u)</label>
-                              <input
-                                type="number"
-                                min={0}
-                                value={item.cajas || ''}
-                                onChange={(e) => updateItemField(idx, 'cajas', Math.max(0, Number(e.target.value)))}
-                                className="input-field mt-1"
-                              />
-                            </div>
-                            <div>
-                              <label className="font-body text-[10px] text-outline">Sueltos (máx {MAX_SUELTOS})</label>
-                              <input
-                                type="number"
-                                min={0}
-                                max={MAX_SUELTOS}
-                                value={item.sueltos || ''}
-                                onChange={(e) => updateItemField(idx, 'sueltos', Math.max(0, Math.min(MAX_SUELTOS, Number(e.target.value))))}
-                                className="input-field mt-1"
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {selectedProducto && total > 0 && (
-                          <p className="mt-1.5 text-right font-body text-[11px] font-medium text-on-surface-variant">
-                            Total: <span className="font-semibold text-on-surface">{total} unidades</span>
-                            {selectedProducto.stock > 0 && (
-                              <span className="ml-1 text-outline">
-                                · stock: {selectedProducto.stock}u
-                                {selectedProducto.stock < total && (
-                                  <span className="text-error"> (insuficiente)</span>
-                                )}
-                              </span>
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  onClick={() => setShowCreate(false)}
-                  className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={createMutation.isPending}
-                  className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 disabled:opacity-50"
-                >
-                  {createMutation.isPending ? 'Guardando...' : 'Crear pedido'}
-                </button>
-              </div>
-            </div>
-          </div>
+      {ordenados.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">
+          {pedidos.length === 0 ? (esFacturacion ? 'No hay pedidos pendientes de remito.' : 'No hay pedidos.') : 'No hay pedidos en este estado.'}
+        </p>
+      ) : (
+        <div className="flex w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-surface-container-high">
+          {ordenados.map((p) => (
+            <PedidoCard
+              key={p.id}
+              pedido={p}
+              onAbrir={() => navigate(`/ale-bet/pedidos/${p.id}`)}
+            />
+          ))}
         </div>
       )}
+
     </div>
   )
 }

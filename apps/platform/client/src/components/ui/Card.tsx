@@ -35,7 +35,7 @@ export function CardHeader({ children, className }: CardProps) {
   return (
     <div
       className={cn(
-        'border-b border-outline-variant px-4 py-3 font-heading font-semibold',
+        'border-b border-outline-variant px-4 py-3 font-semibold',
         className,
       )}
     >

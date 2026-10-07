@@ -10,16 +10,18 @@ datasource db {
 }
 
 model PlatformUser {
-  id        String      @id @default(cuid())
-  email     String      @unique
-  nombre    String
-  password  String
-  activo    Boolean     @default(true)
-  estado    String      @default("pending")
-  isPlatformAdmin Boolean @default(false)
-  appAccess AppAccess[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id                 String      @id @default(cuid())
+  email              String      @unique
+  nombre             String
+  password           String
+  activo             Boolean     @default(true)
+  estado             String      @default("pending")
+  isPlatformAdmin    Boolean     @default(false)
+  mustChangePassword Boolean     @default(false)
+  appAccess          AppAccess[]
+  sessions           Session[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
   @@schema("platform")
 }
@@ -50,6 +52,41 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, leida, createdAt])
+  @@schema("platform")
+}
+
+model Session {
+  id             String       @id @default(cuid())
+  platformUserId String
+  user           PlatformUser @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+  tokenHash      String       @unique
+  createdAt      DateTime     @default(now())
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  userAgent      String?
+  ip             String?
+
+  @@index([platformUserId])
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@schema("platform")
+}
+
+model PlatformAuditoria {
+  id           String   @id @default(cuid())
+  actorId      String?
+  targetUserId String?
+  action       String
+  app          AppId?
+  previous     Json?
+  next         Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([targetUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([actorId, createdAt])
   @@schema("platform")
 }
 
@@ -91,93 +128,406 @@ model IdempotencyRecord {
 // ─── Ale-Bet schema ──────────────────────────────────────────────────────────
 
 model Producto {
-  id          String      @id @default(cuid())
-  nombre      String
-  sku         String      @unique
-  stockMinimo Int         @default(100)
-  activo      Boolean     @default(true)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  lotes       Lote[]
-  itemsPedido ItemPedido[]
+  id                  String                  @id @default(cuid())
+  nombre              String
+  sku                 String                  @unique
+  stockMinimo         Int?
+  unidadesPorCaja     Int
+  activo              Boolean                 @default(true)
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  lotes               Lote[]
+  itemsPedido         ItemPedido[]
+  saldos              SaldoStock[]
+  projectionOutbox    StockProjectionOutbox[]
+  aliases             ProductAlias[]
+  sourceTransferRules ProductoTransferRule[]  @relation("TransferRuleSource")
+  targetTransferRules ProductoTransferRule[]  @relation("TransferRuleTarget")
 
+  @@schema("ale_bet")
+}
+
+model ProductAlias {
+  id              String   @id @default(cuid())
+  alias           String
+  aliasNormalized String   @unique
+  productId       String
+  producto        Producto @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([aliasNormalized])
   @@schema("ale_bet")
 }
 
 model Lote {
-  id               String    @id @default(cuid())
-  numero           String
-  productoId       String
-  producto         Producto  @relation(fields: [productoId], references: [id])
-  cajas            Int       @default(0)
-  sueltos          Int       @default(0)
-  fechaProduccion  DateTime
-  fechaVencimiento DateTime
-  activo           Boolean   @default(true)
-  createdAt        DateTime  @default(now())
+  id                String         @id @default(cuid())
+  numero            String
+  productoId        String
+  producto          Producto       @relation(fields: [productoId], references: [id])
+  cajas             Int            @default(0)
+  sueltos           Int            @default(0)
+  fechaProduccion   DateTime?
+  fechaVencimiento  DateTime?
+  activo            Boolean        @default(true)
+  createdAt         DateTime       @default(now())
+  derivedFromLoteId String?
+  derivedFromLote   Lote?          @relation("DerivedLote", fields: [derivedFromLoteId], references: [id], onDelete: Restrict)
+  derivedLotes      Lote[]         @relation("DerivedLote")
+  reservas          ReservaStock[]
+  saldos            SaldoStock[]
 
   @@unique([numero, productoId])
+  @@unique([id, productoId])
+  @@unique([productoId, derivedFromLoteId])
+  @@schema("ale_bet")
+}
+
+enum TipoReglaTransferenciaProducto {
+  SAME_PRODUCT
+  PRESENTATION
+
+  @@schema("ale_bet")
+}
+
+model ProductoTransferRule {
+  id              String                         @id @default(cuid())
+  sourceProductId String
+  targetProductId String
+  label           String
+  tipo            TipoReglaTransferenciaProducto
+  activo          Boolean                        @default(true)
+  orden           Int                            @default(0)
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  sourceProduct   Producto                       @relation("TransferRuleSource", fields: [sourceProductId], references: [id], onDelete: Restrict)
+  targetProduct   Producto                       @relation("TransferRuleTarget", fields: [targetProductId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceProductId, targetProductId, label])
+  @@index([sourceProductId, activo, orden])
   @@schema("ale_bet")
 }
 
 model Cliente {
-  id        String   @id @default(cuid())
-  nombre    String   @unique
-  contacto  String?
-  direccion String?
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  pedidos   Pedido[]
+  id             String        @id @default(cuid())
+  nombre         String        @unique
+  contacto       String?
+  referencia     String?
+  direccion      String?
+  localidad      String?
+  provincia      String?
+  cuit           String?
+  condicionIva   String?
+  condicionVenta String?
+  transportistaPredeterminadoId String?
+  transportistaPredeterminado   Transportista? @relation("ClienteTransportistaPredeterminado", fields: [transportistaPredeterminadoId], references: [id], onDelete: SetNull)
+  estado         EstadoCliente @default(VALIDADO)
+  activo         Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  pedidos        Pedido[]
+  aliases        ClientAlias[]
 
+  @@schema("ale_bet")
+}
+
+model ClientAlias {
+  id              String   @id @default(cuid())
+  alias           String
+  aliasNormalized String   @unique
+  clientId        String
+  cliente         Cliente  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([aliasNormalized])
   @@schema("ale_bet")
 }
 
 model Pedido {
-  id         String       @id @default(cuid())
-  numero     String       @unique
-  clienteId  String
-  cliente    Cliente      @relation(fields: [clienteId], references: [id])
-  vendedorId String
-  armadorId  String?
-  estado     EstadoPedido @default(PENDIENTE)
-  items      ItemPedido[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id                       String                    @id @default(cuid())
+  numero                   String                    @unique
+  clienteId                String
+  cliente                  Cliente                   @relation(fields: [clienteId], references: [id])
+  vendedorId               String?
+  armadorId                String?
+  origen                   OrigenPedido              @default(MANUAL)
+  /// Backing record for a document created directly by Facturación. It never
+  /// enters the seller/armador workflow; it waits for a supervisor stock exit.
+  esRemitoManual           Boolean                   @default(false)
+  /// Automation orders using partial remitos consume stock only when each remito is approved.
+  descuentoPorRemito       Boolean                   @default(false)
+  estado                   EstadoPedido              @default(BORRADOR)
+  version                  Int                       @default(1)
+  cancelacionSolicitadaAt  DateTime?
+  cancelacionSolicitadaPor String?
+  motivoCancelacion        String?
+  aprobadoAt               DateTime?
+  preparadoAt              DateTime?
+  despachadoAt             DateTime?
+  canceladoAt              DateTime?
+  items                    ItemPedido[]
+  reservas                 ReservaStock[]
+  auditorias               PedidoAuditoria[]
+  remitos                  Remito[]
+  interpretationDraft      OrderInterpretationDraft?
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
 
+  @@index([esRemitoManual, estado])
   @@schema("ale_bet")
 }
 
 model ItemPedido {
-  id         String   @id @default(cuid())
+  id         String         @id @default(cuid())
   pedidoId   String
-  pedido     Pedido   @relation(fields: [pedidoId], references: [id])
+  pedido     Pedido         @relation(fields: [pedidoId], references: [id])
   productoId String
-  producto   Producto @relation(fields: [productoId], references: [id])
+  producto   Producto       @relation(fields: [productoId], references: [id])
   cantidad   Int
-  completado Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  cantidadEntregada Int     @default(0)
+  completado Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  reservas   ReservaStock[]
 
   @@schema("ale_bet")
 }
 
 model MovimientoStock {
-  id         String         @id @default(cuid())
-  productoId String
-  cantidad   Int
-  tipo       TipoMovimiento
-  referencia String?
-  usuarioId  String
-  createdAt  DateTime       @default(now())
+  id                 String          @id @default(cuid())
+  productoId         String
+  cantidad           Int
+  tipo               TipoMovimiento
+  referencia         String?
+  usuarioId          String
+  pedidoId           String?
+  loteId             String?
+  reservaId          String?
+  remitoId           String?
+  origenUbicacionId  String?
+  destinoUbicacionId String?
+  idempotencyKey     String?         @unique
+  origenUbicacion    UbicacionStock? @relation("MovimientoOrigenUbicacion", fields: [origenUbicacionId], references: [id])
+  destinoUbicacion   UbicacionStock? @relation("MovimientoDestinoUbicacion", fields: [destinoUbicacionId], references: [id])
+  createdAt          DateTime        @default(now())
+
+  @@schema("ale_bet")
+}
+
+model ReservaStock {
+  id           String         @id @default(cuid())
+  pedidoId     String
+  pedido       Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  // Released reservations remain as allocation evidence after an APROBADO edit.
+  // The live item may be replaced, so retain the reservation and detach its link.
+  itemPedidoId String?
+  itemPedido   ItemPedido?    @relation(fields: [itemPedidoId], references: [id], onDelete: SetNull)
+  loteId       String
+  lote         Lote           @relation(fields: [loteId], references: [id], onDelete: Restrict)
+  ubicacionId  String
+  ubicacion    UbicacionStock @relation(fields: [ubicacionId], references: [id], onDelete: Restrict)
+  cantidad     Int
+  estado       EstadoReserva  @default(ACTIVA)
+  createdAt    DateTime       @default(now())
+  releasedAt   DateTime?
+  consumedAt   DateTime?
+
+  @@index([itemPedidoId, loteId, ubicacionId])
+  @@index([loteId, estado])
+  @@index([pedidoId, estado])
+  @@schema("ale_bet")
+}
+
+model UbicacionStock {
+  id                 String            @id @default(cuid())
+  codigo             String            @unique
+  nombre             String
+  activo             Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  saldos             SaldoStock[]
+  reservas           ReservaStock[]
+  movimientosOrigen  MovimientoStock[] @relation("MovimientoOrigenUbicacion")
+  movimientosDestino MovimientoStock[] @relation("MovimientoDestinoUbicacion")
+
+  @@schema("ale_bet")
+}
+
+model SaldoStock {
+  id          String         @id @default(cuid())
+  productoId  String
+  loteId      String
+  ubicacionId String
+  cantidad    Int
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  producto    Producto       @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  lote        Lote           @relation(fields: [loteId, productoId], references: [id, productoId], onDelete: Restrict)
+  ubicacion   UbicacionStock @relation(fields: [ubicacionId], references: [id], onDelete: Restrict)
+
+  @@unique([productoId, loteId, ubicacionId])
+  @@schema("ale_bet")
+}
+
+model PedidoAuditoria {
+  id        String   @id @default(cuid())
+  pedidoId  String
+  pedido    Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  actorId   String
+  accion    String
+  motivo    String?
+  anterior  Json?
+  nuevo     Json?
+  createdAt DateTime @default(now())
+
+  @@index([pedidoId, createdAt])
+  @@schema("ale_bet")
+}
+
+model OrderInterpretationDraft {
+  id               String                         @id @default(cuid())
+  originalText     String
+  proposedSnapshot Json
+  editedSnapshot   Json?
+  estado           EstadoOrderInterpretationDraft @default(DRAFT)
+  version          Int                            @default(1)
+  createdBy        String
+  confirmedBy      String?
+  pedidoId         String?                        @unique
+  pedido           Pedido?                        @relation(fields: [pedidoId], references: [id], onDelete: Restrict)
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  @@index([estado, createdAt])
+  @@schema("ale_bet")
+}
+
+model StockProjectionOutbox {
+  id          String                      @id @default(cuid())
+  productId   String
+  producto    Producto                    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  causeType   String
+  causeId     String
+  estado      EstadoStockProjectionOutbox @default(PENDING)
+  attempts    Int                         @default(0)
+  nextRetryAt DateTime?
+  lastError   String?
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+
+  @@unique([productId, causeType, causeId])
+  @@index([estado, nextRetryAt])
+  @@index([causeType, causeId])
+  @@schema("ale_bet")
+}
+
+model Transportista {
+  id        String   @id @default(cuid())
+  nombre    String
+  direccion String
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  remitos   Remito[]
+  clientesPredeterminados Cliente[] @relation("ClienteTransportistaPredeterminado")
+
+  @@unique([nombre, direccion])
+  @@schema("ale_bet")
+}
+
+model Remito {
+  id                  String         @id @default(cuid())
+  pedidoId            String
+  pedido              Pedido         @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  numero              String         @unique
+  fecha               DateTime       @default(now())
+  transportistaId     String?
+  transportista       Transportista? @relation(fields: [transportistaId], references: [id])
+  transporteNombre    String
+  transporteDireccion String
+  clienteSnapshot     Json
+  transporteSnapshot  Json
+  itemsSnapshot       Json
+  caiSnapshot         Json?
+  descuentoAprobadoAt DateTime?
+  descuentoAprobadoPor String?
+  estado              EstadoRemito   @default(VIGENTE)
+  invalidadoAt        DateTime?
+  invalidadoPor       String?
+  motivoInvalidacion  String?
+  createdBy           String
+  createdAt           DateTime       @default(now())
+
+  @@index([pedidoId, estado])
+  @@schema("ale_bet")
+}
+
+model ConfiguracionRemito {
+  id                       String   @id
+  puntoVenta               String
+  proximoCorrelativo       Int?
+  numeracionInicializadaAt DateTime?
+  cai                      String
+  caiVencimiento           DateTime
+  updatedAt                DateTime @updatedAt
 
   @@schema("ale_bet")
 }
 
 enum EstadoPedido {
-  PENDIENTE
+  BORRADOR
   APROBADO
   EN_ARMADO
-  COMPLETADO
+  PREPARADO
+  PENDIENTE_PRODUCCION
+  PENDIENTE_PARCIAL
+  DESPACHADO
   CANCELADO
+
+  @@schema("ale_bet")
+}
+
+enum OrigenPedido {
+  MANUAL
+  AUTOMATION
+
+  @@schema("ale_bet")
+}
+
+enum EstadoOrderInterpretationDraft {
+  DRAFT
+  READY
+  CONFIRMED
+  CANCELLED
+
+  @@schema("ale_bet")
+}
+
+enum EstadoStockProjectionOutbox {
+  PENDING
+  SYNCED
+  ERROR
+
+  @@schema("ale_bet")
+}
+
+enum EstadoCliente {
+  PENDIENTE_CLIENTE
+  VALIDADO
+
+  @@schema("ale_bet")
+}
+
+enum EstadoReserva {
+  ACTIVA
+  LIBERADA
+  CONSUMIDA
+
+  @@schema("ale_bet")
+}
+
+enum EstadoRemito {
+  VIGENTE
+  INVALIDADO
 
   @@schema("ale_bet")
 }
@@ -185,7 +535,10 @@ enum EstadoPedido {
 enum TipoMovimiento {
   ENTRADA_MANUAL
   SALIDA_PEDIDO
+  DEVOLUCION_PEDIDO
   AJUSTE
+  SALDO_APERTURA
+  TRANSFERENCIA_INTERNA
 
   @@schema("ale_bet")
 }
@@ -193,29 +546,29 @@ enum TipoMovimiento {
 // ─── Deposito schema ────────────────────────────────────────────────────────
 // Depósito - Schema v1 (Fase 1: Drogas + Actas + Movimientos)
 
-
-
-
 // ============================================================
 // USERS
 // ============================================================
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  name         String
-  role         Role     @default(observador)
-  platformUserId String? @unique @map("platform_user_id")
-  createdAt    DateTime @default(now()) @map("created_at")
+  id             String   @id @default(uuid())
+  email          String   @unique
+  passwordHash   String   @map("password_hash")
+  name           String
+  role           Role     @default(observador)
+  platformUserId String?  @unique @map("platform_user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
 
-  actas                  Acta[]
-  movimientos            Movimiento[]
-  insumoPendientes       InsumoPendiente[]
-  ordenesComoSolicitante OrdenProduccion[] @relation("OrdenesComoSolicitante")
-  ordenesComoAprobador   OrdenProduccion[] @relation("OrdenesComoAprobador")
+  actas                         Acta[]
+  movimientos                   Movimiento[]
+  insumoPendientes              InsumoPendiente[]
+  ordenesComoSolicitante        OrdenProduccion[]                @relation("OrdenesComoSolicitante")
+  ordenesComoAprobador          OrdenProduccion[]                @relation("OrdenesComoAprobador")
+  auditoriasCatalogo            AuditoriaCatalogoProducto[]
+  importacionesInicialesEstuche ImportacionInicialEstucheBatch[]
+  partidasSolicitadas           PartidaProduccion[]
+  partidasConfirmadas           PartidaProduccion[]              @relation("PartidasConfirmadas")
 
   @@map("users")
-
   @@schema("deposito")
 }
 
@@ -243,7 +596,6 @@ model Acta {
   items ActaItem[]
 
   @@map("actas")
-
   @@schema("deposito")
 }
 
@@ -259,28 +611,27 @@ enum EstadoActa {
 // ACTA ITEMS
 // ============================================================
 model ActaItem {
-  id                  String    @id @default(uuid())
-  actaId              String    @map("acta_id")
-  productoId          String?   @map("producto_id")
-  categoria           Categoria
-  productoNombre      String    @map("producto_nombre")
-  lote                String
-  vencimiento         DateTime? @db.Date @map("vencimiento")
-  temperaturaTransporte String? @map("temperatura_transporte")
-  condicionEmbalaje   CondicionEmbalaje? @map("condicion_embalaje")
-  observacionesCalidad String? @map("observaciones_calidad")
-  aprobadoCalidad     Boolean   @default(false) @map("aprobado_calidad")
-  cantidadIngresada   Int       @map("cantidad_ingresada")
-  cantidadDistribuida Int       @default(0) @map("cantidad_distribuida")
-  mercado             Mercado?  // solo para categoría estuche/etiqueta
-  createdAt           DateTime  @default(now()) @map("created_at")
+  id                    String             @id @default(uuid())
+  actaId                String             @map("acta_id")
+  productoId            String?            @map("producto_id")
+  categoria             Categoria
+  productoNombre        String             @map("producto_nombre")
+  lote                  String
+  vencimiento           DateTime?          @map("vencimiento") @db.Date
+  temperaturaTransporte String?            @map("temperatura_transporte")
+  condicionEmbalaje     CondicionEmbalaje? @map("condicion_embalaje")
+  observacionesCalidad  String?            @map("observaciones_calidad")
+  aprobadoCalidad       Boolean            @default(false) @map("aprobado_calidad")
+  cantidadIngresada     Float              @map("cantidad_ingresada")
+  cantidadDistribuida   Float              @default(0) @map("cantidad_distribuida")
+  mercado               Mercado? // solo para categoría estuche/etiqueta
+  createdAt             DateTime           @default(now()) @map("created_at")
 
-  acta     Acta      @relation(fields: [actaId], references: [id], onDelete: Cascade)
+  acta     Acta              @relation(fields: [actaId], references: [id], onDelete: Cascade)
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@index([productoId])
   @@map("acta_items")
-
   @@schema("deposito")
 }
 
@@ -289,6 +640,7 @@ enum Categoria {
   estuche
   etiqueta
   frasco
+  material_empaque
 
   @@schema("deposito")
 }
@@ -300,6 +652,7 @@ enum Mercado {
   ecuador
   bolivia
   paraguay
+  VENEZUELA
   no_exportable
 
   @@schema("deposito")
@@ -313,6 +666,55 @@ enum CondicionEmbalaje {
   @@schema("deposito")
 }
 
+enum EstadoProductoCatalogo {
+  PENDIENTE_REVISION
+  ACTIVO
+  INACTIVO
+
+  @@schema("deposito")
+}
+
+enum OrigenProductoCatalogo {
+  MANUAL
+  IMPORTACION
+  IMPORTACION_INICIAL_ESTUCHES
+  MIGRACION
+
+  @@schema("deposito")
+}
+
+enum TipoAuditoriaCatalogo {
+  CREADO
+  EDITADO
+  CODIGO_ACTUALIZADO
+  NOMBRE_ACTUALIZADO
+  PRESENTACION_ACTUALIZADA
+  ACTIVADO
+  REACTIVADO
+  DESACTIVADO
+  IMPORTACION_CREADA
+  IMPORTACION_APROBADA
+
+  @@schema("deposito")
+}
+
+model AuditoriaCatalogoProducto {
+  id            String                @id @default(uuid())
+  productoId    String                @map("producto_id")
+  tipo          TipoAuditoriaCatalogo
+  valorAnterior Json?                 @map("valor_anterior")
+  valorNuevo    Json?                 @map("valor_nuevo")
+  usuarioId     String                @map("usuario_id")
+  createdAt     DateTime              @default(now()) @map("created_at")
+
+  producto DepositoProducto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  usuario  User             @relation(fields: [usuarioId], references: [id])
+
+  @@index([productoId, createdAt])
+  @@map("auditorias_catalogo_producto")
+  @@schema("deposito")
+}
+
 // ============================================================
 // INVENTARIO DROGAS
 // ============================================================
@@ -321,17 +723,18 @@ model InventarioDroga {
   productoId  String?   @map("producto_id")
   nombre      String
   lote        String?
-  vencimiento DateTime? @db.Date @map("vencimiento")
-  cantidad    Int       @default(0)
+  vencimiento DateTime? @map("vencimiento") @db.Date
+  cantidad    Float     @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@unique([nombre, lote])
+  @@unique([productoId, lote])
   @@index([productoId])
   @@index([productoId, lote])
   @@map("inventario_drogas")
-
   @@schema("deposito")
 }
 
@@ -346,13 +749,14 @@ model InventarioEstuche {
   cantidad   Int      @default(0)
   updatedAt  DateTime @updatedAt @map("updated_at")
 
-  producto DepositoProducto? @relation(fields: [productoId], references: [id])
+  producto               DepositoProducto?              @relation(fields: [productoId], references: [id])
+  importacionInicialItem ImportacionInicialEstucheItem?
 
   @@unique([articulo, mercado])
+  @@unique([productoId, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
   @@map("inventario_estuches")
-
   @@schema("deposito")
 }
 
@@ -370,10 +774,10 @@ model InventarioEtiqueta {
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@unique([articulo, mercado])
+  @@unique([productoId, mercado])
   @@index([productoId])
   @@index([productoId, mercado])
   @@map("inventario_etiquetas")
-
   @@schema("deposito")
 }
 
@@ -383,7 +787,7 @@ model InventarioEtiqueta {
 model InventarioFrasco {
   id              String   @id @default(uuid())
   productoId      String?  @map("producto_id")
-  articulo        String   @unique
+  articulo        String
   unidadesPorCaja Int      @map("unidades_por_caja")
   cantidadCajas   Int      @default(0) @map("cantidad_cajas")
   total           Int      @default(0)
@@ -391,9 +795,26 @@ model InventarioFrasco {
 
   producto DepositoProducto? @relation(fields: [productoId], references: [id])
 
+  @@unique([productoId])
   @@index([productoId])
   @@map("inventario_frascos")
+  @@schema("deposito")
+}
 
+// ============================================================
+// INVENTARIO MATERIALES AUXILIARES DE EMPAQUE
+// ============================================================
+model InventarioMaterialEmpaque {
+  id         String   @id @default(uuid())
+  productoId String?  @unique @map("producto_id")
+  articulo   String
+  cantidad   Int      @default(0)
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  producto DepositoProducto? @relation(fields: [productoId], references: [id])
+
+  @@index([productoId])
+  @@map("inventario_materiales_empaque")
   @@schema("deposito")
 }
 
@@ -401,28 +822,34 @@ model InventarioFrasco {
 // MOVIMIENTOS (auditoría)
 // ============================================================
 model Movimiento {
-  id             String         @id @default(uuid())
-  tipo           DepositoTipoMovimiento
-  categoria      Categoria
-  productoNombre String         @map("producto_nombre")
-  lote           String?
-  cantidad       Int // positivo = ingreso, negativo = egreso
-  referenciaId   String?        @map("referencia_id")
-  referenciaTipo RefTipo?       @map("referencia_tipo")
-  justificacion  String?
-  createdBy      String         @map("created_by")
-  createdAt      DateTime       @default(now()) @map("created_at")
+  id                              String                 @id @default(uuid())
+  tipo                            DepositoTipoMovimiento
+  categoria                       Categoria
+  productoNombre                  String                 @map("producto_nombre")
+  lote                            String?
+  cantidad                        Float // positivo = ingreso, negativo = egreso
+  referenciaId                    String?                @map("referencia_id")
+  referenciaTipo                  RefTipo?               @map("referencia_tipo")
+  productoId                      String?                @map("producto_id")
+  fechaEfectiva                   DateTime?              @map("fecha_efectiva") @db.Date
+  importacionInicialEstucheItemId String?                @unique @map("importacion_inicial_estuche_item_id")
+  justificacion                   String?
+  createdBy                       String                 @map("created_by")
+  createdAt                       DateTime               @default(now()) @map("created_at")
 
-  user User @relation(fields: [createdBy], references: [id])
+  user                          User                           @relation(fields: [createdBy], references: [id])
+  producto                      DepositoProducto?              @relation(fields: [productoId], references: [id])
+  importacionInicialEstucheItem ImportacionInicialEstucheItem? @relation(fields: [importacionInicialEstucheItemId], references: [id])
 
+  @@index([productoId])
   @@map("movimientos")
-
   @@schema("deposito")
 }
 
 enum RefTipo {
   acta_item
   orden
+  partida
 
   @@schema("deposito")
 }
@@ -430,7 +857,9 @@ enum RefTipo {
 enum DepositoTipoMovimiento {
   ingreso_acta
   egreso_orden
+  egreso_partida
   ajuste_manual
+  stock_inicial
 
   @@schema("deposito")
 }
@@ -445,9 +874,9 @@ model InsumoPendiente {
   cantidad             Int
   destino              String
   estado               EstadoPendiente @default(en_esterilizacion)
-  fechaEnvio           DateTime        @db.Date @map("fecha_envio")
-  fechaRetornoEstimada DateTime?       @db.Date @map("fecha_retorno_estimada")
-  fechaRecibido        DateTime?       @db.Date @map("fecha_recibido")
+  fechaEnvio           DateTime        @map("fecha_envio") @db.Date
+  fechaRetornoEstimada DateTime?       @map("fecha_retorno_estimada") @db.Date
+  fechaRecibido        DateTime?       @map("fecha_recibido") @db.Date
   notas                String?
   createdBy            String          @map("created_by")
   createdAt            DateTime        @default(now()) @map("created_at")
@@ -456,7 +885,6 @@ model InsumoPendiente {
   user User @relation(fields: [createdBy], references: [id])
 
   @@map("insumos_pendientes")
-
   @@schema("deposito")
 }
 
@@ -475,23 +903,24 @@ model OrdenProduccion {
   solicitanteId  String      @map("solicitante_id")
   aprobadoPor    String?     @map("aprobado_por")
   productoId     String?     @map("producto_id")
+  grupoId        String?     @map("grupo_id")
   categoria      Categoria
   productoNombre String      @map("producto_nombre")
   mercado        Mercado?
-  cantidad       Int
+  cantidad       Float
   urgencia       Urgencia    @default(normal)
   estado         EstadoOrden @default(solicitada)
   motivoRechazo  String?     @map("motivo_rechazo")
   createdAt      DateTime    @default(now()) @map("created_at")
   updatedAt      DateTime    @updatedAt @map("updated_at")
 
-  solicitante User      @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
-  aprobador   User?     @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
+  solicitante User              @relation("OrdenesComoSolicitante", fields: [solicitanteId], references: [id])
+  aprobador   User?             @relation("OrdenesComoAprobador", fields: [aprobadoPor], references: [id])
   producto    DepositoProducto? @relation(fields: [productoId], references: [id])
 
   @@index([productoId])
+  @@index([grupoId])
   @@map("ordenes_produccion")
-
   @@schema("deposito")
 }
 
@@ -516,26 +945,162 @@ enum EstadoOrden {
 // CATÁLOGO DE PRODUCTOS
 // ============================================================
 model DepositoProducto {
-  id             String    @id @default(uuid())
-  nombreBase     String    @map("nombre_base")
-  volumen        Decimal?  @db.Decimal(10, 3)
-  unidad         String?
-  variante       String?
-  categoria      Categoria
-  nombreCompleto String    @map("nombre_completo")
-  activo         Boolean   @default(true)
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id                  String                  @id @default(uuid())
+  nombreBase          String                  @map("nombre_base")
+  volumen             Decimal?                @db.Decimal(10, 3)
+  unidad              String?
+  variante            String?
+  categoria           Categoria
+  nombreCompleto      String                  @map("nombre_completo")
+  activo              Boolean                 @default(true)
+  estado              EstadoProductoCatalogo? @map("estado")
+  codigo              String?                 @unique
+  origen              OrigenProductoCatalogo  @default(MIGRACION)
+  presentacion        Int?
+  stockMinimo         Int?                    @map("stock_minimo")
+  mercadosHabilitados Mercado[]               @default([]) @map("mercados_habilitados")
+  mercado             Mercado?
+  createdAt           DateTime                @default(now()) @map("created_at")
+  updatedAt           DateTime                @updatedAt @map("updated_at")
 
-  inventarioDrogas    InventarioDroga[]
-  inventarioEstuches  InventarioEstuche[]
-  inventarioEtiquetas InventarioEtiqueta[]
-  inventarioFrascos   InventarioFrasco[]
-  actaItems           ActaItem[]
-  ordenes             OrdenProduccion[]
+  inventarioDrogas              InventarioDroga[]
+  inventarioEstuches            InventarioEstuche[]
+  inventarioEtiquetas           InventarioEtiqueta[]
+  inventarioFrascos             InventarioFrasco[]
+  inventarioMaterialesEmpaque   InventarioMaterialEmpaque[]
+  actaItems                     ActaItem[]
+  ordenes                       OrdenProduccion[]
+  auditoriasCatalogo            AuditoriaCatalogoProducto[]
+  movimientos                   Movimiento[]
+  importacionesInicialesEstuche ImportacionInicialEstucheItem[]
+  itemsSolicitud                ItemSolicitud[]
 
-  @@unique([nombreCompleto, categoria])
+  @@unique([nombreCompleto, categoria, mercado])
   @@map("productos")
+  @@schema("deposito")
+}
 
+model SecuenciaCodigoEstuche {
+  mercado Mercado @id
+  ultimo  Int     @default(0)
+
+  @@map("secuencias_codigo_estuche")
+  @@schema("deposito")
+}
+
+model SecuenciaCodigoEtiqueta {
+  mercado Mercado @id
+  ultimo  Int     @default(0)
+
+  @@map("secuencias_codigo_etiqueta")
+  @@schema("deposito")
+}
+
+model SecuenciaCodigoFrasco {
+  id     String @id @default("canonical")
+  ultimo Int    @default(62)
+
+  @@map("secuencias_codigo_frasco")
+  @@schema("deposito")
+}
+
+model ImportacionInicialEstucheBatch {
+  id             String   @id @default(uuid())
+  idempotencyKey String   @unique @map("idempotency_key")
+  checksum       String   @unique
+  actorId        String   @map("actor_id")
+  effectiveDate  DateTime @map("effective_date") @db.Date
+  result         Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  actor           User                                      @relation(fields: [actorId], references: [id])
+  items           ImportacionInicialEstucheItem[]
+  idempotencyKeys ImportacionInicialEstucheIdempotencyKey[]
+
+  @@map("importaciones_iniciales_estuche")
+  @@schema("deposito")
+}
+
+model ImportacionInicialEstucheIdempotencyKey {
+  id             String   @id @default(uuid())
+  idempotencyKey String   @unique @map("idempotency_key")
+  batchId        String   @map("batch_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  batch ImportacionInicialEstucheBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+
+  @@index([batchId])
+  @@map("importaciones_iniciales_estuche_idempotency_keys")
+  @@schema("deposito")
+}
+
+model ImportacionInicialEstucheItem {
+  id                  String   @id @default(uuid())
+  batchId             String   @map("batch_id")
+  productoId          String   @unique @map("producto_id")
+  inventarioEstucheId String   @unique @map("inventario_estuche_id")
+  mercado             Mercado
+  codigo              String
+  sourceRow           Int      @map("source_row")
+  cantidad            Int
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  batch      ImportacionInicialEstucheBatch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+  producto   DepositoProducto               @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  inventario InventarioEstuche              @relation(fields: [inventarioEstucheId], references: [id], onDelete: Restrict)
+  movimiento Movimiento?
+
+  @@unique([batchId, sourceRow])
+  @@map("importaciones_iniciales_estuche_items")
+  @@schema("deposito")
+}
+
+// ============================================================
+// PARTIDAS DE PRODUCCIÓN (DEP-V1)
+// ============================================================
+enum EstadoPartida {
+  SOLICITADO
+  CONFIRMADO
+  RECHAZADO
+
+  @@schema("deposito")
+}
+
+model PartidaProduccion {
+  id              String        @id @default(uuid())
+  solicitanteId   String        @map("solicitante_id")
+  confirmadoPorId String?       @map("confirmado_por_id")
+  confirmadoAt    DateTime?     @map("confirmado_at")
+  estado          EstadoPartida @default(SOLICITADO)
+  notas           String?
+  motivoRechazo   String?       @map("motivo_rechazo")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  solicitante   User            @relation(fields: [solicitanteId], references: [id])
+  confirmadoPor User?           @relation("PartidasConfirmadas", fields: [confirmadoPorId], references: [id])
+  items         ItemSolicitud[]
+
+  @@index([solicitanteId])
+  @@index([confirmadoPorId])
+  @@index([estado])
+  @@map("partidas_produccion")
+  @@schema("deposito")
+}
+
+model ItemSolicitud {
+  id                 String   @id @default(uuid())
+  partidaId          String   @map("partida_id")
+  productoId         String   @map("producto_id")
+  mercado            Mercado?
+  cantidadSolicitada Float    @map("cantidad_solicitada")
+  cantidadFinal      Float?   @map("cantidad_final")
+
+  partida  PartidaProduccion @relation(fields: [partidaId], references: [id], onDelete: Restrict)
+  producto DepositoProducto  @relation(fields: [productoId], references: [id])
+
+  @@index([partidaId])
+  @@index([productoId])
+  @@map("items_solicitud")
   @@schema("deposito")
 }

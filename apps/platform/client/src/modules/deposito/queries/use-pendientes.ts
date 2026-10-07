@@ -20,6 +20,7 @@ export interface InsumoPendiente {
 }
 
 import type { Frasco } from './use-frascos'
+import { dashboardKeys } from './use-dashboard'
 
 export const pendientesKeys = {
   all: ['deposito', 'pendientes'] as const,
@@ -49,6 +50,7 @@ export function useEnviarEsterilizacion() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: pendientesKeys.all })
       qc.invalidateQueries({ queryKey: pendientesKeys.frascos() })
+      qc.invalidateQueries({ queryKey: dashboardKeys.all })
     },
   })
 }
@@ -57,6 +59,9 @@ export function useRecibirEsterilizacion() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.put(`/pendientes/${id}/recibir`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: pendientesKeys.all }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: pendientesKeys.all })
+      void qc.invalidateQueries({ queryKey: dashboardKeys.all })
+    },
   })
 }

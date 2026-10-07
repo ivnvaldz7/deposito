@@ -16,6 +16,8 @@ interface CreateUserInput {
   email: string
   nombre: string
   password: string
+  mustChangePassword?: boolean
+  estado?: string
   appAccess: Array<{
     app: AppId
     rol: string
@@ -38,6 +40,8 @@ export async function createUser(
       email: input.email,
       nombre: input.nombre,
       password,
+      mustChangePassword: input.mustChangePassword ?? true,
+      estado: input.estado ?? 'active',
       appAccess: {
         create: input.appAccess.map((access) => ({
           app: access.app,
@@ -120,5 +124,23 @@ export async function deactivateUser(
   return db.platformUser.update({
     where: { id: userId },
     data: { activo: false, estado: 'disabled' },
+  })
+}
+
+export async function removeAppAccess(
+  db: PlatformDb,
+  userId: string,
+  app: AppId
+): Promise<AppAccess | null> {
+  const existing = await db.appAccess.findFirst({
+    where: { userId, app },
+  })
+
+  if (!existing) {
+    return null
+  }
+
+  return db.appAccess.delete({
+    where: { id: existing.id },
   })
 }

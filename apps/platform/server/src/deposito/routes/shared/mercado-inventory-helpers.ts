@@ -2,7 +2,8 @@ import { Mercado } from '@platform/db'
 import type { Router, Response } from 'express'
 import { z } from 'zod'
 import { authenticate } from '../../middleware/auth'
-import { requireRole } from '../../middleware/require-role'
+import { requirePermission } from '../../../middlewares/require-permission'
+import type { DepositoPermission } from '@platform/core'
 
 export const MERCADOS_VALIDOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
 
@@ -40,6 +41,7 @@ export type MercadoInventoryOrderBy = ReturnType<typeof getMercadoInventoryOrder
 
 interface MercadoInventoryRecord {
   id: string
+  productoId?: string | null
   articulo: string
   mercado: Mercado
   cantidad: number
@@ -54,17 +56,23 @@ interface MercadoInventoryOperations<TRecord extends MercadoInventoryRecord, TWh
   create: (data: CrearMercadoInventoryData) => Promise<TRecord>
   update: (id: string, data: Partial<CrearMercadoInventoryData>) => Promise<TRecord>
   delete: (id: string) => Promise<void>
+  canUpdateCantidad?: (record: TRecord) => Promise<boolean>
 }
 
 interface MercadoInventoryRouteMessages {
   conflict: string
   notFound: string
+  quantityLocked?: string
 }
 
 interface RegisterMercadoInventoryRoutesOptions<TRecord extends MercadoInventoryRecord, TWhereInput> {
   router: Router
   operations: MercadoInventoryOperations<TRecord, TWhereInput>
   messages: MercadoInventoryRouteMessages
+  permissions: {
+    read: DepositoPermission
+    manage: DepositoPermission
+  }
 }
 
 export function parseCrearMercadoInventoryBody(body: unknown) {
@@ -123,8 +131,9 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
   router,
   operations,
   messages,
+  permissions,
 }: RegisterMercadoInventoryRoutesOptions<TRecord, TWhereInput>) {
-  router.get('/', authenticate, async (req, res): Promise<void> => {
+  router.get('/', authenticate, requirePermission('deposito', permissions.read), async (req, res): Promise<void> => {
     const mercadoValue = resolveMercadoQuery(req.query['mercado'])
 
     try {
@@ -138,7 +147,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     }
   })
 
-  router.post('/', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+  router.post('/', authenticate, requirePermission('deposito', permissions.manage), async (req, res): Promise<void> => {
     const result = parseCrearMercadoInventoryBody(req.body)
     if (!result.success) {
       sendInvalidMercadoInventoryBody(res, result.error)
@@ -160,7 +169,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     }
   })
 
-  router.put('/:id', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+  router.put('/:id', authenticate, requirePermission('deposito', permissions.manage), async (req, res): Promise<void> => {
     const id = req.params['id'] as string
     const result = parseEditarMercadoInventoryBody(req.body)
     if (!result.success) {
@@ -180,6 +189,11 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
         return
       }
 
+      if (result.data.cantidad !== undefined && operations.canUpdateCantidad && !await operations.canUpdateCantidad(resolution.existing)) {
+        res.status(409).json({ message: messages.quantityLocked ?? 'La cantidad no puede editarse directamente' })
+        return
+      }
+
       const item = await operations.update(id, buildMercadoInventoryUpdateData(result.data))
       res.json(item)
     } catch {
@@ -187,7 +201,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     }
   })
 
-  router.delete('/:id', authenticate, requireRole('encargado'), async (req, res): Promise<void> => {
+  router.delete('/:id', authenticate, requirePermission('deposito', permissions.manage), async (req, res): Promise<void> => {
     const id = req.params['id'] as string
     try {
       await operations.delete(id)

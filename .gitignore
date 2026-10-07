@@ -12,6 +12,13 @@ coverage
 **/node_modules
 **/.env
 !**/.env.example
+/config/*.env
 .atl
 .claude
 *.tsbuildinfo
+.runtime/
+
+# Service Account JSON — never commit real credentials
+*-service-account.json
+*-sa.json
+service-account*.json

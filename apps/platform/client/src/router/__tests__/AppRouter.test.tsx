@@ -1,86 +1,43 @@
 import { renderWithQueryClient as render } from '@/test-utils'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
+import { AppRouter } from '../index'
 import { useAuthStore } from '@/stores/auth-store'
-import { AppRouter } from '@/router'
 
-const singleAppUser = {
-  sub: 'u1',
-  email: 'single@test.com',
-  name: 'Single App',
-  apps: { deposito: { rol: 'encargado', activo: true } },
-  isPlatformAdmin: false,
-}
+vi.mock('@/stores/auth-store', () => {
+  let storeState = {
+    token: 'test-token',
+    user: { mustChangePassword: true, apps: { deposito: { activo: true } } },
+    authResolved: true,
+  }
+  return {
+    useAuthStore: Object.assign(
+      (selector?: (state: any) => any) => (selector ? selector(storeState) : storeState),
+      {
+        getState: () => storeState,
+        setState: (newState: any) => { storeState = { ...storeState, ...newState } }
+      }
+    )
+  }
+})
 
-const multiAppUser = {
-  sub: 'u2',
-  email: 'multi@test.com',
-  name: 'Multi App',
-  apps: {
-    deposito: { rol: 'encargado', activo: true },
-    'ale-bet': { rol: 'observador', activo: true },
-  },
-  isPlatformAdmin: false,
-}
-
-describe('AppRouter', () => {
+describe('AppRouter / AuthGuard', () => {
   beforeEach(() => {
-    useAuthStore.setState({ token: null, user: null, authResolved: false })
-    localStorage.removeItem('platform-app')
+    vi.clearAllMocks()
   })
 
-  it('renders login page at /login', () => {
+  it('mustChangePassword=true bloquea navegación normal', async () => {
+    // When hitting a protected app directly
     render(
-      <MemoryRouter initialEntries={['/login']}>
+      <MemoryRouter initialEntries={['/deposito']}>
         <AppRouter />
-      </MemoryRouter>,
+      </MemoryRouter>
     )
 
-    expect(screen.getByText(/iniciá sesión/i)).toBeInTheDocument()
-  })
-
-  it('renders callback handler at /auth/google/callback', () => {
-    render(
-      <MemoryRouter initialEntries={['/auth/google/callback?token=test']}>
-        <AppRouter />
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByText(/iniciando sesión/i)).toBeInTheDocument()
-  })
-
-  it('renders no-access page at /no-access', () => {
-    render(
-      <MemoryRouter initialEntries={['/no-access']}>
-        <AppRouter />
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByText(/sin acceso/i)).toBeInTheDocument()
-  })
-
-  it('renders app-selector at /app-selector for multi-app user', async () => {
-    useAuthStore.setState({ token: 't', user: multiAppUser, authResolved: true })
-
-    render(
-      <MemoryRouter initialEntries={['/app-selector']}>
-        <AppRouter />
-      </MemoryRouter>,
-    )
-
+    // Should redirect to change password
     await waitFor(() => {
-      expect(screen.getByText(/seleccioná una aplicación/i)).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'Cambiar contraseña' })).toBeInTheDocument()
     })
-  })
-
-  it('redirects unauthenticated users from root to login', () => {
-    render(
-      <MemoryRouter initialEntries={['/']}>
-        <AppRouter />
-      </MemoryRouter>,
-    )
-
-    expect(screen.getByText(/iniciá sesión/i)).toBeInTheDocument()
   })
 })

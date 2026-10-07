@@ -4,7 +4,9 @@ import { useAuthStore } from '@/stores/auth-store'
 import { useMovimientos } from '../queries'
 import { api } from '../lib/api'
 import type { Producto } from '../components/ProductoSelector'
+import { formatCantidad } from '../lib/format-units'
 import { ArrowDown, ArrowUp, Search, Calendar, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 import {
   Table,
   TableHeader,
@@ -51,15 +53,16 @@ function DirectionIcon({ tipo }: { tipo: string }) {
   return <ArrowUp size={20} className="text-tertiary" strokeWidth={2} />
 }
 
-function CantidadCell({ cantidad, tipo }: { cantidad: number; tipo: string }) {
+function CantidadCell({ cantidad, tipo, categoria }: { cantidad: number; tipo: string; categoria: string }) {
   const color = tipo === 'ingreso_acta' ? 'var(--color-primary)' : 'var(--color-tertiary)'
   const prefix = tipo === 'ingreso_acta' ? '+' : '-'
+  const formatted = formatCantidad(Math.abs(cantidad), categoria)
   return (
     <span
-      className="font-mono text-sm font-bold tabular-nums"
+      className="text-sm font-bold tabular-nums"
       style={{ color }}
     >
-      {prefix}{Math.abs(cantidad)}
+      {`${prefix}${formatted}`}
     </span>
   )
 }
@@ -131,7 +134,7 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
     }
     try {
       const data = await api.get<Producto[]>(`/productos?buscar=${encodeURIComponent(q)}`)
-      setSuggestions(data.slice(0, 8))
+      setSuggestions(sortProductsByNaturalPresentation(data, (producto) => producto.nombreCompleto).slice(0, 8))
       setShowSuggestions(data.length > 0)
       setHighlightIdx(-1)
     } catch {
@@ -150,10 +153,19 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
 
   function selectProduct(p: Producto) {
     setProductoLocal(p.nombreCompleto)
-    onChange({ ...filters, producto: p.nombreCompleto })
+    onChange({ ...filters, producto: p.id })
     setSuggestions([])
     setShowSuggestions(false)
   }
+
+  // Resolve UUID to name if initialized with ID
+  useEffect(() => {
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filters.producto) && productoLocal === filters.producto) {
+      api.get<Producto>(`/productos/${filters.producto}`)
+        .then((p) => setProductoLocal(p.nombreCompleto))
+        .catch(() => {})
+    }
+  }, [filters.producto, productoLocal])
 
   // Close suggestions on outside click
   useEffect(() => {
@@ -192,7 +204,7 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
             }}
             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
             placeholder="Buscar producto..."
-            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-[36px] pr-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-mono text-xs outline-none"
+            className="w-full bg-surface-container border border-outline-variant rounded-lg pl-[36px] pr-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all text-xs outline-none"
             autoComplete="off"
           />
         </div>
@@ -218,17 +230,18 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
       {/* Movement Type */}
       <div className="w-[150px]">
         <label className="block font-body text-xs text-on-surface-variant mb-xs font-medium">
-          Movement Type
+          Tipo de movimiento
         </label>
         <select
           value={filters.tipo}
           onChange={(e) => onChange({ ...filters, tipo: e.target.value })}
           className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-body text-sm outline-none appearance-none"
         >
-          <option value="">All Types</option>
-          <option value="ingreso_acta">Ingress</option>
-          <option value="egreso_orden">Egress</option>
-          <option value="ajuste_manual">Adjustment</option>
+          <option value="">Todos los tipos</option>
+          <option value="ingreso_acta">Ingreso</option>
+          <option value="egreso_orden">Egreso</option>
+          <option value="transferencia_interna">Transferencia interna</option>
+          <option value="ajuste_manual">Ajuste</option>
         </select>
       </div>
 
@@ -242,7 +255,7 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
           onChange={(e) => onChange({ ...filters, tipoProducto: e.target.value, categoria: '' })}
           className="w-full bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all font-body text-sm outline-none appearance-none"
         >
-          <option value="">All</option>
+          <option value="">Todos</option>
           <option value="mp">MP</option>
           <option value="me">ME</option>
         </select>
@@ -288,7 +301,7 @@ function FiltersBar({ filters, onChange }: FiltersBarProps) {
           }}
           className="font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors py-2 mb-0"
         >
-          Clear filters
+          Limpiar filtros
         </button>
       )}
     </div>
@@ -320,7 +333,10 @@ export default function MovimientosPage() {
   }, [searchParams])
 
   const { data: movimientos = [], isLoading: loading, error } = useMovimientos(
-    filters.tipo || filters.producto || filters.tipoProducto || filters.categoria || filters.desde || filters.hasta ? filters : undefined
+    filters.tipo || filters.producto || filters.tipoProducto || filters.categoria || filters.desde || filters.hasta ? {
+      ...filters,
+      categoria: filters.categoria || filters.tipoProducto
+    } : undefined
   )
 
   // Pagination
@@ -339,7 +355,7 @@ export default function MovimientosPage() {
     <div className="flex flex-col h-full space-y-lg">
       {/* Header */}
       <div>
-        <h1 className="font-heading text-2xl font-semibold text-on-surface tracking-tight">
+        <h1 className="text-2xl font-semibold text-on-surface tracking-tight">
           Auditoría de Movimientos
         </h1>
         <p className="font-body text-sm text-on-surface-variant mt-1">
@@ -370,11 +386,10 @@ export default function MovimientosPage() {
         <>
           {/* Desktop Table */}
           <div className="hidden md:block bg-surface-container border border-white/10 rounded-xl overflow-hidden flex-1 shadow-float">
-            <table className="w-full text-left border-collapse font-mono text-xs">
+            <table className="w-full text-left border-collapse text-xs">
               <thead className="bg-surface-container-highest border-b border-white/10">
                 <tr>
                   <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-12 text-center">Dir</th>
-                  <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-32">Tx ID</th>
                   <th className="p-sm font-body text-xs font-semibold text-on-surface-variant">Product / Item</th>
                   <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-48">Date &amp; Time</th>
                   <th className="p-sm font-body text-xs font-semibold text-on-surface-variant w-24 text-right">Qty</th>
@@ -394,9 +409,6 @@ export default function MovimientosPage() {
                       <td className="p-sm text-center">
                         <DirectionIcon tipo={mov.tipo} />
                       </td>
-                      <td className={`p-sm ${isFlagged ? 'text-error' : 'text-outline'}`}>
-                        <span className="font-mono text-xs">TX-{mov.id.slice(0, 5).toUpperCase()}</span>
-                      </td>
                       <td className="p-sm">
                         <div className={`font-body text-sm font-medium group-hover:text-primary transition-colors ${isFlagged ? 'text-error' : 'text-on-surface'} flex items-center gap-2`}>
                           {mov.productoNombre}
@@ -411,13 +423,13 @@ export default function MovimientosPage() {
                           {mov.categoria} · Ref: {mov.referenciaId ? mov.referenciaId.slice(0, 8) : '—'}
                         </div>
                       </td>
-                      <td className="p-sm text-on-surface-variant font-mono text-xs">
+                      <td className="p-sm text-on-surface-variant text-xs">
                         {formatFechaCompleta(mov.createdAt)}
                       </td>
                       <td className="p-sm text-right">
-                        <CantidadCell cantidad={mov.cantidad} tipo={mov.tipo} />
+                        <CantidadCell cantidad={mov.cantidad} tipo={mov.tipo} categoria={mov.categoria} />
                       </td>
-                      <td className="p-sm text-center text-outline font-mono text-xs">
+                      <td className="p-sm text-center text-outline text-xs">
                         {mov.user.name.length > 4
                           ? mov.user.name.split(' ').map((n) => n[0]).join('').slice(0, 3).toUpperCase()
                           : mov.user.name}
@@ -430,7 +442,7 @@ export default function MovimientosPage() {
 
             {/* Pagination */}
             <div className="border-t border-white/10 p-sm flex items-center justify-between bg-surface-container-low">
-              <span className="font-mono text-xs text-outline-variant">
+              <span className="text-xs text-outline-variant">
                 Showing {(currentPage - 1) * perPage + 1}–{Math.min(currentPage * perPage, movimientos.length)} of {movimientos.length} entries
               </span>
               <div className="flex gap-1">
@@ -462,18 +474,15 @@ export default function MovimientosPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <DirectionIcon tipo={mov.tipo} />
-                    <span className="font-mono text-xs text-outline">
-                      TX-{mov.id.slice(0, 5).toUpperCase()}
-                    </span>
                   </div>
-                  <CantidadCell cantidad={mov.cantidad} tipo={mov.tipo} />
+                  <CantidadCell cantidad={mov.cantidad} tipo={mov.tipo} categoria={mov.categoria} />
                 </div>
                 <p className="font-body text-on-surface text-sm font-medium">
                   {mov.productoNombre}
                 </p>
                 <div className="flex items-center justify-between text-xs text-on-surface-variant">
                   <span>{formatFechaCompleta(mov.createdAt)}</span>
-                  <span className="font-mono text-outline">{mov.user.name}</span>
+                  <span className="text-outline">{mov.user.name}</span>
                 </div>
               </div>
             ))}

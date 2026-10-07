@@ -1,9 +1,12 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  LayoutDashboard, ClipboardList, Package, Users, Box, Clock, LogOut, AppWindow,
+  LayoutDashboard, ClipboardList, Package, Box, Truck, Users, History, Zap, FileText, Menu, X
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { AppSidebarLayout, SidebarNavItem } from '@/components/layout/AppSidebar'
+import type { NavItemDef } from '@/components/layout/AppSidebar'
 
 function formatRol(rol: string | undefined): string {
   if (!rol) return '—'
@@ -11,112 +14,148 @@ function formatRol(rol: string | undefined): string {
     admin: 'Admin',
     vendedor: 'Vendedor',
     armador: 'Armador',
+    facturacion: 'Facturación',
+    observador: 'Observador',
+    encargado: 'Encargado',
   }
   return map[rol] ?? rol.charAt(0).toUpperCase() + rol.slice(1)
 }
 
-const navItems = [
-  { path: '/ale-bet/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
-  { path: '/ale-bet/pedidos',    label: 'Pedidos',    icon: ClipboardList },
-  { path: '/ale-bet/productos',  label: 'Productos',  icon: Package },
-  { path: '/ale-bet/clientes',   label: 'Clientes',   icon: Users },
-  { path: '/ale-bet/stock',      label: 'Stock',      icon: Box },
-  { path: '/ale-bet/historial',  label: 'Historial',  icon: Clock },
+const NAV_ITEMS: NavItemDef[] = [
+  { path: '/ale-bet/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/ale-bet/automation', label: 'Automation', icon: Zap },
+  { path: '/ale-bet/pedidos', label: 'Pedidos', icon: ClipboardList },
+  { path: '/ale-bet/remitos', label: 'Remitos', icon: FileText },
+  { path: '/ale-bet/productos', label: 'Productos', icon: Package },
+  { path: '/ale-bet/stock', label: 'Stock', icon: Box },
+  { path: '/ale-bet/clientes', label: 'Clientes', icon: Users },
+  { path: '/ale-bet/transportistas', label: 'Transportistas', icon: Truck },
+  { path: '/ale-bet/historial', label: 'Historial', icon: History },
 ]
+
+import { can } from '@/lib/permissions'
+import type { PlatformUser } from '@/stores/auth-store'
+
+type Rol = string | undefined
+
+function visibleItems(user: PlatformUser | null): NavItemDef[] {
+  return NAV_ITEMS.filter((item) => {
+    switch (item.path) {
+      case '/ale-bet/dashboard': return can(user, 'ale-bet', 'dashboard.read')
+      case '/ale-bet/automation': return can(user, 'ale-bet', 'pedidos.approve')
+      case '/ale-bet/stock': return can(user, 'ale-bet', 'stock.read')
+      case '/ale-bet/pedidos': return can(user, 'ale-bet', 'pedidos.read')
+      case '/ale-bet/remitos': return can(user, 'ale-bet', 'remitos.create')
+      case '/ale-bet/clientes': return can(user, 'ale-bet', 'clientes.read')
+      case '/ale-bet/transportistas': return can(user, 'ale-bet', 'transportistas.read')
+      case '/ale-bet/historial': return can(user, 'ale-bet', 'historial.read')
+      default: return true
+    }
+  })
+}
+
+function mobilePrimaryItems(user: PlatformUser | null): NavItemDef[] {
+  const paths = [
+    '/ale-bet/dashboard',
+    ...(can(user, 'ale-bet', 'pedidos.approve') ? ['/ale-bet/automation'] : []),
+    '/ale-bet/pedidos',
+    '/ale-bet/productos',
+  ]
+  return paths
+    .map((path) => NAV_ITEMS.find((entry) => entry.path === path))
+    .filter((entry): entry is NavItemDef => entry !== undefined)
+}
 
 export default function Sidebar() {
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
   const rol = user?.apps?.['ale-bet']?.rol
   const navigate = useNavigate()
-
-  // Only admin sees Stock
-  const visibleItems = navItems.filter(
-    (item) => item.path !== '/ale-bet/stock' || rol === 'admin'
-  )
+  const [moreOpen, setMoreOpen] = useState(false)
 
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
   }
 
-  return (
-    <aside className="hidden md:flex flex-col h-full w-72 rounded-r-xl border-r border-white/10 bg-surface-container-low shadow-float py-lg z-40 fixed top-0 left-0">
-      {/* Profile Header */}
-      <div className="flex items-center gap-2 px-4 mb-xl">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-10 h-10 rounded-full bg-surface-variant border-2 border-primary flex items-center justify-center text-primary font-heading font-bold text-sm shrink-0">
-            {user?.name?.charAt(0)?.toUpperCase() ?? '?'}
-          </div>
-          <div className="min-w-0">
-            <div className="font-heading text-sm font-semibold text-primary truncate">
-              {user?.name ?? 'Sin usuario'}
-            </div>
-            <div className="font-body text-xs text-on-surface-variant truncate">
-              {formatRol(rol)}
-            </div>
-          </div>
-        </div>
-      </div>
+  const items = visibleItems(user)
+  const bottomItems = mobilePrimaryItems(user)
+  const moreItems = items.filter((item) => !bottomItems.some((primary) => primary.path === item.path))
 
-      {/* Navigation Links */}
-      <nav className="flex-1 flex flex-col gap-1 px-3">
-        {visibleItems.map(({ path, label, icon: Icon }) => (
+  const mobileContent = (
+    <>
+      {bottomItems.map((item) => {
+        const { path, label, icon: Icon } = item
+        return (
           <NavLink
             key={path}
             to={path}
+            onClick={() => setMoreOpen(false)}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 px-4 py-2.5 rounded-lg font-body text-sm transition-all duration-200 scale-hover',
-                isActive
-                  ? 'bg-primary-container/20 text-primary border-l-4 border-primary font-semibold'
-                  : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
+                'flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 font-body text-[10px] transition-colors',
+                isActive ? 'text-primary font-semibold' : 'text-on-surface-variant hover:text-on-surface',
               )
             }
           >
-            <Icon size={16} strokeWidth={1.5} />
+            <Icon size={18} strokeWidth={1.75} />
             {label}
           </NavLink>
-        ))}
-      </nav>
-
-      {/* Bottom */}
-      <div className="border-t border-white/5 px-3 py-2">
-        <NavLink
-          to="/app-selector"
-          className={({ isActive }) =>
-            cn(
-              'flex items-center gap-3 px-4 py-2.5 rounded-lg font-body text-sm transition-all duration-200 scale-hover',
-              isActive
-                ? 'bg-primary-container/20 text-primary border-l-4 border-primary'
-                : 'text-on-surface-variant hover:bg-surface-variant/50 hover:text-on-surface',
-            )
-          }
+        )
+      })}
+      {moreItems.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setMoreOpen((open) => !open)}
+          aria-label={moreOpen ? 'Cerrar más opciones' : 'Más opciones'}
+          aria-expanded={moreOpen}
+          className={cn(
+            'flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1.5 font-body text-[10px] transition-colors',
+            moreOpen ? 'bg-surface-variant text-primary font-semibold' : 'text-on-surface-variant hover:text-on-surface',
+          )}
         >
-          <AppWindow size={16} strokeWidth={1.5} />
-          Cambiar app
-        </NavLink>
-      </div>
+          {moreOpen ? <X size={18} strokeWidth={2} /> : <Menu size={18} strokeWidth={1.75} />}
+          Más
+        </button>
+      )}
+    </>
+  )
 
-      <div className="border-t border-white/5 px-4 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="truncate font-body text-sm font-medium text-on-surface">{user?.name ?? 'Sin usuario'}</p>
-            <p className="truncate font-body text-xs text-on-surface-variant">
-              {formatRol(rol)}
-            </p>
+  return (
+    <>
+      <AppSidebarLayout
+      appName="Logística"
+      userInitials={user?.name?.charAt(0)?.toUpperCase() ?? '?'}
+      userName={user?.name ?? 'Sin usuario'}
+      userRole={formatRol(rol)}
+      onLogout={handleLogout}
+      navItems={items.map((item) => <SidebarNavItem key={item.path} item={item} />)}
+      bottomMobileContent={mobileContent}
+      />
+      {moreOpen && (
+      <div className="fixed inset-0 z-30 md:hidden" aria-label="Más secciones">
+        <button type="button" aria-label="Cerrar más opciones" className="absolute inset-0 bg-black/55" onClick={() => setMoreOpen(false)} />
+        <div className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] rounded-2xl border border-white/10 bg-surface-container-low p-3 shadow-float">
+          <p className="px-2 pb-2 font-body text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">Más secciones</p>
+          <div className="grid grid-cols-2 gap-2">
+            {moreItems.map(({ path, label, icon: Icon }) => (
+              <NavLink
+                key={path}
+                to={path}
+                onClick={() => setMoreOpen(false)}
+                className={({ isActive }) => cn(
+                  'flex min-h-12 items-center gap-3 rounded-xl px-3 font-body text-[13px] font-medium',
+                  isActive ? 'bg-primary/15 text-primary' : 'bg-surface-container text-on-surface-variant',
+                )}
+              >
+                <Icon size={18} aria-hidden="true" />
+                {label}
+              </NavLink>
+            ))}
           </div>
-          <button
-            type="button"
-            onClick={handleLogout}
-            title="Cerrar sesión"
-            aria-label="Cerrar sesión"
-            className="text-on-surface-variant hover:text-on-surface transition-colors"
-          >
-            <LogOut size={16} strokeWidth={1.5} />
-          </button>
         </div>
       </div>
-    </aside>
+      )}
+    </>
   )
 }

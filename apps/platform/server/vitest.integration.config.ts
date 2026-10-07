@@ -4,9 +4,10 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/**/__tests__/integration/**/*.test.ts'],
-    setupFiles: ['dotenv/config', 'src/__tests__/utils/setup-integration.ts'],
+    setupFiles: ['src/__tests__/utils/setup-integration.ts'],
     env: {
-      VITEST_ENV: 'integration'
+      VITEST_ENV: 'integration',
+      GOOGLE_SHEETS_ENABLED: 'false',
     },
     fileParallelism: false,
     hookTimeout: 30000,

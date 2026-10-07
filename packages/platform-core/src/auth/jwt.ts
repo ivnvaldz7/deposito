@@ -26,6 +26,7 @@ export interface JwtPayload {
 
 export interface RefreshTokenPayload {
   sub: string
+  sid: string
   type: 'refresh'
   iat: number
 }
@@ -49,9 +50,9 @@ export function signToken(payload: JwtPayload): string {
   return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' })
 }
 
-export function signRefreshToken(userId: string): string {
+export function signRefreshToken(userId: string, sessionId: string): string {
   return jwt.sign(
-    { sub: userId, type: 'refresh' as const },
+    { sub: userId, sid: sessionId, type: 'refresh' as const },
     getJwtSecret(),
     { expiresIn: '7d' }
   )
@@ -91,13 +92,13 @@ export function verifyRefreshToken(token: string): RefreshTokenPayload | null {
       return null
     }
 
-    const { sub, type, iat } = decoded as RefreshTokenPayload
+    const { sub, sid, type, iat } = decoded as RefreshTokenPayload
 
-    if (!sub || type !== 'refresh') {
+    if (!sub || !sid || type !== 'refresh') {
       return null
     }
 
-    return { sub, type, iat: iat ?? Math.floor(Date.now() / 1000) }
+    return { sub, sid, type, iat: iat ?? Math.floor(Date.now() / 1000) }
   } catch {
     return null
   }

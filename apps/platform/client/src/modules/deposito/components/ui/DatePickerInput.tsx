@@ -169,7 +169,7 @@ export function DatePickerInput({
               <ChevronLeft size={16} strokeWidth={1.5} />
             </button>
 
-            <span className="font-heading text-sm font-semibold text-on-surface select-none">
+            <span className="text-sm font-semibold text-on-surface select-none">
               {MONTHS[month]} {year}
             </span>
 

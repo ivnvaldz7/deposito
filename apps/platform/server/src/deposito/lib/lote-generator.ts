@@ -16,7 +16,7 @@ import { prisma } from './prisma'
  */
 export async function generarLote(): Promise<string> {
   const result = await prisma.$queryRaw<{ max_num: number | null }[]>`
-    SELECT MAX(CAST(REGEXP_REPLACE(lote, '[^0-9]', '', 'g') AS INTEGER)) as max_num
+    SELECT MAX(NULLIF(REGEXP_REPLACE(lote, '[^0-9]', '', 'g'), '')::INTEGER) as max_num
     FROM deposito.acta_items
     WHERE categoria != 'droga'
   `

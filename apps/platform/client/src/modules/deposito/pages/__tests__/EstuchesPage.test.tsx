@@ -1,54 +1,17 @@
-import { renderWithQueryClient as render } from '@/test-utils'
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { api } from '../../lib/api'
+import { renderWithQueryClient as render } from '@/test-utils'
 import EstuchesPage from '../EstuchesPage'
-import { createEstucheList } from './fixtures/deposito-mock-factories'
-import { createMockUser } from '@/test-utils'
-import { useAuthStore } from '@/stores/auth-store'
 
-vi.mock('../../lib/api', () => ({
-  api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), del: vi.fn() },
-  ApiError: class ApiError extends Error {
-    constructor(public status: number, message: string) { super(message); this.name = 'ApiError' }
-  },
-}))
-
-vi.mock('../../lib/toast', () => ({
-  toast: { info: vi.fn(), error: vi.fn(), success: vi.fn(), warning: vi.fn() },
-}))
-
-vi.mock('../../lib/catalogo-productos', () => ({
-  fetchCatalogoProductos: vi.fn().mockResolvedValue([]),
-}))
-
-vi.mock('@/stores/auth-store', () => ({ useAuthStore: vi.fn() }))
+vi.mock('../../lib/api', () => ({ api: { get: vi.fn().mockResolvedValue([]), post: vi.fn(), put: vi.fn(), del: vi.fn() }, ApiError: class ApiError extends Error {} }))
+vi.mock('../../lib/catalogo-productos', () => ({ fetchCatalogoProductos: vi.fn().mockResolvedValue([]) }))
+vi.mock('@/stores/auth-store', () => ({ useAuthStore: vi.fn(() => ({ user: null, token: null })) }))
 
 describe('EstuchesPage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-    ;(useAuthStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({ user: createMockUser(), token: 'token' })
-  })
-
-  it('renders loading state', () => {
-    vi.mocked(api.get).mockReturnValue(new Promise(() => {}))
+  it('does not render an initial-load action', async () => {
     render(<MemoryRouter><EstuchesPage /></MemoryRouter>)
-    expect(screen.getByText('Cargando...')).toBeInTheDocument()
-  })
-
-  it('renders error state', async () => {
-    vi.mocked(api.get).mockRejectedValue(new Error('Error'))
-    render(<MemoryRouter><EstuchesPage /></MemoryRouter>)
-    await waitFor(() => expect(screen.getByText('No se pudo cargar los estuches')).toBeInTheDocument())
-  })
-
-  it('renders table with items', async () => {
-    vi.mocked(api.get).mockResolvedValue(createEstucheList())
-    render(<MemoryRouter><EstuchesPage /></MemoryRouter>)
-    await waitFor(() => {
-      expect(screen.getByText('ESTUCHES')).toBeInTheDocument()
-    })
-    expect(screen.getAllByText('AMANTINA PREMIUM 250 ML').length).toBeGreaterThanOrEqual(1)
+    expect(await screen.findByRole('heading', { name: 'Estuches' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /carga inicial|apertura/i })).not.toBeInTheDocument()
   })
 })

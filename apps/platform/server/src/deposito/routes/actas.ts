@@ -3,11 +3,12 @@ import { z } from 'zod'
 import { CondicionEmbalaje, Mercado } from '@platform/db'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 import { sseManager } from '../lib/sse-manager'
 import { eventBus } from '@platform/core'
 import { generarLote } from '../lib/lote-generator'
 import { resolveCanonicalProductName } from '../lib/producto-catalogo'
+import { resolveUniqueFrascoCandidate } from './shared/frasco-inventory-resolution'
 
 const router = Router()
 
@@ -77,7 +78,7 @@ const distribuirSchema = z.object({
 
 // ─── GET /api/actas — listar (auth) ──────────────────────────────────────────
 
-router.get('/', authenticate, async (_req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, requirePermission('deposito', 'actas.read'), async (_req: Request, res: Response): Promise<void> => {
   try {
     const actas = await prisma.acta.findMany({
       orderBy: { createdAt: 'desc' },
@@ -86,10 +87,13 @@ router.get('/', authenticate, async (_req: Request, res: Response): Promise<void
         _count: { select: { items: true } },
         items: {
           select: {
+            id: true,
             lote: true,
+            categoria: true,
             productoNombre: true,
             cantidadIngresada: true,
             cantidadDistribuida: true,
+            mercado: true,
             temperaturaTransporte: true,
             condicionEmbalaje: true,
             observacionesCalidad: true,
@@ -111,7 +115,7 @@ router.get('/', authenticate, async (_req: Request, res: Response): Promise<void
 router.post(
   '/',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'actas.create'),
   async (req: Request, res: Response): Promise<void> => {
     const result = crearActaSchema.safeParse(req.body)
     if (!result.success) {
@@ -167,7 +171,7 @@ router.post(
 
 // ─── GET /api/actas/:id — detalle (auth) ─────────────────────────────────────
 
-router.get('/:id', authenticate, async (req: Request, res: Response): Promise<void> => {
+router.get('/:id', authenticate, requirePermission('deposito', 'actas.read'), async (req: Request, res: Response): Promise<void> => {
   const id = req.params['id'] as string
 
   try {
@@ -196,7 +200,7 @@ router.get('/:id', authenticate, async (req: Request, res: Response): Promise<vo
 router.post(
   '/:id/items',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'actas.items.add'),
   async (req: Request, res: Response): Promise<void> => {
     const actaId = req.params['id'] as string
 
@@ -273,7 +277,7 @@ router.post(
 router.put(
   '/:id/items/:itemId/aprobar-calidad',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'actas.items.quality_approve'),
   async (req: Request, res: Response): Promise<void> => {
     const actaId = req.params['id'] as string
     const itemId = req.params['itemId'] as string
@@ -304,7 +308,7 @@ router.put(
 router.post(
   '/:id/items/:itemId/distribuir',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'actas.items.distribute'),
   async (req: Request, res: Response): Promise<void> => {
     const actaId = req.params['id'] as string
     const itemId = req.params['itemId'] as string
@@ -423,16 +427,18 @@ router.post(
           if (!frasco) {
             const buscar = normalizeForMatch(item.productoNombre)
             const candidatos = await tx.inventarioFrasco.findMany()
-            frasco = candidatos.find((f) => normalizeForMatch(f.articulo) === buscar) ?? null
+            frasco = resolveUniqueFrascoCandidate(buscar, candidatos)
             console.log(`Buscando: ${buscar} en frasco — encontrado: ${frasco ? 'si' : 'no'}`)
           }
           if (!frasco) {
             throw new Error('DepositoProducto no encontrado en inventario de frasco')
           }
-          const nuevasCajas = frasco.cantidadCajas + cantidad
           await tx.inventarioFrasco.update({
             where: { id: frasco.id },
-            data: { cantidadCajas: nuevasCajas, total: nuevasCajas * frasco.unidadesPorCaja },
+            data: {
+              cantidadCajas: { increment: cantidad },
+              total: { increment: cantidad * frasco.unidadesPorCaja },
+            },
           })
         }
 
@@ -530,7 +536,8 @@ router.post(
     } catch (err) {
       console.error(err)
       const msg = err instanceof Error ? err.message : 'Error interno del servidor'
-      res.status(400).json({ message: msg })
+      const status = msg.startsWith('HTTP_409:') ? 409 : 400
+      res.status(status).json({ message: msg.replace(/^HTTP_\d{3}:\s*/, '') })
     }
   }
 )

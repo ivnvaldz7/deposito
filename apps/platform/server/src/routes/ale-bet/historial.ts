@@ -2,7 +2,7 @@ import { Router, type Request } from 'express'
 import ExcelJS from 'exceljs'
 import { platformDb as prisma, type Prisma } from '@platform/db'
 import { getAppAccess, type JwtPayload } from '@platform/core'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -121,7 +121,7 @@ async function loadHistorialPedidos(where: Prisma.PedidoWhereInput): Promise<His
   const userIds = new Set<string>()
 
   for (const pedido of pedidos) {
-    userIds.add(pedido.vendedorId)
+    if (pedido.vendedorId) userIds.add(pedido.vendedorId)
     if (pedido.armadorId) {
       userIds.add(pedido.armadorId)
     }
@@ -135,7 +135,7 @@ async function loadHistorialPedidos(where: Prisma.PedidoWhereInput): Promise<His
     estado: pedido.estado as EstadoPedido,
     createdAt: pedido.createdAt,
     clienteNombre: pedido.cliente.nombre,
-    vendedorNombre: userMap.get(pedido.vendedorId) ?? 'Sin vendedor',
+    vendedorNombre: pedido.origen === 'AUTOMATION' ? 'Automation' : userMap.get(pedido.vendedorId ?? '') ?? 'Sin vendedor',
     armadorNombre: pedido.armadorId ? (userMap.get(pedido.armadorId) ?? 'Sin armador') : null,
     items: pedido.items.map((item) => ({
       productoNombre: item.producto.nombre,
@@ -148,7 +148,7 @@ function buildProductosCell(items: HistorialPedidoResponse['items']): string {
   return items.map((item) => `${item.productoNombre} x${item.cantidad}`).join(', ')
 }
 
-router.get('/', requireApp('ale-bet'), async (req, res) => {
+router.get('/', requirePermission('ale-bet', 'historial.read'), async (req, res) => {
   const user = req.user as JwtPayload
   const where = buildHistorialWhere(req, user)
 
@@ -160,7 +160,7 @@ router.get('/', requireApp('ale-bet'), async (req, res) => {
   res.json(await loadHistorialPedidos(where))
 })
 
-router.get('/export', requireApp('ale-bet'), async (req, res) => {
+router.get('/export', requirePermission('ale-bet', 'historial.export'), async (req, res) => {
   const user = req.user as JwtPayload
   const where = buildHistorialWhere(req, user)
 

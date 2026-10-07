@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { type Pedido, type DashboardPedidoReciente } from '../lib/api'
+import { type DashboardPedidoReciente } from '../lib/api'
 import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/Badge'
 import { useDashboardOverview, dashboardKeys } from '../queries'
@@ -36,13 +37,16 @@ function isAdminVendor(name: string): boolean {
   return name.includes('Admin') || name.includes('admin')
 }
 
-function getEstadoBadgeVariant(estado: Pedido['estado']): 'default' | 'success' | 'warning' | 'error' | 'info' {
+function getEstadoBadgeVariant(estado: string): 'default' | 'success' | 'warning' | 'error' | 'info' {
   switch (estado) {
-    case 'PENDIENTE': return 'default'
+    case 'PENDIENTE':
+    case 'BORRADOR': return 'default'
     case 'APROBADO': return 'warning'
     case 'EN_ARMADO': return 'info'
-    case 'COMPLETADO': return 'success'
+    case 'COMPLETADO':
+    case 'DESPACHADO': return 'success'
     case 'CANCELADO': return 'error'
+    default: return 'default'
   }
 }
 
@@ -61,7 +65,7 @@ function MetricCard({
     >
       <div onClick={onClick} onKeyDown={clickable ? (e) => { if (e.key === 'Enter') onClick?.() } : undefined} role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}>
         <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">{label}</p>
-        <p className={`mt-4 font-heading text-[48px] font-bold leading-none ${valueClassName}`}>
+        <p className={`mt-4 text-[48px] font-bold leading-none ${valueClassName}`}>
           {value}
         </p>
         <p className="mt-3 max-w-[20ch] font-body text-[11px] text-on-surface-variant">{subtitle}</p>
@@ -70,37 +74,56 @@ function MetricCard({
   )
 }
 
-function PedidoRow({ pedido, onComplete }: { pedido: DashboardPedidoReciente; onComplete: (pedidoId: string) => void }) {
+function PedidoRow({ pedido, onOpen }: { pedido: DashboardPedidoReciente; onOpen: (pedidoId: string) => void }) {
   const adminVendor = isAdminVendor(pedido.vendedorNombre)
-  const variant = getEstadoBadgeVariant(pedido.estado)
+  const esAutomation = pedido.origen === 'AUTOMATION'
+  const estadoDocumental = esAutomation ? 'Pendiente de remito' : pedido.estado.replace('_', ' ')
+  const variant = esAutomation ? 'default' : getEstadoBadgeVariant(pedido.estado)
 
   return (
-    <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] items-center gap-4 border-b border-white/10 px-5 py-4">
-      <div className="min-w-0">
-        <p className="truncate font-heading text-[12px] font-semibold text-on-surface">
-          {pedido.clienteNombre}
-        </p>
-        <p className="mt-1 font-body text-[10px] text-outline">{pedido.numero} · {pedido.cantidadItems} items</p>
+    <div
+      className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 lg:grid lg:grid-cols-[1.8fr_1fr_1fr_130px_100px] lg:items-center lg:gap-4 hover:bg-white/5 cursor-pointer transition-colors"
+      onClick={() => onOpen(pedido.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter') onOpen(pedido.id) }}
+    >
+      <div className="flex items-start justify-between lg:block">
+        <div className="min-w-0">
+          <p className="truncate text-[14px] lg:text-[12px] font-semibold text-on-surface">
+            {pedido.clienteNombre}
+          </p>
+          <p className="mt-1 font-body text-[12px] lg:text-[10px] text-outline">{pedido.numero} · {pedido.cantidadItems} items</p>
+        </div>
+        <div className="lg:hidden shrink-0 ml-2">
+          <Badge variant={variant} className="justify-center">{estadoDocumental}</Badge>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className={`inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] font-semibold ${
-          adminVendor ? 'border-primary/40 bg-primary/20 text-primary' : 'border-outline/30 bg-surface-variant text-on-surface-variant'
-        }`}>
-          {getInitials(pedido.vendedorNombre)}
-        </span>
-        <span className={`truncate font-body text-[11px] ${adminVendor ? 'font-bold text-on-surface-variant' : 'text-outline'}`}>
-          {pedido.vendedorNombre}
-        </span>
+      <div className="flex items-center justify-between lg:justify-start gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex h-[22px] w-[22px] items-center justify-center rounded-full border text-[10px] font-semibold ${
+            adminVendor ? 'border-primary/40 bg-primary/20 text-primary' : 'border-outline/30 bg-surface-variant text-on-surface-variant'
+          }`}>
+            {getInitials(pedido.vendedorNombre)}
+          </span>
+          <span className={`truncate font-body text-[11px] ${adminVendor ? 'font-bold text-on-surface-variant' : 'text-outline'}`}>
+            {pedido.vendedorNombre}
+          </span>
+        </div>
+        <div className="font-body text-[11px] text-outline lg:hidden">{formatDashboardDate(pedido.createdAt)}</div>
       </div>
-      <div className="font-body text-[11px] text-outline">{formatDashboardDate(pedido.createdAt)}</div>
-      <div className="flex justify-center">
-        <Badge variant={variant} className="w-[88px] justify-center">{pedido.estado.replace('_', ' ')}</Badge>
+      <div className="hidden lg:block font-body text-[11px] text-outline">{formatDashboardDate(pedido.createdAt)}</div>
+      <div className="hidden lg:flex justify-center">
+        <Badge variant={variant} className="w-[120px] justify-center">{estadoDocumental}</Badge>
       </div>
-      <div className="flex justify-center">
+      <div className="hidden lg:flex justify-center">
         {pedido.estado === 'EN_ARMADO' ? (
           <button
             type="button"
-            onClick={() => onComplete(pedido.id)}
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpen(pedido.id)
+            }}
             className="w-[88px] rounded-full border border-primary px-3 py-[7px] font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20"
           >
             Completar
@@ -139,32 +162,47 @@ export default function DashboardPage() {
   if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando dashboard...</p>
   if (error || !data) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'No se pudo cargar el dashboard'}</p>
 
-  const isAdmin = user?.apps?.['ale-bet']?.rol === 'admin'
+  const esArmador = user?.apps?.['ale-bet']?.rol === 'armador'
+  const canReadProductos = can(user, 'ale-bet', 'productos.read')
+  const canReadPedidos = can(user, 'ale-bet', 'pedidos.read')
+  const canReadStock = can(user, 'ale-bet', 'stock.read')
 
   return (
     <div className="space-y-6 text-on-surface">
       <div className="space-y-1">
-        <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Dashboard</h1>
+        <h1 className="text-[28px] font-bold tracking-tight text-on-surface">Dashboard</h1>
         <p className="font-body text-[13px] text-on-surface-variant">Vista operativa consolidada</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={isAdmin ? () => navigate('/ale-bet/productos') : undefined} />
-        <MetricCard label="Pedidos hoy" value={data.pedidosHoy} subtitle="Pedidos creados en el día" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
-        <MetricCard label="En armado" value={data.enArmado} subtitle="Pedidos tomados por armado" valueClassName="text-warning" onClick={isAdmin ? () => navigate('/ale-bet/pedidos') : undefined} />
-        <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={isAdmin ? () => navigate('/ale-bet/stock') : undefined} />
+        {esArmador ? (
+          <>
+            <MetricCard label="PENDIENTES DE TOMAR" value={data.pendientesTomar} subtitle="Pedidos Aprobados" valueClassName="text-warning" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'APROBADO' } })} />
+            <MetricCard label="EN ARMADO" value={data.enArmado} subtitle="Tus pedidos asignados" valueClassName="text-info" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } })} />
+            <MetricCard label="ESPERANDO PRODUCCIÓN" value={data.esperandoProduccion} subtitle="Pedidos pausados por faltantes" valueClassName="text-[rgb(160,104,105)]" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'EN_ARMADO' } })} />
+            <MetricCard label="PREPARADOS" value={data.preparados} subtitle="Listos para despacho/remito" valueClassName="text-success" onClick={() => navigate('/ale-bet/pedidos', { state: { estadoFilter: 'PREPARADO' } })} />
+          </>
+        ) : (
+          <>
+            <MetricCard label="Stock crítico" value={data.stockCritico} subtitle="Productos por debajo del mínimo" valueClassName="text-error" onClick={canReadProductos ? () => navigate('/ale-bet/productos', { state: { stockCritico: true } }) : undefined} />
+            <MetricCard label="Pendientes de remito" value={data.pendientesRemito} subtitle="Automation confirmado" valueClassName="text-on-surface" onClick={canReadPedidos ? () => navigate('/ale-bet/pedidos') : undefined} />
+            <MetricCard label="TOTAL PRODUCTOS" value={data.totalProductos} subtitle="en inventario" valueClassName="text-on-surface" onClick={canReadStock ? () => navigate('/ale-bet/stock') : undefined} />
+          </>
+        )}
       </div>
 
       <section className="space-y-5">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="font-heading text-[24px] font-bold tracking-[-0.02em] text-on-surface">Pedidos recientes</h2>
-          <button type="button" onClick={() => navigate('/ale-bet/pedidos')} className="font-body text-[12px] font-medium text-on-surface-variant transition hover:text-on-surface">
-            Ver todos →
-          </button>
+          <h2 className="text-[24px] font-bold tracking-tight text-on-surface">Pedidos recientes</h2>
+          {canReadPedidos && (
+            <button type="button" onClick={() => navigate('/ale-bet/pedidos')} className="font-body text-[12px] font-medium text-on-surface-variant transition hover:text-on-surface">
+              Ver todos →
+            </button>
+          )}
         </div>
 
         <div className="bg-surface-container-high rounded-xl overflow-hidden">
-          <div className="grid grid-cols-[1.8fr_1fr_1fr_100px_100px] gap-4 border-b border-white/10 px-5 py-3 font-body text-[10px] uppercase tracking-[0.8px] text-outline">
+          <div className="hidden lg:grid grid-cols-[1.8fr_1fr_1fr_130px_100px] gap-4 border-b border-white/10 px-5 py-3 font-body text-[10px] uppercase tracking-[0.8px] text-outline">
             <div>Cliente</div>
             <div>Vendedor</div>
             <div>Fecha</div>
@@ -172,9 +210,11 @@ export default function DashboardPage() {
             <div className="text-center">Acción</div>
           </div>
 
-          {data.pedidosRecientes.map((pedido) => (
+          {(esArmador
+            ? data.pedidosRecientes.filter(p => p.estado === 'APROBADO' || p.estado === 'EN_ARMADO' || p.estado === 'PREPARADO')
+            : data.pedidosRecientes).map((pedido) => (
             <div key={pedido.id} className={animatedPedidoId === pedido.id ? (animatedTone === 'danger' ? 'alebet-flash-danger' : 'alebet-flash-success') : ''}>
-              <PedidoRow pedido={pedido} onComplete={(id) => navigate('/ale-bet/pedidos', { state: { openPedidoId: id } })} />
+              <PedidoRow pedido={pedido} onOpen={(id) => navigate('/ale-bet/pedidos', { state: { openPedidoId: id } })} />
             </div>
           ))}
 

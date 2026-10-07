@@ -6,14 +6,21 @@ import jwt from 'jsonwebtoken'
 // ──────────────────────────────────────────────────
 // Hoisted mocks
 // ──────────────────────────────────────────────────
-const { mockDb } = vi.hoisted(() => ({
+const { mockDb, mockPermissions } = vi.hoisted(() => ({
   mockDb: {
     producto: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     movimientoStock: {
       findMany: vi.fn(),
     },
+    ubicacionStock: {
+      findMany: vi.fn(),
+    },
+  },
+  mockPermissions: {
+    archivedStockAllowed: true,
   },
 }))
 
@@ -57,9 +64,18 @@ vi.mock('@platform/core', () => {
     signAccessToken: (payload: Record<string, unknown>) => {
       return _jwt.sign(payload, _getSecret(), { expiresIn: '15m' })
     },
-    
+
     APP_SLUG_BY_ID: { deposito: 'deposito', ale_bet: 'ale-bet', portal: 'portal', admin: 'admin' },
     getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+    hasPermission: (user: { apps?: Record<string, { activo?: boolean; rol?: string }> } | null, app: string, permission: string) => {
+      const access = user?.apps?.[app]
+      if (!access?.activo) return false
+      const role = access.rol ?? ''
+      if (permission === 'stock.read') return ['admin', 'encargado', 'vendedor', 'armador', 'facturacion', 'observador'].includes(role)
+      if (permission === 'stock.read.archived') return mockPermissions.archivedStockAllowed && ['admin', 'encargado'].includes(role)
+      if (permission === 'stock.transfer') return ['admin', 'encargado'].includes(role)
+      return false
+    },
     verifyAccessToken: (token: string) => {
       try {
         return _jwt.verify(token, _getSecret())
@@ -132,6 +148,7 @@ async function createTestApp(): Promise<Express> {
 describe('Ale-Bet Stock', () => {
   beforeEach(() => {
     process.env.PLATFORM_JWT_SECRET = JWT_SECRET
+    mockPermissions.archivedStockAllowed = true
   })
 
   describe('GET /api/ale-bet/stock', () => {
@@ -142,6 +159,7 @@ describe('Ale-Bet Stock', () => {
           nombre: 'Producto A',
           sku: 'SKU001',
           stockMinimo: 10,
+          unidadesPorCaja: 20,
           activo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -149,13 +167,15 @@ describe('Ale-Bet Stock', () => {
             {
               id: 'lote-1',
               numero: 'L001',
-              cajas: 2,
-              sueltos: 5,
               activo: true,
               productoId: 'prod-1',
               fechaProduccion: new Date(),
               fechaVencimiento: new Date(),
               createdAt: new Date(),
+              saldos: [
+                { cantidad: 35, ubicacion: { codigo: 'DEPOSITO' } },
+                { cantidad: 10, ubicacion: { codigo: 'ACONDICIONADO' } },
+              ],
             },
           ],
         },
@@ -179,8 +199,18 @@ describe('Ale-Bet Stock', () => {
         .expect(200)
 
       expect(res.body.productos).toHaveLength(1)
-      // 2 cajas * 15 + 5 sueltos = 35
-      expect(res.body.productos[0].stock).toBe(35)
+      expect(res.body.productos[0].stock).toBe(45)
+      expect(res.body.productos[0].stockTotal).toBe(45)
+      expect(res.body.productos[0].stockDeposito).toBe(35)
+      expect(res.body.productos[0].stockAcondicionado).toBe(10)
+      expect(res.body.productos[0].stockDisponiblePedido).toBe(45)
+      expect(res.body.productos[0].lotes).toEqual([expect.objectContaining({
+        id: 'lote-1',
+        numero: 'L001',
+        stockTotal: 45,
+        stockDeposito: 35,
+        stockAcondicionado: 10,
+      })])
       expect(res.body.productos[0].stockBajo).toBe(false)
       expect(res.body.movimientos).toHaveLength(1)
       expect(res.body.movimientos[0].tipo).toBe('SALIDA_PEDIDO')
@@ -193,6 +223,7 @@ describe('Ale-Bet Stock', () => {
           nombre: 'Producto A',
           sku: 'SKU001',
           stockMinimo: 100,
+          unidadesPorCaja: 12,
           activo: true,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -200,13 +231,12 @@ describe('Ale-Bet Stock', () => {
             {
               id: 'lote-1',
               numero: 'L001',
-              cajas: 1,
-              sueltos: 0,
               activo: true,
               productoId: 'prod-1',
               fechaProduccion: new Date(),
               fechaVencimiento: new Date(),
               createdAt: new Date(),
+              saldos: [{ cantidad: 15, ubicacion: { codigo: 'DEPOSITO' } }],
             },
           ],
         },
@@ -221,6 +251,126 @@ describe('Ale-Bet Stock', () => {
 
       // stock = 15, stockMinimo = 100 -> stockBajo = true
       expect(res.body.productos[0].stockBajo).toBe(true)
+    })
+
+    it('uses the product total across locations and does not flag an unconfigured minimum', async () => {
+      mockDb.producto.findMany.mockResolvedValue([
+        {
+          id: 'p-acondicionado',
+          nombre: 'Producto A',
+          sku: 'SKU-A',
+          stockMinimo: 60,
+          unidadesPorCaja: 12,
+          activo: true,
+          lotes: [{ saldos: [
+            { cantidad: 0, ubicacion: { codigo: 'DEPOSITO' } },
+            { cantidad: 200, ubicacion: { codigo: 'ACONDICIONADO' } },
+          ], reservas: [] }],
+        },
+        {
+          id: 'p-unconfigured',
+          nombre: 'Producto B',
+          sku: 'SKU-B',
+          stockMinimo: null,
+          unidadesPorCaja: 12,
+          activo: true,
+          lotes: [{ saldos: [], reservas: [] }],
+        },
+      ])
+      mockDb.movimientoStock.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const res = await request(app).get('/api/ale-bet/stock').set('Authorization', `Bearer ${signToken()}`).expect(200)
+
+      expect(res.body.productos).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'p-acondicionado', stockTotal: 200, stockDeposito: 0, stockAcondicionado: 200, stockBajo: false }),
+        expect.objectContaining({ id: 'p-unconfigured', stockTotal: 0, stockBajo: false }),
+      ]))
+    })
+
+    it('hides zero-balance lots from the operational listing without changing totals', async () => {
+      const date = new Date()
+      mockDb.producto.findMany.mockResolvedValue([
+        {
+          id: 'prod-1',
+          nombre: 'Producto A',
+          sku: 'SKU001',
+          stockMinimo: 1,
+          unidadesPorCaja: 20,
+          activo: true,
+          createdAt: date,
+          updatedAt: date,
+          lotes: [
+            {
+              id: 'lote-deposito',
+              numero: 'L001',
+              activo: true,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [{ cantidad: 7, ubicacion: { codigo: 'DEPOSITO' } }],
+            },
+            {
+              id: 'lote-acondicionado',
+              numero: 'L002',
+              activo: true,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [{ cantidad: 4, ubicacion: { codigo: 'ACONDICIONADO' } }],
+            },
+            {
+              id: 'lote-repartido',
+              numero: 'L003',
+              activo: true,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [
+                { cantidad: 3, ubicacion: { codigo: 'DEPOSITO' } },
+                { cantidad: 5, ubicacion: { codigo: 'ACONDICIONADO' } },
+              ],
+            },
+            {
+              id: 'lote-cero',
+              numero: 'L004',
+              activo: false,
+              productoId: 'prod-1',
+              fechaProduccion: date,
+              fechaVencimiento: date,
+              createdAt: date,
+              saldos: [],
+            },
+          ],
+        },
+      ])
+      mockDb.movimientoStock.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const res = await request(app).get('/api/ale-bet/stock').set('Authorization', `Bearer ${signToken()}`).expect(200)
+      const product = res.body.productos[0]
+
+      expect(product.stockTotal).toBe(19)
+      expect(product.stockDeposito).toBe(10)
+      expect(product.stockAcondicionado).toBe(9)
+      expect(product.lotes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'lote-deposito', stockTotal: 7, stockDeposito: 7, stockAcondicionado: 0 }),
+        expect.objectContaining({ id: 'lote-acondicionado', stockTotal: 4, stockDeposito: 0, stockAcondicionado: 4 }),
+        expect.objectContaining({ id: 'lote-repartido', stockTotal: 8, stockDeposito: 3, stockAcondicionado: 5 }),
+      ]))
+      expect(product.lotes).not.toEqual(expect.arrayContaining([expect.objectContaining({ id: 'lote-cero' })]))
+      expect(product.lotes.reduce((total: number, lote: { stockTotal: number }) => total + lote.stockTotal, 0)).toBe(product.stockTotal)
+
+      const archived = await request(app)
+        .get('/api/ale-bet/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+      expect(archived.body.productos[0].lotes).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'lote-cero', stockTotal: 0 }),
+      ]))
     })
 
     it('returns empty arrays when no data exists', async () => {
@@ -252,6 +402,52 @@ describe('Ale-Bet Stock', () => {
       expect(res.body.error).toBe('No tiene acceso a esta aplicación')
     })
 
+    it('uses stock.read.archived rather than role or Platform Admin to include archived lots', async () => {
+      mockDb.producto.findMany.mockResolvedValue([])
+      mockDb.movimientoStock.findMany.mockResolvedValue([])
+      const app = await createTestApp()
+
+      mockPermissions.archivedStockAllowed = false
+      await request(app)
+        .get('/api/ale-bet/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken({ isPlatformAdmin: true })}`)
+        .expect(200)
+
+      const deniedQuery = mockDb.producto.findMany.mock.calls.at(-1)?.[0]
+      expect(deniedQuery.include.lotes.where).toEqual({ activo: true })
+
+      mockPermissions.archivedStockAllowed = true
+      await request(app)
+        .get('/api/ale-bet/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      const allowedQuery = mockDb.producto.findMany.mock.calls.at(-1)?.[0]
+      expect(allowedQuery.include.lotes.where).toBeUndefined()
+    })
+
+    it('denies inactive, absent, and Platform Admin-only Ale-Bet access before querying stock', async () => {
+      const app = await createTestApp()
+      const tokens = [
+        signToken({ apps: { 'ale-bet': { rol: 'admin', activo: false } } }),
+        signSinAccesoToken(),
+        signToken({
+          sub: 'platform-admin-without-alebet',
+          isPlatformAdmin: true,
+          apps: { deposito: { rol: 'encargado', activo: true } },
+        }),
+      ]
+
+      for (const token of tokens) {
+        await request(app)
+          .get('/api/ale-bet/stock?includeArchived=true')
+          .set('Authorization', `Bearer ${token}`)
+          .expect(403)
+      }
+
+      expect(mockDb.producto.findMany).not.toHaveBeenCalled()
+    })
+
     it('returns 500 on DB error', async () => {
       mockDb.producto.findMany.mockRejectedValue(new Error('DB connection failed'))
       const app = await createTestApp()
@@ -262,6 +458,87 @@ describe('Ale-Bet Stock', () => {
         .expect(500)
 
       expect(res.body.error).toBe('DB connection failed')
+    })
+  })
+
+  describe('GET /api/ale-bet/stock/export.pdf', () => {
+    it('exports a live, printable PDF with the finished stock detail', async () => {
+      mockDb.producto.findMany.mockResolvedValue([
+        {
+          id: 'prod-1', nombre: 'Producto PDF', activo: true,
+          lotes: [{
+            id: 'lote-1', numero: 'LOT-1', createdAt: new Date('2026-01-01'), fechaVencimiento: new Date('2027-04-17'),
+            saldos: [{ cantidad: 7, ubicacion: { codigo: 'DEPOSITO' } }, { cantidad: 2, ubicacion: { codigo: 'ACONDICIONADO' } }],
+          }],
+        },
+      ])
+      const app = await createTestApp()
+      const response = await request(app)
+        .get('/api/ale-bet/stock/export.pdf')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .buffer(true)
+        .parse((res, callback) => {
+          const chunks: Buffer[] = []
+          res.on('data', (chunk) => chunks.push(chunk))
+          res.on('end', () => callback(null, Buffer.concat(chunks)))
+        })
+        .expect(200)
+
+      expect(response.headers['content-type']).toMatch(/application\/pdf/)
+      expect(response.headers['content-disposition']).toContain('stock-producto-terminado-')
+      expect(response.body.subarray(0, 5).toString()).toBe('%PDF-')
+    })
+  })
+
+  describe('GET /api/ale-bet/productos/:id/stock', () => {
+    it('uses stock.read.archived for product stock as well', async () => {
+      mockDb.producto.findUnique.mockResolvedValue({ id: 'prod-1', nombre: 'Producto A', lotes: [] })
+      mockDb.ubicacionStock.findMany.mockResolvedValue([])
+      const app = await createTestApp()
+
+      mockPermissions.archivedStockAllowed = false
+      await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      const deniedQuery = mockDb.producto.findUnique.mock.calls.at(-1)?.[0]
+      expect(deniedQuery.select.lotes.where).toEqual({ activo: true })
+
+      mockPermissions.archivedStockAllowed = true
+      await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock?includeArchived=true')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      const allowedQuery = mockDb.producto.findUnique.mock.calls.at(-1)?.[0]
+      expect(allowedQuery.select.lotes.where).toBeUndefined()
+    })
+
+    it('keeps a zero lot persisted and shows it again automatically after stock is received', async () => {
+      const zeroLot = {
+        id: 'lote-zero', numero: 'CB0094', activo: true, fechaProduccion: null, fechaVencimiento: null,
+        saldos: [{ cantidad: 0, ubicacion: { id: 'deposito', codigo: 'DEPOSITO' } }],
+      }
+      mockDb.producto.findUnique.mockResolvedValueOnce({ id: 'prod-1', nombre: 'Producto A', lotes: [zeroLot] })
+      mockDb.ubicacionStock.findMany.mockResolvedValue([{ id: 'deposito', codigo: 'DEPOSITO', nombre: 'Depósito' }])
+      const app = await createTestApp()
+
+      const hidden = await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+      expect(hidden.body.lotes).toEqual([])
+
+      mockDb.producto.findUnique.mockResolvedValueOnce({
+        id: 'prod-1', nombre: 'Producto A', lotes: [{ ...zeroLot, saldos: [{ cantidad: 12, ubicacion: { id: 'deposito', codigo: 'DEPOSITO' } }] }],
+      })
+      const visibleAgain = await request(app)
+        .get('/api/ale-bet/productos/prod-1/stock')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .expect(200)
+
+      expect(visibleAgain.body.lotes).toEqual([expect.objectContaining({ id: 'lote-zero', stockTotal: 12, stockDeposito: 12 })])
     })
   })
 
@@ -326,6 +603,28 @@ describe('Ale-Bet Stock', () => {
         .expect(500)
 
       expect(res.body.error).toBe('DB error')
+    })
+  })
+
+  describe('POST /api/ale-bet/stock/transferencias', () => {
+    it('rejects a malformed transfer before mutating stock', async () => {
+      const app = await createTestApp()
+      const res = await request(app)
+        .post('/api/ale-bet/stock/transferencias')
+        .set('Authorization', `Bearer ${signToken()}`)
+        .send({ productoId: 'producto-1', loteId: 'lote-1', origen: 'DEPOSITO', destino: 'ACONDICIONADO', cantidad: 0 })
+        .expect(400)
+
+      expect(res.body.error).toBe('Datos de transferencia inválidos')
+    })
+
+    it('forbids a vendedor from requesting an internal transfer', async () => {
+      const app = await createTestApp()
+      await request(app)
+        .post('/api/ale-bet/stock/transferencias')
+        .set('Authorization', `Bearer ${signToken({ apps: { 'ale-bet': { rol: 'vendedor', activo: true } } })}`)
+        .send({ productoId: 'producto-1', loteId: 'lote-1', origen: 'DEPOSITO', destino: 'ACONDICIONADO', cantidad: 1 })
+        .expect(403)
     })
   })
 })

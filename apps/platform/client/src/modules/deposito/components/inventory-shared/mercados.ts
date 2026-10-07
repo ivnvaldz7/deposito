@@ -5,6 +5,7 @@ export type Mercado =
   | 'ecuador'
   | 'bolivia'
   | 'paraguay'
+  | 'VENEZUELA'
   | 'no_exportable'
 
 export const MERCADOS: { value: Mercado; label: string }[] = [
@@ -14,6 +15,7 @@ export const MERCADOS: { value: Mercado; label: string }[] = [
   { value: 'ecuador', label: 'Ecuador' },
   { value: 'bolivia', label: 'Bolivia' },
   { value: 'paraguay', label: 'Paraguay' },
+  { value: 'VENEZUELA', label: 'Venezuela' },
   { value: 'no_exportable', label: 'No exportable' },
 ]
 

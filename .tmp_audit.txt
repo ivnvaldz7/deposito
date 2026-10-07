@@ -1,0 +1,402 @@
+packages/platform-core/src/auth\jwt.test.ts:17:  isPlatformAdmin: false,
+packages/platform-core/src/auth\jwt.test.ts:37:  it('codifica sub, email, name, isPlatformAdmin y apps en el payload', () => {
+packages/platform-core/src/auth\jwt.test.ts:44:    expect(decoded!.isPlatformAdmin).toBe(false)
+packages/platform-core/src/auth\jwt.ts:17:  isPlatformAdmin?: boolean
+packages/platform-core/src/auth\jwt.ts:69:    const { sub, email, name, isPlatformAdmin, apps } = decoded as JwtPayload
+packages/platform-core/src/auth\jwt.ts:79:      isPlatformAdmin: isPlatformAdmin ?? false,
+packages/platform-core/src/auth\jwt.ts:107:export function getAppAccess(user: JwtPayload | undefined | null, slug: string) {
+packages/platform-core/src/auth\jwt.ts:124:    const { sub, email, name, isPlatformAdmin, apps } = decoded as JwtPayload
+packages/platform-core/src/auth\jwt.ts:134:      isPlatformAdmin: isPlatformAdmin ?? false,
+packages/platform-core/src/auth\middleware.ts:60:export function requireApp(app: string, roles?: string[]): RequestHandler {
+packages/platform-core/src/auth\middleware.ts:74:    if (roles && roles.length > 0 && !roles.includes(appAccess.rol)) {
+packages/platform-core/src/auth\middleware.ts:75:      return res.status(403).json({ error: 'Rol insuficiente' })
+packages/platform-core/src/auth\middleware.ts:92:    if (!user || user.isPlatformAdmin !== true) {
+packages/platform-core/src/auth\middleware.ts:93:      return res.status(403).json({ error: 'Acceso denegado' })
+packages/platform-core/src/auth\permissions.ts:43:  | 'users.access.grant' | 'users.access.revoke' | 'users.access.role_change' | 'users.access.enable_disable'
+packages/platform-core/src/auth\permissions.ts:87:    'users.access.grant', 'users.access.revoke', 'users.access.role_change', 'users.access.enable_disable',
+packages/platform-core/src/auth\permissions.ts:93:export const ROLE_PERMISSIONS: {
+packages/platform-core/src/auth\permissions.ts:156:export function isValidPermission(app: string, permission: string): boolean {
+packages/platform-core/src/auth\permissions.ts:158:  return PERMISSIONS[app as AppPermissionKey].includes(permission)
+packages/platform-core/src/auth\permissions.ts:161:export function roleHasPermission(app: string, role: string, permission: Permission): boolean {
+packages/platform-core/src/auth\permissions.ts:162:  if (!isValidPermission(app, permission)) return false
+packages/platform-core/src/auth\permissions.ts:163:  const roles = ROLE_PERMISSIONS[app as AppPermissionKey]
+packages/platform-core/src/auth\permissions.ts:164:  if (!roles) return false
+packages/platform-core/src/auth\permissions.ts:165:  const permissions = roles[role]
+packages/platform-core/src/auth\permissions.ts:166:  if (!permissions) return false
+packages/platform-core/src/auth\permissions.ts:167:  return permissions.includes(permission)
+packages/platform-core/src/auth\permissions.ts:170:export function getRolePermissions(app: string, role: string): Permission[] {
+packages/platform-core/src/auth\permissions.ts:171:  const roles = ROLE_PERMISSIONS[app as AppPermissionKey]
+packages/platform-core/src/auth\permissions.ts:172:  if (!roles) return []
+packages/platform-core/src/auth\permissions.ts:173:  return (roles[role] || []) as Permission[]
+packages/platform-core/src/auth\permissions.ts:181:  permission: Permission,
+packages/platform-core/src/auth\permissions.ts:184:  if (user.isPlatformAdmin) return true
+packages/platform-core/src/auth\permissions.ts:189:  return roleHasPermission(app, access.rol, permission)
+packages/platform-core/src/auth\permissions.ts:195:  permissions: Permission[],
+packages/platform-core/src/auth\permissions.ts:198:  if (user.isPlatformAdmin) return true
+packages/platform-core/src/auth\permissions.ts:199:  return permissions.some(p => hasPermission(user, app, p))
+packages/platform-core/src/auth\permissions.ts:205:  permissions: Permission[],
+packages/platform-core/src/auth\permissions.ts:208:  if (user.isPlatformAdmin) return true
+packages/platform-core/src/auth\permissions.ts:209:  if (permissions.length === 0) return true
+packages/platform-core/src/auth\permissions.ts:210:  return permissions.every(p => hasPermission(user, app, p))
+packages/platform-core/src/auth\permissions.test.ts:3:  roleHasPermission,
+packages/platform-core/src/auth\permissions.test.ts:8:} from './permissions'
+packages/platform-core/src/auth\permissions.test.ts:11:describe('permissions', () => {
+packages/platform-core/src/auth\permissions.test.ts:12:  describe('roleHasPermission', () => {
+packages/platform-core/src/auth\permissions.test.ts:14:      expect(roleHasPermission('unknown', 'admin', 'dashboard.read' as any)).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:17:    it('returns false for unknown permission', () => {
+packages/platform-core/src/auth\permissions.test.ts:18:      expect(roleHasPermission('ale-bet', 'admin', 'unknown.permission' as any)).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:21:    it('returns false for unknown role', () => {
+packages/platform-core/src/auth\permissions.test.ts:22:      expect(roleHasPermission('ale-bet', 'unknown-role', 'dashboard.read' as any)).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:25:    it('validates critical Ale-Bet permissions based on review', () => {
+packages/platform-core/src/auth\permissions.test.ts:27:      expect(roleHasPermission('ale-bet', 'encargado', 'clientes.create')).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:29:      expect(roleHasPermission('ale-bet', 'armador', 'clientes.read')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:32:      expect(roleHasPermission('ale-bet', 'vendedor', 'stock.read')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:33:      expect(roleHasPermission('ale-bet', 'vendedor', 'stock.lots.adjust')).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:36:      expect(roleHasPermission('ale-bet', 'admin', 'stock.lots.adjust')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:39:      expect(roleHasPermission('ale-bet', 'observador', 'dashboard.read')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:40:      expect(roleHasPermission('ale-bet', 'observador', 'pedidos.create')).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:43:    it('validates Deposito permissions', () => {
+packages/platform-core/src/auth\permissions.test.ts:45:      expect(roleHasPermission('deposito', 'encargado', 'actas.create')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:46:      expect(roleHasPermission('deposito', 'encargado', 'dashboard.read')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:49:      expect(roleHasPermission('deposito', 'observador', 'dashboard.read')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:50:      expect(roleHasPermission('deposito', 'observador', 'actas.create')).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:53:      expect(roleHasPermission('deposito', 'solicitante', 'ordenes.create')).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:54:      expect(roleHasPermission('deposito', 'solicitante', 'ordenes.approve')).toBe(false)
+packages/platform-core/src/auth\permissions.test.ts:63:      isPlatformAdmin: false,
+packages/platform-core/src/auth\permissions.test.ts:75:      expect(hasPermission({ ...mockUser, isPlatformAdmin: true }, 'ale-bet', 'unknown.permission' as any)).toBe(true)
+packages/platform-core/src/auth\permissions.test.ts:82:    it('returns true if active app and role has permission', () => {
+packages/platform-core/src/auth\permissions.test.ts:86:    it('returns false if role does not have permission', () => {
+apps/platform/server/src/__tests__\auth-flow.test.ts:9:const { mockGetUserByEmail, mockGetUserById, mockUpdateAppAccess, mockGoogleStrategy, mockDb } =
+apps/platform/server/src/__tests__\auth-flow.test.ts:13:    mockUpdateAppAccess: vi.fn(),
+apps/platform/server/src/__tests__\auth-flow.test.ts:75:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/__tests__\auth-flow.test.ts:80:        const { sub, email, name, isPlatformAdmin, apps } = decoded as Record<
+apps/platform/server/src/__tests__\auth-flow.test.ts:89:          isPlatformAdmin: isPlatformAdmin ?? false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:116:        const { sub, email, name, isPlatformAdmin, apps } = decoded as Record<
+apps/platform/server/src/__tests__\auth-flow.test.ts:125:          isPlatformAdmin: isPlatformAdmin ?? false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:138:    updateAppAccess: mockUpdateAppAccess,
+apps/platform/server/src/__tests__\auth-flow.test.ts:199:    isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:213:    isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:225:    isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:237:    isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:387:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:423:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:465:      expect(res.body.user.isPlatformAdmin).toBe(false)
+apps/platform/server/src/__tests__\auth-flow.test.ts:479:    it('propagates AppAccess rows added after sign-in (SESSION-1)', async () => {
+apps/platform/server/src/__tests__\auth-flow.test.ts:531:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:558:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:626:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\auth-flow.test.ts:671:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:694:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:710:      mockUpdateAppAccess.mockResolvedValue({
+apps/platform/server/src/__tests__\auth-flow.test.ts:724:      expect(mockUpdateAppAccess).toHaveBeenCalledTimes(2)
+apps/platform/server/src/__tests__\auth-flow.test.ts:725:      expect(mockUpdateAppAccess).toHaveBeenNthCalledWith(
+apps/platform/server/src/__tests__\auth-flow.test.ts:732:      expect(mockUpdateAppAccess).toHaveBeenNthCalledWith(
+apps/platform/server/src/__tests__\auth-flow.test.ts:755:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:765:      mockUpdateAppAccess.mockResolvedValue({
+apps/platform/server/src/__tests__\auth-flow.test.ts:777:      expect(mockUpdateAppAccess).toHaveBeenCalledTimes(2)
+apps/platform/server/src/__tests__\auth-flow.test.ts:784:      expect(mockUpdateAppAccess).toHaveBeenCalledTimes(4)
+apps/platform/server/src/__tests__\auth-flow.test.ts:785:      expect(mockUpdateAppAccess).toHaveBeenNthCalledWith(3, expect.anything(), 'user_encargado_001', 'deposito', { rol: 'encargado', activo: true })
+apps/platform/server/src/__tests__\auth-flow.test.ts:795:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:810:      expect(mockUpdateAppAccess).not.toHaveBeenCalled()
+apps/platform/server/src/__tests__\auth-flow.test.ts:820:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:829:      mockUpdateAppAccess.mockRejectedValue(new Error('DB hiccup'))
+apps/platform/server/src/__tests__\auth-flow.test.ts:855:        expect(mockUpdateAppAccess).not.toHaveBeenCalled()
+apps/platform/server/src/__tests__\auth-flow.test.ts:894:      expect(res.body.user.isPlatformAdmin).toBe(false)
+apps/platform/server/src/__tests__\auth-flow.test.ts:1059:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\auth-flow.test.ts:1076:      expect(res.body.isPlatformAdmin).toBe(false)
+apps/platform/server/src/__tests__\auth-flow.test.ts:1092:          isPlatformAdmin: false,
+apps/platform/server/src/__tests__\ale-bet.test.ts:71:    getAppAccess: (user: { apps?: Record<string, unknown> }, app: string) => user.apps?.[app],
+apps/platform/server/src/__tests__\ale-bet.test.ts:109:function token(role: 'admin' | 'vendedor' | 'armador' | 'facturacion', subject = `${role}-1`): string {
+apps/platform/server/src/__tests__\ale-bet.test.ts:110:  return jwt.sign({ sub: subject, apps: { 'ale-bet': { rol: role, activo: true } } }, JWT_SECRET, { expiresIn: '15m' })
+apps/platform/server/src/__tests__\ale-bet.test.ts:235:      .send({ expectedVersion: 1, motivo: 'Cliente pidió detener el armado' }).expect(403)
+apps/platform/server/src/__tests__\ale-bet.test.ts:263:      .send({ expectedVersion: 1 }).expect(403)
+apps/platform/server/src/__tests__\ale-bet.test.ts:283:      .set('Idempotency-Key', 'prepare-1').send({ expectedVersion: 1 }).expect(403)
+apps/platform/server/src/__tests__\ale-bet.test.ts:299:      .send({ expectedVersion: 1 }).expect(403)
+apps/platform/server/src/__tests__\ale-bet.test.ts:373:    await request(server).put('/api/ale-bet/clientes/cliente-1').set('Authorization', `Bearer ${token('vendedor')}`).send({ estado: 'VALIDADO' }).expect(403)
+apps/platform/server/src/__tests__\admin-crud.test.ts:13:    const mockUpdateAppAccess = vi.fn()
+apps/platform/server/src/__tests__\admin-crud.test.ts:15:    const mockRemoveAppAccess = vi.fn()
+apps/platform/server/src/__tests__\admin-crud.test.ts:47:        updateAppAccess: mockUpdateAppAccess,
+apps/platform/server/src/__tests__\admin-crud.test.ts:49:        removeAppAccess: mockRemoveAppAccess,
+apps/platform/server/src/__tests__\admin-crud.test.ts:75:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/__tests__\admin-crud.test.ts:76:    // Real catalog copy — mirrors packages/platform-core/src/users/roles.ts so
+apps/platform/server/src/__tests__\admin-crud.test.ts:85:      const roles = {
+apps/platform/server/src/__tests__\admin-crud.test.ts:91:      return roles !== undefined && roles.includes(rol)
+apps/platform/server/src/__tests__\admin-crud.test.ts:97:        const { sub, email, name, isPlatformAdmin, apps } = decoded as Record<
+apps/platform/server/src/__tests__\admin-crud.test.ts:106:          isPlatformAdmin: isPlatformAdmin ?? false,
+apps/platform/server/src/__tests__\admin-crud.test.ts:128:        const { sub, email, name, isPlatformAdmin, apps } = decoded as Record<
+apps/platform/server/src/__tests__\admin-crud.test.ts:137:          isPlatformAdmin: isPlatformAdmin ?? false,
+apps/platform/server/src/__tests__\admin-crud.test.ts:150:    updateAppAccess: mockCore.updateAppAccess,
+apps/platform/server/src/__tests__\admin-crud.test.ts:152:    removeAppAccess: mockCore.removeAppAccess,
+apps/platform/server/src/__tests__\admin-crud.test.ts:203: * - GET /api/admin/ — non-admin → 403
+apps/platform/server/src/__tests__\admin-crud.test.ts:220:    isPlatformAdmin: true,
+apps/platform/server/src/__tests__\admin-crud.test.ts:235:    isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-crud.test.ts:249:    isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-crud.test.ts:263:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\admin-crud.test.ts:277:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-crud.test.ts:339:    it('with non-admin token → returns 403', async () => {
+apps/platform/server/src/__tests__\admin-crud.test.ts:347:      expect(res.status).toBe(403)
+apps/platform/server/src/__tests__\admin-crud.test.ts:533:    it('with role not in the catalog → returns 400 and does not create the user', async () => {
+apps/platform/server/src/__tests__\admin-crud.test.ts:590:      mockCore.updateAppAccess.mockResolvedValue(updatedAccess)
+apps/platform/server/src/__tests__\admin-crud.test.ts:601:      expect(mockCore.updateAppAccess).toHaveBeenCalledTimes(1)
+apps/platform/server/src/__tests__\admin-crud.test.ts:617:    it('returns 500 when updateAppAccess throws', async () => {
+apps/platform/server/src/__tests__\admin-crud.test.ts:619:      mockCore.updateAppAccess.mockRejectedValue(new Error('DB error'))
+apps/platform/server/src/__tests__\admin-crud.test.ts:631:    it('with role not in the catalog → returns 400 and does not call updateAppAccess', async () => {
+apps/platform/server/src/__tests__\admin-crud.test.ts:642:      expect(mockCore.updateAppAccess).not.toHaveBeenCalled()
+apps/platform/server/src/__tests__\admin-crud.test.ts:645:    it('with unknown user → returns 404 before touching updateAppAccess (no FK P2003)', async () => {
+apps/platform/server/src/__tests__\admin-crud.test.ts:658:      expect(mockCore.updateAppAccess).not.toHaveBeenCalled()
+apps/platform/server/src/__tests__\admin-crud.test.ts:765:      mockCore.removeAppAccess.mockResolvedValue(deletedRow)
+apps/platform/server/src/__tests__\admin-crud.test.ts:774:      expect(mockCore.removeAppAccess).toHaveBeenCalledWith(
+apps/platform/server/src/__tests__\admin-crud.test.ts:783:      mockCore.removeAppAccess.mockResolvedValue(null)
+apps/platform/server/src/__tests__\admin-crud.test.ts:794:    it('with invalid app in URL → returns 400 and does not call removeAppAccess', async () => {
+apps/platform/server/src/__tests__\admin-crud.test.ts:804:      expect(mockCore.removeAppAccess).not.toHaveBeenCalled()
+apps/platform/server/src/__tests__\admin-crud.test.ts:807:    it('with non-admin token → returns 403 (UAT-4)', async () => {
+apps/platform/server/src/__tests__\admin-crud.test.ts:815:      expect(res.status).toBe(403)
+apps/platform/server/src/__tests__\admin-crud.test.ts:817:      expect(mockCore.removeAppAccess).not.toHaveBeenCalled()
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:12:    const mockUpdateAppAccess = vi.fn()
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:43:        updateAppAccess: mockUpdateAppAccess,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:86:    getAppAccess: (user: unknown, slug: string) =>
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:93:        const { sub, email, name, isPlatformAdmin, apps } = decoded as Record<string, unknown>
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:99:          isPlatformAdmin: isPlatformAdmin ?? false,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:112:      const roles: Record<string, string[]> = {
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:118:      const list = roles[app]
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:123:    updateAppAccess: mockCore.updateAppAccess,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:125:    removeAppAccess: vi.fn(),
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:171:  isPlatformAdmin: boolean
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:179:      isPlatformAdmin: user.isPlatformAdmin,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:211:    isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:227:    isPlatformAdmin: true,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:476:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:547:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:582:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:605:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:634:            isPlatformAdmin: false,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:645:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:687:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\admin-auth-fase1a.test.ts:718:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\notifications.test.ts:51:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/__tests__\notifications.test.ts:55:        const { sub, email, name, isPlatformAdmin, apps } = decoded
+apps/platform/server/src/__tests__\notifications.test.ts:61:          isPlatformAdmin: (isPlatformAdmin as boolean) ?? false,
+apps/platform/server/src/__tests__\notifications.test.ts:81:        const { sub, email, name, isPlatformAdmin, apps } = decoded
+apps/platform/server/src/__tests__\notifications.test.ts:87:          isPlatformAdmin: (isPlatformAdmin as boolean) ?? false,
+apps/platform/server/src/__tests__\notifications.test.ts:108:    requireApp: (_appId: string) => vi.fn((_req, _res, next) => next()),
+apps/platform/server/src/__tests__\notifications.test.ts:114:    updateAppAccess: vi.fn(),
+apps/platform/server/src/__tests__\notifications.test.ts:147:  isPlatformAdmin: false,
+apps/platform/server/src/__tests__\notifications.test.ts:155:  isPlatformAdmin: true,
+apps/platform/server/src/__tests__\notifications.test.ts:163:  isPlatformAdmin: false,
+apps/platform/server/src/__tests__\notifications.test.ts:350:        .set('Authorization', `Bearer ${adminToken}`) // isPlatformAdmin: true
+apps/platform/server/src/routes/ale-bet\clientes.ts:4:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\clientes.ts:21:router.get('/', requireApp('ale-bet'), async (_req, res) => { res.json(await prisma.cliente.findMany({ where: { activo: true }, orderBy: { nombre: 'asc' } })) })
+apps/platform/server/src/routes/ale-bet\clientes.ts:22:router.post('/', requireApp('ale-bet', ['admin', 'vendedor', 'facturacion']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\clientes.ts:25:  const role = (req.user?.apps['ale-bet']?.rol)
+apps/platform/server/src/routes/ale-bet\clientes.ts:27:  if (role === 'vendedor' && !parsed.data.contacto && !parsed.data.referencia) {
+apps/platform/server/src/routes/ale-bet\clientes.ts:32:  const estado = role === 'vendedor' ? 'PENDIENTE_CLIENTE' : 'VALIDADO'
+apps/platform/server/src/routes/ale-bet\clientes.ts:35:router.put('/:id', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\clientes.ts:40:router.post('/import', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\historial.ts:4:import { getAppAccess, type JwtPayload } from '@platform/core'
+apps/platform/server/src/routes/ale-bet\historial.ts:5:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\historial.ts:84:  const rol = getAppAccess(user, 'ale-bet')?.rol
+apps/platform/server/src/routes/ale-bet\historial.ts:151:router.get('/', requireApp('ale-bet'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\historial.ts:163:router.get('/export', requireApp('ale-bet'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\historial.ts:175:  const isVendedor = getAppAccess(user, 'ale-bet')?.rol === 'vendedor'
+apps/platform/server/src/__tests__\test-post-cliente.test.ts:17:function token(role: 'admin' | 'vendedor' | 'armador' | 'facturacion', subject = `${role}-1`): string {
+apps/platform/server/src/__tests__\test-post-cliente.test.ts:18:  return jwt.sign({ sub: subject, apps: { 'ale-bet': { rol: role, activo: true } } }, JWT_SECRET, { expiresIn: '15m' })
+apps/platform/server/src/routes/ale-bet\pedidos.ts:6:import { eventBus, getAppAccess } from '@platform/core'
+apps/platform/server/src/routes/ale-bet\pedidos.ts:7:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\pedidos.ts:44:  return getAppAccess(user, 'ale-bet')?.rol
+apps/platform/server/src/routes/ale-bet\pedidos.ts:148:  if (error instanceof ForbiddenError) { res.status(403).json({ error: error.message }); return }
+apps/platform/server/src/routes/ale-bet\pedidos.ts:153:router.get('/', requireApp('ale-bet'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:155:  const role = actorRole(user)
+apps/platform/server/src/routes/ale-bet\pedidos.ts:159:  if (role === 'vendedor') where.vendedorId = user.sub
+apps/platform/server/src/routes/ale-bet\pedidos.ts:164:router.get('/:id', requireApp('ale-bet'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:168:  if (actorRole(user) === 'vendedor' && pedido.vendedorId !== user.sub) { res.status(403).json({ error: 'No puede consultar este pedido' }); return }
+apps/platform/server/src/routes/ale-bet\pedidos.ts:172:router.get('/:id/disponibilidad-stock', requireApp('ale-bet'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:184:router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:198:router.patch('/:id', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:220:router.put('/:id/aprobar', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:249:router.put('/:id/tomar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:266:router.put('/:id/items/:itemId/completar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:292:router.put('/:id/preparar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:321:router.put('/:id/cancelar', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:354:router.put('/:id/confirmar-cancelacion', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\pedidos.ts:373:router.post('/:id/despachar', requireApp('ale-bet', ['admin', 'armador', 'encargado']), async (req, res) => {
+apps/platform/server/src/__tests__\test-desmarcar.test.ts:17:function token(role: 'admin' | 'vendedor' | 'armador' | 'facturacion', subject = `${role}-1`): string {
+apps/platform/server/src/__tests__\test-desmarcar.test.ts:18:  return jwt.sign({ sub: subject, apps: { 'ale-bet': { rol: role, activo: true } } }, JWT_SECRET, { expiresIn: '15m' })
+apps/platform/server/src/routes/ale-bet\index.ts:16:  router.use('/productos', productosRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:17:  router.use('/pedidos', pedidosRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:18:  router.use('/clientes', clientesRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:19:  router.use('/stock', stockRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:20:  router.use('/dashboard', dashboardRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:21:  router.use('/notificaciones', notificacionesRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:22:  router.use('/historial', historialRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:23:  router.use('/transportistas', transportistasRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:24:  router.use('/pedidos', remitosRoutes)
+apps/platform/server/src/routes/ale-bet\index.ts:25:  router.use('/facturacion', facturacionRoutes)
+apps/platform/server/src/routes/ale-bet\facturacion.ts:4:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\facturacion.ts:119: * 403 for: vendedor, armador, encargado_deposito, any other role.
+apps/platform/server/src/routes/ale-bet\facturacion.ts:121:router.get(
+apps/platform/server/src/routes/ale-bet\facturacion.ts:123:  requireApp('ale-bet', ALLOWED_ROLES),
+apps/platform/server/src/routes/ale-bet\facturacion.ts:298:router.get(
+apps/platform/server/src/routes/ale-bet\facturacion.ts:300:  requireApp('ale-bet', ALLOWED_ROLES),
+apps/platform/server/src/routes/ale-bet\dashboard.ts:3:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\dashboard.ts:20:router.get('/', requireApp('ale-bet'), async (_req, res) => {
+apps/platform/server/src/routes/ale-bet\order-workflow.ts:45:export function canReadRemitoPdf(role: string | undefined, ownerId: string, actorId: string): boolean {
+apps/platform/server/src/routes/ale-bet\order-workflow.ts:46:  return role !== 'vendedor' || ownerId === actorId
+apps/platform/server/src/routes/ale-bet\remitos.ts:6:import { getAppAccess, type JwtPayload } from '@platform/core'
+apps/platform/server/src/routes/ale-bet\remitos.ts:7:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\remitos.ts:18:function role(user: JwtPayload): string | undefined { return getAppAccess(user, 'ale-bet')?.rol }
+apps/platform/server/src/routes/ale-bet\remitos.ts:49:router.post('/:id/remitos', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\remitos.ts:68:router.put('/:id/remitos/:remitoId/anular', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\remitos.ts:78:router.get('/:id/remito.pdf', requireApp('ale-bet'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\remitos.ts:82:  if (!canReadRemitoPdf(role(user), remito.pedido.vendedorId, user.sub)) { res.status(403).json({ error: 'No puede descargar el remito de otro vendedor' }); return }
+apps/platform/server/src/__tests__\roles-catalog.test.ts:8: * guard that keeps the shared catalog aligned with the requireApp/requireRole
+apps/platform/server/src/__tests__\roles-catalog.test.ts:26:  it('accepts every role declared in the catalog', () => {
+apps/platform/server/src/__tests__\roles-catalog.test.ts:40:  it('rejects stale roles and unknown apps (triangulation)', () => {
+apps/platform/server/src/routes/ale-bet\notificaciones.ts:2:import { getAppAccess } from '@platform/core'
+apps/platform/server/src/routes/ale-bet\notificaciones.ts:4:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\notificaciones.ts:9:router.get(
+apps/platform/server/src/routes/ale-bet\notificaciones.ts:11:  requireApp('ale-bet', ['admin', 'vendedor', 'armador', 'encargado']),
+apps/platform/server/src/routes/ale-bet\notificaciones.ts:20:    const rol = getAppAccess(user, 'ale-bet')?.rol
+apps/platform/server/src/routes/ale-bet\notificaciones.ts:23:      res.status(403).json({ error: 'No tiene acceso a Ale-Bet' })
+apps/platform/server/src/routes/ale-bet\productos.ts:5:import { getAppAccess } from '@platform/core'
+apps/platform/server/src/routes/ale-bet\productos.ts:6:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\productos.ts:7:import { requirePermission } from '../../middlewares/require-permission'
+apps/platform/server/src/routes/ale-bet\productos.ts:60:router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.read'), async (_req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:93:router.get('/search', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.read'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:132:router.post('/', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:145:router.put('/:id', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:172:router.delete('/:id', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:194:router.get('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.read'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:222:router.put('/:id/lotes/:loteId', requireApp('ale-bet'), requirePermission('ale-bet', 'productos.manage'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:304:router.post('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.create'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:373:router.get('/:id/stock', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:375:  const appAccess = getAppAccess(user, 'ale-bet')
+apps/platform/server/src/routes/ale-bet\productos.ts:381:router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.history.read'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:427:router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.create'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\productos.ts:459:router.patch('/:id/stock/lotes/:loteId/ajuste', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.adjust'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\sse-manager.ts:84:    if (event.roles) {
+apps/platform/server/src/routes/ale-bet\sse-manager.ts:85:      for (const rol of event.roles) {
+apps/platform/server/src/__tests__\guards.test.ts:53:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/__tests__\guards.test.ts:58:        const { sub, email, name, isPlatformAdmin, apps } = decoded as Record<
+apps/platform/server/src/__tests__\guards.test.ts:67:          isPlatformAdmin: isPlatformAdmin ?? false,
+apps/platform/server/src/__tests__\guards.test.ts:89:        const { sub, email, name, isPlatformAdmin, apps } = decoded as Record<
+apps/platform/server/src/__tests__\guards.test.ts:98:          isPlatformAdmin: isPlatformAdmin ?? false,
+apps/platform/server/src/__tests__\guards.test.ts:111:    updateAppAccess: vi.fn(),
+apps/platform/server/src/__tests__\guards.test.ts:134: * - requireApp(app) (with app, without app, inactive app)
+apps/platform/server/src/__tests__\guards.test.ts:161:  // Test route under requireApp('deposito') guard
+apps/platform/server/src/__tests__\guards.test.ts:163:  describe('requireApp("deposito") guard via /api/deposito/health', () => {
+apps/platform/server/src/__tests__\guards.test.ts:170:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:198:          isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:213:    it('with valid token but missing deposito app → returns 403', async () => {
+apps/platform/server/src/__tests__\guards.test.ts:219:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:229:      expect(res.status).toBe(403)
+apps/platform/server/src/__tests__\guards.test.ts:233:    it('with valid token but deposito app is inactive → returns 403', async () => {
+apps/platform/server/src/__tests__\guards.test.ts:239:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:249:      expect(res.status).toBe(403)
+apps/platform/server/src/__tests__\guards.test.ts:258:    it('with valid admin token (isPlatformAdmin=true) → returns 200', async () => {
+apps/platform/server/src/__tests__\guards.test.ts:265:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\guards.test.ts:277:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\guards.test.ts:293:    it('with valid token but NOT isPlatformAdmin → returns 403', async () => {
+apps/platform/server/src/__tests__\guards.test.ts:300:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:311:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:321:      expect(res.status).toBe(403)
+apps/platform/server/src/__tests__\guards.test.ts:338:          isPlatformAdmin: true,
+apps/platform/server/src/__tests__\guards.test.ts:368:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\guards.test.ts:379:        isPlatformAdmin: true,
+apps/platform/server/src/__tests__\guards.test.ts:395:    it('with valid token but NOT isPlatformAdmin → returns 403', async () => {
+apps/platform/server/src/__tests__\guards.test.ts:402:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:413:        isPlatformAdmin: false,
+apps/platform/server/src/__tests__\guards.test.ts:423:      expect(res.status).toBe(403)
+apps/platform/server/src/__tests__\bootstrap.test.ts:27:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/__tests__\bootstrap.test.ts:78:  it('devuelve 403 si BOOTSTRAP_KEY está configurado pero no se envía', async () => {
+apps/platform/server/src/__tests__\bootstrap.test.ts:84:    const res = await request(app).post('/api/bootstrap').expect(403)
+apps/platform/server/src/__tests__\bootstrap.test.ts:90:  it('devuelve 403 si el x-bootstrap-key no coincide', async () => {
+apps/platform/server/src/__tests__\bootstrap.test.ts:99:      .expect(403)
+apps/platform/server/src/__tests__\bootstrap.test.ts:158:      data: { isPlatformAdmin: true },
+apps/platform/server/src/__tests__\bootstrap.test.ts:181:      data: { isPlatformAdmin: true, estado: 'active' },
+apps/platform/server/src/__tests__\bootstrap.test.ts:201:      data: { isPlatformAdmin: true, estado: 'active' },
+apps/platform/server/src/routes/ale-bet\transportistas.ts:4:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\transportistas.ts:9:router.get('/', requireApp('ale-bet', ['admin', 'facturacion']), async (_req, res) => {
+apps/platform/server/src/routes/ale-bet\transportistas.ts:12:router.post('/', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\transportistas.ts:17:router.patch('/:id', requireApp('ale-bet', ['admin', 'facturacion']), async (req, res) => {
+apps/platform/server/src/__tests__\integration\alebet01-verify-fixes.test.ts:20:    try { req.user = jwt.verify(raw, process.env.PLATFORM_JWT_SECRET ?? 'test-secret') as JwtPayload } catch { /* requireApp rejects unauthenticated requests */ }
+apps/platform/server/src/__tests__\integration\alebet01-verify-fixes.test.ts:26:function auth(userId: string, role: 'admin' | 'vendedor' | 'armador'): string {
+apps/platform/server/src/__tests__\integration\alebet01-verify-fixes.test.ts:27:  return `Bearer ${jwt.sign({ sub: userId, email: `${userId}@test.local`, apps: { 'ale-bet': { rol: role, activo: true } } }, process.env.PLATFORM_JWT_SECRET ?? 'test-secret')}`
+apps/platform/server/src/routes/ale-bet\stock.ts:5:import { getAppAccess } from '@platform/core'
+apps/platform/server/src/routes/ale-bet\stock.ts:6:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/routes/ale-bet\stock.ts:7:import { requirePermission } from '../../middlewares/require-permission'
+apps/platform/server/src/routes/ale-bet\stock.ts:20:router.get('/', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (req, res) => {
+apps/platform/server/src/routes/ale-bet\stock.ts:22:  const appAccess = getAppAccess(user, 'ale-bet')
+apps/platform/server/src/routes/ale-bet\stock.ts:23:  const includeArchived = req.query.includeArchived === 'true' && (user.isPlatformAdmin || ['admin', 'encargado'].includes(appAccess?.rol ?? ''))
+apps/platform/server/src/routes/ale-bet\stock.ts:65:router.get('/movimientos', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.read'), async (_req, res) => {
+apps/platform/server/src/routes/ale-bet\stock.ts:73:router.post('/transferencias', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.transfer'), async (req, res) => {
+apps/platform/server/src/__tests__\helpers\create-test-app.ts:6:import { requireApp } from '../../middlewares/require-app'
+apps/platform/server/src/__tests__\helpers\create-test-app.ts:29:  // Admin routes (JWT + isPlatformAdmin required)
+apps/platform/server/src/__tests__\helpers\create-test-app.ts:32:  // Test-only route for requireApp('deposito') guard testing
+apps/platform/server/src/__tests__\helpers\create-test-app.ts:37:    requireApp('deposito'),
+apps/platform/server/src/__tests__\integration\catalogo-saneamiento.test.ts:51:      await migrationClient.query(`INSERT INTO deposito.users (id,email,password_hash,name,role) VALUES ('cleanup-user','cleanup@example.test','hash','Cleanup','encargado')`)
+apps/platform/server/src/__tests__\integration\http-db-mapping.test.ts:20:      role: string
+apps/platform/server/src/__tests__\integration\http-db-mapping.test.ts:37:          role: payload.apps?.deposito?.rol || 'encargado'
+apps/platform/server/src/__tests__\integration\http-db-mapping.test.ts:48:function signTestToken(userId: string, role: string, email: string = 'test@example.com') {
+apps/platform/server/src/__tests__\integration\http-db-mapping.test.ts:54:      'ale-bet': { rol: role, activo: true },
+apps/platform/server/src/__tests__\integration\http-db-mapping.test.ts:55:      'deposito': { rol: role, activo: true }
+apps/platform/server/src/__tests__\integration\http-db-mapping.test.ts:88:        role: Role.ADMIN,
+apps/platform/server/src/__tests__\integration\concurrencia.test.ts:25:      role: string
+apps/platform/server/src/__tests__\integration\concurrencia.test.ts:47:          role: payload.apps?.deposito?.rol || 'encargado'
+apps/platform/server/src/__tests__\integration\concurrencia.test.ts:60:function signTestToken(userId: string, role: string, email: string = 'test@example.com') {
+apps/platform/server/src/__tests__\integration\concurrencia.test.ts:66:      'ale-bet': { rol: role, activo: true },
+apps/platform/server/src/__tests__\integration\concurrencia.test.ts:67:      'deposito': { rol: role, activo: true }
+apps/platform/server/src/__tests__\integration\concurrencia.test.ts:233:    let encargado = await prisma.user.findFirst({ where: { role: 'encargado' } })
+apps/platform/server/src/__tests__\integration\concurrencia.test.ts:239:          role: 'encargado',
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:83:    getAppAccess: (user: Record<string, unknown>, slug: string) =>
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:108:  for (const layer of router.stack) {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:187:    it('returns 403 for vendedor role with no PDF bytes', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:192:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:199:    it('returns 403 for armador role with no PDF bytes', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:204:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:210:    it('returns 403 for encargado_deposito role with no PDF bytes', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:215:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion-pdf.test.ts:244:    it('returns an anual PDF for the facturacion role without month (R1/R5)', async () => {
+apps/platform/server/src/__tests__\integration\product-stock-admin.test.ts:24:const auth = (role: 'admin' | 'vendedor') => `Bearer ${jwt.sign({ sub: 'stock-admin-test', email: 'stock@test.local', apps: { 'ale-bet': { rol: role, activo: true } } }, process.env.PLATFORM_JWT_SECRET ?? 'test-secret')}`
+apps/platform/server/src/__tests__\integration\product-stock-admin.test.ts:67:    expect(forbidden.status).toBe(403)
+apps/platform/server/src/routes/ale-bet\__tests__\dashboard.test.ts:66:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/routes/ale-bet\__tests__\dashboard.test.ts:90:  for (const layer of router.stack) {
+apps/platform/server/src/routes/ale-bet\__tests__\dashboard.test.ts:220:    it('returns 403 without ale_bet access', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\dashboard.test.ts:225:        .expect(403)
+apps/platform/server/src/__tests__\integration\mvp01-migrations-physical.test.ts:61:async function createUser(client: Client, id: string, role: 'encargado' | 'observador'): Promise<void> {
+apps/platform/server/src/__tests__\integration\mvp01-migrations-physical.test.ts:63:    INSERT INTO "deposito"."users" ("id", "email", "password_hash", "name", "role")
+apps/platform/server/src/__tests__\integration\mvp01-migrations-physical.test.ts:65:  `, [id, `${id}@example.test`, id, role])
+apps/platform/server/src/__tests__\integration\mvp01-migrations-physical.test.ts:73:  const actor = await client.query<{ role: string }>(`
+apps/platform/server/src/__tests__\integration\mvp01-migrations-physical.test.ts:74:    SELECT "role"::text AS "role" FROM "deposito"."users" WHERE "id" = $1
+apps/platform/server/src/__tests__\integration\mvp01-migrations-physical.test.ts:76:  if (actor.rows[0]?.role !== 'encargado') throw new Error('CODE_LOAD requiere un encargado autorizado')
+apps/platform/server/src/__tests__\integration\inventory-constraints.test.ts:91:    const user = await prisma.user.create({ data: { email: 'test_c1_f@example.com', name: 'Test', role: Role.ADMIN, passwordHash: 'hash' } })
+apps/platform/server/src/__tests__\integration\inventory-constraints.test.ts:113:    const user = await prisma.user.create({ data: { email: 'test_c1_g@example.com', name: 'Test', role: Role.ADMIN, passwordHash: 'hash' } })
+apps/platform/server/src/routes/ale-bet\__tests__\historial.test.ts:69:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/routes/ale-bet\__tests__\historial.test.ts:93:  for (const layer of router.stack) {
+apps/platform/server/src/routes/ale-bet\__tests__\historial.test.ts:227:    it('vendedor role auto-filters by own vendedorId', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\historial.test.ts:284:    it('returns 403 without ale_bet access', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\historial.test.ts:289:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\historial.test.ts:358:    it('returns 403 without ale_bet access', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\historial.test.ts:363:        .expect(403)
+apps/platform/server/src/__tests__\integration\ingresos-month-http.test.ts:13:vi.mock('../../deposito/middleware/auth', () => ({ authenticate: (req: any, _res: any, next: any) => { req.depositoUser = { id: '00000000-0000-4000-8000-000000000001', role: 'encargado' }; next() } }))
+apps/platform/server/src/__tests__\integration\ingresos-month-http.test.ts:14:vi.mock('../../deposito/middleware/require-role', () => ({ requireRole: () => (_req: any, _res: any, next: any) => next() }))
+apps/platform/server/src/__tests__\integration\ingresos-month-http.test.ts:47:    await db.user.create({ data: { id: userId, email: 'ingress@test.local', passwordHash: 'test', name: 'Test', role: 'encargado' } })
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:87:    getAppAccess: (user: Record<string, unknown>, slug: string) =>
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:112:  for (const layer of router.stack) {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:204:    it('returns 403 when user has no ale-bet access at all', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:209:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:213:    it('returns 403 for vendedor role', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:218:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:222:    it('returns 403 for armador role', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:227:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:231:    it('returns 403 for encargado_deposito role', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:236:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:240:    it('returns 200 for admin role', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\facturacion.test.ts:249:    it('returns 200 for facturacion role', async () => {
+apps/platform/server/src/__tests__\integration\importacion-inicial-estuches.test.ts:71:      await migrationClient.query(`INSERT INTO "deposito"."users" ("id", "email", "password_hash", "name", "role") VALUES ('enc-1', 'enc@example.test', 'hash', 'Encargado', 'encargado')`)
+apps/platform/server/src/routes/ale-bet\__tests__\stock.test.ts:62:    getAppAccess: (user, slug) => user && user.apps ? user.apps[slug] : undefined,
+apps/platform/server/src/routes/ale-bet\__tests__\stock.test.ts:86:  for (const layer of router.stack) {
+apps/platform/server/src/routes/ale-bet\__tests__\stock.test.ts:335:    it('returns 403 without ale_bet access', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\stock.test.ts:340:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\stock.test.ts:399:    it('returns 403 without ale_bet access', async () => {
+apps/platform/server/src/routes/ale-bet\__tests__\stock.test.ts:404:        .expect(403)
+apps/platform/server/src/routes/ale-bet\__tests__\stock.test.ts:440:        .expect(403)

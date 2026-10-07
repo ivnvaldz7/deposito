@@ -1,11 +1,13 @@
 import { Router, Request, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
+import { requirePermission } from '../../middlewares/require-permission'
+import { isStockBajo } from '../lib/stock-status'
 
 const router = Router()
 
 // GET /api/dashboard/stats — resumen general
-router.get('/stats', authenticate, async (_req: Request, res: Response): Promise<void> => {
+router.get('/stats', authenticate, requirePermission('deposito', 'dashboard.read'), async (_req: Request, res: Response): Promise<void> => {
   try {
     const todayStart = new Date()
     todayStart.setUTCHours(0, 0, 0, 0)
@@ -26,10 +28,10 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
       frascosSinStock,
       movimientosHoy,
       ultimosMovimientos,
-      stockBajo,
-      stockBajoEstuches,
-      stockBajoEtiquetas,
-      stockBajoFrascos,
+      stockBajoCandidates,
+      stockBajoEstuchesCandidates,
+      stockBajoEtiquetasCandidates,
+      stockBajoFrascosCandidates,
       porVencer,
     ] = await Promise.all([
       prisma.inventarioDroga.count(),
@@ -48,22 +50,22 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
         include: { user: { select: { name: true } } },
       }),
       prisma.inventarioDroga.findMany({
-        where: { cantidad: { lt: 10, gt: 0 } },
+        where: {},
         orderBy: [{ cantidad: 'asc' }, { nombre: 'asc' }],
-        select: { id: true, nombre: true, lote: true, cantidad: true },
+        select: { id: true, nombre: true, lote: true, cantidad: true, producto: { select: { stockMinimo: true } } },
       }),
       prisma.inventarioEstuche.findMany({
-        where: { cantidad: { lt: 100 } },
+        where: {},
         orderBy: [{ cantidad: 'asc' }, { mercado: 'asc' }, { articulo: 'asc' }],
-        select: { id: true, articulo: true, mercado: true, cantidad: true },
+        select: { id: true, articulo: true, mercado: true, cantidad: true, producto: { select: { stockMinimo: true } } },
       }),
       prisma.inventarioEtiqueta.findMany({
-        where: { cantidad: { lt: 100 } },
+        where: {},
         orderBy: [{ cantidad: 'asc' }, { mercado: 'asc' }, { articulo: 'asc' }],
-        select: { id: true, articulo: true, mercado: true, cantidad: true },
+        select: { id: true, articulo: true, mercado: true, cantidad: true, producto: { select: { stockMinimo: true } } },
       }),
       prisma.inventarioFrasco.findMany({
-        where: { cantidadCajas: { lt: 5 } },
+        where: {},
         orderBy: [{ cantidadCajas: 'asc' }, { articulo: 'asc' }],
         select: {
           id: true,
@@ -71,6 +73,7 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
           cantidadCajas: true,
           unidadesPorCaja: true,
           total: true,
+          producto: { select: { stockMinimo: true } },
         },
       }),
       prisma.inventarioDroga.findMany({
@@ -82,6 +85,11 @@ router.get('/stats', authenticate, async (_req: Request, res: Response): Promise
         select: { id: true, nombre: true, lote: true, vencimiento: true, cantidad: true },
       }),
     ])
+
+    const stockBajo = stockBajoCandidates.filter((item) => isStockBajo(item.cantidad, item.producto?.stockMinimo))
+    const stockBajoEstuches = stockBajoEstuchesCandidates.filter((item) => isStockBajo(item.cantidad, item.producto?.stockMinimo))
+    const stockBajoEtiquetas = stockBajoEtiquetasCandidates.filter((item) => isStockBajo(item.cantidad, item.producto?.stockMinimo))
+    const stockBajoFrascos = stockBajoFrascosCandidates.filter((item) => isStockBajo(item.cantidadCajas, item.producto?.stockMinimo))
 
     res.json({
       totalDrogas,

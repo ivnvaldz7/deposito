@@ -28,7 +28,7 @@ export function Select({
       {label && (
         <label
           htmlFor={selectId}
-          className="font-heading text-sm font-semibold text-on-surface-variant"
+          className="text-sm font-semibold text-on-surface-variant"
         >
           {label}
         </label>

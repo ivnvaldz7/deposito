@@ -17,7 +17,7 @@ import {
   type Frasco,
   type EstadoPendiente,
 } from '../queries'
-import { PageHeader } from '../components/layout/PageHeader'
+import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import {
   Dialog,
   DialogContent,
@@ -393,14 +393,14 @@ function EnviarModal({
               <button
                 type="button"
                 onClick={() => handleOpenChange(false)}
-                className="px-3 py-2 font-heading text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+                className="px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting || !selectedFrasco}
-                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
+                className="flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
               >
                 <Plus size={13} strokeWidth={2} />
                 {isSubmitting ? 'Guardando...' : 'Enviar'}
@@ -474,7 +474,7 @@ function RecibirModal({
       <button
         type="button"
         onClick={() => handleOpenChange(true)}
-        className="flex items-center gap-1.5 rounded px-3 py-1.5 font-heading text-xs font-semibold transition-opacity bg-primary text-on-primary"
+        className="flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-opacity bg-primary text-on-primary"
       >
         <Check size={12} strokeWidth={2} />
         Marcar como recibido
@@ -493,19 +493,19 @@ function RecibirModal({
             <div className="grid grid-cols-3 gap-3">
               <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Enviadas</p>
-                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                <p className="mt-1 text-lg font-semibold text-on-surface tabular-nums">
                   {pendiente.cantidad}
                 </p>
               </div>
               <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Recibidas</p>
-                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                <p className="mt-1 text-lg font-semibold text-on-surface tabular-nums">
                   {Number.isFinite(cantidadRecibida) ? cantidadRecibida : 0}
                 </p>
               </div>
               <div className="rounded bg-surface-container-low px-3 py-3">
                 <p className="font-body text-xs uppercase tracking-widest text-on-surface-variant">Siguen afuera</p>
-                <p className="mt-1 font-heading text-lg font-semibold text-on-surface tabular-nums">
+                <p className="mt-1 text-lg font-semibold text-on-surface tabular-nums">
                   {cantidadRestante}
                 </p>
               </div>
@@ -539,14 +539,14 @@ function RecibirModal({
               <button
                 type="button"
                 onClick={() => handleOpenChange(false)}
-                className="px-3 py-2 font-heading text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
+                className="px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex items-center gap-2 rounded px-4 py-2 font-heading text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
+                className="flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold transition-opacity bg-primary text-on-primary disabled:opacity-50"
               >
                 <Check size={13} strokeWidth={2} />
                 {isSubmitting ? 'Guardando...' : 'Confirmar recepción'}
@@ -611,7 +611,7 @@ function PendienteCard({
           <button
             type="button"
             onClick={() => onCrearIngreso(pendiente)}
-            className="flex items-center gap-1.5 rounded bg-surface-container-high px-3 py-1.5 font-heading text-xs font-semibold text-on-surface transition-colors hover:bg-surface-bright"
+            className="flex items-center gap-1.5 rounded bg-surface-container-high px-3 py-1.5 text-xs font-semibold text-on-surface transition-colors hover:bg-surface-bright"
           >
             <PackagePlus size={12} strokeWidth={1.5} />
             Crear ingreso
@@ -622,17 +622,59 @@ function PendienteCard({
   )
 }
 
+import { can } from '@/lib/permissions'
+
+function FiltroPendientes({
+  value,
+  onChange,
+}: {
+  value: EstadoPendiente | 'todos'
+  onChange: (value: EstadoPendiente | 'todos') => void
+}) {
+  const options: Array<{ value: EstadoPendiente | 'todos'; label: string }> = [
+    { value: 'todos', label: 'Todos' },
+    { value: 'en_esterilizacion', label: 'En esterilización' },
+    { value: 'recibido', label: 'Recibidos' },
+  ]
+
+  return (
+    <div className="flex flex-wrap gap-2" aria-label="Filtrar pendientes por estado">
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          aria-pressed={value === option.value}
+          onClick={() => onChange(option.value)}
+          className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            value === option.value
+              ? 'border-primary bg-primary-container text-on-primary-container'
+              : 'border-outline-variant/40 bg-surface-container-low text-on-surface hover:bg-surface-bright'
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function PendientesPage() {
   const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
+  const canManage = can(user, 'deposito', 'pendientes.manage')
   const navigate = useNavigate()
 
   const [enviarOpen, setEnviarOpen] = useState(false)
+  const [filtroEstado, setFiltroEstado] = useState<EstadoPendiente | 'todos'>('todos')
 
   const { data: pendientes = [], isLoading, error } = usePendientes()
 
   const enEsterilizacion = pendientes.filter((p) => p.estado === 'en_esterilizacion')
   const recibidos = pendientes.filter((p) => p.estado === 'recibido')
+  const pendientesFiltrados = filtroEstado === 'todos'
+    ? pendientes
+    : pendientes.filter((pendiente) => pendiente.estado === filtroEstado)
+  const enEsterilizacionFiltrados = pendientesFiltrados.filter((p) => p.estado === 'en_esterilizacion')
+  const recibidosFiltrados = pendientesFiltrados.filter((p) => p.estado === 'recibido')
   const cajasEnEsterilizacion = enEsterilizacion.reduce((sum, p) => sum + p.cantidad, 0)
 
   function handleCreated(_pendiente: InsumoPendiente) {}
@@ -651,16 +693,16 @@ export default function PendientesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="PENDIENTES"
+    <div className="space-y-5">
+      <InventoryPageHeader
+        title="Pendientes"
+        description="Frascos enviados a esterilización y recibidos para su ingreso."
         stats={[
           { label: 'en esterilización', value: isLoading ? '...' : enEsterilizacion.length, warning: enEsterilizacion.length > 0 && !isLoading },
-          { label: 'recibidos', value: isLoading ? '...' : recibidos.length },
           { label: 'cajas afuera', value: isLoading ? '...' : cajasEnEsterilizacion, warning: cajasEnEsterilizacion > 0 && !isLoading },
         ]}
         primaryAction={
-          isEncargado
+          canManage
             ? {
                 label: 'Enviar a esterilización',
                 onClick: () => setEnviarOpen(true),
@@ -668,9 +710,11 @@ export default function PendientesPage() {
               }
             : undefined
         }
-      />
+      >
+        <FiltroPendientes value={filtroEstado} onChange={setFiltroEstado} />
+      </InventoryPageHeader>
 
-      {isEncargado ? (
+      {canManage ? (
         <EnviarModal
           onCreated={handleCreated}
           open={enviarOpen}
@@ -688,8 +732,8 @@ export default function PendientesPage() {
         </div>
       ) : (
         <div className="space-y-8">
-          <section className="space-y-3">
-            <h2 className="font-heading text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+          {filtroEstado !== 'recibido' && <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               En esterilización
               {enEsterilizacion.length > 0 && (
                 <span
@@ -700,7 +744,7 @@ export default function PendientesPage() {
               )}
             </h2>
 
-            {enEsterilizacion.length === 0 ? (
+            {enEsterilizacionFiltrados.length === 0 ? (
               <div className="rounded bg-surface-container-low px-4 py-8 text-center">
                 <p className="font-body text-sm text-on-surface-variant">
                   No hay frascos en esterilización.
@@ -708,19 +752,19 @@ export default function PendientesPage() {
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {enEsterilizacion.map((p) => (
+                {enEsterilizacionFiltrados.map((p) => (
                   <PendienteCard
                     key={p.id}
                     pendiente={p}
-                    onRecibido={isEncargado ? handleRecibido : undefined}
+                    onRecibido={canManage ? handleRecibido : undefined}
                   />
                 ))}
               </div>
             )}
-          </section>
+          </section>}
 
-          <section className="space-y-3">
-            <h2 className="font-heading text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
+          {filtroEstado !== 'en_esterilizacion' && <section className="space-y-3">
+            <h2 className="text-xs font-semibold uppercase tracking-widest text-on-surface-variant">
               Recibidos
               {recibidos.length > 0 && (
                 <span
@@ -731,7 +775,7 @@ export default function PendientesPage() {
               )}
             </h2>
 
-            {recibidos.length === 0 ? (
+            {recibidosFiltrados.length === 0 ? (
               <div className="rounded bg-surface-container-low px-4 py-8 text-center">
                 <p className="font-body text-sm text-on-surface-variant">
                   No hay insumos recibidos todavía.
@@ -739,16 +783,16 @@ export default function PendientesPage() {
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {recibidos.map((p) => (
+                {recibidosFiltrados.map((p) => (
                   <PendienteCard
                     key={p.id}
                     pendiente={p}
-                    onCrearIngreso={isEncargado ? handleCrearIngreso : undefined}
+                    onCrearIngreso={canManage ? handleCrearIngreso : undefined}
                   />
                 ))}
               </div>
             )}
-          </section>
+          </section>}
         </div>
       )}
     </div>

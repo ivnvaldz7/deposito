@@ -4,9 +4,11 @@ interface DialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   children: ReactNode
+  /** Large variant: near-fullscreen desktop modal (e.g. import previews). */
+  large?: boolean
 }
 
-export function Dialog({ open, onOpenChange, children }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, large = false }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,14 +31,17 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 md:items-center md:p-4"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}
       onClick={() => onOpenChange(false)}
     >
       <div
         ref={dialogRef}
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg mx-4 rounded-lg shadow-xl"
+        data-size={large ? 'large' : 'default'}
+        className={large
+          ? 'relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-xl shadow-xl md:h-[85vh] md:max-w-[min(90vw,1400px)] md:rounded-xl'
+          : 'relative w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-xl shadow-xl md:mx-4 md:rounded-xl'}
         style={{ backgroundColor: 'var(--color-surface)' }}
         role="dialog"
         aria-modal="true"
@@ -49,7 +54,7 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
 
 export function DialogContent({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`px-6 py-6 ${className ?? ''}`}>
+    <div className={`px-4 py-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] sm:px-6 sm:py-6 ${className ?? ''}`}>
       {children}
     </div>
   )
@@ -61,7 +66,7 @@ export function DialogHeader({ children }: { children: ReactNode }) {
 
 export function DialogTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="font-heading text-lg font-bold text-on-surface">
+    <h2 className="text-lg font-bold text-on-surface">
       {children}
     </h2>
   )
@@ -75,7 +80,7 @@ export function DialogDescription({ children }: { children: ReactNode }) {
   )
 }
 
-export function DialogClose({ children, asChild }: { children: ReactNode; asChild?: boolean }) {
+export function DialogClose({ children, asChild, onClick }: { children: ReactNode; asChild?: boolean; onClick?: () => void }) {
   if (asChild) return <>{children}</>
-  return <>{children}</>
+  return <button type="button" onClick={onClick}>{children}</button>
 }

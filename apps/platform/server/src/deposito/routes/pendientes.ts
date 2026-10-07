@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { EstadoPendiente } from '@platform/db'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
 
@@ -37,7 +37,7 @@ const include = { user: { select: { name: true } } } as const
 
 // ─── GET /api/pendientes ──────────────────────────────────────────────────────
 
-router.get('/', authenticate, async (req: Request, res: Response): Promise<void> => {
+router.get('/', authenticate, requirePermission('deposito', 'pendientes.read'), async (req: Request, res: Response): Promise<void> => {
   const { estado } = req.query
   const where: { estado?: EstadoPendiente } = {}
   if (estado === 'en_esterilizacion' || estado === 'recibido') {
@@ -61,7 +61,7 @@ router.get('/', authenticate, async (req: Request, res: Response): Promise<void>
 router.post(
   '/',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'pendientes.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const result = crearPendienteSchema.safeParse(req.body)
     if (!result.success) {
@@ -98,7 +98,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'pendientes.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
@@ -149,7 +149,7 @@ router.put(
 router.put(
   '/:id/recibir',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'pendientes.manage'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 

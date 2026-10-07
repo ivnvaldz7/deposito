@@ -6,6 +6,7 @@ import movimientosRoutes from './movimientos'
 import estuchesRoutes from './estuches'
 import etiquetasRoutes from './etiquetas'
 import frascosRoutes from './frascos'
+import materialesEmpaqueRoutes from './materiales-empaque'
 import pendientesRoutes from './pendientes'
 import usersRoutes from './users'
 import ordenesRoutes from './ordenes'
@@ -14,6 +15,9 @@ import metricasRoutes from './metricas'
 import productosRoutes from './productos'
 import ingresosRoutes from './ingresos'
 import lotesRoutes from './lotes'
+import importacionInicialEstuchesRoutes from './importacion-inicial-estuches'
+import aperturaRoutes from './apertura'
+import labelsRoutes from './labels'
 
 export function createDepositoRoutes(): Router {
   const router = Router()
@@ -25,6 +29,7 @@ export function createDepositoRoutes(): Router {
   router.use('/estuches', estuchesRoutes)
   router.use('/etiquetas', etiquetasRoutes)
   router.use('/frascos', frascosRoutes)
+  router.use('/materiales-empaque', materialesEmpaqueRoutes)
   router.use('/pendientes', pendientesRoutes)
   router.use('/users', usersRoutes)
   router.use('/ordenes', ordenesRoutes)
@@ -33,6 +38,9 @@ export function createDepositoRoutes(): Router {
   router.use('/productos', productosRoutes)
   router.use('/ingresos', ingresosRoutes)
   router.use('/lotes', lotesRoutes)
+  router.use('/importaciones', importacionInicialEstuchesRoutes)
+  router.use('/apertura', aperturaRoutes)
+  router.use('/labels', labelsRoutes)
 
   return router
 }

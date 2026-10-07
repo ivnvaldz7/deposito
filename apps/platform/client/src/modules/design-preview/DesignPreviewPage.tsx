@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 className="mb-4 mt-10 border-b border-outline-variant pb-2 font-heading text-xl font-bold text-on-surface first:mt-0">
+    <h2 className="mb-4 mt-10 border-b border-outline-variant pb-2 text-xl font-bold text-on-surface first:mt-0">
       {children}
     </h2>
   )
@@ -19,7 +19,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function SubSectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mb-3 mt-6 font-heading text-base font-semibold text-on-surface-variant">
+    <h3 className="mb-3 mt-6 text-base font-semibold text-on-surface-variant">
       {children}
     </h3>
   )
@@ -65,13 +65,13 @@ export default function DesignPreviewPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-outline-variant bg-surface-lowest/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
-          <h1 className="font-heading text-2xl font-bold text-on-surface">
+          <h1 className="text-2xl font-bold text-on-surface">
             Sistema de Diseño
           </h1>
           <button
             type="button"
             onClick={handleToggleTheme}
-            className="flex items-center gap-2 rounded bg-surface-high px-3 py-2 font-heading text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-highest hover:text-on-surface"
+            className="flex items-center gap-2 rounded bg-surface-high px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-highest hover:text-on-surface"
           >
             {currentTheme === 'dark' ? (
               <>
@@ -122,22 +122,22 @@ export default function DesignPreviewPage() {
 
         <SubSectionTitle>Montserrat (font-heading)</SubSectionTitle>
         <div className="space-y-2">
-          <h1 className="font-heading text-4xl font-bold text-on-surface">
+          <h1 className="text-4xl font-bold text-on-surface">
             h1 — Título principal (text-4xl bold)
           </h1>
-          <h2 className="font-heading text-2xl font-bold text-on-surface">
+          <h2 className="text-2xl font-bold text-on-surface">
             h2 — Título secundario (text-2xl bold)
           </h2>
-          <h3 className="font-heading text-xl font-semibold text-on-surface">
+          <h3 className="text-xl font-semibold text-on-surface">
             h3 — Título terciario (text-xl semibold)
           </h3>
-          <h4 className="font-heading text-lg font-semibold text-on-surface">
+          <h4 className="text-lg font-semibold text-on-surface">
             h4 — Título cuaternario (text-lg semibold)
           </h4>
-          <h5 className="font-heading text-base font-semibold text-on-surface">
+          <h5 className="text-base font-semibold text-on-surface">
             h5 — Título quinto (text-base semibold)
           </h5>
-          <h6 className="font-heading text-sm font-semibold text-on-surface">
+          <h6 className="text-sm font-semibold text-on-surface">
             h6 — Título sexto (text-sm semibold)
           </h6>
         </div>

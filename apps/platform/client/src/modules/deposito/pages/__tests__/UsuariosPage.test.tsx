@@ -41,14 +41,22 @@ describe('UsuariosPage', () => {
     await waitFor(() => expect(screen.getByText('No se pudo cargar la lista de usuarios')).toBeInTheDocument())
   })
 
-  it('renders users list', async () => {
+  it('renders users list and is read-only', async () => {
     vi.mocked(api.get).mockResolvedValue(createUsuarioList())
     render(<MemoryRouter><UsuariosPage /></MemoryRouter>)
     await waitFor(() => {
       expect(screen.getByText('USUARIOS')).toBeInTheDocument()
     })
-    expect(screen.getAllByText('María López').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Juan Pérez').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Ana García').length).toBeGreaterThanOrEqual(1)
+    // Expect banner
+    expect(screen.getByText(/Los usuarios y accesos se administran desde Platform Admin/)).toBeInTheDocument()
+
+    // No create button
+    expect(screen.queryByRole('button', { name: /Crear usuario/i })).not.toBeInTheDocument()
+
+    // No role selects
+    expect(screen.queryByRole('combobox', { name: /Cambiar rol/i })).not.toBeInTheDocument()
+
+    // No delete buttons
+    expect(screen.queryByTitle('Eliminar usuario')).not.toBeInTheDocument()
   })
 })

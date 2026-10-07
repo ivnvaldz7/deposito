@@ -1,44 +1,217 @@
-import { useState } from 'react'
-import { type Producto, type Lote } from '../lib/api'
-import { UNIDADES_POR_CAJA, MAX_SUELTOS } from '../lib/constants'
-import { useProductos, useCreateProducto, useUpdateProducto, useDeleteProducto, useLotes, useUpdateLote } from '../queries'
+import { useEffect, useState, Fragment } from 'react'
+import { useLocation } from 'react-router-dom'
+import { useAuthStore } from '@/stores/auth-store'
+import { type Producto } from '../lib/api'
+import { useProductos, useCreateProducto, useUpdateProducto } from '../queries'
 import { toast } from '@/lib/toast'
+import { matchesFunctionalProductSearch, formatOptionalDate } from '../lib/logistics-display'
+import { GestionarStockModal } from '../components/GestionarStockModal'
+import { HistorialLotesModal } from '../components/HistorialLotesModal'
+import { ChevronDown, ChevronUp, Package, Pencil } from 'lucide-react'
+import { canGestionarStock } from '../lib/estados'
+import { can } from '@/lib/permissions'
+
+type ProductForm = {
+  nombre: string
+  sku: string
+  stockMinimo: string
+  unidadesPorCaja: string
+}
+
+const EMPTY_PRODUCT_FORM: ProductForm = { nombre: '', sku: '', stockMinimo: '', unidadesPorCaja: '' }
+
+function parseNonNegativeInteger(value: string): number | null {
+  const trimmed = value.trim()
+  if (trimmed === '' || !/^\d+$/.test(trimmed)) return null
+  const parsed = Number(trimmed)
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null
+}
+
+function LotesInline({ producto }: { producto: Producto }) {
+  if (!producto.lotes || producto.lotes.length === 0) {
+    return <div className="py-6 text-center font-body text-[12px] text-on-surface-variant">No hay lotes activos.</div>
+  }
+
+  const activos = producto.lotes.filter(l => l.activo)
+  if (activos.length === 0) {
+    return <div className="py-6 text-center font-body text-[12px] text-on-surface-variant">No hay lotes activos.</div>
+  }
+
+  return (
+    <div className="p-4 bg-surface-container-highest/10 md:p-5">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {activos.map(l => (
+          <div key={l.id} className="rounded-xl border border-white/10 bg-surface-container-high p-4">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-[14px] text-primary">LOTE {l.numero}</span>
+              <span className="font-body text-[11px] text-on-surface-variant">Vto: {formatOptionalDate(l.fechaVencimiento)}</span>
+            </div>
+            <div className="mt-3 flex justify-between rounded-lg bg-surface-container/50 p-2 text-center">
+              <div>
+                <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Depósito</p>
+                <p className="mt-0.5 text-[15px] font-semibold text-on-surface">{l.stockDeposito}</p>
+              </div>
+              <div>
+                <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Acondicionado</p>
+                <p className="mt-0.5 text-[15px] font-semibold text-on-surface">{l.stockAcondicionado}</p>
+              </div>
+              <div>
+                <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Total</p>
+                <p className="mt-0.5 text-[15px] font-semibold text-on-surface">{l.stockTotal}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ProductoMobileCard({
+  producto,
+  expanded,
+  puedeGestionar,
+  puedeGestionarStock,
+  onToggle,
+  onGestionarStock,
+  onEdit,
+}: {
+  producto: Producto
+  expanded: boolean
+  puedeGestionar: boolean
+  puedeGestionarStock: boolean
+  onToggle: () => void
+  onGestionarStock: (event: React.MouseEvent<HTMLButtonElement>) => void
+  onEdit: (event: React.MouseEvent<HTMLButtonElement>) => void
+}) {
+  const lotesCount = producto.lotes?.filter((lote) => lote.activo).length ?? 0
+  const hasActions = puedeGestionarStock || puedeGestionar
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-white/10 bg-surface-container-high">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={expanded}
+        className="flex w-full items-start justify-between gap-3 px-4 pb-3 pt-4 text-left btn-press"
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-[16px] font-bold text-on-surface">{producto.nombre}</span>
+          <span className="mt-1 block font-body text-[12px] text-on-surface-variant">{lotesCount} {lotesCount === 1 ? 'lote activo' : 'lotes activos'}</span>
+        </span>
+        {expanded ? <ChevronUp className="mt-1 h-5 w-5 shrink-0 text-on-surface-variant" /> : <ChevronDown className="mt-1 h-5 w-5 shrink-0 text-on-surface-variant" />}
+      </button>
+
+      <div className="grid grid-cols-3 border-y border-white/10 bg-surface-container-low/30 px-2 py-3 text-center">
+        <div>
+          <p className="font-body text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">Depósito</p>
+          <p className="mt-1 text-[17px] font-semibold text-on-surface">{producto.stockDeposito}</p>
+        </div>
+        <div className="border-x border-white/10">
+          <p className="font-body text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">Acond.</p>
+          <p className="mt-1 text-[17px] font-semibold text-on-surface">{producto.stockAcondicionado}</p>
+        </div>
+        <div>
+          <p className="font-body text-[10px] font-semibold uppercase tracking-wide text-on-surface-variant">Total</p>
+          <p className="mt-1 text-[17px] font-bold text-primary">{producto.stockTotal}</p>
+        </div>
+      </div>
+
+      {hasActions && (
+        <div className="flex gap-2 p-3">
+          {puedeGestionarStock && (
+            <button
+              type="button"
+              onClick={onGestionarStock}
+              className="flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-primary text-[13px] font-semibold text-primary btn-press"
+            >
+              <Package className="h-4 w-4" aria-hidden="true" />
+              Stock y lotes
+            </button>
+          )}
+          {puedeGestionar && (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/10 px-4 text-[13px] font-semibold text-on-surface btn-press"
+            >
+              <Pencil className="h-4 w-4" aria-hidden="true" />
+              Editar
+            </button>
+          )}
+        </div>
+      )}
+      {expanded && <LotesInline producto={producto} />}
+    </article>
+  )
+}
 
 export default function ProductosPage() {
+  const user = useAuthStore((state) => state.user)
+  const puedeGestionar = can(user, 'ale-bet', 'productos.manage')
+  const puedeGestionarStock = can(user, 'ale-bet', 'stock.lots.create') || can(user, 'ale-bet', 'stock.lots.adjust')
+
   const { data: productos = [], isLoading, error } = useProductos()
   const createMutation = useCreateProducto()
   const updateMutation = useUpdateProducto()
-  const deleteMutation = useDeleteProducto()
-  const updateLoteMutation = useUpdateLote()
 
+  const location = useLocation()
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Producto | null>(null)
-  const [form, setForm] = useState({ nombre: '', sku: '', stockMinimo: 100 })
-  const [lotesProducto, setLotesProducto] = useState<Producto | null>(null)
-  const { data: lotes = [] } = useLotes(lotesProducto?.id ?? '')
-  const [editingLoteId, setEditingLoteId] = useState<string | null>(null)
-  const [editLoteForm, setEditLoteForm] = useState({ cajas: 0, sueltos: 0 })
+  const [form, setForm] = useState<ProductForm>(EMPTY_PRODUCT_FORM)
+  const [formError, setFormError] = useState<string | null>(null)
+  const [stockProducto, setStockProducto] = useState<Producto | null>(null)
+  const [showHistorialModal, setShowHistorialModal] = useState(false)
+  const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia?.('(max-width: 767px)')
+    if (!query) return
+    const update = () => setIsMobile(query.matches)
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+
+  function toggleRow(id: string) {
+    setExpandedRow(prev => prev === id ? null : id)
+  }
 
   function openCreate() {
     setEditing(null)
-    setForm({ nombre: '', sku: '', stockMinimo: 100 })
+    setForm(EMPTY_PRODUCT_FORM)
+    setFormError(null)
     setShowModal(true)
   }
 
   function openEdit(p: Producto, e: React.MouseEvent) {
     e.stopPropagation()
     setEditing(p)
-    setForm({ nombre: p.nombre, sku: p.sku, stockMinimo: p.stockMinimo })
+    setForm({ nombre: p.nombre, sku: p.sku, stockMinimo: p.stockMinimo == null ? '' : String(p.stockMinimo), unidadesPorCaja: String(p.unidadesPorCaja) })
+    setFormError(null)
     setShowModal(true)
   }
 
   async function handleSave() {
+    const stockMinimo = form.stockMinimo.trim() === '' ? null : parseNonNegativeInteger(form.stockMinimo)
+    if (stockMinimo === null && form.stockMinimo.trim() !== '') {
+      setFormError('El stock mínimo debe ser un entero no negativo.')
+      return
+    }
+    const unidadesPorCaja = parseNonNegativeInteger(form.unidadesPorCaja)
+    if (!editing && (unidadesPorCaja === null || unidadesPorCaja < 1)) {
+      setFormError('Las unidades por caja deben ser un entero positivo.')
+      return
+    }
+
+    setFormError(null)
     try {
       if (editing) {
-        await updateMutation.mutateAsync({ id: editing.id, ...form })
+        await updateMutation.mutateAsync({ id: editing.id, nombre: form.nombre, stockMinimo })
       } else {
-        await createMutation.mutateAsync(form)
+        await createMutation.mutateAsync({ nombre: form.nombre, sku: form.sku, stockMinimo: stockMinimo ?? undefined, unidadesPorCaja: unidadesPorCaja! })
       }
       setShowModal(false)
     } catch (e) {
@@ -46,181 +219,203 @@ export default function ProductosPage() {
     }
   }
 
-  function handleDelete(id: string, e: React.MouseEvent) {
+  function openGestionarStock(p: Producto, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm('¿Eliminar producto?')) return
-    deleteMutation.mutate(id, {
-      onError: (e) => toast.error(e instanceof Error ? e.message : 'Error al eliminar'),
-    })
-  }
-
-  function openLotes(p: Producto) {
-    setLotesProducto(p)
-    setEditingLoteId(null)
-  }
-
-  function startEditLote(l: Lote, e: React.MouseEvent) {
-    e.stopPropagation()
-    setEditingLoteId(l.id)
-    setEditLoteForm({ cajas: l.cajas, sueltos: l.sueltos })
-  }
-
-  async function handleSaveLote(l: Lote) {
-    if (!lotesProducto) return
-    try {
-      await updateLoteMutation.mutateAsync({
-        productoId: lotesProducto.id,
-        loteId: l.id,
-        cajas: editLoteForm.cajas,
-        sueltos: editLoteForm.sueltos,
-      })
-      setEditingLoteId(null)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Error al actualizar lote')
-    }
-  }
-
-  function cancelEditLote() {
-    setEditingLoteId(null)
+    setStockProducto(p)
   }
 
   if (isLoading) return <p className="font-body text-sm text-on-surface-variant">Cargando productos...</p>
   if (error) return <p className="font-body text-sm text-error">{error instanceof Error ? error.message : 'Error al cargar productos'}</p>
 
-  const filtered = productos.filter(
-    (p) => p.nombre.toLowerCase().includes(search.toLowerCase()) || p.sku.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = productos.filter((p) => matchesFunctionalProductSearch(p, search))
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-[28px] font-bold tracking-[-0.03em] text-on-surface">Productos</h1>
-          <p className="font-body text-[13px] text-on-surface-variant">Gestión de productos y lotes</p>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-[24px] font-bold tracking-tight text-on-surface sm:text-[28px]">Productos</h1>
+          <p className="font-body text-[13px] text-on-surface-variant">Catálogo y administración de stock</p>
         </div>
-        <button onClick={openCreate} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
-          + Nuevo producto
-        </button>
-      </div>
-
-      <div className="flex gap-4">
-        <input
-          type="text"
-          placeholder="Buscar productos..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-field max-w-sm"
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="bg-surface-container-high rounded-xl px-5 py-4">
-          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Total</p>
-          <p className="mt-1 font-heading text-[24px] font-bold text-on-surface">{productos.length}</p>
-        </div>
-        <div className="bg-surface-container-high rounded-xl px-5 py-4">
-          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Stock bajo</p>
-          <p className="mt-1 font-heading text-[24px] font-bold text-error">
-            {productos.filter((p) => p.stockBajo).length}
-          </p>
-        </div>
-        <div className="bg-surface-container-high rounded-xl px-5 py-4">
-          <p className="font-body text-[10px] uppercase tracking-[0.8px] text-outline">Stock total</p>
-          <p className="mt-1 font-heading text-[24px] font-bold text-on-surface">
-            {productos.reduce((s, p) => s + p.stock, 0).toLocaleString()}
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-surface-container-high rounded-xl overflow-hidden">
-        {filtered.length === 0 ? (
-          <p className="px-5 py-8 text-center font-body text-[13px] text-on-surface-variant">No hay productos.</p>
-        ) : (
-          <table className="w-full text-left font-body text-[12px]">
-            <thead>
-              <tr className="border-b border-white/10 text-[10px] uppercase tracking-[0.8px] text-outline">
-                <th className="px-5 py-3 font-medium">Producto</th>
-                <th className="px-5 py-3 font-medium">Lotes</th>
-                <th className="px-5 py-3 font-medium text-right">Stock</th>
-                <th className="px-5 py-3 font-medium text-right">Mínimo</th>
-                <th className="px-5 py-3 font-medium text-center">Estado</th>
-                <th className="px-5 py-3 font-medium text-center">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((p) => (
-                <tr
-                  key={p.id}
-                  onClick={() => openLotes(p)}
-                  className="border-b border-white/10 last:border-0 cursor-pointer transition hover:bg-surface-variant/30"
-                >
-                  <td className="px-5 py-4 font-semibold text-on-surface">{p.nombre}</td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-1 max-w-[200px]">
-                      {p.lotes && p.lotes.length > 0 ? (
-                        p.lotes.slice(0, 3).map((l) => (
-                          <span
-                            key={l.id}
-                            onClick={(e) => { e.stopPropagation(); openLotes(p) }}
-                            className="inline-block rounded bg-surface-variant/60 px-2 py-1 font-mono text-[12px] font-bold text-on-surface-variant leading-tight cursor-pointer transition hover:bg-primary/30 hover:text-primary"
-                          >
-                            {l.numero}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="font-body text-[11px] text-outline">—</span>
-                      )}
-                      {p.lotes && p.lotes.length > 3 && (
-                        <span className="inline-block font-body text-[11px] text-outline">+{p.lotes.length - 3}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className={`px-5 py-4 text-right font-medium ${p.stockBajo ? 'text-error' : 'text-on-surface'}`}>
-                    {p.stock}
-                  </td>
-                  <td className="px-5 py-4 text-right text-outline">{p.stockMinimo}</td>
-                  <td className="px-5 py-4 text-center">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 font-heading font-semibold text-xs ${p.stockBajo ? 'bg-error/20 text-error' : 'bg-success/20 text-success'}`}>
-                      {p.stockBajo ? 'Stock bajo' : 'OK'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <button onClick={(e) => openEdit(p, e)} className="font-body text-[11px] text-outline transition hover:text-on-surface">
-                        Editar
-                      </button>
-                      <button onClick={(e) => handleDelete(p.id, e)} className="font-body text-[11px] text-error transition hover:opacity-80">
-                        Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {puedeGestionar && (
+          <button onClick={openCreate} className="min-h-11 shrink-0 rounded-xl border border-primary px-3 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20 btn-press">
+            + Nuevo producto
+          </button>
         )}
       </div>
 
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+        <input
+          type="text"
+          placeholder="Buscar producto..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="min-h-11 w-full max-w-md rounded-xl border border-white/10 bg-surface-container-high px-4 font-body text-[16px] text-on-surface focus:border-primary focus:outline-none sm:text-[13px]"
+        />
+        {puedeGestionarStock && (
+          <button
+            onClick={() => setShowHistorialModal(true)}
+            className="min-h-11 w-full rounded-xl border border-white/10 px-4 font-body text-[13px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface sm:w-auto"
+          >
+            Historial de lotes
+          </button>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-white/10 px-5 py-10 text-center font-body text-[13px] text-on-surface-variant">
+          No hay productos que coincidan.
+        </p>
+      ) : isMobile ? (
+        <div className="space-y-3" data-testid="productos-mobile">
+          {filtered.map((producto) => (
+            <ProductoMobileCard
+              key={producto.id}
+              producto={producto}
+              expanded={expandedRow === producto.id}
+              puedeGestionar={puedeGestionar}
+              puedeGestionarStock={puedeGestionarStock}
+              onToggle={() => toggleRow(producto.id)}
+              onGestionarStock={(event) => openGestionarStock(producto, event)}
+              onEdit={(event) => openEdit(producto, event)}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-xl bg-surface-container-high" data-testid="productos-table">
+          <table className="w-full font-body text-[13px]">
+            <thead>
+              <tr className="border-b border-white/10 text-[12px] font-medium uppercase tracking-wide text-on-surface-variant">
+                <th className="px-5 py-4 text-left font-semibold">Producto</th>
+                <th className="px-5 py-4 text-center font-semibold">Lotes</th>
+                <th className="px-5 py-4 text-center font-semibold">Depósito</th>
+                <th className="px-5 py-4 text-center font-semibold">Acondicionado</th>
+                <th className="px-5 py-4 text-center font-semibold">Total</th>
+                {(puedeGestionarStock || puedeGestionar) && (
+                  <th className="px-5 py-4 text-center font-semibold">Acciones</th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p) => {
+                const isExpanded = expandedRow === p.id
+                const lotesCount = p.lotes?.filter(l => l.activo).length ?? 0
+                return (
+                  <Fragment key={p.id}>
+                    <tr 
+                      onClick={() => toggleRow(p.id)}
+                      className={`border-b border-white/10 last:border-0 cursor-pointer transition hover:bg-surface-variant/30 ${isExpanded ? 'bg-surface-variant/20 border-b-0' : ''}`}
+                    >
+                      <td className="px-5 py-4 text-left">
+                        <p className="text-[16px] font-semibold text-on-surface">{p.nombre}</p>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <p className="text-[15px] font-medium text-on-surface-variant">
+                          {lotesCount} {lotesCount === 1 ? 'lote' : 'lotes'}
+                        </p>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <p className="text-[16px] font-medium text-on-surface-variant">{p.stockDeposito}</p>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <div className="flex items-center justify-center gap-4">
+                          <p className="text-[16px] font-medium text-on-surface-variant">{p.stockAcondicionado}</p>
+                          {!(puedeGestionarStock || puedeGestionar) && (
+                            <div className="text-on-surface-variant transition-colors group-hover:text-on-surface">
+                              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <p className="text-[16px] font-semibold text-on-surface">{p.stockTotal}</p>
+                      </td>
+                      {(puedeGestionarStock || puedeGestionar) && (
+                        <td className="px-5 py-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                              {puedeGestionarStock && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => openGestionarStock(p, e)}
+                                  aria-label="Gestionar stock"
+                                  title="Gestionar stock, lotes y vencimientos"
+                                  className="flex h-9 w-9 items-center justify-center rounded-full border border-primary text-primary transition hover:bg-primary/20"
+                                >
+                                  <Package className="h-4 w-4" aria-hidden="true" />
+                                </button>
+                              )}
+                              {puedeGestionar && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => openEdit(p, e)}
+                                  aria-label="Editar"
+                                  title="Editar producto"
+                                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
+                                >
+                                  <Pencil className="h-4 w-4" aria-hidden="true" />
+                                </button>
+                              )}
+                            <div className="ml-1 text-on-surface-variant transition-colors group-hover:text-on-surface">
+                              {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                            </div>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                    {isExpanded && (
+                      <tr className="border-b border-white/10 last:border-0">
+                        <td colSpan={(puedeGestionarStock || puedeGestionar) ? 6 : 5} className="p-0">
+                          <LotesInline producto={p} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Producto modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-md rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-4 font-heading text-[18px] font-bold text-on-surface">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-5" onClick={() => setShowModal(false)}>
+          <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-white/10 bg-surface-container-low p-4 pb-[max(env(safe-area-inset-bottom),1rem)] sm:max-h-[85dvh] sm:rounded-2xl sm:p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="mb-4 text-[18px] font-semibold text-on-surface">
               {editing ? 'Editar producto' : 'Nuevo producto'}
             </h2>
             <div className="space-y-4">
               <input placeholder="Nombre" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                 className="input-field" />
-              <input placeholder="SKU" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })}
-                className="input-field" />
+
               <div>
                 <label className="font-body text-[11px] text-outline">Stock mínimo</label>
-                <input type="number" min={0} value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: Number(e.target.value) })}
+                <input type="number" min={0} value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: e.target.value })}
                   className="input-field mt-1" />
               </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button onClick={() => setShowModal(false)} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cancelar</button>
-                <button onClick={handleSave} className="rounded-full border border-primary px-4 py-2 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20">
+              {editing && puedeGestionarStock && (
+                <div className="rounded-lg border border-white/10 bg-surface-container-high p-3">
+                  <p className="font-body text-[12px] font-semibold text-on-surface">Lotes y vencimientos</p>
+                  <p className="mt-1 font-body text-[11px] text-on-surface-variant">Desde aquí podés editar vencimientos, ingresar o ajustar stock por lote.</p>
+                  <button
+                    type="button"
+                    onClick={() => { setShowModal(false); setStockProducto(editing) }}
+                    className="mt-3 rounded-full border border-primary px-3 py-1.5 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
+                  >
+                    Gestionar lotes y vencimientos
+                  </button>
+                </div>
+              )}
+              {!editing && (
+                <div>
+                  <label className="font-body text-[11px] text-outline">Unidades por caja</label>
+                  <input type="number" min={1} value={form.unidadesPorCaja} onChange={(e) => setForm({ ...form, unidadesPorCaja: e.target.value })}
+                    className="input-field mt-1" required />
+                </div>
+              )}
+              {formError && <p className="font-body text-xs text-error">{formError}</p>}
+              <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end sm:gap-3">
+                <button onClick={() => setShowModal(false)} className="min-h-11 rounded-xl border border-white/10 px-4 font-body text-[13px] text-outline transition hover:text-on-surface">Cancelar</button>
+                <button onClick={handleSave} className="min-h-11 rounded-xl border border-primary px-4 font-body text-[13px] font-semibold text-primary transition hover:bg-primary/20">
                   {editing ? 'Actualizar' : 'Crear'}
                 </button>
               </div>
@@ -229,102 +424,20 @@ export default function ProductosPage() {
         </div>
       )}
 
-      {/* Lotes modal */}
-      {lotesProducto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setLotesProducto(null)}>
-          <div className="max-h-[80vh] w-full max-w-xl overflow-y-auto rounded-xl border border-white/10 bg-surface-container-low p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-heading text-[20px] font-bold tracking-[-0.02em] text-on-surface">{lotesProducto.nombre}</h2>
-            <p className="mt-1 font-body text-[13px] font-medium text-on-surface-variant">
-              Stock total: <span className="font-semibold text-on-surface">{lotesProducto.stock} unidades</span>
-            </p>
+      {/* Gestionar Stock modal */}
+      {stockProducto && (
+        <GestionarStockModal 
+          producto={stockProducto} 
+          onClose={() => setStockProducto(null)} 
+        />
+      )}
 
-            {lotes.length === 0 ? (
-              <p className="mt-6 py-8 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados.</p>
-            ) : (
-              <div className="mt-5 space-y-3">
-                {lotes.map((l) => (
-                  <div
-                    key={l.id}
-                    className="rounded-xl border border-white/10 bg-surface-container-high p-4"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="font-mono text-[16px] font-bold text-primary">{l.numero}</span>
-                        <span className={`inline-flex rounded-full px-2 py-0.5 font-heading font-semibold text-[10px] ${l.activo ? 'bg-success/20 text-success' : 'bg-surface-highest text-on-surface-variant'}`}>
-                          {l.activo ? 'Activo' : 'Inactivo'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {editingLoteId === l.id ? (
-                          <>
-                            <button onClick={() => handleSaveLote(l)} className="rounded-full border border-primary px-3 py-1 font-body text-[11px] font-semibold text-primary transition hover:bg-primary/20">Guardar</button>
-                            <button onClick={cancelEditLote} className="rounded-full border border-white/10 px-3 py-1 font-body text-[11px] text-outline transition hover:text-on-surface">Cancelar</button>
-                          </>
-                        ) : (
-                          <button onClick={(e) => startEditLote(l, e)} className="font-body text-[11px] text-outline transition hover:text-primary">Editar</button>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-3 gap-4">
-                      {editingLoteId === l.id ? (
-                        <>
-                          <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
-                            <input type="number" min={0} value={editLoteForm.cajas}
-                              onChange={(e) => setEditLoteForm({ ...editLoteForm, cajas: Number(e.target.value) })}
-                              className="input-field mt-1 text-right" onClick={(e) => e.stopPropagation()} />
-                          </div>
-                          <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
-                            <input type="number" min={0} max={MAX_SUELTOS} value={editLoteForm.sueltos}
-                              onChange={(e) => setEditLoteForm({ ...editLoteForm, sueltos: Number(e.target.value) })}
-                              className="input-field mt-1 text-right" onClick={(e) => e.stopPropagation()} />
-                          </div>
-                          <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Unidades</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
-                              {editLoteForm.cajas * UNIDADES_POR_CAJA + editLoteForm.sueltos}
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Cajas</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">
-                              {l.cajas}
-                              <span className="ml-1 font-body text-[11px] font-normal text-outline">× {UNIDADES_POR_CAJA}u</span>
-                            </p>
-                          </div>
-                          <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Sueltos</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">{l.sueltos}</p>
-                          </div>
-                          <div>
-                            <p className="font-body text-[10px] uppercase tracking-[0.6px] text-outline">Total</p>
-                            <p className="mt-1 font-heading text-[18px] font-bold text-on-surface">{l.unidades} <span className="font-body text-[11px] font-normal text-outline">uds</span></p>
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="mt-2 flex items-center gap-4">
-                      <p className="font-body text-[11px] text-outline">
-                        Vto: <span className="font-medium text-on-surface-variant">{new Date(l.fechaVencimiento).toLocaleDateString('es-AR')}</span>
-                      </p>
-                      <p className="font-body text-[11px] text-outline">
-                        Prod: <span className="font-medium text-on-surface-variant">{new Date(l.fechaProduccion).toLocaleDateString('es-AR')}</span>
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-
-          </div>
-        </div>
+      {/* Historial de lotes modal */}
+      {showHistorialModal && (
+        <HistorialLotesModal
+          productos={productos}
+          onClose={() => setShowHistorialModal(false)}
+        />
       )}
     </div>
   )

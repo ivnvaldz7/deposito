@@ -1,12 +1,62 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { aleBetApi } from '../lib/api'
+import type { CrearRemitoManualInput, Pedido, PedidoEstado, CreatePedidoInput, PedidoDisponibilidadStock, UpdatePedidoInput } from '../lib/api'
+import { productosKeys } from './use-productos'
 
 export const pedidosKeys = {
   all: ['ale-bet', 'pedidos'] as const,
-  list: (filters?: Record<string, string>) => [...pedidosKeys.all, 'list', filters] as const,
+  list: (filters?: { estado?: PedidoEstado; vendedorId?: string; bandeja?: 'FACTURACION' }) => [...pedidosKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...pedidosKeys.all, 'detail', id] as const,
+  disponibilidad: (id: string) => [...pedidosKeys.detail(id), 'disponibilidad-stock'] as const,
+  manualRemitos: () => [...pedidosKeys.all, 'remitos-manuales'] as const,
 }
 
-export function usePedidos(filters?: { estado?: string; vendedorId?: string }) {
+export function useRemitosManuales() {
+  return useQuery({
+    queryKey: pedidosKeys.manualRemitos(),
+    queryFn: () => aleBetApi.remitos.manuales.list(),
+  })
+}
+
+export function useCrearRemitoManual() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CrearRemitoManualInput & { idempotencyKey?: string }) =>
+      aleBetApi.remitos.manuales.create(data, data.idempotencyKey ? { idempotencyKey: data.idempotencyKey } : undefined),
+    onSuccess: ({ pedido }) => {
+      invalidatePedido(qc, pedido)
+      qc.invalidateQueries({ queryKey: pedidosKeys.manualRemitos() })
+    },
+  })
+}
+
+export function useAprobarDescuentoRemitoManual() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, selecciones, transferencias, idempotencyKey }: { id: string; expectedVersion: number; selecciones: PedidoDisponibilidadStock['allocations']; transferencias: PedidoDisponibilidadStock['transferencias']; idempotencyKey?: string }) =>
+      aleBetApi.remitos.manuales.aprobarDescuento(id, { expectedVersion, selecciones, transferencias }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+      qc.invalidateQueries({ queryKey: pedidosKeys.manualRemitos() })
+    },
+  })
+}
+
+function invalidatePedido(qc: QueryClient, pedido: Pick<Pedido, 'id'> | string) {
+  const pedidoId = typeof pedido === 'string' ? pedido : pedido.id
+  qc.invalidateQueries({ queryKey: pedidosKeys.all })
+  qc.invalidateQueries({ queryKey: pedidosKeys.detail(pedidoId) })
+  qc.invalidateQueries({ queryKey: ['ale-bet', 'dashboard'] })
+}
+
+function invalidateProductos(qc: QueryClient) {
+  // Invalida listado y búsqueda de productos para que el Disp: se refresque
+  // tras cambios de reserva/stock (aprobar, cancelar, despachar).
+  qc.invalidateQueries({ queryKey: productosKeys.all })
+}
+
+export function usePedidos(filters?: { estado?: PedidoEstado; vendedorId?: string; bandeja?: 'FACTURACION' }) {
   return useQuery({
     queryKey: pedidosKeys.list(filters),
     queryFn: () => aleBetApi.pedidos.list(filters),
@@ -14,44 +64,138 @@ export function usePedidos(filters?: { estado?: string; vendedorId?: string }) {
   })
 }
 
+export function usePedidoDetalle(id?: string) {
+  return useQuery({
+    queryKey: pedidosKeys.detail(id ?? ''),
+    queryFn: () => aleBetApi.pedidos.get(id ?? ''),
+    enabled: Boolean(id),
+    placeholderData: (prev) => prev,
+  })
+}
+
+export function usePedidoDisponibilidad(id?: string) {
+  return useQuery({
+    queryKey: pedidosKeys.disponibilidad(id ?? ''),
+    queryFn: () => aleBetApi.pedidos.disponibilidadStock(id ?? ''),
+    enabled: Boolean(id),
+  })
+}
+
 export function useCreatePedido() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { clienteId: string; items: Array<{ productoId: string; cantidad: number }> }) =>
-      aleBetApi.pedidos.create(data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: pedidosKeys.all }),
+    mutationFn: (data: CreatePedidoInput & { idempotencyKey?: string }) =>
+      aleBetApi.pedidos.create(
+        { clienteId: data.clienteId, items: data.items },
+        data.idempotencyKey ? { idempotencyKey: data.idempotencyKey } : undefined,
+      ),
+    onSuccess: (pedido) => invalidatePedido(qc, pedido),
+  })
+}
+
+export function useUpdatePedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, ...data }: { id: string } & UpdatePedidoInput) => aleBetApi.pedidos.update(id, data),
+    onSuccess: (pedido) => invalidatePedido(qc, pedido),
+  })
+}
+
+export function useAmpliarPedidoConfirmado() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, items, idempotencyKey }: { id: string; expectedVersion: number; items: Array<{ productoId: string; cantidad: number }>; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.ampliar(id, { expectedVersion, items }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
   })
 }
 
 export function useAprobarPedido() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => aleBetApi.pedidos.aprobar(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: pedidosKeys.all }),
+    mutationFn: ({ id, expectedVersion, fingerprint, transferencias, selecciones, idempotencyKey }: { id: string; expectedVersion: number; fingerprint: string; transferencias: PedidoDisponibilidadStock['transferencias']; selecciones: PedidoDisponibilidadStock['allocations']; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.aprobar(id, { expectedVersion, fingerprint, transferencias, selecciones }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
   })
 }
 
 export function useTomarPedido() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => aleBetApi.pedidos.tomar(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: pedidosKeys.all }),
+    mutationFn: ({ id, expectedVersion, idempotencyKey }: { id: string; expectedVersion: number; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.tomar(id, { expectedVersion }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => invalidatePedido(qc, pedido),
   })
 }
 
 export function useCompletarItemPedido() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ pedidoId, itemId }: { pedidoId: string; itemId: string }) =>
-      aleBetApi.pedidos.completarItem(pedidoId, itemId),
-    onSuccess: () => qc.invalidateQueries({ queryKey: pedidosKeys.all }),
+    mutationFn: ({ pedidoId, itemId, expectedVersion, idempotencyKey }: { pedidoId: string; itemId: string; expectedVersion: number; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.completarItem(pedidoId, itemId, { expectedVersion }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => invalidatePedido(qc, pedido),
+  })
+}
+
+export function usePrepararPedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, idempotencyKey }: { id: string; expectedVersion: number; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.preparar(id, { expectedVersion }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => invalidatePedido(qc, pedido),
   })
 }
 
 export function useCancelarPedido() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (id: string) => aleBetApi.pedidos.cancelar(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: pedidosKeys.all }),
+    mutationFn: ({ id, expectedVersion, motivo, idempotencyKey }: { id: string; expectedVersion: number; motivo?: string; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.cancelar(id, { expectedVersion, motivo }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (response, { id }) => {
+      invalidatePedido(qc, response.discarded ? response.pedidoId : response.pedido.id ?? id)
+      invalidateProductos(qc)
+    },
+  })
+}
+
+export function useConfirmarCancelacionPedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, motivo, idempotencyKey }: { id: string; expectedVersion: number; motivo: string; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.confirmarCancelacion(id, { expectedVersion, motivo }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
+  })
+}
+
+export function useDespacharPedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, idempotencyKey }: { id: string; expectedVersion: number; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.despachar(id, { expectedVersion }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
+  })
+}
+
+export function useRegistrarDevolucionPedido() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, expectedVersion, items, motivo, idempotencyKey }: { id: string; expectedVersion: number; items: Array<{ productoId: string; cantidad: number }>; motivo: string; idempotencyKey?: string }) =>
+      aleBetApi.pedidos.devolver(id, { expectedVersion, items, motivo }, idempotencyKey ? { idempotencyKey } : undefined),
+    onSuccess: (pedido) => {
+      invalidatePedido(qc, pedido)
+      invalidateProductos(qc)
+    },
   })
 }

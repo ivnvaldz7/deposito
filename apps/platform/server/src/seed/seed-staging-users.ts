@@ -29,7 +29,10 @@ const users: StagingUser[] = [
   {
     email: 'encargado@deposito.com',
     nombre: 'Encargado Deposito',
-    appAccess: [{ app: AppId.deposito, rol: 'encargado' }],
+    appAccess: [
+      { app: AppId.deposito, rol: 'encargado' },
+      { app: AppId.ale_bet, rol: 'encargado' },
+    ],
   },
   {
     email: 'solicitante@deposito.com',
@@ -55,6 +58,11 @@ const users: StagingUser[] = [
     email: 'armador@ale-bet.com',
     nombre: 'Armador Ale-Bet',
     appAccess: [{ app: AppId.ale_bet, rol: 'armador' }],
+  },
+  {
+    email: 'facturacion@ale-bet.com',
+    nombre: 'Facturación Ale-Bet',
+    appAccess: [{ app: AppId.ale_bet, rol: 'facturacion' }],
   },
   {
     email: 'observador@ale-bet.com',

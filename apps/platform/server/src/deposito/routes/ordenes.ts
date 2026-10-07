@@ -1,70 +1,63 @@
 import { Request,  Router, Response  } from 'express'
+import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
-import { Mercado, Prisma } from '@platform/db'
+import { Mercado } from '@platform/db'
 import { extractDbConstraintViolation, isKnownInventoryConflict } from '../../utils/db-errors'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
-import { requireRole } from '../middleware/require-role'
-import { sseManager, STOCK_BAJO_THRESHOLD, STOCK_BAJO_FRASCOS_THRESHOLD } from '../lib/sse-manager'
+import { requirePermission } from '../../middlewares/require-permission'
+import { sseManager } from '../lib/sse-manager'
+import { isStockBajo } from '../lib/stock-status'
 import { eventBus } from '@platform/core'
-import { resolveCanonicalProductName } from '../lib/producto-catalogo'
-import {
-  getSingleIdempotencyKey,
-  calculateFingerprint,
-  acquireIdempotencyRecord,
-  completeIdempotencyRecord,
-  toPersistableResponseBody,
-} from '../../utils/idempotency'
+import { resolveUniqueFrascoCandidate } from './shared/frasco-inventory-resolution'
+import { descontarStockOrden, OrdenStockError } from '../services/orden-stock-service'
 
 const router = Router()
 
 const MERCADOS = Object.values(Mercado) as [Mercado, ...Mercado[]]
+const ESTADOS_ARCHIVABLES = ['aprobada', 'rechazada'] as const
+const DIAS_VISIBLES_ORDEN_CONFIRMADA = 7
 
-type HttpError = {
-  status: number
-  code?: string
-  message: string
-}
-
-function isHttpError(error: unknown): error is HttpError {
-  if (typeof error !== 'object' || error === null) return false
-  const candidate = error as Record<string, unknown>
-  return (
-    typeof candidate.status === 'number' &&
-    typeof candidate.message === 'string' &&
-    (candidate.code === undefined || typeof candidate.code === 'string')
-  )
+function archiveCutoff(): Date {
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - DIAS_VISIBLES_ORDEN_CONFIRMADA)
+  return cutoff
 }
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
-const crearOrdenSchema = z.object({
+const ordenItemSchema = z.object({
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco']),
-  productoId: z.string().uuid().optional(),
-  productoNombre: z.string().min(2).max(200),
+  productoId: z.string().uuid(),
   mercado: z.enum(MERCADOS).optional(),
-  cantidad: z.number().int().positive(),
-  urgencia: z.enum(['normal', 'urgente']).default('normal'),
+  cantidad: z.number().finite().positive(),
 })
+  .refine((data) => data.categoria === 'droga' || Number.isInteger(data.cantidad), { message: 'La cantidad debe ser entera para materiales de empaque', path: ['cantidad'] })
 
-const rechazarSchema = z.object({
-  motivoRechazo: z.string().min(5).max(500),
-})
+const crearOrdenSchema = z.union([
+  ordenItemSchema,
+  z.object({ items: z.array(ordenItemSchema).min(1).max(30) }),
+])
 
-// Estados finales que no permiten más transiciones
-const ESTADOS_FINALES = ['completada', 'rechazada'] as const
+const rechazarSchema = z.object({ motivoRechazo: z.string().trim().max(500).optional() }).optional().transform((data) => data ?? {})
 
-function normalizeForMatch(str: string): string {
-  return resolveCanonicalProductName(str)
+function isSolicitante(req: Request): boolean {
+  return req.user?.apps.deposito?.rol === 'solicitante'
 }
 
 // Helper: verifica si el stock bajó del threshold después de un egreso
 async function checkStockBajo(
   categoria: string,
   productoNombre: string,
-  mercado: Mercado | null
+  mercado: Mercado | null,
+  productoId: string | null,
 ): Promise<number | null> {
   try {
+    const stockMinimo = productoId
+      ? (await prisma.depositoProducto.findUnique({ where: { id: productoId }, select: { stockMinimo: true } }))?.stockMinimo
+      : null
+    if (stockMinimo == null) return null
+
     if (categoria === 'droga') {
       // Sumar total de todos los lotes del producto
       const agg = await prisma.inventarioDroga.aggregate({
@@ -72,20 +65,22 @@ async function checkStockBajo(
         _sum: { cantidad: true },
       })
       const total = agg._sum.cantidad ?? 0
-      if (total < STOCK_BAJO_THRESHOLD) return total
+      if (isStockBajo(total, stockMinimo)) return total
     } else if (categoria === 'estuche' && mercado) {
       const e = await prisma.inventarioEstuche.findUnique({
         where: { articulo_mercado: { articulo: productoNombre, mercado } },
       })
-      if (e && e.cantidad < STOCK_BAJO_THRESHOLD) return e.cantidad
+      if (e && isStockBajo(e.cantidad, stockMinimo)) return e.cantidad
     } else if (categoria === 'etiqueta' && mercado) {
       const e = await prisma.inventarioEtiqueta.findUnique({
         where: { articulo_mercado: { articulo: productoNombre, mercado } },
       })
-      if (e && e.cantidad < STOCK_BAJO_THRESHOLD) return e.cantidad
+      if (e && isStockBajo(e.cantidad, stockMinimo)) return e.cantidad
     } else if (categoria === 'frasco') {
-      const f = await prisma.inventarioFrasco.findUnique({ where: { articulo: productoNombre } })
-      if (f && f.cantidadCajas < STOCK_BAJO_FRASCOS_THRESHOLD) return f.cantidadCajas
+      const f = productoId
+        ? await prisma.inventarioFrasco.findUnique({ where: { productoId } })
+        : resolveUniqueFrascoCandidate(productoNombre, await prisma.inventarioFrasco.findMany())
+      if (f && isStockBajo(f.cantidadCajas, stockMinimo)) return f.cantidadCajas
     }
   } catch { /* no crítico */ }
   return null
@@ -96,7 +91,7 @@ async function checkStockBajo(
 router.post(
   '/',
   authenticate,
-  requireRole('solicitante', 'encargado'),
+  requirePermission('deposito', 'ordenes.create'),
   async (req: Request, res: Response): Promise<void> => {
     const result = crearOrdenSchema.safeParse(req.body)
     if (!result.success) {
@@ -104,66 +99,89 @@ router.post(
       return
     }
 
-    const { categoria, productoId, mercado, cantidad, urgencia } = result.data
-    let { productoNombre } = result.data
-
-    if ((categoria === 'estuche' || categoria === 'etiqueta') && !mercado) {
-      res.status(400).json({ message: 'El campo mercado es obligatorio para estuches y etiquetas' })
-      return
-    }
-
-    // Si viene productoId, validar en catálogo y usar nombreCompleto
-    if (productoId) {
-      const producto = await prisma.depositoProducto.findUnique({ where: { id: productoId } })
-      if (!producto || producto.categoria !== categoria) {
-        res.status(400).json({ message: 'DepositoProducto no encontrado en el catálogo o categoría incorrecta' })
+    const isMultiorden = 'items' in result.data
+    const items = 'items' in result.data ? result.data.items : [result.data]
+    const seen = new Set<string>()
+    for (const item of items) {
+      if ((item.categoria === 'estuche' || item.categoria === 'etiqueta') && !item.mercado) {
+        res.status(400).json({ message: 'El campo mercado es obligatorio para estuches y etiquetas' })
         return
       }
-      productoNombre = producto.nombreCompleto
+      if ((item.categoria === 'droga' || item.categoria === 'frasco') && item.mercado) {
+        res.status(400).json({ message: 'El mercado solo aplica a estuches y etiquetas' })
+        return
+      }
+      const duplicateKey = `${item.productoId}:${item.mercado ?? ''}`
+      if (seen.has(duplicateKey)) {
+        res.status(400).json({ message: 'No repitas el mismo producto dentro de una solicitud' })
+        return
+      }
+      seen.add(duplicateKey)
+    }
+
+    const products = await Promise.all(items.map(async (item) => {
+      try {
+        return await prisma.depositoProducto.findUnique({ where: { id: item.productoId } })
+      } catch {
+        return null
+      }
+    }))
+    for (let index = 0; index < items.length; index += 1) {
+      const product = products[index]
+      if (!product || !product.activo || product.categoria !== items[index]!.categoria) {
+        res.status(400).json({ message: 'Elegí productos activos de la categoría correspondiente' })
+        return
+      }
     }
 
     try {
-      const orden = await prisma.ordenProduccion.create({
-        data: {
-          solicitanteId: req.depositoUser!.id,
-          productoId: productoId ?? null,
-          categoria,
-          productoNombre,
-          mercado: mercado ?? null,
-          cantidad,
-          urgencia,
-        },
-        include: {
-          solicitante: { select: { id: true, name: true, role: true } },
-          aprobador: { select: { id: true, name: true } },
-        },
+      const grupoId = randomUUID()
+      const ordenes = await prisma.$transaction(async (tx) => {
+        const created = []
+        for (const [index, item] of items.entries()) {
+          created.push(await tx.ordenProduccion.create({
+          data: {
+            solicitanteId: req.depositoUser!.id,
+            grupoId,
+            productoId: item.productoId,
+            categoria: item.categoria,
+            productoNombre: products[index]!.nombreCompleto,
+            mercado: item.mercado ?? null,
+            cantidad: item.cantidad,
+          },
+          include: {
+            solicitante: { select: { id: true, name: true, role: true } },
+            aprobador: { select: { id: true, name: true } },
+          },
+          }))
+        }
+        return created
       })
 
-      sseManager.broadcastToRoles(
-        {
-          tipo: 'orden_creada',
-          mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad}) — ${req.depositoUser!.name}`,
-          datos: {
-            ordenId: orden.id,
-            producto: productoNombre,
-            cantidad,
-            urgencia,
-            solicitante: req.depositoUser!.name,
-          },
-          timestamp: new Date().toISOString(),
+      const productSummary = ordenes.map((orden) => `${orden.productoNombre} (×${orden.cantidad})`).join(', ')
+      const plural = ordenes.length === 1 ? 'producto' : 'productos'
+      const notification = {
+        tipo: 'orden_creada',
+        mensaje: `Nueva solicitud: ${ordenes.length} ${plural} — ${req.depositoUser!.name}`,
+        datos: {
+          grupoId,
+          ordenIds: ordenes.map((orden) => orden.id),
+          cantidadProductos: ordenes.length,
+          solicitante: req.depositoUser!.name,
         },
-        ['encargado']
-      )
+        timestamp: new Date().toISOString(),
+      }
+      sseManager.broadcastToRoles(notification, ['encargado'])
       eventBus.emit({
         app: 'deposito',
         tipo: 'orden_creada',
-        titulo: 'Orden de producción',
-        mensaje: `Nueva orden${urgencia === 'urgente' ? ' URGENTE' : ''}: ${productoNombre} (×${cantidad})`,
-        link: `/deposito/ordenes/${orden.id}`,
+        titulo: 'Solicitud de producción',
+        mensaje: `Nueva solicitud: ${productSummary}`,
+        link: `/deposito/ordenes/${ordenes[0]!.id}`,
         timestamp: new Date().toISOString(),
       })
 
-      res.status(201).json(orden)
+      res.status(201).json(isMultiorden ? { grupoId, ordenes } : ordenes[0])
     } catch {
       res.status(500).json({ message: 'Error interno del servidor' })
     }
@@ -175,22 +193,28 @@ router.post(
 router.get(
   '/',
   authenticate,
+  requirePermission('deposito', 'ordenes.read'),
   async (req: Request, res: Response): Promise<void> => {
-    const { estado } = req.query
+    const { estado, archivadas } = req.query
 
     const estadoFilter = typeof estado === 'string' ? estado : undefined
+    const includeArchived = archivadas === 'true'
 
     // Solicitante solo ve sus propias órdenes
     const roleFilter =
-      req.depositoUser?.role === 'solicitante'
+      isSolicitante(req) && req.depositoUser
         ? { solicitanteId: req.depositoUser.id }
         : {}
 
     const estadoWhere = estadoFilter ? { estado: estadoFilter as never } : {}
+    const cutoff = archiveCutoff()
+    const archiveWhere = includeArchived
+      ? { estado: { in: [...ESTADOS_ARCHIVABLES] }, updatedAt: { lt: cutoff } }
+      : { NOT: { AND: [{ estado: { in: [...ESTADOS_ARCHIVABLES] } }, { updatedAt: { lt: cutoff } }] } }
 
     try {
       const ordenes = await prisma.ordenProduccion.findMany({
-        where: { ...roleFilter, ...estadoWhere },
+        where: { AND: [roleFilter, estadoWhere, archiveWhere] },
         orderBy: [{ createdAt: 'desc' }],
         include: {
           solicitante: { select: { id: true, name: true, role: true } },
@@ -209,6 +233,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
+  requirePermission('deposito', 'ordenes.read'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
@@ -227,7 +252,7 @@ router.get(
       }
 
       // Solicitante solo puede ver sus propias órdenes
-      if (req.depositoUser?.role === 'solicitante' && orden.solicitanteId !== req.depositoUser.id) {
+      if (isSolicitante(req) && orden.solicitanteId !== req.depositoUser!.id) {
         res.status(403).json({ message: 'No autorizado' })
         return
       }
@@ -241,36 +266,67 @@ router.get(
 
 // ─── PUT /api/ordenes/:id/aprobar — solo encargado ───────────────────────────
 
-router.put(
+router.post(
   '/:id/aprobar',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'ordenes.approve'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
     try {
-      const orden = await prisma.ordenProduccion.findUnique({ where: { id } })
-      if (!orden) {
-        res.status(404).json({ message: 'Orden no encontrada' })
-        return
-      }
-      if ((ESTADOS_FINALES as readonly string[]).includes(orden.estado)) {
-        res.status(409).json({ message: `No se puede aprobar una orden en estado "${orden.estado}"` })
-        return
-      }
-      if (orden.estado !== 'solicitada') {
-        res.status(409).json({ message: `La orden ya está en estado "${orden.estado}"` })
-        return
-      }
+      const updated = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM deposito.ordenes_produccion WHERE id = ${id} FOR UPDATE`
+        const orden = await tx.ordenProduccion.findUnique({ where: { id } })
+        if (!orden) throw new Error('HTTP_404: Orden no encontrada')
+        if (orden.estado !== 'solicitada') throw new Error(`HTTP_409: La orden ya está en estado "${orden.estado}"`)
 
-      const updated = await prisma.ordenProduccion.update({
-        where: { id },
-        data: { estado: 'aprobada', aprobadoPor: req.depositoUser!.id },
-        include: {
-          solicitante: { select: { id: true, name: true, role: true } },
-          aprobador: { select: { id: true, name: true } },
-        },
+        await descontarStockOrden(tx, orden, req.depositoUser!.id)
+        const transition = await tx.ordenProduccion.updateMany({
+          where: { id, estado: 'solicitada' },
+          data: { estado: 'aprobada', aprobadoPor: req.depositoUser!.id },
+        })
+        if (transition.count !== 1) throw new Error('HTTP_409: La orden ya fue procesada')
+        return tx.ordenProduccion.findUnique({
+          where: { id },
+          include: {
+            solicitante: { select: { id: true, name: true, role: true } },
+            aprobador: { select: { id: true, name: true } },
+          },
+        })
       })
+      if (!updated) throw new Error('HTTP_404: Orden no encontrada')
+
+      const timestamp = new Date().toISOString()
+      sseManager.broadcastGlobal({
+        tipo: 'stock_actualizado',
+        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
+        datos: { producto: updated.productoNombre, productoId: updated.productoId, categoria: updated.categoria, mercado: updated.mercado, cantidad: -updated.cantidad, tipo: 'egreso' },
+        timestamp,
+      })
+      eventBus.emit({
+        app: 'deposito',
+        tipo: 'stock_actualizado',
+        titulo: 'Stock actualizado',
+        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
+        timestamp,
+      })
+      const stockBajo = await checkStockBajo(updated.categoria, updated.productoNombre, updated.mercado, updated.productoId)
+      if (stockBajo !== null) {
+        sseManager.broadcastGlobal({
+          tipo: 'stock_bajo',
+          mensaje: `Stock bajo: ${updated.productoNombre} (${stockBajo} restantes)`,
+          datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: stockBajo },
+          timestamp,
+        })
+        eventBus.emit({
+          app: 'deposito',
+          tipo: 'stock_bajo',
+          titulo: 'Stock bajo',
+          mensaje: `Stock bajo: ${updated.productoNombre} (${stockBajo} restantes)`,
+          link: '/deposito/drogas',
+          timestamp,
+        })
+      }
 
       sseManager.broadcastToUser(
         {
@@ -292,353 +348,66 @@ router.put(
       })
 
       res.json(updated)
-    } catch {
-      res.status(500).json({ message: 'Error interno del servidor' })
+    } catch (error) {
+      if (error instanceof OrdenStockError) {
+        res.status(error.code === 'MERCADO_REQUERIDO' ? 400 : 409).json({ message: error.message, code: error.code })
+        return
+      }
+      const dbErr = extractDbConstraintViolation(error)
+      if (dbErr && isKnownInventoryConflict(dbErr.constraintName)) {
+        res.status(409).json({ message: 'La operación no puede completarse por una inconsistencia de stock', code: 'INVENTORY_CONSTRAINT_VIOLATION' })
+        return
+      }
+      const message = error instanceof Error ? error.message : ''
+      if (message.startsWith('HTTP_404: ')) res.status(404).json({ message: message.slice(10) })
+      else if (message.startsWith('HTTP_409: ')) res.status(409).json({ message: message.slice(10) })
+      else res.status(500).json({ message: 'Error interno del servidor' })
     }
   }
 )
 
-// ─── POST /api/ordenes/:id/ejecutar — descuenta inventario, crea movimiento ───
+// Legacy execution endpoint is intentionally disabled: approval now performs
+// stock deduction atomically in the same transaction.
 
-router.post(
-  '/:id/ejecutar',
+router.post('/:id/ejecutar', authenticate, requirePermission('deposito', 'ordenes.execute'), (_req, res) => {
+  res.status(410).json({ message: 'La ejecución ahora se realiza al aprobar la orden' })
+})
+
+// ─── PUT /api/ordenes/:id/rechazar — solo encargado ──────────────────────────
+
+router.put(
+  '/:id/rechazar',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'ordenes.reject'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 
-    let idempotencyKey: string | undefined
-    try {
-      idempotencyKey = getSingleIdempotencyKey(req.rawHeaders)
-    } catch (err: unknown) {
-      if (isHttpError(err)) {
-        res.status(err.status).json({ message: err.message, code: err.code })
-        return
-      }
-      res.status(400).json({ message: 'Clave de idempotencia inválida' })
+    const result = rechazarSchema.safeParse(req.body)
+    if (!result.success) {
+      res.status(400).json({ message: 'Motivo de rechazo inválido' })
       return
     }
 
     try {
-      const fingerprint = calculateFingerprint('POST', 'deposito.orden.ejecutar', id, {})
-
-      const txResult = await prisma.$transaction(async (tx) => {
-        let idempRecordId: string | undefined
-
-        if (idempotencyKey) {
-          const acq = await acquireIdempotencyRecord(
-            tx,
-            req.depositoUser!.id,
-            'deposito.orden.ejecutar',
-            idempotencyKey,
-            fingerprint
-          )
-          if (acq.type === 'REPLAY') {
-            return { type: 'REPLAY', status: acq.status, body: acq.body }
-          }
-          idempRecordId = acq.id
-        }
-
+      const updated = await prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT id FROM deposito.ordenes_produccion WHERE id = ${id} FOR UPDATE`
         const orden = await tx.ordenProduccion.findUnique({ where: { id } })
-        if (!orden) {
-          throw new Error('HTTP_404: Orden no encontrada')
-        }
-        if ((ESTADOS_FINALES as readonly string[]).includes(orden.estado)) {
-          throw new Error(`HTTP_409: No se puede ejecutar una orden en estado "${orden.estado}"`)
-        }
-        if (orden.estado !== 'aprobada') {
-          throw new Error('HTTP_409: La orden debe estar aprobada antes de ejecutarse')
-        }
-        const updateRes = await tx.ordenProduccion.updateMany({
-          where: { id, estado: 'aprobada' },
-          data: { estado: 'ejecutada' }
+        if (!orden) throw new Error('HTTP_404: Orden no encontrada')
+        if (orden.estado !== 'solicitada') throw new Error(`HTTP_409: No se puede rechazar una orden en estado "${orden.estado}"`)
+        const transition = await tx.ordenProduccion.updateMany({
+          where: { id, estado: 'solicitada' },
+          data: { estado: 'rechazada', motivoRechazo: result.data.motivoRechazo ?? null, aprobadoPor: req.depositoUser!.id },
         })
-        if (updateRes.count === 0) {
-          throw new Error('HTTP_409: La orden debe estar aprobada antes de ejecutarse')
-        }
-
-        const { categoria, productoNombre, mercado, cantidad } = orden
-
-        if (categoria === 'droga') {
-          // FIFO: descontar empezando por el lote con vencimiento más próximo, usando FOR UPDATE ordenado para evitar deadlocks
-          const query = orden.productoId
-            ? Prisma.sql`SELECT id, cantidad, lote FROM deposito.inventario_drogas WHERE producto_id = ${orden.productoId} AND cantidad > 0 ORDER BY CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END, vencimiento ASC, id ASC FOR UPDATE`
-            : Prisma.sql`SELECT id, cantidad, lote FROM deposito.inventario_drogas WHERE nombre = ${productoNombre} AND cantidad > 0 ORDER BY CASE WHEN vencimiento IS NULL THEN 1 ELSE 0 END, vencimiento ASC, id ASC FOR UPDATE`
-
-          const lotes = await tx.$queryRaw<{id: string, cantidad: number, lote: string | null}[]>(query)
-
-          const totalDisponible = lotes.reduce((s, l) => s + l.cantidad, 0)
-          if (totalDisponible < cantidad) {
-            throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (disponible: ${totalDisponible})`)
-          }
-
-          let restante = cantidad
-          const lotesMov: { lote: string | null; decrementado: number }[] = []
-          for (const lote of lotes) {
-            if (restante <= 0) break
-            const tomar = Math.min(lote.cantidad, restante)
-            await tx.inventarioDroga.update({
-              where: { id: lote.id },
-              data: { cantidad: { decrement: tomar } },
-            })
-            lotesMov.push({ lote: lote.lote, decrementado: tomar })
-            restante -= tomar
-          }
-
-          // Crear un movimiento por lote usado
-          for (const { lote: loteUsado, decrementado } of lotesMov) {
-            await tx.movimiento.create({
-              data: {
-                tipo: 'egreso_orden',
-                categoria,
-                productoNombre,
-                lote: loteUsado,
-                cantidad: -decrementado,
-                referenciaId: orden.id,
-                referenciaTipo: 'orden',
-                createdBy: req.depositoUser!.id,
-              },
-            })
-          }
-        } else if (categoria === 'estuche') {
-          if (!mercado) throw new Error('HTTP_400: El campo mercado es obligatorio para estuches')
-
-          let targetId = orden.productoId
-            ? (await tx.inventarioEstuche.findFirst({ where: { productoId: orden.productoId, mercado }, select: { id: true } }))?.id
-            : null
-
-          if (!targetId) {
-            const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioEstuche.findMany({ where: { mercado }, select: { id: true, articulo: true } })
-            targetId = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)?.id
-          }
-          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de estuches')
-
-          const resUpdate = await tx.inventarioEstuche.updateMany({
-            where: { id: targetId, cantidad: { gte: cantidad } },
-            data: { cantidad: { decrement: cantidad } },
-          })
-          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (estuche)`)
-
-        } else if (categoria === 'etiqueta') {
-          if (!mercado) throw new Error('HTTP_400: El campo mercado es obligatorio para etiquetas')
-
-          let targetId = orden.productoId
-            ? (await tx.inventarioEtiqueta.findFirst({ where: { productoId: orden.productoId, mercado }, select: { id: true } }))?.id
-            : null
-
-          if (!targetId) {
-            const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioEtiqueta.findMany({ where: { mercado }, select: { id: true, articulo: true } })
-            targetId = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)?.id
-          }
-          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de etiquetas')
-
-          const resUpdate = await tx.inventarioEtiqueta.updateMany({
-            where: { id: targetId, cantidad: { gte: cantidad } },
-            data: { cantidad: { decrement: cantidad } },
-          })
-          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (etiqueta)`)
-
-        } else if (categoria === 'frasco') {
-          let targetId: string | undefined = undefined
-          let uniPorCaja = 1
-
-          if (orden.productoId) {
-            const f = await tx.inventarioFrasco.findFirst({ where: { productoId: orden.productoId }, select: { id: true, unidadesPorCaja: true } })
-            if (f) {
-              targetId = f.id
-              uniPorCaja = f.unidadesPorCaja
-            }
-          }
-
-          if (!targetId) {
-            const buscar = normalizeForMatch(productoNombre)
-            const candidatos = await tx.inventarioFrasco.findMany({ select: { id: true, articulo: true, unidadesPorCaja: true } })
-            const match = candidatos.find((row) => normalizeForMatch(row.articulo) === buscar)
-            if (match) {
-              targetId = match.id
-              uniPorCaja = match.unidadesPorCaja
-            }
-          }
-          if (!targetId) throw new Error('HTTP_404: Producto no encontrado en inventario de frascos')
-
-          const resUpdate = await tx.inventarioFrasco.updateMany({
-            where: {
-              id: targetId,
-              cantidadCajas: { gte: cantidad },
-              total: { gte: cantidad * uniPorCaja }
-            },
-            data: {
-              cantidadCajas: { decrement: cantidad },
-              total: { decrement: cantidad * uniPorCaja }
-            },
-          })
-          if (resUpdate.count === 0) throw new Error(`HTTP_409: Stock insuficiente de "${productoNombre}" (frasco)`)
-        }
-
-        // Movimiento de auditoría para categorías no-droga (drogas crean movimientos en el loop FIFO)
-        if (categoria !== 'droga') {
-          await tx.movimiento.create({
-            data: {
-              tipo: 'egreso_orden',
-              categoria,
-              productoNombre,
-              cantidad: -cantidad,
-              referenciaId: orden.id,
-              referenciaTipo: 'orden',
-              createdBy: req.depositoUser!.id,
-            },
-          })
-        }
-
-        const updatedOrden = await tx.ordenProduccion.findUnique({
+        if (transition.count !== 1) throw new Error('HTTP_409: La orden ya fue procesada')
+        return tx.ordenProduccion.findUnique({
           where: { id },
           include: {
             solicitante: { select: { id: true, name: true, role: true } },
             aprobador: { select: { id: true, name: true } },
           },
         })
-
-        if (idempRecordId) {
-          const persistableBody = toPersistableResponseBody(updatedOrden)
-          await completeIdempotencyRecord(tx, idempRecordId, 200, persistableBody)
-        }
-
-        return { type: 'NEW', result: updatedOrden! }
       })
-
-      if (txResult.type === 'REPLAY') {
-        res.setHeader('Idempotency-Replayed', 'true')
-        res.status(txResult.status as number).json(txResult.body)
-        return
-      }
-
-      const updated = txResult.result!
-
-      const ts = new Date().toISOString()
-
-      sseManager.broadcastGlobal({
-        tipo: 'stock_actualizado',
-        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
-        datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: updated.cantidad, tipo: 'egreso' },
-        timestamp: ts,
-      })
-      eventBus.emit({
-        app: 'deposito',
-        tipo: 'stock_actualizado',
-        titulo: 'Stock actualizado',
-        mensaje: `Stock de ${updated.productoNombre} actualizado (−${updated.cantidad})`,
-        timestamp: ts,
-      })
-
-      sseManager.broadcastToUser(
-        {
-          tipo: 'orden_actualizada',
-          mensaje: `Tu orden de ${updated.productoNombre} fue ejecutada`,
-          datos: { ordenId: updated.id, producto: updated.productoNombre, estado: 'ejecutada' },
-          timestamp: ts,
-        },
-        updated.solicitanteId
-      )
-      eventBus.emit({
-        app: 'deposito',
-        tipo: 'orden_actualizada',
-        titulo: 'Orden ejecutada',
-        mensaje: `Orden de ${updated.productoNombre} ejecutada`,
-        userId: updated.solicitanteId,
-        link: `/deposito/ordenes/${updated.id}`,
-        timestamp: ts,
-      })
-
-      const nuevoStock = await checkStockBajo(updated.categoria, updated.productoNombre, updated.mercado)
-      if (nuevoStock !== null) {
-        sseManager.broadcastGlobal({
-          tipo: 'stock_bajo',
-          mensaje: `Stock bajo: ${updated.productoNombre} (${nuevoStock} restantes)`,
-          datos: { producto: updated.productoNombre, categoria: updated.categoria, cantidad: nuevoStock },
-          timestamp: ts,
-        })
-        eventBus.emit({
-          app: 'deposito',
-          tipo: 'stock_bajo',
-          titulo: 'Stock bajo',
-          mensaje: `Stock bajo: ${updated.productoNombre} (${nuevoStock} restantes)`,
-          link: `/deposito/drogas`,
-          timestamp: ts,
-        })
-      }
-
-      res.json(updated)
-    } catch (err: unknown) {
-      console.error('Error interno al ejecutar la orden')
-
-      if (isHttpError(err)) {
-        res.status(err.status).json({ message: err.message, code: err.code })
-        return
-      }
-
-      const dbErr = extractDbConstraintViolation(err)
-      if (dbErr && isKnownInventoryConflict(dbErr.constraintName)) {
-        res.status(409).json({
-          message: 'La operación no puede completarse por una inconsistencia de stock',
-          code: 'INVENTORY_CONSTRAINT_VIOLATION'
-        })
-        return
-      }
-
-      const msg = err instanceof Error ? err.message : 'Error interno del servidor'
-      if (msg.startsWith('HTTP_404: ')) {
-        res.status(404).json({ message: msg.replace('HTTP_404: ', '') })
-      } else if (msg.startsWith('HTTP_409: ')) {
-        res.status(409).json({ message: msg.replace('HTTP_409: ', '') })
-      } else if (msg.startsWith('HTTP_400: ')) {
-        res.status(400).json({ message: msg.replace('HTTP_400: ', '') })
-      } else {
-        res.status(500).json({ message: 'Error interno del servidor' })
-      }
-    }
-  }
-)
-
-// ─── PUT /api/ordenes/:id/rechazar — solo encargado, requiere motivo ──────────
-
-router.put(
-  '/:id/rechazar',
-  authenticate,
-  requireRole('encargado'),
-  async (req: Request, res: Response): Promise<void> => {
-    const id = req.params['id'] as string
-
-    const result = rechazarSchema.safeParse(req.body)
-    if (!result.success) {
-      res.status(400).json({ message: 'El motivo de rechazo es obligatorio (mínimo 5 caracteres)' })
-      return
-    }
-
-    try {
-      const orden = await prisma.ordenProduccion.findUnique({ where: { id } })
-      if (!orden) {
-        res.status(404).json({ message: 'Orden no encontrada' })
-        return
-      }
-      if (orden.estado !== 'solicitada' && orden.estado !== 'aprobada') {
-        res.status(400).json({ message: 'No se puede rechazar una orden ya ejecutada' })
-        return
-      }
-
-      const updated = await prisma.ordenProduccion.update({
-        where: { id },
-        data: {
-          estado: 'rechazada',
-          motivoRechazo: result.data.motivoRechazo,
-          aprobadoPor: req.depositoUser!.id,
-        },
-        include: {
-          solicitante: { select: { id: true, name: true, role: true } },
-          aprobador: { select: { id: true, name: true } },
-        },
-      })
+      if (!updated) throw new Error('HTTP_404: Orden no encontrada')
 
       sseManager.broadcastToUser(
         {
@@ -660,8 +429,11 @@ router.put(
       })
 
       res.json(updated)
-    } catch {
-      res.status(500).json({ message: 'Error interno del servidor' })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      if (message.startsWith('HTTP_404: ')) res.status(404).json({ message: message.slice(10) })
+      else if (message.startsWith('HTTP_409: ')) res.status(409).json({ message: message.slice(10) })
+      else res.status(500).json({ message: 'Error interno del servidor' })
     }
   }
 )
@@ -671,7 +443,7 @@ router.put(
 router.put(
   '/:id/completar',
   authenticate,
-  requireRole('encargado'),
+  requirePermission('deposito', 'ordenes.complete'),
   async (req: Request, res: Response): Promise<void> => {
     const id = req.params['id'] as string
 

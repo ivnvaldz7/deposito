@@ -5,7 +5,10 @@ import Fuse from 'fuse.js'
 import { useAuthStore } from '@/stores/auth-store'
 import { toast } from '../lib/toast'
 import { PageHeader } from '../components/layout/PageHeader'
-import { useMetricas, useProductosCatalogo } from '../queries'
+import { useMetricas } from '../queries'
+import { useProductos } from '../queries/use-productos'
+import type { Producto } from '../queries/use-productos'
+import type { Mercado } from '../components/inventory-shared/mercados'
 import type { MetricasData } from '../queries/use-metricas'
 
 // ─── Date Icon Button ───────────────────────────────────────────────────────
@@ -13,7 +16,7 @@ import type { MetricasData } from '../queries/use-metricas'
 function DateIconButton({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div className="w-[48px]">
-      <label className="font-heading text-xs uppercase tracking-widest text-on-surface-variant block mb-1">
+      <label className="text-xs uppercase tracking-widest text-on-surface-variant block mb-1">
         {label}
       </label>
       <div className="relative">
@@ -30,6 +33,26 @@ function DateIconButton({ label, value, onChange }: { label: string; value: stri
       </div>
     </div>
   )
+}
+
+function formatMercadoOption(mercado: Mercado | null | undefined): string {
+  if (!mercado) return ''
+  switch (mercado.toLowerCase()) {
+    case 'argentina': return 'ARG 🇦🇷'
+    case 'mexico': return 'MEX 🇲🇽'
+    case 'colombia': return 'COL 🇨🇴'
+    case 'ecuador': return 'ECU 🇪🇨'
+    case 'bolivia': return 'BOL 🇧🇴'
+    case 'paraguay': return 'PAR 🇵🇾'
+    case 'venezuela': return 'VEN 🇻🇪'
+    case 'no_exportable': return 'NO EXP'
+    default: return mercado.toUpperCase()
+  }
+}
+
+function getProductLabel(p: Producto): string {
+  const mkt = formatMercadoOption(p.mercado)
+  return mkt ? `${p.nombreCompleto} · ${mkt}` : p.nombreCompleto
 }
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
@@ -70,14 +93,14 @@ function MetricCard({
     <div className="bg-surface-container-low rounded p-4 flex flex-col gap-2 border border-white/5">
       <div className="flex items-center gap-2">
         <Icon size={14} strokeWidth={1.5} style={{ color }} />
-        <span className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+        <span className="text-xs uppercase tracking-widest text-on-surface-variant">
           {label}
         </span>
       </div>
       {loading ? (
         <div className="h-7 w-24 bg-surface-container-high rounded animate-pulse" />
       ) : (
-        <p className="font-heading text-2xl font-bold text-on-surface tabular-nums">
+        <p className="text-2xl font-bold text-on-surface tabular-nums">
           {value?.toLocaleString() ?? '—'}
           <span className="font-body text-sm font-normal text-on-surface-variant ml-1">uds</span>
         </p>
@@ -97,7 +120,7 @@ function TopTable({
 }) {
   return (
     <div className="bg-surface-container-low rounded p-4 border border-white/5">
-      <h3 className="font-heading text-xs uppercase tracking-widest text-on-surface-variant mb-3">
+      <h3 className="text-xs uppercase tracking-widest text-on-surface-variant mb-3">
         {title}
       </h3>
       {loading ? (
@@ -114,9 +137,9 @@ function TopTable({
         <table className="w-full">
           <thead>
             <tr className="border-b border-outline-variant/15">
-              <th className="text-left font-heading text-xs text-on-surface-variant pb-2 pr-2">#</th>
-              <th className="text-left font-heading text-xs text-on-surface-variant pb-2">Producto</th>
-              <th className="text-right font-heading text-xs text-on-surface-variant pb-2">Total</th>
+              <th className="text-left text-xs text-on-surface-variant pb-2 pr-2">#</th>
+              <th className="text-left text-xs text-on-surface-variant pb-2">Producto</th>
+              <th className="text-right text-xs text-on-surface-variant pb-2">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -143,23 +166,23 @@ function TopTable({
 function ProductFilter({
   options,
   query,
-  selected,
+  selectedId,
   onQueryChange,
   onSelect,
 }: {
-  options: string[]
+  options: Producto[]
   query: string
-  selected: string
+  selectedId: string
   onQueryChange: (value: string) => void
-  onSelect: (value: string) => void
+  onSelect: (producto: Producto) => void
 }) {
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   const fuse = useMemo(
     () =>
-      new Fuse(options.map((producto) => ({ producto })), {
-        keys: ['producto'],
+      new Fuse(options, {
+        keys: ['nombreCompleto', 'codigo', 'mercado'],
         threshold: 0.35,
       }),
     [options]
@@ -170,8 +193,8 @@ function ProductFilter({
     return fuse
       .search(query.trim())
       .slice(0, 8)
-      .map((result) => result.item.producto)
-  }, [fuse, options, query])
+      .map((result) => result.item)
+  }, [fuse, query])
 
   useEffect(() => {
     if (results.length > 0 && query.trim()) {
@@ -194,7 +217,7 @@ function ProductFilter({
 
   return (
     <div ref={containerRef} className="flex flex-col gap-1 w-[260px]">
-      <label htmlFor="metricas-producto" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+      <label htmlFor="metricas-producto" className="text-xs uppercase tracking-widest text-on-surface-variant">
         Producto
       </label>
       <div className="relative">
@@ -218,23 +241,29 @@ function ProductFilter({
           className="w-full h-[38px] bg-surface-container border border-outline-variant rounded-lg pl-9 pr-9 text-on-surface text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
           autoComplete="off"
         />
-        {selected && query === selected && (
+        {selectedId && options.find((p) => p.id === selectedId) && getProductLabel(options.find((p) => p.id === selectedId)!) === query && (
           <Check size={14} strokeWidth={1.75} className="absolute right-3 top-1/2 -translate-y-1/2 text-success pointer-events-none" />
         )}
         {open && results.length > 0 && (
-          <div className="absolute z-30 left-0 right-0 mt-1 rounded bg-surface-container-highest/95 backdrop-blur-md shadow-lg overflow-hidden border border-outline-variant/15 animate-fade-up origin-top">
+          <div className="absolute z-30 left-0 min-w-full sm:min-w-[420px] w-max max-w-[calc(100vw-2rem)] max-h-[320px] overflow-y-auto mt-1 rounded bg-surface-container-highest/95 backdrop-blur-md shadow-lg border border-outline-variant/15 animate-fade-up origin-top">
             {results.map((producto) => (
               <button
-                key={producto}
+                key={producto.id}
                 type="button"
+                title={getProductLabel(producto)}
                 onMouseDown={(event) => {
                   event.preventDefault()
                   onSelect(producto)
                   setOpen(false)
                 }}
-                className="w-full text-left px-3 py-2.5 font-body text-sm text-on-surface hover:bg-surface-bright transition-colors"
+                className="w-full text-left px-3 py-2.5 font-body text-sm text-on-surface hover:bg-surface-bright transition-colors flex items-center justify-start gap-1.5"
               >
-                {producto}
+                <span className="truncate">{producto.nombreCompleto}</span>
+                {formatMercadoOption(producto.mercado) && (
+                  <span className="shrink-0 text-on-surface-variant font-medium whitespace-nowrap">
+                    · {formatMercadoOption(producto.mercado)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -244,8 +273,12 @@ function ProductFilter({
   )
 }
 
+import { can } from '@/lib/permissions'
+
 export default function MetricasPage() {
   const token = useAuthStore((s) => s.token)
+  const user = useAuthStore((s) => s.user)
+  const canExport = can(user, 'deposito', 'metricas.export.pdf')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -262,7 +295,16 @@ export default function MetricasPage() {
   const { data, isLoading: loading } = useMetricas(
     desde || hasta || categoria || producto ? filters : undefined
   )
-  const { data: productOptions = [] } = useProductosCatalogo()
+  const { data: productOptions = [] } = useProductos({ categoria: categoria || undefined, estado: 'ACTIVO' })
+
+  useEffect(() => {
+    if (producto && productOptions.length > 0) {
+      const selected = productOptions.find((p) => p.id === producto)
+      if (selected && productoQuery === producto) {
+        setProductoQuery(getProductLabel(selected))
+      }
+    }
+  }, [producto, productOptions, productoQuery])
 
   const buildQS = useMemo(() => {
     const params = new URLSearchParams()
@@ -313,11 +355,15 @@ export default function MetricasPage() {
           { label: 'balance', value: loading ? '...' : (data?.balance ?? 0), warning: !loading && (data?.balance ?? 0) < 0 },
           { label: 'movimientos', value: loading ? '...' : (data?.movimientosPeriodo ?? 0) },
         ]}
-        primaryAction={{
-          label: exporting ? 'Exportando…' : 'Exportar PDF',
-          onClick: handleExportPdf,
-          icon: <FileDown size={14} strokeWidth={1.5} />,
-        }}
+        primaryAction={
+          canExport
+            ? {
+                label: exporting ? 'Exportando…' : 'Exportar PDF',
+                onClick: handleExportPdf,
+                icon: <FileDown size={14} strokeWidth={1.5} />,
+              }
+            : undefined
+        }
       >
         <div className="space-y-4">
           <div className="flex items-center gap-2 font-body text-sm text-on-surface-variant">
@@ -330,7 +376,7 @@ export default function MetricasPage() {
             <DateIconButton label="Hasta" value={hasta} onChange={setHasta} />
 
             <div className="flex flex-col gap-1 min-w-[180px]">
-              <label htmlFor="metricas-categoria" className="font-heading text-xs uppercase tracking-widest text-on-surface-variant">
+              <label htmlFor="metricas-categoria" className="text-xs uppercase tracking-widest text-on-surface-variant">
                 Categoría
               </label>
               <select
@@ -350,14 +396,14 @@ export default function MetricasPage() {
             <ProductFilter
               options={productOptions}
               query={productoQuery}
-              selected={producto}
+              selectedId={producto}
               onQueryChange={(value) => {
                 setProductoQuery(value)
                 if (value !== producto) setProducto('')
               }}
-              onSelect={(value) => {
-                setProducto(value)
-                setProductoQuery(value)
+              onSelect={(p) => {
+                setProducto(p.id)
+                setProductoQuery(getProductLabel(p))
               }}
             />
 
@@ -383,7 +429,7 @@ export default function MetricasPage() {
 
       {!loading && data && data.ingresosPorCategoria.length > 0 && (
         <div className="bg-surface-container-low rounded p-4 border border-white/5">
-          <h3 className="font-heading text-xs uppercase tracking-widest text-on-surface-variant mb-3">
+          <h3 className="text-xs uppercase tracking-widest text-on-surface-variant mb-3">
             Ingresos por categoría
           </h3>
           <div className="flex flex-wrap gap-3">
@@ -401,7 +447,7 @@ export default function MetricasPage() {
                 }}
                 className="flex items-center gap-2 bg-surface-container-high rounded px-3 py-2 transition-colors hover:bg-surface-bright"
               >
-                <span className="font-heading text-xs uppercase tracking-wider text-on-surface-variant">
+                <span className="text-xs uppercase tracking-wider text-on-surface-variant">
                   {CATEGORIA_LABELS[cat] ?? cat}
                 </span>
                 <span className="font-body text-sm tabular-nums text-on-surface font-semibold">

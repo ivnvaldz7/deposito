@@ -1,6 +1,6 @@
 import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import UsersPage from '../pages/UsersPage'
@@ -14,6 +14,8 @@ vi.mock('../lib/api', () => ({
     create: vi.fn(),
     updateAccess: vi.fn(),
     updateStatus: vi.fn(),
+    deleteAccess: vi.fn(),
+    resetPassword: vi.fn(),
   },
 }))
 
@@ -160,7 +162,7 @@ describe('UsersPage', () => {
     })
 
     expect(screen.getByText('Depósito · encargado')).toBeInTheDocument()
-    expect(screen.getByText('Ale-Bet · operador')).toBeInTheDocument()
+    expect(screen.getByText('Logística · operador')).toBeInTheDocument()
   })
 
   it('shows loading state initially', () => {
@@ -234,5 +236,186 @@ describe('UsersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Sin accesos')).toBeInTheDocument()
     })
+  })
+
+  it('offers encargado for Ale-Bet in the access panel and hides stale roles (ADMIN-UI-1)', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+
+    renderPage()
+
+    const editButtons = await screen.findAllByRole('button', { name: 'Editar' })
+    await user.click(editButtons[0])
+
+    const aleBetTitle = screen.getByText('Logística')
+    const aleBetSection = aleBetTitle.closest('.rounded-xl.border') as HTMLElement
+    expect(aleBetSection).not.toBeNull()
+
+    const section = aleBetSection
+    expect(
+      within(section).getByRole('option', { name: 'encargado' }),
+    ).toBeInTheDocument()
+    expect(
+      within(section).queryByRole('option', { name: 'operador' }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(section).queryByRole('option', { name: 'supervisor' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('saves changes using the single Guardar cambios button', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+
+    renderPage()
+
+    const editButtons = await screen.findAllByRole('button', { name: 'Editar' })
+    await user.click(editButtons[0])
+
+    // Toggle global status
+    const statusCheckbox = screen.getAllByRole('checkbox')[0] // First checkbox is global status
+    await user.click(statusCheckbox)
+
+    // Save
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    await waitFor(() => {
+      expect(adminApi.updateStatus).toHaveBeenCalledWith('user_001', { activo: false })
+      expect(adminApi.updateAccess).toHaveBeenCalled()
+    })
+  })
+
+  it('allows platform admin to reset password and displays temporary password once', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+    vi.mocked(adminApi.resetPassword).mockResolvedValue({ temporaryPassword: 'new-temp-pwd' })
+
+    renderPage()
+
+    const editButtons = await screen.findAllByRole('button', { name: 'Editar' })
+    await user.click(editButtons[0])
+
+    const resetBtn = screen.getByRole('button', { name: 'Restablecer contraseña' })
+    await user.click(resetBtn)
+
+    // Wait for the confirmation modal
+    const confirmModalTitle = await screen.findByRole('heading', { name: 'Restablecer contraseña' })
+    const confirmModalContainer = confirmModalTitle.closest('.fixed') as HTMLElement
+
+    // Confirm reset
+    await user.click(
+      within(confirmModalContainer).getByRole('button', { name: 'Restablecer' }),
+    )
+
+    await waitFor(() => {
+      expect(adminApi.resetPassword).toHaveBeenCalledWith('user_001')
+      expect(adminApi.resetPassword).toHaveBeenCalledTimes(1)
+    })
+
+    // Wait for generated password modal
+    const generatedModalTitle = await screen.findByRole('heading', { name: 'Contraseña generada' })
+    const generatedModalContainer = generatedModalTitle.closest('.fixed') as HTMLElement
+
+    // Verify temp password is shown
+    expect(within(generatedModalContainer).getByText('new-temp-pwd')).toBeInTheDocument()
+
+    // Click Entendido
+    await user.click(
+      within(generatedModalContainer).getByRole('button', { name: 'Entendido' }),
+    )
+
+    // Verify modal is closed
+    expect(screen.queryByRole('heading', { name: 'Contraseña generada' })).not.toBeInTheDocument()
+    expect(window.localStorage.length).toBe(0)
+  })
+
+  it('shows reset errors without closing the confirmation flow', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+    vi.mocked(adminApi.resetPassword).mockRejectedValue(new Error('No autorizado'))
+
+    renderPage()
+    await user.click((await screen.findAllByRole('button', { name: 'Editar' }))[0])
+    await user.click(screen.getByRole('button', { name: 'Restablecer contraseña' }))
+
+    const confirmModal = (await screen.findByRole('heading', { name: 'Restablecer contraseña' })).closest('.fixed') as HTMLElement
+    await user.click(within(confirmModal).getByRole('button', { name: 'Restablecer' }))
+
+    expect(await screen.findByText('No autorizado')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Restablecer contraseña' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Contraseña generada' })).not.toBeInTheDocument()
+  })
+
+  it('removes an app access through the panel and refetches the list', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue(mockUsers)
+
+    renderPage()
+
+    const editButtons = await screen.findAllByRole('button', { name: 'Editar' })
+    await user.click(editButtons[0])
+
+    const depositoTitle = screen.getByText('Depósito')
+    const depositoSection = depositoTitle.closest('.rounded-xl.border') as HTMLElement
+    await user.click(
+      within(depositoSection).getByRole('button', { name: /quitar acceso/i }),
+    )
+
+    // Wait for the confirmation modal
+    const modalTitle = await screen.findByText('Quitar acceso a Depósito')
+    const modalContainer = modalTitle.closest('.fixed') as HTMLElement
+
+    // Confirm deletion
+    await user.click(
+      within(modalContainer).getByRole('button', { name: 'Quitar acceso' }),
+    )
+
+    await waitFor(() => {
+      expect(adminApi.deleteAccess).toHaveBeenCalledWith('user_001', 'deposito')
+    })
+    // initial load + refetch after removal
+    expect(adminApi.list).toHaveBeenCalledTimes(2)
+  })
+
+  it('creates a user without sending password and displays temporary password (FASE 1A)', async () => {
+    const user = userEvent.setup()
+    vi.mocked(adminApi.list).mockResolvedValue([])
+    vi.mocked(adminApi.create).mockResolvedValue({ 
+      user: mockUsers[0], 
+      temporaryPassword: 'temp-created-pwd' 
+    })
+
+    renderPage()
+
+    await user.click(screen.getByRole('button', { name: 'Nuevo usuario' }))
+
+    // Fill form
+    await user.type(screen.getByLabelText('Nombre'), 'Test User')
+    await user.type(screen.getByLabelText('Email'), 'test@deposito.com')
+    
+    // Ensure no password field exists
+    expect(screen.queryByText('Password')).not.toBeInTheDocument()
+
+    // Save
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+
+    // Wait for API call
+    await waitFor(() => {
+      expect(adminApi.create).toHaveBeenCalledWith({
+        nombre: 'Test User',
+        email: 'test@deposito.com',
+        appAccess: []
+      })
+    })
+
+    // Assert success modal with temp password
+    expect(await screen.findByText('Usuario creado correctamente')).toBeInTheDocument()
+    expect(screen.getByText('temp-created-pwd')).toBeInTheDocument()
+
+    // Click Entendido
+    await user.click(screen.getByRole('button', { name: 'Entendido' }))
+
+    // Modal closed
+    expect(screen.queryByText('Usuario creado correctamente')).not.toBeInTheDocument()
   })
 })

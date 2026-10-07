@@ -1,15 +1,22 @@
 import { api } from './api'
+import type { Mercado } from '../components/inventory-shared/mercados'
+import { sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
-export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+export type CategoriaProducto = 'droga' | 'estuche' | 'etiqueta' | 'frasco' | 'material_empaque'
 
 export interface CatalogoProducto {
   id: string
   nombreCompleto: string
   categoria: CategoriaProducto
+  mercadosHabilitados?: Mercado[]
+  mercado?: Mercado | null
+  presentacion?: number | null
+  stockMinimo?: number | null
 }
 
 export async function fetchCatalogoProductos(
   categoria: CategoriaProducto
 ): Promise<CatalogoProducto[]> {
-  return api.get<CatalogoProducto[]>(`/productos?categoria=${categoria}`)
+  const productos = await api.get<CatalogoProducto[]>(`/productos?categoria=${categoria}&activo=true`)
+  return sortProductsByNaturalPresentation(productos, (producto) => producto.nombreCompleto)
 }

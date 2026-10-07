@@ -13,6 +13,10 @@ export function ProtectedRoute({ children, app }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />
   }
 
+  if (user.mustChangePassword) {
+    return <Navigate to="/change-password" replace />
+  }
+
   if (app) {
     const access = user.apps?.[app]
     if (!access?.activo) {

@@ -1,90 +1,56 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { platformDb as prisma } from '@platform/db'
-import type { JwtPayload } from '@platform/core'
-import { requireApp } from '../../middlewares/require-app'
+import { requirePermission } from '../../middlewares/require-permission'
 
 const router = Router()
-
-const clienteSchema = z.object({
-  nombre: z.string().min(2).max(120),
-  contacto: z.string().max(120).optional(),
-  direccion: z.string().max(200).optional(),
+const optionalContact = z.string().trim().min(1).max(120).optional()
+const baseClienteSchema = z.object({
+  nombre: z.string().trim().min(2).max(120),
+  contacto: optionalContact,
+  referencia: optionalContact,
+  direccion: z.string().trim().max(200).optional(),
+  localidad: z.string().trim().max(120).optional(),
+  provincia: z.string().trim().max(120).optional(),
+  cuit: z.string().trim().max(30).optional(),
+  condicionIva: z.string().trim().max(80).optional(),
+  condicionVenta: z.string().trim().max(80).optional(),
+  transportistaPredeterminadoId: z.string().min(1).optional().nullable(),
 })
+const updateClienteSchema = z.object({ nombre: z.string().min(2).max(120).optional(), contacto: z.string().max(120).optional().nullable(), referencia: z.string().max(120).optional().nullable(), direccion: z.string().max(200).optional().nullable(), localidad: z.string().max(120).optional().nullable(), provincia: z.string().max(120).optional().nullable(), cuit: z.string().max(30).optional().nullable(), condicionIva: z.string().max(80).optional().nullable(), condicionVenta: z.string().max(80).optional().nullable(), transportistaPredeterminadoId: z.string().min(1).optional().nullable(), activo: z.boolean().optional(), estado: z.enum(['PENDIENTE_CLIENTE', 'VALIDADO']).optional() })
 
-const updateClienteSchema = z.object({
-  nombre: z.string().min(2).max(120).optional(),
-  contacto: z.string().max(120).optional().nullable(),
-  direccion: z.string().max(200).optional().nullable(),
-  activo: z.boolean().optional(),
-})
+const clienteInclude = { transportistaPredeterminado: { select: { id: true, nombre: true, direccion: true } } } as const
 
-router.get('/', requireApp('ale-bet'), async (_req, res) => {
-  const clientes = await prisma.cliente.findMany({
-    where: { activo: true },
-    orderBy: { nombre: 'asc' },
-  })
+async function validateDefaultTransportista(id: string | null | undefined): Promise<boolean> {
+  if (!id) return true
+  return Boolean(await prisma.transportista.findFirst({ where: { id, activo: true }, select: { id: true } }))
+}
 
-  res.json(clientes)
-})
-
-router.post('/', requireApp('ale-bet', ['admin', 'vendedor']), async (req, res) => {
-  const parsed = clienteSchema.safeParse(req.body)
-
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
+router.get('/', requirePermission('ale-bet', 'clientes.read'), async (_req, res) => { res.json(await prisma.cliente.findMany({ where: { activo: true }, orderBy: { nombre: 'asc' }, include: clienteInclude })) })
+router.post('/', requirePermission('ale-bet', 'clientes.create'), async (req, res) => {
+  const parsed = baseClienteSchema.safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
+  if (!await validateDefaultTransportista(parsed.data.transportistaPredeterminadoId)) { res.status(400).json({ error: 'El transportista predeterminado no está disponible' }); return }
+  const role = (req.user?.apps['ale-bet']?.rol)
+  
+  if (role === 'vendedor' && !parsed.data.contacto && !parsed.data.referencia) {
+    res.status(400).json({ error: 'Datos inválidos', details: { formErrors: [], fieldErrors: { contacto: ['Debe informar un contacto o referencia para crear un cliente'] } } })
     return
   }
-
-  const cliente = await prisma.cliente.create({
-    data: parsed.data,
-  })
-
-  res.status(201).json(cliente)
+  
+  const estado = role === 'vendedor' ? 'PENDIENTE_CLIENTE' : 'VALIDADO'
+  res.status(201).json(await prisma.cliente.create({ data: { ...parsed.data, estado } }))
 })
-
-router.put('/:id', requireApp('ale-bet', ['admin']), async (req, res) => {
-  const clienteId = String(req.params.id)
+router.put('/:id', requirePermission('ale-bet', 'clientes.update'), async (req, res) => {
   const parsed = updateClienteSchema.safeParse(req.body)
-
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
-    return
-  }
-
-  const cliente = await prisma.cliente.update({
-    where: { id: clienteId },
-    data: parsed.data,
-  })
-
-  res.json(cliente)
+  if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
+  if (!await validateDefaultTransportista(parsed.data.transportistaPredeterminadoId)) { res.status(400).json({ error: 'El transportista predeterminado no está disponible' }); return }
+  res.json(await prisma.cliente.update({ where: { id: String(req.params.id) }, data: parsed.data }))
 })
-
-const importSchema = z.object({
-  clientes: z.array(z.object({
-    nombre: z.string().min(1).max(120),
-    contacto: z.string().max(120).optional(),
-    direccion: z.string().max(300).optional(),
-  })).min(1).max(500),
+router.post('/import', requirePermission('ale-bet', 'clientes.import'), async (req, res) => {
+  const parsed = z.object({ clientes: z.array(baseClienteSchema).min(1).max(500) }).safeParse(req.body)
+  if (!parsed.success) { res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() }); return }
+  const result = await prisma.cliente.createMany({ data: parsed.data.clientes.map((cliente) => ({ ...cliente, estado: 'VALIDADO' })), skipDuplicates: true })
+  res.status(201).json({ imported: result.count, total: parsed.data.clientes.length })
 })
-
-router.post('/import', requireApp('ale-bet', ['admin']), async (req, res) => {
-  const parsed = importSchema.safeParse(req.body)
-
-  if (!parsed.success) {
-    res.status(400).json({ error: 'Datos inválidos', details: parsed.error.flatten() })
-    return
-  }
-
-  const result = await prisma.cliente.createMany({
-    data: parsed.data.clientes,
-    skipDuplicates: true,
-  })
-
-  res.status(201).json({
-    imported: result.count,
-    total: parsed.data.clientes.length,
-  })
-})
-
 export default router

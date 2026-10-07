@@ -36,11 +36,11 @@ export default function UsersPage() {
   async function handleCreate(payload: {
     nombre: string
     email: string
-    password: string
     appAccess: Array<{ app: AppId; rol: string }>
   }) {
-    await adminApi.create(payload)
+    const res = await adminApi.create(payload)
     await loadUsers()
+    return res.temporaryPassword
   }
 
   async function handleSaveAccess(
@@ -51,9 +51,19 @@ export default function UsersPage() {
     await loadUsers()
   }
 
+  async function handleRemoveAccess(userId: string, app: AppId) {
+    await adminApi.deleteAccess(userId, app)
+    await loadUsers()
+  }
+
   async function handleToggleStatus(userId: string, activo: boolean) {
     await adminApi.updateStatus(userId, { activo })
     await loadUsers()
+  }
+
+  async function handleResetPassword(userId: string) {
+    const res = await adminApi.resetPassword(userId)
+    return res.temporaryPassword
   }
 
   return (
@@ -64,7 +74,7 @@ export default function UsersPage() {
             <p className="font-body text-xs uppercase tracking-[0.2em] text-primary">
               Platform
             </p>
-            <h1 className="mt-2 text-3xl font-bold font-heading text-on-surface">
+            <h1 className="mt-2 text-3xl font-bold text-on-surface">
               Plataforma Admin
             </h1>
             <p className="mt-2 font-body text-sm text-on-surface-variant">
@@ -76,7 +86,7 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={() => setCreating(true)}
-              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary font-heading transition hover:bg-primary-dim scale-hover"
+              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-on-primary transition hover:bg-primary-dim scale-hover"
             >
               Nuevo usuario
             </button>
@@ -108,7 +118,9 @@ export default function UsersPage() {
         user={selectedUser}
         onClose={() => setSelectedUser(null)}
         onSaveAccess={handleSaveAccess}
+        onRemoveAccess={handleRemoveAccess}
         onToggleStatus={handleToggleStatus}
+        onResetPassword={handleResetPassword}
       />
     </div>
   )

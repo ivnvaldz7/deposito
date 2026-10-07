@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useProductFocus } from '../hooks/use-product-focus'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -16,6 +17,7 @@ import { MercadoFilter } from '../components/inventory-shared/mercado-filter'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { MERCADOS, type Mercado } from '../components/inventory-shared/mercados'
 import { StockChip } from '../components/inventory-shared/stock-chip'
+import { getStockStatus } from '../lib/stock-status'
 import {
   Table,
   TableHeader,
@@ -30,9 +32,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '../components/ui/Dialog'
-import { PageHeader } from '../components/layout/PageHeader'
+import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
+import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
 
 import type { Etiqueta } from '../queries/use-etiquetas'
 function sortEtiquetas(list: Etiqueta[]): Etiqueta[] {
@@ -45,13 +47,11 @@ function normalizeProducto(value: string): string {
   return value.trim().replace(/\s+/g, ' ').toUpperCase()
 }
 
-const STOCK_BAJO_THRESHOLD = 50
-
 const agregarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
   mercado: z.enum([
     'argentina', 'colombia', 'mexico', 'ecuador',
-    'bolivia', 'paraguay', 'no_exportable',
+    'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable',
   ] as const),
   cantidad: z
     .string()
@@ -91,7 +91,7 @@ function AgregarEtiquetaModal({
       const etiqueta = await createMutation.mutateAsync({
         articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad),
       })
-      if (etiqueta.cantidad < STOCK_BAJO_THRESHOLD) {
+      if (getStockStatus(etiqueta.cantidad, etiqueta.stockMinimo) === 'bajo') {
         toast.warning(`"${etiqueta.articulo}" quedó con stock bajo (${etiqueta.cantidad}).`)
       } else {
         toast.success(`Etiqueta "${etiqueta.articulo}" agregada.`)
@@ -149,9 +149,7 @@ function AgregarEtiquetaModal({
 
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{createMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-            <DialogClose asChild>
-              <button type="button" className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
-            </DialogClose>
+            <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
           </div>
         </form>
       </DialogContent>
@@ -161,7 +159,7 @@ function AgregarEtiquetaModal({
 
 const editarSchema = z.object({
   articulo: z.string().min(2, 'Mínimo 2 caracteres').max(150),
-  mercado: z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'no_exportable'] as const),
+  mercado: z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable'] as const),
   cantidad: z.string().min(1, 'Requerido').refine((v) => !isNaN(Number(v)) && Number(v) >= 0, 'Debe ser número positivo'),
 })
 
@@ -180,7 +178,7 @@ function EditarEtiquetaModal({ etiqueta, onClose }: { etiqueta: Etiqueta; onClos
     setServerError(null)
     try {
       const updated = await updateMutation.mutateAsync({ id: etiqueta.id, articulo: data.articulo, mercado: data.mercado, cantidad: Number(data.cantidad) })
-      if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+      if (getStockStatus(updated.cantidad, etiqueta.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
       else toast.info(`Etiqueta "${updated.articulo}" actualizada.`)
       onClose()
     } catch (err) { setServerError(err instanceof ApiError ? err.message : 'Error al guardar') }
@@ -215,7 +213,7 @@ function EditarEtiquetaModal({ etiqueta, onClose }: { etiqueta: Etiqueta; onClos
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={updateMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{updateMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-heading font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
+            <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
           </div>
         </form>
       </DialogContent>
@@ -229,21 +227,29 @@ function CantidadCell({ etiqueta }: { etiqueta: Etiqueta }) {
     <InlineNumberEditor
       value={etiqueta.cantidad} label="cantidad"
       onSave={async (nextValue) => {
-        const updated = await updateMutation.mutateAsync({ id: etiqueta.id, cantidad: nextValue })
-        if (updated.cantidad < STOCK_BAJO_THRESHOLD) toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
-        else toast.info(`Stock de "${updated.articulo}" actualizado.`)
+        try {
+          const updated = await updateMutation.mutateAsync({ id: etiqueta.id, cantidad: nextValue })
+          if (getStockStatus(updated.cantidad, etiqueta.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
+          else toast.info(`Stock de "${updated.articulo}" actualizado.`)
+        } catch (err) {
+          toast.error(err instanceof ApiError ? err.message : 'Error al guardar')
+          throw err
+        }
       }}
     />
   )
 }
 
+import { can } from '@/lib/permissions'
+
 export default function EtiquetasPage() {
   const user = useAuthStore((s) => s.user)
-  const isEncargado = user?.apps?.['deposito']?.rol === 'encargado'
-  const [searchParams] = useSearchParams()
+  const canManage = can(user, 'deposito', 'etiquetas.manage')
+  const [searchParams, setSearchParams] = useSearchParams()
   const { data: allEtiquetas = [], isLoading, error } = useEtiquetas()
   const deleteMutation = useDeleteEtiqueta()
   const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos')
+  const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
   const [editingEtiqueta, setEditingEtiqueta] = useState<Etiqueta | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
@@ -257,13 +263,35 @@ export default function EtiquetasPage() {
   useEffect(() => { setMercadoFiltro((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos') }, [searchParams])
 
   const productoFiltro = searchParams.get('producto') ?? ''
+  const productoIdFiltro = searchParams.get('productoId')
+  const hasFocusSignal = Boolean(searchParams.get('focus'))
+  const focus = useProductFocus(allEtiquetas.map((item) => ({ id: item.id, productoId: item.productoId, name: getDisplayName(item) })))
+
+  const handleMercadoChange = useCallback((mercado: Mercado | 'todos') => {
+    setMercadoFiltro(mercado)
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current)
+      if (mercado === 'todos') next.delete('mercado')
+      else next.set('mercado', mercado)
+      return next
+    })
+  }, [setSearchParams])
   const sortedEtiquetas = useMemo(() => sortEtiquetas(allEtiquetas), [allEtiquetas])
   const etiquetas = useMemo(() => {
-    const byMercado = mercadoFiltro === 'todos' ? sortedEtiquetas : sortedEtiquetas.filter((e) => e.mercado === mercadoFiltro)
-    if (!productoFiltro) return byMercado
+    const selected = hasFocusSignal
+      ? sortedEtiquetas.find((item) =>
+          (productoIdFiltro && item.productoId === productoIdFiltro)
+          || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
+      : undefined
+    if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
+    let byMercado = selected || mercadoFiltro === 'todos' ? sortedEtiquetas : sortedEtiquetas.filter((e) => e.mercado === mercadoFiltro)
+    if (stockBajoFiltro) {
+      byMercado = byMercado.filter(e => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo')
+    }
+    if (!productoFiltro || selected) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((e) => normalizeProducto(getDisplayName(e)) === target)
-  }, [sortedEtiquetas, mercadoFiltro, productoFiltro, getDisplayName])
+  }, [sortedEtiquetas, mercadoFiltro, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
 
   async function handleDelete(id: string) {
     try {
@@ -276,38 +304,42 @@ export default function EtiquetasPage() {
   if (isLoading) return <LoadingState />
   if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar las etiquetas'} />
 
-  const stockBajoCount = etiquetas.filter((e) => e.cantidad < STOCK_BAJO_THRESHOLD).length
+  const stockBajoCount = etiquetas.filter((e) => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo').length
   const countsByMercado = MERCADOS.reduce<Record<Mercado, number>>((acc, m) => { acc[m.value] = allEtiquetas.filter((e) => e.mercado === m.value).length; return acc }, {} as Record<Mercado, number>)
 
   return (
     <div className="space-y-5">
-      <PageHeader title="ETIQUETAS" stats={[
+      <InventoryPageHeader title="Etiquetas" description="Inventario por mercado y alertas de stock." stats={[
         { label: 'artículos', value: etiquetas.length },
-        { label: 'mercados', value: MERCADOS.filter((m) => countsByMercado[m.value] > 0).length },
-        { label: 'stock bajo', value: stockBajoCount, warning: stockBajoCount > 0 },
-      ]} primaryAction={isEncargado ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
-        <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={setMercadoFiltro} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
-      </PageHeader>
-      {isEncargado && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
+        { 
+          label: stockBajoFiltro ? 'stock bajo (activo)' : 'stock bajo', 
+          value: stockBajoCount, 
+          warning: stockBajoCount > 0 || stockBajoFiltro,
+          onClick: () => setStockBajoFiltro((prev) => !prev)
+        },
+      ]} primaryAction={canManage ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
+        <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={handleMercadoChange} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
+      </InventoryPageHeader>
+      {canManage && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
       {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onClose={() => setEditingEtiqueta(null)} />}
       {etiquetas.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       : (
         <>
-          <div className="hidden md:block bg-surface-container-low rounded overflow-hidden">
+          <InventoryDataSurface label="Inventario de etiquetas"><div className="hidden md:block">
             <Table>
-              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-36">Mercado</TableHead><TableHead className="w-32">Cantidad</TableHead><TableHead className="w-28">Estado</TableHead>{isEncargado && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-36">Mercado</TableHead><TableHead className="w-32">Cantidad</TableHead><TableHead className="w-28">Estado</TableHead>{canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
               <TableBody>
                 {etiquetas.map((e) => (
-                  <TableRow key={e.id} className={productoFiltro ? 'bg-primary/5' : undefined}>
+                  <TableRow key={e.id} {...focus.targetProps(e.id)} className={focus.isFocused(e.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(e)}</TableCell>
                     <TableCell><MercadoChip mercado={e.mercado} /></TableCell>
-                    <TableCell>{isEncargado ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
-                    <TableCell><StockChip cantidad={e.cantidad} threshold={STOCK_BAJO_THRESHOLD} /></TableCell>
-                    {isEncargado && (
+                    <TableCell>{canManage ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
+                    <TableCell><StockChip cantidad={e.cantidad} stockMinimo={e.stockMinimo} /></TableCell>
+                    {canManage && (
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <button type="button" onClick={() => setEditingEtiqueta(e)} className="text-on-surface-variant hover:text-on-surface transition-colors" title="Editar"><Pencil size={14} strokeWidth={1.5} /></button>
-                          <button type="button" onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40" title="Eliminar"><Trash2 size={14} strokeWidth={1.5} /></button>
+                          <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                          <RowActionButton destructive label={`Eliminar ${e.articulo}`} onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                         </div>
                       </TableCell>
                     )}
@@ -315,22 +347,22 @@ export default function EtiquetasPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </div></InventoryDataSurface>
           <div className="md:hidden space-y-2">
             {etiquetas.map((e) => (
-              <div key={e.id} className={`bg-surface-container-low rounded px-4 py-3 flex items-center justify-between gap-3 ${productoFiltro ? 'ring-1 ring-primary/30' : ''}`}>
+              <div key={e.id} {...focus.targetProps(e.id)} className={`bg-surface-container-low focus:outline-none rounded px-4 py-3 flex items-center justify-between gap-3 ${focus.isFocused(e.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}>
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(e)}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <MercadoChip mercado={e.mercado} /><span className="font-body text-on-surface-variant text-xs tabular-nums">{e.cantidad} uds</span>
-                    <StockChip cantidad={e.cantidad} threshold={STOCK_BAJO_THRESHOLD} />
+                    <StockChip cantidad={e.cantidad} stockMinimo={e.stockMinimo} />
                   </div>
                 </div>
-                {isEncargado && (
+                {canManage && (
                   <div className="flex items-center gap-3 shrink-0">
                     <CantidadCell etiqueta={e} />
-                    <button type="button" onClick={() => setEditingEtiqueta(e)} className="text-on-surface-variant hover:text-on-surface transition-colors"><Pencil size={14} strokeWidth={1.5} /></button>
-                    <button type="button" onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-40"><Trash2 size={14} strokeWidth={1.5} /></button>
+                    <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />
+                    <RowActionButton destructive label={`Eliminar ${e.articulo}`} onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                   </div>
                 )}
               </div>
