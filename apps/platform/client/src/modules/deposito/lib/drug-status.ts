@@ -14,6 +14,15 @@ export interface DrugLotDates {
   lote?: string | null
 }
 
+function utcCalendarDay(value: Date): number {
+  return Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate())
+}
+
+function storedCalendarDay(value: string): number | null {
+  const parsed = new Date(value)
+  return Number.isNaN(parsed.getTime()) ? null : utcCalendarDay(parsed)
+}
+
 export function getDrugLotStatus(dates: DrugLotDates, todayDate: Date = new Date()): DrugStatus {
   if (!dates.lote) {
     return 'sin_informacion'
@@ -21,9 +30,8 @@ export function getDrugLotStatus(dates: DrugLotDates, todayDate: Date = new Date
 
   // Priority 1: Vencido
   if (dates.vencimiento) {
-    const vencimiento = new Date(dates.vencimiento)
-    vencimiento.setHours(23, 59, 59, 999)
-    if (vencimiento.getTime() < todayDate.getTime()) {
+    const vencimiento = storedCalendarDay(dates.vencimiento)
+    if (vencimiento !== null && vencimiento < utcCalendarDay(todayDate)) {
       return 'vencido'
     }
   }
@@ -33,9 +41,9 @@ export function getDrugLotStatus(dates: DrugLotDates, todayDate: Date = new Date
     return 'sin_informacion'
   }
 
-  const reanalisis = new Date(dates.reanalisis)
-  reanalisis.setHours(23, 59, 59, 999)
-  const daysToReanalisis = Math.ceil((reanalisis.getTime() - todayDate.getTime()) / (1000 * 60 * 60 * 24))
+  const reanalisis = storedCalendarDay(dates.reanalisis)
+  if (reanalisis === null) return 'sin_informacion'
+  const daysToReanalisis = Math.round((reanalisis - utcCalendarDay(todayDate)) / (1000 * 60 * 60 * 24))
 
   if (daysToReanalisis < 0) {
     return 'reanalisis_requerido'

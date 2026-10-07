@@ -39,6 +39,14 @@ describe('getDrugLotStatus', () => {
     }, today)).toBe('reanalisis_proximo')
   })
 
+  it('uses calendar days instead of the runner timezone or current clock time', () => {
+    expect(getDrugLotStatus({
+      lote: 'L1',
+      vencimiento: '2028-08-17',
+      reanalisis: '2026-09-17',
+    }, new Date('2026-08-18T23:59:59Z'))).toBe('reanalisis_proximo')
+  })
+
   it('returns "reanalizar_pronto" if reanalisis is between 31 and 90 days', () => {
     expect(getDrugLotStatus({
       lote: 'L1',
