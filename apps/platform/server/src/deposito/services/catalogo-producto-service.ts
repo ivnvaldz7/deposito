@@ -11,16 +11,34 @@ import {
 const MARKET_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche']
 const PRESENTATION_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche', 'frasco']
 const CODE_REQUIRED_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche']
+const ETIQUETA_UNITS = ['ML', 'L', 'CM3'] as const
+
+function etiquetaUnitLabel(unidad: string): string {
+  return unidad === 'CM3' ? 'cm³' : unidad
+}
+
+function normalizeEtiquetaUnit(unidad: string | null | undefined): string | null {
+  if (!unidad) return null
+  const normalized = unidad.trim().toUpperCase().replace('CM³', 'CM3')
+  return ETIQUETA_UNITS.includes(normalized as typeof ETIQUETA_UNITS[number]) ? normalized : null
+}
+
+function etiquetaUnitFromInput(input: CatalogoCreateInput): string {
+  const declared = normalizeEtiquetaUnit(input.unidad)
+  if (declared) return declared
+  const match = input.nombreCompleto.match(/\b\d+(?:[.,]\d+)?\s*(CM3\b|CM³|ML\b|L\b)/i)
+  return normalizeEtiquetaUnit(match?.[1]) ?? 'ML'
+}
 
 function canonicalManualProductName(input: CatalogoCreateInput): string {
   const nombreBase = input.nombreBase.trim().replace(/\s+/g, ' ').toUpperCase()
   const nombreCompleto = input.nombreCompleto.trim().replace(/\s+/g, ' ').toUpperCase()
-  const hasVolume = /\b\d+(?:[.,]\d+)?\s*(?:ML|L)\b/i.test(nombreCompleto)
+  const hasVolume = /\b\d+(?:[.,]\d+)?\s*(?:ML\b|L\b|CM3\b|CM³)/i.test(nombreCompleto)
   const requiresVolumeInName = input.categoria === 'etiqueta' || input.categoria === 'estuche'
   if (requiresVolumeInName && input.presentacion && nombreCompleto === nombreBase && !hasVolume) {
-    return `${nombreBase} ${input.presentacion} ML`
+    return `${nombreBase} ${input.presentacion} ${input.categoria === 'etiqueta' ? etiquetaUnitLabel(etiquetaUnitFromInput(input)) : 'ML'}`
   }
-  return nombreCompleto
+  return nombreCompleto.replace(/\bCM3\b/gi, 'cm³').replace(/CM³/gi, 'cm³')
 }
 
 type TransactionClient = Prisma.TransactionClient
@@ -30,6 +48,7 @@ export interface CatalogoValidationInput {
   codigo?: string | null
   mercadosHabilitados?: Mercado[]
   presentacion?: number | null
+  unidad?: string | null
   estado?: EstadoProductoCatalogo | null
   stockMinimo?: number | null
 }
@@ -100,6 +119,16 @@ export function validateCatalogoInput(input: CatalogoValidationInput): void {
   if (usesMarkets && mercados.length === 0) throw new Error('La categoría requiere al menos un mercado habilitado')
   if (!usesMarkets && mercados.length > 0) throw new Error('La categoría no utiliza mercados habilitados')
 
+  if (input.categoria === 'etiqueta') {
+    const unidad = normalizeEtiquetaUnit(input.unidad)
+    if (input.unidad !== undefined && input.unidad !== null && !unidad) {
+      throw new Error('La unidad de etiqueta debe ser ml, L o cm³')
+    }
+    if (unidad === 'CM3' && (mercados.length !== 1 || mercados[0] !== 'VENEZUELA')) {
+      throw new Error('cm³ es exclusivo para etiquetas destinadas a Venezuela')
+    }
+  }
+
   const canDeferPresentation = input.estado === 'PENDIENTE_REVISION' && input.categoria === 'frasco'
 
   if (requiresPresentation && !canDeferPresentation && (!Number.isInteger(input.presentacion) || (input.presentacion ?? 0) <= 0)) {
@@ -135,10 +164,23 @@ export function validateCatalogoUpdate(
     actual.codigo === null &&
     codigoNormalizado !== undefined &&
     codigoNormalizado !== null
+  const mercadosPropuestos = input.mercadosHabilitados
+  const mercadosSeAmplianEnEtiquetaActiva =
+    estado === 'ACTIVO' &&
+    actual.categoria === 'etiqueta' &&
+    mercadosPropuestos !== undefined &&
+    actual.mercadosHabilitados.every((mercado) => mercadosPropuestos.includes(mercado))
+  // Corrección puntual de catálogo: un insumo cargado por error como MP puede
+  // convertirse en material de empaque sin crear un duplicado. El traslado del
+  // saldo entre inventarios se hace de forma atómica en update().
+  const corrigeMpComoMaterialEmpaque =
+    estado === 'ACTIVO' &&
+    actual.categoria === 'droga' &&
+    input.categoria === 'material_empaque'
   const cambiaIdentidad =
     (input.codigo !== undefined && codigoNormalizado !== actual.codigo && !asignaCodigoHistoricoInactivo) ||
-    (input.categoria !== undefined && input.categoria !== actual.categoria) ||
-    (input.mercadosHabilitados !== undefined && JSON.stringify(input.mercadosHabilitados) !== JSON.stringify(actual.mercadosHabilitados))
+    (input.categoria !== undefined && input.categoria !== actual.categoria && !corrigeMpComoMaterialEmpaque) ||
+    (mercadosPropuestos !== undefined && JSON.stringify(mercadosPropuestos) !== JSON.stringify(actual.mercadosHabilitados) && !mercadosSeAmplianEnEtiquetaActiva)
   if (cambiaIdentidad) throw new CatalogoError('CONFLICT', 'Código, categoría y mercados están bloqueados después de activar')
   if (input.volumen !== undefined || input.unidad !== undefined || input.variante !== undefined) {
     throw new CatalogoError('CONFLICT', 'Solo el nombre y la presentación se pueden editar después de activar')
@@ -168,7 +210,7 @@ function audit(
 
 async function seedInitialInventory(
   tx: TransactionClient,
-  producto: { id: string; categoria: Categoria; nombreCompleto: string; mercadosHabilitados: Mercado[] },
+  producto: { id: string; categoria: Categoria; nombreCompleto: string; mercadosHabilitados: Mercado[]; presentacion: number | null },
 ) {
   if (producto.categoria === 'etiqueta') {
     await tx.inventarioEtiqueta.createMany({
@@ -179,6 +221,18 @@ async function seedInitialInventory(
   if (producto.categoria === 'estuche') {
     await tx.inventarioEstuche.createMany({
       data: producto.mercadosHabilitados.map((mercado) => ({ productoId: producto.id, articulo: producto.nombreCompleto, mercado, cantidad: 0 })),
+      skipDuplicates: true,
+    })
+  }
+  if (producto.categoria === 'frasco') {
+    await tx.inventarioFrasco.createMany({
+      data: [{
+        productoId: producto.id,
+        articulo: producto.nombreCompleto,
+        unidadesPorCaja: producto.presentacion ?? 1,
+        cantidadCajas: 0,
+        total: 0,
+      }],
       skipDuplicates: true,
     })
   }
@@ -194,7 +248,12 @@ export class CatalogoProductoService {
   constructor(private readonly db: PrismaClient) {}
 
   async createManual(input: CatalogoCreateInput, usuarioId: string) {
-    const canonicalInput = { ...input, nombreCompleto: canonicalManualProductName(input) }
+    validateCatalogoInput(input)
+    const canonicalInput = {
+      ...input,
+      unidad: input.categoria === 'etiqueta' ? etiquetaUnitFromInput(input) : input.unidad ?? null,
+      nombreCompleto: canonicalManualProductName(input),
+    }
     validateCatalogoInput(canonicalInput)
     const codigo = normalizeCodigo(canonicalInput.codigo)
     validateCodigoPrefix(canonicalInput.categoria, codigo)
@@ -286,8 +345,12 @@ export class CatalogoProductoService {
         const mercados = input.mercadosHabilitados ?? producto.mercadosHabilitados
         const codigo = input.codigo === undefined ? producto.codigo : normalizeCodigo(input.codigo)
         const presentacion = input.presentacion === undefined ? producto.presentacion : input.presentacion
+        const corrigeMpComoMaterialEmpaque =
+          producto.estado === 'ACTIVO' &&
+          producto.categoria === 'droga' &&
+          input.categoria === 'material_empaque'
         validateCatalogoUpdate(producto.estado, producto, input)
-        validateCatalogoInput({ categoria, mercadosHabilitados: mercados, codigo, presentacion, estado: producto.estado })
+        validateCatalogoInput({ categoria, mercadosHabilitados: mercados, codigo, presentacion, ...(input.unidad !== undefined ? { unidad: input.unidad } : {}), estado: producto.estado })
         // For etiqueta/estuche the RESULTING code (input.codigo if provided, else the
         // existing one) must remain valid and prefix-correct. This closes the gap where
         // a PATCH could clear or omit the code of a pending etiqueta/estuche.
@@ -303,11 +366,27 @@ export class CatalogoProductoService {
             ? { mercado: categoria === 'estuche' ? mercados[0] : null }
             : {}),
           ...(input.volumen !== undefined ? { volumen: input.volumen } : {}),
-          ...(input.unidad !== undefined ? { unidad: input.unidad } : {}),
+          ...(input.unidad !== undefined ? { unidad: categoria === 'etiqueta' ? normalizeEtiquetaUnit(input.unidad) : input.unidad } : {}),
           ...(input.variante !== undefined ? { variante: input.variante } : {}),
           ...(input.stockMinimo !== undefined ? { stockMinimo: input.stockMinimo } : {}),
         }
-      const actualizado = await tx.depositoProducto.update({ where: { id: productoId }, data })
+        if (corrigeMpComoMaterialEmpaque) {
+          const lotes = await tx.inventarioDroga.findMany({ where: { productoId } })
+          const cantidad = lotes.reduce((total, lote) => total + lote.cantidad, 0)
+          if (!Number.isInteger(cantidad)) {
+            throw new CatalogoError('CONFLICT', 'No se puede convertir una MP con saldo fraccionado a material de empaque')
+          }
+          await tx.inventarioMaterialEmpaque.upsert({
+            where: { productoId },
+            update: { articulo: producto.nombreCompleto, cantidad: { increment: cantidad } },
+            create: { productoId, articulo: producto.nombreCompleto, cantidad },
+          })
+          await tx.inventarioDroga.deleteMany({ where: { productoId } })
+        }
+        const actualizado = await tx.depositoProducto.update({ where: { id: productoId }, data })
+        // Si al editar se habilita un mercado nuevo, su fila de inventario debe
+        // existir antes de que el operador pueda cargarle cantidad.
+        if (actualizado.activo) await seedInitialInventory(tx, actualizado)
         const tipo = input.codigo !== undefined
           ? 'CODIGO_ACTUALIZADO'
           : input.nombreCompleto !== undefined || input.nombreBase !== undefined

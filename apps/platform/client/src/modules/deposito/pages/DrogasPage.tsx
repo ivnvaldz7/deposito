@@ -9,7 +9,7 @@ import { useDrogas, type DrogaRecord } from '../queries/use-drogas'
 import { fetchCatalogoProductos } from '../lib/catalogo-productos'
 import { EmptyState, ErrorState, LoadingState } from '../components/inventory-shared/inventory-states'
 import { useProductFocus } from '../hooks/use-product-focus'
-import { DrugStatus, getDrugLotStatus, getDrugStatusDescription } from '../lib/drug-status'
+import { type DrugExpiryStatus, getDrugExpiryStatus, getDrugExpiryStatusDescription } from '../lib/drug-status'
 import { StockChip } from '../components/inventory-shared/stock-chip'
 import { compareProductsByNaturalPresentation } from '@/lib/natural-product-order'
 
@@ -51,25 +51,20 @@ function normalizeProducto(value: string): string {
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 
-function DrugStatusBadge({ status }: { status: DrugStatus }) {
+function ExpiryStatusBadge({ status }: { status: DrugExpiryStatus }) {
   const styles = {
-    optimo: 'bg-primary-container/10 text-primary',
-    en_seguimiento: 'bg-primary-container/5 text-primary/70',
-    reanalizar_pronto: 'bg-yellow-500/10 text-yellow-600',
-    reanalisis_proximo: 'bg-yellow-500/20 text-yellow-700',
-    reanalisis_requerido: 'bg-amber-500/10 text-amber-600',
+    vigente: 'bg-primary-container/10 text-primary',
+    proximo_a_vencer: 'bg-yellow-500/10 text-yellow-600',
+    vence_hoy: 'bg-amber-500/10 text-amber-600',
     vencido: 'bg-error-container/10 text-error',
-    sin_informacion: 'bg-surface-variant/50 text-on-surface-variant'
+    sin_vencimiento: 'bg-surface-variant/50 text-on-surface-variant',
   }
-  
   const labels = {
-    optimo: 'Óptimo',
-    en_seguimiento: 'En seguimiento',
-    reanalizar_pronto: 'Reanalizar pronto',
-    reanalisis_proximo: 'Reanálisis próximo',
-    reanalisis_requerido: 'Reanálisis requerido',
-    vencido: 'Vencido',
-    sin_informacion: 'Sin información',
+    vigente: 'Vencimiento: vigente',
+    proximo_a_vencer: 'Vencimiento: próximo',
+    vence_hoy: 'Vencimiento: hoy',
+    vencido: 'Vencimiento: vencido',
+    sin_vencimiento: 'Vencimiento: sin cargar',
   }
 
   return (
@@ -87,16 +82,6 @@ function formatDate(isoDate: string | null | undefined): string {
   return parsed.toLocaleDateString('es-AR', {
     day: '2-digit', month: '2-digit', year: 'numeric'
   })
-}
-
-function getDaysRemaining(isoDate: string | null | undefined): string {
-  if (!isoDate) return '-'
-  const target = new Date(isoDate)
-  target.setHours(23, 59, 59, 999)
-  const diff = Math.ceil((target.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
-  if (diff < 0) return 'Superada'
-  if (diff === 0) return 'Hoy'
-  return `Faltan ${diff} días`
 }
 
 // ─── Drug category icons ─────────────────────────────────────────────────────
@@ -319,7 +304,7 @@ export default function DrogasPage() {
               <div className="col-span-4">Producto</div>
               <div className="col-span-3">Lote</div>
               <div className="col-span-2 text-right">Cantidad</div>
-              <div className="col-span-3 text-center">Estado</div>
+              <div className="col-span-3 text-center">Estados</div>
             </div>
 
             <div className="flex flex-col">
@@ -328,14 +313,7 @@ export default function DrogasPage() {
                   const idx = gi + li
                   const rowId = lote.id ? `lote:${lote.id}` : `droga:${lote.productoId || group.nombre}`
                   const isExpanded = expandedRowId === rowId
-                  // We simulate reanalisis as null because the backend doesn't provide it yet
-                  // but we pass updatedAt as ingreso.
-                  const status = getDrugLotStatus({
-                    lote: lote.lote,
-                    vencimiento: lote.vencimiento,
-                    ingreso: lote.updatedAt,
-                    reanalisis: null,
-                  })
+                  const expiryStatus = getDrugExpiryStatus(lote.vencimiento)
                   
                   return (
                     <div key={rowId} className="flex flex-col border-b border-outline-variant/20 last:border-b-0">
@@ -369,9 +347,9 @@ export default function DrogasPage() {
                           <span>{lote.cantidad}</span>
                         </div>
                         <div className="col-span-3 flex items-center justify-center">
-                          <div className="flex items-center gap-2">
-                            <StockChip cantidad={lote.cantidad} stockMinimo={lote.stockMinimo} />
-                            <DrugStatusBadge status={status} />
+                          <div className="flex flex-wrap items-center justify-center gap-2">
+                            <StockChip cantidad={group.totalCantidad} stockMinimo={lote.stockMinimo} labelPrefix="Stock" />
+                            <ExpiryStatusBadge status={expiryStatus} />
                           </div>
                         </div>
                       </div>
@@ -384,23 +362,23 @@ export default function DrogasPage() {
                               <p className="font-medium tabular-nums">{formatDate(lote.updatedAt)}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Reanálisis</p>
-                              <p className="font-medium tabular-nums">-</p>
-                            </div>
-                            <div>
                               <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Vencimiento</p>
                               <p className="font-medium tabular-nums">{formatDate(lote.vencimiento)}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Próximo control</p>
-                              <p className="font-medium tabular-nums">{status === 'sin_informacion' || status === 'vencido' ? '-' : getDaysRemaining(null)}</p>
+                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Estado de vencimiento</p>
+                              <ExpiryStatusBadge status={expiryStatus} />
+                            </div>
+                            <div>
+                              <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Estado de stock</p>
+                              <StockChip cantidad={group.totalCantidad} stockMinimo={lote.stockMinimo} labelPrefix="Stock" />
                             </div>
                           </div>
                           
                           <div className="mt-4 pt-4 border-t border-white/5 flex items-start gap-2">
-                            <div className="mt-0.5"><DrugStatusBadge status={status} /></div>
+                            <div className="mt-0.5"><ExpiryStatusBadge status={expiryStatus} /></div>
                             <p className="text-on-surface-variant text-sm flex-1 leading-tight pt-0.5">
-                              {getDrugStatusDescription(status)}
+                              {getDrugExpiryStatusDescription(expiryStatus)}
                             </p>
                           </div>
                           <div className="mt-4">
@@ -422,12 +400,7 @@ export default function DrogasPage() {
                 const idx = gi + li
                 const rowId = lote.id ? `lote:${lote.id}` : `droga:${lote.productoId || group.nombre}`
                 const isExpanded = expandedRowId === rowId
-                const status = getDrugLotStatus({
-                  lote: lote.lote,
-                  vencimiento: lote.vencimiento,
-                  ingreso: lote.updatedAt,
-                  reanalisis: null,
-                })
+                const expiryStatus = getDrugExpiryStatus(lote.vencimiento)
 
                 return (
                   <div
@@ -461,9 +434,9 @@ export default function DrogasPage() {
                       <span className="text-sm font-bold text-on-surface tabular-nums shrink-0">
                         {lote.cantidad}
                       </span>
-                      <div className="flex items-center gap-2">
-                        <StockChip cantidad={lote.cantidad} stockMinimo={lote.stockMinimo} />
-                        <DrugStatusBadge status={status} />
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <StockChip cantidad={group.totalCantidad} stockMinimo={lote.stockMinimo} labelPrefix="Stock" />
+                        <ExpiryStatusBadge status={expiryStatus} />
                       </div>
                     </div>
                     
@@ -479,19 +452,19 @@ export default function DrogasPage() {
                             <p className="font-medium tabular-nums">{formatDate(lote.vencimiento)}</p>
                           </div>
                           <div>
-                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Reanálisis</p>
-                            <p className="font-medium tabular-nums">-</p>
+                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Estado de vencimiento</p>
+                            <ExpiryStatusBadge status={expiryStatus} />
                           </div>
                           <div>
-                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Próximo control</p>
-                            <p className="font-medium tabular-nums">-</p>
+                            <p className="text-xs text-on-surface-variant mb-1 uppercase tracking-wider">Estado de stock</p>
+                            <StockChip cantidad={group.totalCantidad} stockMinimo={lote.stockMinimo} labelPrefix="Stock" />
                           </div>
                         </div>
                         
                         <div className="mt-4 pt-4 border-t border-white/5 flex flex-col gap-2">
-                          <div><DrugStatusBadge status={status} /></div>
+                          <div><ExpiryStatusBadge status={expiryStatus} /></div>
                           <p className="text-on-surface-variant text-sm">
-                            {getDrugStatusDescription(status)}
+                            {getDrugExpiryStatusDescription(expiryStatus)}
                           </p>
                         </div>
                         <div className="mt-4">

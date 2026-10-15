@@ -192,9 +192,14 @@ describe('AUTOMATION-01 Slice 1', () => {
     expect(ready.availability).toEqual([expect.objectContaining({ productId: fixture.equino.id, requestedUnits: 12, status: 'DISPONIBLE' })])
 
     const confirmed = await request(app).post(`/api/ale-bet/automation/drafts/${created.body.id}/confirm`).set('Authorization', fixture.auth)
-      .set('Idempotency-Key', crypto.randomUUID()).send({ expectedVersion: selected.body.version }).expect(200)
+      .set('Idempotency-Key', crypto.randomUUID()).send({
+        expectedVersion: selected.body.version,
+        selecciones: [{ itemPedidoId: fixture.equino.id, productoId: fixture.equino.id, loteId: fixture.lote.id, cantidad: 12 }],
+      }).expect(200)
     expect(confirmed.body.pedido.items).toEqual([expect.objectContaining({ productoId: fixture.equino.id, cantidad: 12 })])
-    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.equino.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })).cantidad).toBe(24)
+    expect(confirmed.body.pedido.estado).toBe('DESPACHADO')
+    expect((await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: fixture.equino.id, loteId: fixture.lote.id, ubicacionId: fixture.deposito.id } } })).cantidad).toBe(12)
+    expect(await prisma.movimientoStock.count({ where: { pedidoId: confirmed.body.pedido.id, loteId: fixture.lote.id, tipo: 'SALIDA_PEDIDO' } })).toBe(1)
   })
 
   it('acepta Normal como una selección persistente aunque conserve el producto origen', async () => {

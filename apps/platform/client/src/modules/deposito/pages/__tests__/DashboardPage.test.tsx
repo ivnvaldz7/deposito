@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { renderWithQueryClient as render } from '@/test-utils'
 import { MemoryRouter } from 'react-router-dom'
 import { api } from '../../lib/api'
@@ -25,6 +26,10 @@ vi.mock('../../lib/api', () => ({
 
 vi.mock('@/stores/auth-store', () => ({
   useAuthStore: vi.fn(),
+}))
+
+vi.mock('../../components/layout/Topbar', () => ({
+  Topbar: () => <div data-testid="dashboard-actions">Buscador inteligente</div>,
 }))
 
 describe('DashboardPage (Depósito)', () => {
@@ -71,7 +76,6 @@ describe('DashboardPage (Depósito)', () => {
     expect(screen.getByText('Depósito')).toBeInTheDocument()
     expect(screen.getByText('41')).toBeInTheDocument()
     expect(screen.getByText('1')).toBeInTheDocument()
-    expect(screen.getByText('5')).toBeInTheDocument()
     expect(screen.getAllByText(/Vitamina B12/i).length).toBeGreaterThan(0)
     expect(screen.getByText('Paracetamol')).toBeInTheDocument()
   })
@@ -92,5 +96,46 @@ describe('DashboardPage (Depósito)', () => {
     await waitFor(() => {
       expect(screen.getByText('Alertas de stock bajo')).toBeInTheDocument()
     })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Ver productos con stock bajo' }))
+    const dialog = screen.getByRole('dialog')
+    expect(dialog).toBeInTheDocument()
+    expect(within(dialog).getByText('Paracetamol', { selector: 'p' })).toBeInTheDocument()
+    expect(within(dialog).getAllByText('Droga')).toHaveLength(2)
+    expect(within(dialog).getByText('3 kg')).toBeInTheDocument()
+  })
+
+  it('uses the cm³ notation and gives each movement type a distinct visual treatment', async () => {
+    const stats = createDashboardStats({
+      stockBajoEtiquetas: [
+        { id: 'etiqueta-cm3', articulo: 'AMANTINA 250 CM3', mercado: 'VENEZUELA', cantidad: 0 },
+      ],
+      ultimosMovimientos: [
+        { id: 'ingreso', tipo: 'ingreso_acta' as const, categoria: 'etiqueta', productoNombre: 'AMANTINA 250 CM3', cantidad: 20 },
+        { id: 'egreso', tipo: 'egreso_orden' as const, categoria: 'etiqueta', productoNombre: 'AMANTINA 500 CM3', cantidad: -20 },
+        { id: 'ajuste', tipo: 'ajuste_manual' as const, categoria: 'etiqueta', productoNombre: 'AMANTINA 750 CM3', cantidad: -5 },
+      ],
+    })
+    vi.mocked(api.get).mockResolvedValue(stats)
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getAllByText('AMANTINA 250 cm³').length).toBeGreaterThan(0)
+    })
+    expect(screen.getByRole('columnheader', { name: 'Fecha' })).toBeInTheDocument()
+
+    for (const chip of screen.getAllByTestId('movement-type-ingreso_acta')) {
+      expect(chip).toHaveClass('text-emerald-300')
+    }
+    for (const chip of screen.getAllByTestId('movement-type-egreso_orden')) {
+      expect(chip).toHaveClass('text-rose-300')
+    }
+    for (const chip of screen.getAllByTestId('movement-type-ajuste_manual')) {
+      expect(chip).toHaveClass('text-violet-300')
+    }
   })
 })

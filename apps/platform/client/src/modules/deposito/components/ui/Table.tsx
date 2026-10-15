@@ -27,7 +27,7 @@ export function TableBody({ className, children, ...props }: HTMLAttributes<HTML
 export function TableRow({ className, children, ...props }: HTMLAttributes<HTMLTableRowElement>) {
   return (
     <tr
-      className={`border-b border-outline-variant/10 transition-colors hover:bg-surface-bright/20 ${className ?? ''}`}
+      className={`border-b border-outline-variant/10 motion-table-row hover:bg-surface-bright/20 ${className ?? ''}`}
       {...props}
     >
       {children}

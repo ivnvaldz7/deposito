@@ -30,6 +30,10 @@ function porActualizadoDesc(a: { updatedAt: string }, b: { updatedAt: string }):
   return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
 }
 
+function porCreadoDesc(a: { createdAt: string }, b: { createdAt: string }): number {
+  return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+}
+
 function rankBandeja(pedido: Pedido, rol: string, userId: string): number {
   const propioEnArmado = pedido.estado === 'EN_ARMADO' && (roleHasPermission('ale-bet', rol, 'pedidos.take') || esArmadorAsignado(pedido, userId))
   if (propioEnArmado) return 0.5
@@ -60,6 +64,9 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
   let senalOperativa = ''
   if (cancelacionSolicitada) senalOperativa = 'Cancelación solicitada'
   else if (clientePendiente) senalOperativa = 'Pendiente de validación'
+  else if (isAuto && pedido.estado === 'CANCELADO') senalOperativa = 'Cancelado'
+  else if (isAuto && pedido.estado === 'DESPACHADO') senalOperativa = 'Stock descontado'
+  else if (isAuto && pedido.estado === 'PENDIENTE_PARCIAL') senalOperativa = 'Entrega parcial'
   else if (remitoVigente) senalOperativa = stockDescontado ? 'Stock descontado' : 'Pendiente a descuento'
   else if (isAuto) senalOperativa = 'Pendiente de remito'
   else if (pedido.estado === 'APROBADO') senalOperativa = 'Pendiente de armado'
@@ -82,7 +89,9 @@ function PedidoCard({ pedido, onAbrir }: PedidoCardProps) {
             {pedido.cliente.nombre}
           </p>
           {isAuto ? (
-            <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">Automation · Confirmado</p>
+            <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">
+              Automation · {pedido.estado === 'APROBADO' ? 'Confirmado' : meta.label}
+            </p>
           ) : (
             <p className="mt-1 truncate font-body text-[13px] font-medium text-on-surface-variant">
               {pedido.vendedorNombre ? `Vendedor ${pedido.vendedorNombre}` : 'Vendedor sin asignar'}
@@ -131,7 +140,6 @@ export default function PedidosPage() {
   const rol = user?.apps?.['ale-bet']?.rol ?? ''
   const userId = user?.sub ?? ''
   const esFacturacion = rol === 'facturacion'
-  const esOperativo = can(user, 'ale-bet', 'pedidos.prepare') || can(user, 'ale-bet', 'pedidos.take')
   const puedeCrearPedidos = can(user, 'ale-bet', 'pedidos.create') && !esFacturacion
 
   const armadorFiltros = [
@@ -161,14 +169,16 @@ export default function PedidosPage() {
 
   const ordenados = useMemo(() => {
     const lista = [...filtrados]
-    if (!esOperativo) return lista.sort(porActualizadoDesc)
+    // La bandeja general e Historial deben mostrar primero lo más reciente.
+    // Solo Armador necesita la prioridad del trabajo pendiente.
+    if (rol !== 'armador') return lista.sort(porCreadoDesc)
     return lista.sort((a, b) => {
       const ra = rankBandeja(a, rol, userId)
       const rb = rankBandeja(b, rol, userId)
       if (ra !== rb) return ra - rb
       return porActualizadoDesc(a, b)
     })
-  }, [filtrados, esOperativo, rol, userId])
+  }, [filtrados, rol, userId])
 
   const header = (
     <div className="flex items-center justify-between gap-3">

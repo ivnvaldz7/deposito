@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getDrugLotStatus, getDrugStatusDescription } from '../drug-status'
+import { getDrugExpiryStatus, getDrugLotStatus, getDrugStatusDescription } from '../drug-status'
 
 describe('getDrugLotStatus', () => {
   const today = new Date('2026-08-18T12:00:00Z')
@@ -69,5 +69,17 @@ describe('getDrugLotStatus', () => {
       vencimiento: '2028-08-17',
       reanalisis: '2027-02-15', // > 180 days
     }, today)).toBe('optimo')
+  })
+})
+
+describe('getDrugExpiryStatus', () => {
+  const today = new Date('2026-08-18T12:00:00Z')
+
+  it('calcula vencimiento sin depender de reanálisis', () => {
+    expect(getDrugExpiryStatus('2028-07-30', today)).toBe('vigente')
+    expect(getDrugExpiryStatus('2026-09-01', today)).toBe('proximo_a_vencer')
+    expect(getDrugExpiryStatus('2026-08-18', today)).toBe('vence_hoy')
+    expect(getDrugExpiryStatus('2026-08-17', today)).toBe('vencido')
+    expect(getDrugExpiryStatus(null, today)).toBe('sin_vencimiento')
   })
 })

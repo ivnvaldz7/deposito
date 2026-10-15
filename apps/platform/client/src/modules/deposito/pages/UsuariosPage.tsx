@@ -2,6 +2,7 @@ import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { useUsuarios, type DepositoUser } from '../queries/use-usuarios'
 import { PageHeader } from '../components/layout/PageHeader'
+import { LoadingState } from '../components/inventory-shared/inventory-states'
 
 const ROLE_LABELS: Record<string, string> = {
   encargado: 'Encargado',
@@ -29,11 +30,7 @@ export default function UsuariosPage() {
   const { data: usuarios = [], isLoading, error } = useUsuarios()
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
-      </div>
-    )
+    return <LoadingState />
   }
 
   if (error) {

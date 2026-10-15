@@ -57,11 +57,15 @@ export type { DepositoUser } from './use-usuarios'
 export {
   useOrdenes,
   useCreateOrden,
+  useAgregarProductosOrden,
+  useActualizarCantidadOrden,
+  useQuitarOrden,
+  useOrdenLotesDisponibles,
   useAprobarOrden,
   useRechazarOrden,
   ordenesKeys,
 } from './use-ordenes'
-export type { OrdenProduccion } from './use-ordenes'
+export type { OrdenProduccion, LoteDisponibleOrden } from './use-ordenes'
 
 export {
   usePendientes,

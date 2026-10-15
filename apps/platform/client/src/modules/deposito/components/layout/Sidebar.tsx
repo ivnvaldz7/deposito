@@ -20,7 +20,8 @@ const navItems: NavItemDef[] = [
   { path: '/deposito/drogas',      label: 'Drogas',       icon: FlaskConical },
   { path: '/deposito/materiales-empaque', label: 'Material de empaque', icon: Package },
   { path: '/deposito/movimientos', label: 'Movimientos',  icon: ArrowLeftRight },
-  { path: '/deposito/pendientes', label: 'Pendientes', icon: ArrowLeftRight },
+  { path: '/deposito/pendientes', label: 'ZEROX', icon: ArrowLeftRight },
+  { path: '/deposito/productos',   label: 'Productos',    icon: Package },
   { path: '/deposito/ordenes/archivadas', label: 'Órdenes archivadas', icon: BookOpen },
   { path: '/deposito/metricas', label: 'Métricas', icon: BarChart2 },
 ]
@@ -71,6 +72,7 @@ export function Sidebar() {
     '/deposito/actas',
     '/deposito/ordenes',
     '/deposito/pendientes',
+    '/deposito/productos',
   ]
   const mobileItems = items.filter((item) => mobilePrimaryPaths.includes(item.path))
   const moreItems = items.filter((item) => !mobilePrimaryPaths.includes(item.path))

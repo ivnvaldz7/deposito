@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requirePermission } from '../../middlewares/require-permission'
 import { ImportacionInicialEstuchesService, InitialEstuchesImportError } from '../services/importacion-inicial-estuches-service'
+import { syncDepositoStockSheetsAfterCommit } from '../services/stock-sheets-projection'
 
 const router = Router()
 const service = new ImportacionInicialEstuchesService(prisma)
@@ -31,6 +32,7 @@ router.post('/estuches-inicial', authenticate, requirePermission('deposito', 'im
   try {
     const response = await service.import(parsed.data)
     res.status(response.replay ? 200 : 201).json(response.result)
+    void syncDepositoStockSheetsAfterCommit()
   } catch (error) {
     if (error instanceof InitialEstuchesImportError) {
       res.status(error.code === 'CONFLICT' ? 409 : 400).json({ message: error.message })

@@ -91,6 +91,20 @@ describe('PedidosPage', () => {
     expect(screen.getAllByText('Aprobado').length).toBeGreaterThan(0)
   })
 
+  it('shows recent dispatched orders ahead of older pending orders for admin', async () => {
+    vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
+      createPedido({ id: 'old', estado: 'APROBADO', origen: 'AUTOMATION', createdAt: '2026-10-07T12:00:00.000Z', updatedAt: '2026-10-13T14:00:00.000Z' }),
+      createPedido({ id: 'new', estado: 'DESPACHADO', origen: 'AUTOMATION', createdAt: '2026-10-13T12:00:00.000Z', updatedAt: '2026-10-13T12:00:00.000Z' }),
+    ])
+    renderPedidos()
+    await screen.findByTestId('pedido-card-new')
+    expect(screen.getAllByTestId(/pedido-card-/).map((card) => card.getAttribute('data-testid'))).toEqual([
+      'pedido-card-new', 'pedido-card-old',
+    ])
+    expect(within(screen.getByTestId('pedido-card-new')).queryByText('Pendiente de remito')).not.toBeInTheDocument()
+    expect(within(screen.getByTestId('pedido-card-new')).getByText('Automation · Stock descontado')).toBeInTheDocument()
+  })
+
   it('shows card with estado badge, cliente pendiente badge and items/units summary', async () => {
     vi.mocked(aleBetApi.pedidos.list).mockResolvedValue([
       createPedido({ cliente: createClientePendiente(), items: [createPedidoItem({ cantidad: 25 })] }),

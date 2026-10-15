@@ -60,6 +60,11 @@ export function usePedidos(filters?: { estado?: PedidoEstado; vendedorId?: strin
   return useQuery({
     queryKey: pedidosKeys.list(filters),
     queryFn: () => aleBetApi.pedidos.list(filters),
+    // Pedidos is an operational tray: a confirmation in Automation must be
+    // visible immediately when the user returns here, even inside the global
+    // 30-second cache window.
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
     placeholderData: (prev) => prev,
   })
 }

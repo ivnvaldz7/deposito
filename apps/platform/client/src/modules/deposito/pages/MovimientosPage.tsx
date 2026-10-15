@@ -15,6 +15,7 @@ import {
   TableHead,
   TableCell,
 } from '../components/ui/Table'
+import { LoadingState } from '../components/inventory-shared/inventory-states'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -368,11 +369,7 @@ export default function MovimientosPage() {
 
       <FiltersBar key={filters.producto} filters={filters} onChange={setFilters} />
 
-      {loading ? (
-        <div className="flex items-center justify-center h-48">
-          <p className="font-body text-on-surface-variant text-sm">Cargando...</p>
-        </div>
-      ) : error ? (
+      {loading ? <LoadingState /> : error ? (
         <div className="flex items-center justify-center h-48">
           <p className="font-body text-error text-sm">{error instanceof Error ? error.message : 'Error al cargar movimientos'}</p>
         </div>

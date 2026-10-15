@@ -3,6 +3,7 @@ import { platformDb as prisma } from '@platform/db'
 import { getAppAccess, type JwtPayload } from '@platform/core'
 import { requirePermission } from '../../middlewares/require-permission'
 import { aggregateProductAvailability } from './stock-aggregation'
+import { automationDocumentTrayWhere } from './automation-document-tray'
 
 const router = Router()
 
@@ -19,12 +20,18 @@ async function getPlatformUserNames(): Promise<Map<string, string>> {
 }
 
 router.get('/', requirePermission('ale-bet', 'dashboard.read'), async (req, res) => {
-  const isArmador = Boolean(req.user && getAppAccess(req.user as JwtPayload, 'ale-bet')?.rol === 'armador')
-  // La pantalla logística general es la cola documental de Automation. Armador
-  // conserva su cola manual y nunca recibe pedidos Automation.
+  const role = req.user ? getAppAccess(req.user as JwtPayload, 'ale-bet')?.rol : undefined
+  const isArmador = role === 'armador'
+  // El indicador cuenta la cola documental; la lista de recientes muestra
+  // todos los pedidos, igual que Historial. Armador conserva su vista manual.
   const operationalVisibility = isArmador
     ? { origen: 'MANUAL' as const }
-    : { origen: 'AUTOMATION' as const, estado: { not: 'CANCELADO' as const }, remitos: { none: { estado: 'VIGENTE' as const } } }
+    : automationDocumentTrayWhere()
+  const recentVisibility = isArmador
+    ? { origen: 'MANUAL' as const }
+    : role === 'vendedor'
+      ? { vendedorId: (req.user as JwtPayload).sub }
+      : {}
 
   const [productos, pedidosHoy, pendientesTomar, preparados, enArmado, pedidosRecientes, users] = await Promise.all([
     prisma.producto.findMany({
@@ -48,7 +55,7 @@ router.get('/', requirePermission('ale-bet', 'dashboard.read'), async (req, res)
     isArmador ? prisma.pedido.count({ where: { estado: 'PREPARADO', origen: 'MANUAL' } }) : Promise.resolve(0),
     isArmador ? prisma.pedido.count({ where: { estado: 'EN_ARMADO', origen: 'MANUAL' } }) : Promise.resolve(0),
     prisma.pedido.findMany({
-      where: operationalVisibility,
+      where: recentVisibility,
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {

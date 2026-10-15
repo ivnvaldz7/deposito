@@ -58,7 +58,7 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
     expect(screen.queryByRole('link', { name: /Usuarios/i })).not.toBeInTheDocument()
   })
 
-  it('uses the operational navigation order and keeps Productos out of the visible menu', () => {
+  it('uses the operational navigation order and keeps Productos below órdenes pendientes', () => {
     render(<MemoryRouter><Sidebar /></MemoryRouter>)
 
     expect(within(screen.getByRole('complementary')).getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
@@ -72,10 +72,11 @@ describe('Depósito Sidebar (Shared AppSidebarLayout)', () => {
       '/deposito/materiales-empaque',
       '/deposito/movimientos',
       '/deposito/pendientes',
+      '/deposito/productos',
       '/deposito/ordenes/archivadas',
       '/deposito/metricas',
     ])
-    expect(screen.queryByRole('link', { name: 'Productos' })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('complementary')).getByRole('link', { name: 'Productos' })).toBeInTheDocument()
   })
 
   it('keeps the mobile navigation compact and exposes more operational sections on demand', () => {

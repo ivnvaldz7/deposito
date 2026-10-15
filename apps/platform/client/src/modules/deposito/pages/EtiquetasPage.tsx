@@ -4,7 +4,7 @@ import { useProductFocus } from '../hooks/use-product-focus'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Search, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { useEtiquetas, useCreateEtiqueta, useUpdateEtiqueta, useDeleteEtiqueta } from '../queries/use-etiquetas'
@@ -228,7 +228,7 @@ function CantidadCell({ etiqueta }: { etiqueta: Etiqueta }) {
       value={etiqueta.cantidad} label="cantidad"
       onSave={async (nextValue) => {
         try {
-          const updated = await updateMutation.mutateAsync({ id: etiqueta.id, cantidad: nextValue })
+          const updated = await updateMutation.mutateAsync({ id: etiqueta.id, mercado: etiqueta.mercado, cantidad: nextValue })
           if (getStockStatus(updated.cantidad, etiqueta.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
           else toast.info(`Stock de "${updated.articulo}" actualizado.`)
         } catch (err) {
@@ -250,6 +250,7 @@ export default function EtiquetasPage() {
   const deleteMutation = useDeleteEtiqueta()
   const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>((searchParams.get('mercado') as Mercado | 'todos') ?? 'todos')
   const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
+  const [search, setSearch] = useState('')
   const [editingEtiqueta, setEditingEtiqueta] = useState<Etiqueta | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
@@ -288,10 +289,14 @@ export default function EtiquetasPage() {
     if (stockBajoFiltro) {
       byMercado = byMercado.filter(e => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo')
     }
+    if (search.trim()) {
+      const query = normalizeProducto(search)
+      byMercado = byMercado.filter((etiqueta) => normalizeProducto(getDisplayName(etiqueta)).includes(query))
+    }
     if (!productoFiltro || selected) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((e) => normalizeProducto(getDisplayName(e)) === target)
-  }, [sortedEtiquetas, mercadoFiltro, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
+  }, [sortedEtiquetas, mercadoFiltro, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName, search])
 
   async function handleDelete(id: string) {
     try {
@@ -317,32 +322,21 @@ export default function EtiquetasPage() {
           warning: stockBajoCount > 0 || stockBajoFiltro,
           onClick: () => setStockBajoFiltro((prev) => !prev)
         },
-      ]} primaryAction={canManage ? { label: 'Agregar etiqueta', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined}>
+      ]} actionSlot={<label className="relative block"><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" /><input aria-label="Buscar etiqueta" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar etiqueta..." className="input-field min-h-11 w-full pl-10 sm:w-72" /></label>}>
         <MercadoFilter mercadoActivo={mercadoFiltro} onChangeMercado={handleMercadoChange} totalCount={allEtiquetas.length} countsByMercado={countsByMercado} />
       </InventoryPageHeader>
-      {canManage && <AgregarEtiquetaModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
-      {editingEtiqueta && <EditarEtiquetaModal etiqueta={editingEtiqueta} onClose={() => setEditingEtiqueta(null)} />}
       {etiquetas.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró esa etiqueta con los filtros aplicados.' : 'No hay etiquetas para este mercado.'} />
       : (
         <>
           <InventoryDataSurface label="Inventario de etiquetas"><div className="hidden md:block">
             <Table>
-              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-36">Mercado</TableHead><TableHead className="w-32">Cantidad</TableHead><TableHead className="w-28">Estado</TableHead>{canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-36">Mercado</TableHead><TableHead className="w-32">Cantidad</TableHead></TableRow></TableHeader>
               <TableBody>
                 {etiquetas.map((e) => (
                   <TableRow key={e.id} {...focus.targetProps(e.id)} className={focus.isFocused(e.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(e)}</TableCell>
                     <TableCell><MercadoChip mercado={e.mercado} /></TableCell>
                     <TableCell>{canManage ? <CantidadCell etiqueta={e} /> : <span className="font-body text-on-surface tabular-nums">{e.cantidad}</span>}</TableCell>
-                    <TableCell><StockChip cantidad={e.cantidad} stockMinimo={e.stockMinimo} /></TableCell>
-                    {canManage && (
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />
-                          <RowActionButton destructive label={`Eliminar ${e.articulo}`} onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
-                        </div>
-                      </TableCell>
-                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -355,14 +349,11 @@ export default function EtiquetasPage() {
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(e)}</p>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     <MercadoChip mercado={e.mercado} /><span className="font-body text-on-surface-variant text-xs tabular-nums">{e.cantidad} uds</span>
-                    <StockChip cantidad={e.cantidad} stockMinimo={e.stockMinimo} />
                   </div>
                 </div>
                 {canManage && (
                   <div className="flex items-center gap-3 shrink-0">
                     <CantidadCell etiqueta={e} />
-                    <RowActionButton label={`Editar ${e.articulo}`} onClick={() => setEditingEtiqueta(e)} icon={<Pencil size={16} strokeWidth={1.5} />} />
-                    <RowActionButton destructive label={`Eliminar ${e.articulo}`} onClick={() => handleDelete(e.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                   </div>
                 )}
               </div>

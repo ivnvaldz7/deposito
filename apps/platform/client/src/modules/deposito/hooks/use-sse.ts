@@ -28,7 +28,7 @@ type TicketResult =
 
 async function fetchTicket(token: string): Promise<TicketResult> {
   try {
-    const res = await fetch(`${BASE_URL}/api/events/auth`, {
+    const res = await fetch(`${BASE_URL}/api/deposito/events/auth`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -80,7 +80,7 @@ export function useSSE() {
         return
       }
 
-      es = new EventSource(`${BASE_URL}/api/events?ticket=${result.ticket}`)
+      es = new EventSource(`${BASE_URL}/api/deposito/events?ticket=${result.ticket}`)
 
       es.onmessage = (event: MessageEvent<string>) => {
         retryCount = 0

@@ -5,7 +5,6 @@ import { useForm, useWatch, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Package, Hash, FileText, ArrowLeft, Building2, Printer } from 'lucide-react'
-import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { api } from '../lib/api'
 import { toast } from '../lib/toast'
@@ -100,7 +99,7 @@ function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }
     <Dialog open onOpenChange={(open) => { if (!open && !printing) onSkip() }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>¿Imprimir etiqueta de cuarentena?</DialogTitle>
+          <DialogTitle>¿Imprimir etiqueta de ingreso?</DialogTitle>
           <DialogDescription>El ingreso ya quedó registrado. Elegí si querés imprimir ahora y cuántas copias enviar a la Brother QL-800.</DialogDescription>
         </DialogHeader>
         <div className="rounded-lg border border-white/10 bg-surface-container p-4 space-y-2 text-sm">
@@ -145,7 +144,6 @@ function materialEmpaqueRequiereLote(nombre: string): boolean {
 }
 
 export default function ActaNuevaPage() {
-  const user = useAuthStore((s) => s.user)
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -249,6 +247,17 @@ export default function ActaNuevaPage() {
     }
   }, [categoria, productoId, frascosQuery.data, setValue])
 
+  useEffect(() => {
+    function volverConEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape' || event.defaultPrevented || etiquetaCuarentena || submitting) return
+      if (event.target instanceof HTMLSelectElement) return
+      navigate('/deposito/actas')
+    }
+
+    window.addEventListener('keydown', volverConEscape)
+    return () => window.removeEventListener('keydown', volverConEscape)
+  }, [etiquetaCuarentena, navigate, submitting])
+
   async function onSubmit(data: IngresoFormData) {
     if (submitInFlight.current) return
     submitInFlight.current = true
@@ -312,34 +321,21 @@ export default function ActaNuevaPage() {
 
   return (
     <div className="min-h-screen bg-surface font-sans text-on-surface pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-24 relative overflow-hidden">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-surface/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate('/deposito/actas')}
-              aria-label="Volver a actas"
-              className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
-            >
-              <ArrowLeft size={20} className="text-on-surface-variant" />
-            </button>
-            <div>
-              <h1 className="font-display font-medium text-lg">Nuevo Ingreso</h1>
-              <p className="font-body text-xs text-on-surface-variant/70">
-                {user?.name ? `Responsable: ${user.name}` : 'Registrar entrada a depósito'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-3 sm:px-4 md:px-6 pt-4 sm:pt-8 relative z-10">
-        <div className="bg-surface-high rounded-xl border border-white/5 shadow-float overflow-hidden">
-          <div className="p-4 sm:p-6 md:p-8">
-            <div className="max-w-xl mx-auto">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-8" noValidate>
+      <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 relative z-10">
+        <div className="relative bg-surface-high rounded-xl border border-white/5 shadow-float overflow-hidden">
+          <button
+            type="button"
+            onClick={() => navigate('/deposito/actas')}
+            aria-label="Volver a actas"
+            title="Volver a actas (Esc)"
+            className="btn-press absolute left-2 top-2 z-10 w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/5 transition-colors"
+          >
+            <ArrowLeft size={20} className="text-on-surface-variant" />
+          </button>
+          <div className="p-4 pt-14 sm:p-5 sm:pt-5 lg:p-6">
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pl-12 sm:pl-14" noValidate>
                 
-                {/* 1. Fecha */}
+                <div className="grid gap-4 md:grid-cols-[minmax(16rem,0.85fr)_minmax(22rem,1.15fr)] md:items-end">
                 <div className="space-y-1">
                   <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Fecha del acta
@@ -357,7 +353,6 @@ export default function ActaNuevaPage() {
                   {errors.fecha && <p className="font-body text-error text-xs">{errors.fecha.message}</p>}
                 </div>
 
-                {/* 2. Categoría */}
                 <div className="space-y-4">
                   <div className="space-y-1">
                     <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">Clasificación</label>
@@ -365,7 +360,7 @@ export default function ActaNuevaPage() {
                       <button
                         type="button"
                         onClick={() => setTipoIngreso('MP')}
-                        className={`py-3 px-4 rounded-lg font-body text-sm transition-all border ${
+                        className={`btn-press py-3 px-4 rounded-lg font-body text-sm transition-all border ${
                           tipoIngreso === 'MP'
                             ? 'bg-primary/10 border-primary/30 text-primary font-medium'
                             : 'bg-surface-container border-white/5 text-on-surface-variant hover:bg-surface-bright'
@@ -376,7 +371,7 @@ export default function ActaNuevaPage() {
                       <button
                         type="button"
                         onClick={() => setTipoIngreso('ME')}
-                        className={`py-3 px-4 rounded-lg font-body text-sm transition-all border ${
+                        className={`btn-press py-3 px-4 rounded-lg font-body text-sm transition-all border ${
                           tipoIngreso === 'ME'
                             ? 'bg-primary/10 border-primary/30 text-primary font-medium'
                             : 'bg-surface-container border-white/5 text-on-surface-variant hover:bg-surface-bright'
@@ -388,13 +383,13 @@ export default function ActaNuevaPage() {
                   </div>
 
                   {esME && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 animate-reveal">
                       {CATEGORIAS_ME.map((cat) => (
                         <button
                           key={cat.value}
                           type="button"
                           onClick={() => setMercadoCat(cat.value)}
-                          className={`py-2 px-3 rounded-lg font-body text-sm transition-all border ${
+                          className={`btn-press py-2 px-3 rounded-lg font-body text-sm transition-all border ${
                             mercadoCat === cat.value
                               ? 'bg-secondary/10 border-secondary/30 text-secondary font-medium'
                               : 'bg-surface-container border-white/5 text-on-surface-variant hover:bg-surface-bright'
@@ -406,12 +401,14 @@ export default function ActaNuevaPage() {
                     </div>
                   )}
                 </div>
+                </div>
 
                 <div className="h-px bg-white/5 w-full" />
 
-                {/* 3. Mercado (Before Producto) */}
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
+                <div className="space-y-4">
                 {(categoria === 'etiqueta' || categoria === 'estuche') && (
-                  <div className="space-y-1">
+                  <div className="space-y-1 animate-reveal">
                     <label htmlFor="ingreso-mercado" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                       Mercado <span className="text-error">*</span>
                     </label>
@@ -429,7 +426,6 @@ export default function ActaNuevaPage() {
                   </div>
                 )}
 
-                {/* 4. Producto */}
                 <div className="space-y-1">
                   <label htmlFor="ingreso-producto" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Producto <span className="text-error">*</span>
@@ -455,14 +451,14 @@ export default function ActaNuevaPage() {
                   
                   {/* Mercado Badge if auto-filled and we didn't have one before */}
                   {productoSeleccionado && mercadoSeleccionado && (categoria === 'estuche' || categoria === 'etiqueta') && (
-                    <div className="mt-2 text-xs font-body text-on-surface-variant flex items-center gap-2 bg-surface-container-high px-2 py-1 rounded inline-flex border border-white/5">
+                    <div className="mt-2 text-xs font-body text-on-surface-variant flex items-center gap-2 bg-surface-container-high px-2 py-1 rounded inline-flex border border-white/5 animate-reveal">
                        Mercado seleccionado: <span className="font-medium text-on-surface capitalize">{mercadoSeleccionado}</span>
                     </div>
                   )}
                 </div>
+                </div>
 
-                {/* 5. Datos Específicos */}
-                <div className="space-y-5 bg-surface-container/30 p-5 rounded-lg border border-white/5">
+                <div key={`detalles-${categoria}`} className="space-y-5 bg-surface-container/30 p-4 sm:p-5 rounded-lg border border-white/5 animate-reveal">
                   <h3 className="font-display text-sm font-medium text-on-surface mb-2">Detalles del Ingreso</h3>
                   
                   {categoria === 'droga' && (
@@ -615,7 +611,7 @@ export default function ActaNuevaPage() {
                       </div>
                       
                       {cantidadCajas > 0 && unidadesPorCaja > 0 && (
-                        <div className="bg-primary-container/10 p-3 rounded text-center border border-primary/20">
+                        <div className="bg-primary-container/10 p-3 rounded text-center border border-primary/20 animate-reveal">
                           <span className="font-body text-sm text-on-surface-variant">
                             {cantidadCajas} cajas × {unidadesPorCaja} uds = <strong className="text-primary font-semibold font-display text-base ml-1">{(cantidadCajas * unidadesPorCaja).toLocaleString()} unidades</strong> totales
                           </span>
@@ -624,8 +620,8 @@ export default function ActaNuevaPage() {
                     </div>
                   )}
                 </div>
+                </div>
 
-                {/* 6. Observaciones */}
                 <div className="space-y-1">
                   <label htmlFor="ingreso-obs" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Observaciones <span className="font-normal opacity-60">(opcional)</span>
@@ -635,7 +631,7 @@ export default function ActaNuevaPage() {
                     <textarea
                       id="ingreso-obs"
                       {...register('observaciones')}
-                      rows={3}
+                      rows={2}
                       placeholder="Notas sobre el proveedor, remito u otro detalle..."
                       className="input-field pl-10 resize-none"
                     />
@@ -644,15 +640,14 @@ export default function ActaNuevaPage() {
                 </div>
 
                 {serverError && (
-                  <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded border border-error/20">
+                  <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded border border-error/20 animate-reveal">
                     {serverError}
                   </div>
                 )}
 
-                {/* Resumen Final & Actions */}
-                <div className="pt-4 mt-8 border-t border-white/5 space-y-4">
+                <div className="pt-2 mt-1 border-t border-white/5 space-y-3">
                   {isFormValid && (
-                    <div className="bg-surface-container-high p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="bg-surface-container-high p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4 animate-reveal">
                       <div>
                         <p className="font-body text-xs text-on-surface-variant uppercase tracking-widest mb-1">Resumen a Registrar</p>
                         <p className="font-display font-medium text-on-surface text-lg leading-tight">
@@ -675,21 +670,20 @@ export default function ActaNuevaPage() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="btn-primary flex-1 min-h-11 py-3 text-sm"
+                      className="btn-primary btn-press flex-1 min-h-11 py-3 text-sm"
                     >
                       {submitting ? 'Registrando...' : 'Registrar ingreso'}
                     </button>
                     <button
                       type="button"
                       onClick={() => navigate('/deposito/actas')}
-                      className="flex-1 min-h-11 py-3 text-sm font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors border border-white/5"
+                      className="btn-press flex-1 min-h-11 py-3 text-sm font-semibold rounded text-on-surface-variant bg-surface-high hover:bg-surface-bright transition-colors border border-white/5"
                     >
                       Cancelar
                     </button>
                   </div>
                 </div>
               </form>
-            </div>
           </div>
         </div>
       </div>

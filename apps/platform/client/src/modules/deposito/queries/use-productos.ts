@@ -40,6 +40,7 @@ export interface ProductoFormData {
   codigo?: string
   categoria: CategoriaProducto
   presentacion?: number | null
+  unidad?: string | null
   mercadosHabilitados?: Mercado[]
   stockMinimo?: number | null
 }

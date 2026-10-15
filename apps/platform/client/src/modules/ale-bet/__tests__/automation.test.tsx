@@ -255,7 +255,12 @@ describe('AutomationPage', () => {
           quantity: { mode: 'UNITS', explicitBoxes: null, explicitUnits: 48, totalUnits: 48 }
         }]
       },
-      availability: [{ productId: 'p1', availableUnits: 48, status: 'DISPONIBLE' }]
+      availability: [{ productId: 'p1', availableUnits: 48, status: 'DISPONIBLE' }],
+      lotAvailability: {
+        allocations: [{ itemPedidoId: 'p1', productoId: 'p1', loteId: 'l1', cantidad: 48 }],
+        lotes: [{ itemPedidoId: 'p1', loteId: 'l1', numero: 'L1', fechaVencimiento: null, vencido: false, ubicacion: 'DEPOSITO', disponible: 48 }],
+        transferencias: [],
+      },
     })
     ;(aleBetApi.automation.confirmDraft as any).mockResolvedValue({ draftId: 'draft-summary' })
 
@@ -271,9 +276,11 @@ describe('AutomationPage', () => {
     expect(screen.getByText('48 unidades')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar', exact: true }))
+    expect(screen.getByRole('dialog', { name: 'Seleccionar lotes' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar y descontar lo seleccionado' }))
     await waitFor(() => expect(aleBetApi.automation.confirmDraft).toHaveBeenCalledWith(
       'draft-summary',
-      { expectedVersion: 2, selecciones: [], transferencias: [] },
+      { expectedVersion: 2, selecciones: [{ itemPedidoId: 'p1', productoId: 'p1', loteId: 'l1', cantidad: 48 }], transferencias: [] },
       expect.objectContaining({ idempotencyKey: expect.any(String) })
     ))
   })

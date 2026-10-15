@@ -33,19 +33,19 @@ describe('POST /api/deposito/labels/cuarentena', () => {
     mocks.printCuarentenaLabel.mockResolvedValue(undefined)
   })
 
-  it('prints only a registered materia prima item with the ingress date and requested copies', async () => {
+  it('prints a registered ingreso with the ingress date and requested copies', async () => {
     const response = await request(app).post('/api/deposito/labels/cuarentena').send({ itemId: item.id, copias: 2 })
 
     expect(response.status).toBe(200)
     expect(mocks.printCuarentenaLabel).toHaveBeenCalledWith({ producto: item.productoNombre, lote: item.lote, fechaIngreso: '02/10/2026', copias: 2 })
   })
 
-  it('rejects labels for packaging materials', async () => {
-    mocks.findUnique.mockResolvedValueOnce({ ...item, categoria: 'frasco' })
+  it.each(['estuche', 'etiqueta', 'frasco', 'material_empaque'])('prints labels for %s ingress items', async (categoria) => {
+    mocks.findUnique.mockResolvedValueOnce({ ...item, categoria })
 
     const response = await request(app).post('/api/deposito/labels/cuarentena').send({ itemId: item.id, copias: 1 })
 
-    expect(response.status).toBe(422)
-    expect(mocks.printCuarentenaLabel).not.toHaveBeenCalled()
+    expect(response.status).toBe(200)
+    expect(mocks.printCuarentenaLabel).toHaveBeenCalledWith(expect.objectContaining({ producto: item.productoNombre, lote: item.lote, copias: 1 }))
   })
 })

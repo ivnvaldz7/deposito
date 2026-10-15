@@ -323,6 +323,48 @@
   animation: fade-up 0.25s ease-out both;
 }
 
+/* === OPERATIONAL MOTION — Depósito ===
+ * Motion stays short and positional: it explains where a surface came from,
+ * without competing with dense operational information. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@utility animate-page-enter {
+  animation: page-enter var(--motion-surface, 260ms) var(--motion-easing-out, ease-out) both;
+}
+
+@utility animate-reveal {
+  animation: page-enter var(--motion-surface, 260ms) var(--motion-easing-out, ease-out) both;
+}
+
+@utility motion-table-row {
+  transition:
+    background-color var(--motion-state, 200ms) var(--motion-easing-standard, ease),
+    transform var(--motion-instant, 120ms) var(--motion-easing-standard, ease);
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+@utility loading-shimmer {
+  background: linear-gradient(100deg, var(--color-surface-container-low) 25%, var(--color-surface-bright) 45%, var(--color-surface-container-low) 65%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
 @keyframes fade-up {
   from {
     opacity: 0;

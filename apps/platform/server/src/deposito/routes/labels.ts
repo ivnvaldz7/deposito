@@ -33,11 +33,6 @@ router.post('/cuarentena', authenticate, requirePermission('deposito', 'ingresos
       res.status(404).json({ message: 'No se encontró el ingreso para imprimir.' })
       return
     }
-    if (item.categoria !== 'droga') {
-      res.status(422).json({ message: 'La etiqueta de cuarentena solo corresponde a materia prima.' })
-      return
-    }
-
     await printCuarentenaLabel({
       producto: item.productoNombre,
       lote: item.lote,

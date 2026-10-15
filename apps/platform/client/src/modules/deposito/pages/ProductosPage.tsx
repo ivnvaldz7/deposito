@@ -43,6 +43,8 @@ const CATEGORIA_LABELS: Record<CategoriaProducto, string> = {
 const ACCEPTED_EXTENSIONS = '.xls,.xlsx,.csv'
 const ACCEPTED_EXTENSIONS_LIST = ['xls', 'xlsx', 'csv']
 const mercadoSchema = z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable'])
+const ETIQUETA_UNITS = ['ML', 'L', 'CM3'] as const
+type EtiquetaUnit = typeof ETIQUETA_UNITS[number]
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
@@ -51,6 +53,7 @@ const formSchema = z.object({
   codigo: z.string().max(50).optional().or(z.literal('')),
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco', 'material_empaque']),
   presentacion: z.string().optional().or(z.literal('')),
+  unidad: z.enum(ETIQUETA_UNITS).optional(),
   mercadosHabilitados: z.array(mercadoSchema).optional(),
   stockMinimo: z.string().refine((value) => value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0), 'Debe ser entero no negativo').optional(),
 })
@@ -65,10 +68,12 @@ function normalizeFormData(values: FormValues): ProductoFormData {
 
   const nombreBase = values.nombreBase.trim().replace(/\s+/g, ' ').toUpperCase()
   const presentacion = values.presentacion ? Number(values.presentacion) : null
-  const includesVolume = /\b\d+(?:[.,]\d+)?\s*(?:ML|L)\b/i.test(nombreBase)
+  const unidad = values.unidad ?? 'ML'
+  const displayUnit = values.categoria === 'etiqueta' && unidad === 'CM3' ? 'cm³' : unidad
+  const includesVolume = /\b\d+(?:[.,]\d+)?\s*(?:ML\b|L\b|CM3\b|CM³)/i.test(nombreBase)
   const nombreCompleto = (values.categoria === 'etiqueta' || values.categoria === 'estuche') && presentacion && !includesVolume
-    ? `${nombreBase} ${presentacion} ML`
-    : nombreBase
+    ? `${nombreBase} ${presentacion} ${values.categoria === 'etiqueta' ? displayUnit : 'ML'}`
+    : nombreBase.replace(/\bCM3\b/gi, 'cm³').replace(/CM³/gi, 'cm³')
 
   const data: ProductoFormData = {
     nombreBase,
@@ -82,11 +87,32 @@ function normalizeFormData(values: FormValues): ProductoFormData {
     data.presentacion = presentacion
   }
 
+  if (values.categoria === 'etiqueta') data.unidad = unidad
+
   if (requiresMercados) {
     data.mercadosHabilitados = values.mercadosHabilitados ?? []
   }
 
   return data
+}
+
+function inferEtiquetaUnit(producto: Pick<Producto, 'categoria' | 'unidad' | 'nombreCompleto'>): EtiquetaUnit {
+  if (producto.categoria !== 'etiqueta') return 'ML'
+  if (ETIQUETA_UNITS.includes(producto.unidad as EtiquetaUnit)) return producto.unidad as EtiquetaUnit
+  const match = producto.nombreCompleto.match(/\b\d+(?:[.,]\d+)?\s*(CM3\b|CM³|ML\b|L\b)/i)
+  const value = match?.[1]?.toUpperCase().replace('CM³', 'CM3')
+  return ETIQUETA_UNITS.includes(value as EtiquetaUnit) ? value as EtiquetaUnit : 'ML'
+}
+
+function formatPresentation(producto: Pick<Producto, 'categoria' | 'presentacion' | 'unidad' | 'nombreCompleto'>): string {
+  if (producto.presentacion == null) return '—'
+  if (producto.categoria === 'frasco') return `${producto.presentacion} ml`
+  if (producto.categoria === 'etiqueta') return `${producto.presentacion} ${inferEtiquetaUnit(producto) === 'CM3' ? 'cm³' : inferEtiquetaUnit(producto)}`
+  return String(producto.presentacion)
+}
+
+function displayProductoTitle(producto: Pick<Producto, 'nombreBase' | 'nombreCompleto'>): string {
+  return /\bMANUAL\b/i.test(producto.nombreCompleto) ? `${producto.nombreBase} · MANUAL` : producto.nombreBase
 }
 
 function ProductoMobileCard({ producto, canManage, onEdit, onAction }: {
@@ -99,8 +125,8 @@ function ProductoMobileCard({ producto, canManage, onEdit, onAction }: {
   const stockMinimo = producto.stockMinimo == null ? 'Sin configurar' : `${producto.stockMinimo}${producto.categoria === 'frasco' ? ' cajas' : producto.categoria === 'material_empaque' ? ' unidades' : ''}`
 
   return <article className="rounded-xl border border-outline-variant bg-surface-container p-4 shadow-float">
-    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-base font-semibold text-on-surface">{producto.nombreBase}</p><p className="mt-1 text-xs text-on-surface-variant">{CATEGORIA_LABELS[producto.categoria]} · {code}</p></div><EstadoProductoChip estado={producto.estado} /></div>
-    <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm"><div><dt className="text-xs uppercase tracking-wider text-on-surface-variant">Presentación</dt><dd className="mt-1 font-medium text-on-surface">{producto.presentacion != null ? `${producto.presentacion}${producto.categoria === 'frasco' ? ' ml' : ''}` : '—'}</dd></div><div><dt className="text-xs uppercase tracking-wider text-on-surface-variant">Stock mínimo</dt><dd className="mt-1 font-medium text-on-surface">{stockMinimo}</dd></div></dl>
+    <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-base font-semibold text-on-surface">{displayProductoTitle(producto)}</p><p className="mt-1 text-xs text-on-surface-variant">{CATEGORIA_LABELS[producto.categoria]} · {code}</p></div><EstadoProductoChip estado={producto.estado} /></div>
+    <dl className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm"><div><dt className="text-xs uppercase tracking-wider text-on-surface-variant">Presentación</dt><dd className="mt-1 font-medium text-on-surface">{formatPresentation(producto)}</dd></div><div><dt className="text-xs uppercase tracking-wider text-on-surface-variant">Stock mínimo</dt><dd className="mt-1 font-medium text-on-surface">{stockMinimo}</dd></div></dl>
     {producto.mercadosHabilitados.length > 0 && <div className="mt-4 flex flex-wrap gap-1">{producto.mercadosHabilitados.map((mercado) => <MercadoChip key={mercado} mercado={mercado as Mercado} />)}</div>}
     {canManage && <div className="mt-4 grid grid-cols-2 gap-2 border-t border-white/10 pt-4"><button type="button" onClick={onEdit} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant text-sm font-semibold text-on-surface hover:bg-surface-bright"><Edit size={16} />Editar</button>{producto.estado === 'PENDIENTE_REVISION' && <button type="button" onClick={() => onAction('activar')} className="min-h-11 rounded-lg bg-primary text-sm font-semibold text-on-primary">Activar</button>}{producto.estado === 'INACTIVO' && <button type="button" onClick={() => onAction('reactivar')} className="min-h-11 rounded-lg bg-primary text-sm font-semibold text-on-primary">Reactivar</button>}{producto.estado === 'ACTIVO' && <button type="button" onClick={() => onAction('desactivar')} className="min-h-11 rounded-lg border border-warning/40 text-sm font-semibold text-warning hover:bg-warning/10">Desactivar</button>}{producto.estado === 'PENDIENTE_REVISION' && <button type="button" onClick={() => onAction('eliminar')} className="col-span-2 min-h-11 rounded-lg border border-error/40 text-sm font-semibold text-error hover:bg-error/10">Eliminar producto pendiente</button>}</div>}
   </article>
@@ -132,6 +158,12 @@ function validateForm(values: FormValues): string | null {
       return 'Debe seleccionar al menos un mercado'
     }
   }
+  if (values.categoria === 'etiqueta' && values.unidad === 'CM3') {
+    const mercados = values.mercadosHabilitados ?? []
+    if (mercados.length !== 1 || mercados[0] !== 'VENEZUELA') {
+      return 'cm³ es exclusivo para etiquetas destinadas a Venezuela'
+    }
+  }
   return null
 }
 
@@ -143,11 +175,12 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   const { register, handleSubmit, control, setValue, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { nombreBase: '', codigo: '', categoria: 'droga', presentacion: '', mercadosHabilitados: [], stockMinimo: '' },
+    defaultValues: { nombreBase: '', codigo: '', categoria: 'droga', presentacion: '', unidad: 'ML', mercadosHabilitados: [], stockMinimo: '' },
   })
 
   const categoria = useWatch({ control, name: 'categoria' })
   const selectedMercados = useWatch({ control, name: 'mercadosHabilitados' }) ?? []
+  const unidad = useWatch({ control, name: 'unidad' }) ?? 'ML'
   const requiresMercados = categoria === 'etiqueta' || categoria === 'estuche'
   const requiresPresentacion = categoria === 'etiqueta' || categoria === 'estuche' || categoria === 'frasco'
 
@@ -176,6 +209,7 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
       ? selectedMercados.filter((m) => m !== mercado)
       : [...selectedMercados, mercado]
     setValue('mercadosHabilitados', current)
+    if (unidad === 'CM3' && (current.length !== 1 || current[0] !== 'VENEZUELA')) setValue('unidad', 'ML')
   }
 
   return (
@@ -226,6 +260,18 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                 Presentación {categoria === 'frasco' ? '(ml)' : ''}
               </label>
               <input id="create-presentacion" {...register('presentacion')} type="number" min="1" placeholder="Ej: 250" className="input-field" />
+            </div>
+          )}
+
+          {categoria === 'etiqueta' && (
+            <div className="space-y-1">
+              <label htmlFor="create-unidad" className="label-field">Unidad de presentación</label>
+              <select id="create-unidad" {...register('unidad')} className="input-field">
+                <option value="ML">ml</option>
+                <option value="L">L (litro)</option>
+                <option value="CM3" disabled={selectedMercados.length !== 1 || selectedMercados[0] !== 'VENEZUELA'}>cm³ (centímetro cúbico, sólo Venezuela)</option>
+              </select>
+              <p className="text-xs text-on-surface-variant">Para una etiqueta de 1 litro, ingresá 1 y elegí L.</p>
             </div>
           )}
 
@@ -297,8 +343,10 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
   const updateMutation = useUpdateProducto()
   const isPending = producto.estado === 'PENDIENTE_REVISION'
   const canEditCodigo = isPending || (producto.estado === 'INACTIVO' && !producto.codigo)
-  const canEditCategoria = isPending
-  const canEditMercados = isPending
+  const canEditCategoria = isPending || (producto.estado === 'ACTIVO' && producto.categoria === 'droga')
+  // Una etiqueta activa puede incorporar nuevos mercados. No se permite quitar
+  // los ya habilitados porque podrían tener movimientos o stock asociado.
+  const canEditMercados = isPending || (producto.estado === 'ACTIVO' && producto.categoria === 'etiqueta')
 
   const { register, handleSubmit, control, setValue, reset, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -307,6 +355,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
       codigo: producto.codigo ?? '',
       categoria: producto.categoria,
       presentacion: producto.presentacion?.toString() ?? '',
+      unidad: inferEtiquetaUnit(producto),
       mercadosHabilitados: producto.mercadosHabilitados ?? [],
       stockMinimo: producto.stockMinimo == null ? '' : String(producto.stockMinimo),
     },
@@ -314,8 +363,14 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
 
   const categoria = useWatch({ control, name: 'categoria' })
   const selectedMercados = useWatch({ control, name: 'mercadosHabilitados' }) ?? []
+  const unidad = useWatch({ control, name: 'unidad' }) ?? 'ML'
   const requiresMercados = (categoria === 'etiqueta' || categoria === 'estuche') && canEditMercados
   const requiresPresentacion = categoria === 'etiqueta' || categoria === 'estuche' || categoria === 'frasco'
+  const categoriasEditables = isPending
+    ? Object.entries(CATEGORIA_LABELS)
+    : ([['droga', CATEGORIA_LABELS.droga], ['material_empaque', CATEGORIA_LABELS.material_empaque]] as const)
+  const corrigeMpComoMaterialEmpaque = producto.estado === 'ACTIVO' && producto.categoria === 'droga' && categoria === 'material_empaque'
+  const canEditUnidad = isPending
 
   async function onSubmit(values: FormValues) {
     setServerError(null)
@@ -345,6 +400,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
       if (canEditCodigo) payload.codigo = values.codigo?.trim().toUpperCase() || undefined
       if (canEditCategoria) payload.categoria = values.categoria
       if (requiresPresentacion) payload.presentacion = values.presentacion ? Number(values.presentacion) : null
+      if (canEditUnidad && categoria === 'etiqueta') payload.unidad = normalized.unidad
       if (canEditMercados && requiresMercados) payload.mercadosHabilitados = values.mercadosHabilitados ?? []
       payload.stockMinimo = values.stockMinimo === '' ? null : Number(values.stockMinimo)
 
@@ -361,6 +417,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
       ? selectedMercados.filter((m) => m !== mercado)
       : [...selectedMercados, mercado]
     setValue('mercadosHabilitados', current)
+    if (unidad === 'CM3' && (current.length !== 1 || current[0] !== 'VENEZUELA')) setValue('unidad', 'ML')
   }
 
   return (
@@ -377,12 +434,15 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
             <label className="label-field">¿Qué es el producto?</label>
             {canEditCategoria ? (
               <select {...register('categoria')} className="input-field">
-                {Object.entries(CATEGORIA_LABELS).map(([value, label]) => (
+                {categoriasEditables.map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
             ) : (
               <p className="font-body text-sm text-on-surface">{CATEGORIA_LABELS[producto.categoria]}</p>
+            )}
+            {corrigeMpComoMaterialEmpaque && (
+              <p className="text-xs text-warning">Se conservará el saldo actual y pasará al inventario de Material de empaque. Los ingresos anteriores quedarán en el historial.</p>
             )}
           </div>
 
@@ -400,20 +460,40 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
               <input id="edit-presentacion" {...register('presentacion')} type="number" min="1" className="input-field" />
             </div>
           )}
+          {categoria === 'etiqueta' && (
+            <div className="space-y-1">
+              <label htmlFor="edit-unidad" className="label-field">Unidad de presentación</label>
+              {canEditUnidad ? <>
+                <select id="edit-unidad" {...register('unidad')} className="input-field">
+                  <option value="ML">ml</option>
+                  <option value="L">L (litro)</option>
+                  <option value="CM3" disabled={selectedMercados.length !== 1 || selectedMercados[0] !== 'VENEZUELA'}>cm³ (centímetro cúbico, sólo Venezuela)</option>
+                </select>
+                <p className="text-xs text-on-surface-variant">Para una etiqueta de 1 litro, ingresá 1 y elegí L.</p>
+              </> : <>
+                <p id="edit-unidad" className="font-body text-sm text-on-surface">{inferEtiquetaUnit(producto)}</p>
+                <p className="text-xs text-on-surface-variant">La unidad se conserva en productos activos para proteger su historial.</p>
+              </>}
+            </div>
+          )}
           <div className="space-y-1"><label htmlFor="edit-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : categoria === 'material_empaque' ? '(unidades)' : ''}</label><input id="edit-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
 
           {/* D. Mercados (conditional) */}
           {requiresMercados && (
             <div className="space-y-2">
               <label className="label-field">País / mercados habilitados</label>
+              {producto.estado === 'ACTIVO' && producto.categoria === 'etiqueta' && (
+                <p className="text-xs text-on-surface-variant">Podés agregar mercados nuevos. Los ya habilitados se conservan para proteger su stock e historial.</p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {MERCADOS.map(({ value, label }) => (
                   <button
                     key={value}
                     type="button"
-                    onClick={() => canEditMercados && toggleMercado(value)}
+                    disabled={!canEditMercados || (producto.estado === 'ACTIVO' && producto.mercadosHabilitados.includes(value))}
+                    onClick={() => toggleMercado(value)}
                     className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${
-                      !canEditMercados ? 'opacity-50 cursor-not-allowed' :
+                      !canEditMercados || (producto.estado === 'ACTIVO' && producto.mercadosHabilitados.includes(value)) ? 'opacity-50 cursor-not-allowed' :
                       selectedMercados.includes(value)
                         ? 'bg-primary-container/20 text-primary'
                         : 'bg-surface-container-high text-on-surface-variant'
@@ -1094,7 +1174,7 @@ export default function ProductosPage() {
                   <TableRow key={p.id}>
                     <TableCell><EstadoProductoChip estado={p.estado} /></TableCell>
                     <TableCell>
-                      <span className="font-body text-sm font-medium">{p.nombreBase}</span>
+                      <span className="font-body text-sm font-medium">{displayProductoTitle(p)}</span>
                     </TableCell>
                     <TableCell className="text-sm">
                       {p.categoria === 'droga' ? <span title="El código se registra con cada ingreso/lote" className="italic text-on-surface-variant">Por ingreso</span> : (p.codigo ?? <span className="italic text-on-surface-variant">Código pendiente</span>)}
@@ -1104,7 +1184,7 @@ export default function ProductosPage() {
                     </TableCell>
                     <TableCell>
                       {p.presentacion != null
-                        ? <span className="text-sm">{p.presentacion}{p.categoria === 'frasco' ? ' ml' : ''}</span>
+                        ? <span className="text-sm">{formatPresentation(p)}</span>
                         : <span className="italic text-on-surface-variant">—</span>
                       }
                     </TableCell>

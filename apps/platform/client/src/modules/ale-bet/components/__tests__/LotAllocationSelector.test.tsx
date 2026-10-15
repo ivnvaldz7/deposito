@@ -41,4 +41,30 @@ describe('LotAllocationSelector', () => {
       { itemPedidoId: 'item-1', productoId: 'producto-1', loteId: 'lote-cb0096', cantidad: 24 },
     ])
   })
+
+  it('permite escribir una cantidad exacta sin superar lo solicitado ni lo disponible', () => {
+    const onConfirm = vi.fn()
+    render(
+      <LotAllocationSelector
+        items={[{ id: 'item-1', productoId: 'producto-1', nombre: 'OLIVITASAN PLUS 500 ML', cantidad: 800 }]}
+        disponibilidad={{
+          status: 'DISPONIBLE', stockTotal: 820, stockDeposito: 820, stockAcondicionado: 0, stockDisponiblePedido: 820,
+          allocations: [],
+          lotes: [{ itemPedidoId: 'item-1', productoId: 'producto-1', loteId: 'lote-pl0618', numero: 'PL0618', fechaVencimiento: '2028-09-30', ubicacion: 'DEPOSITO', disponible: 820, vencido: false }],
+          transferencias: [], shortfall: 0, fingerprint: 'availability',
+        }}
+        onCancel={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    )
+
+    const input = screen.getByLabelText('Cantidad para lote PL0618')
+    fireEvent.change(input, { target: { value: '800' } })
+    fireEvent.blur(input)
+    fireEvent.click(screen.getByRole('button', { name: 'Reservar lotes y confirmar' }))
+
+    expect(onConfirm).toHaveBeenCalledWith([
+      { itemPedidoId: 'item-1', productoId: 'producto-1', loteId: 'lote-pl0618', cantidad: 800 },
+    ])
+  })
 })

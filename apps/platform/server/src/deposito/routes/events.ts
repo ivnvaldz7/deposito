@@ -25,7 +25,7 @@ function purgeExpiredTickets() {
   }
 }
 
-// ─── POST /api/events/auth — emitir ticket SSE (auth por header) ──────────────
+// ─── POST /api/deposito/events/auth — emitir ticket SSE (auth por header) ────
 
 router.post('/auth', authenticate, requirePermission('deposito', 'eventos.stream'), async (req: Request, res: Response): Promise<void> => {
   const ticketId = randomUUID()
@@ -41,7 +41,7 @@ router.post('/auth', authenticate, requirePermission('deposito', 'eventos.stream
   res.json({ ticket: ticketId })
 })
 
-// ─── GET /api/events?ticket=xxx — conexión SSE ────────────────────────────────
+// ─── GET /api/deposito/events?ticket=xxx — conexión SSE ───────────────────────
 
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   const ticketId = typeof req.query['ticket'] === 'string' ? req.query['ticket'] : undefined

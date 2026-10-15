@@ -97,6 +97,31 @@ describe('ActasPage', () => {
     expect(csv).toContain('"ETIQUETA OLIFAMISOL 500 ML";"Etiqueta";"Ecuador";"3508";"300 uds"')
   })
 
+  it('shows auxiliary materials by their product name without a category prefix', async () => {
+    vi.mocked(api.get).mockResolvedValue([
+      createActaListItem({
+        items: [{
+          id: 'aux-1', lote: '3515', categoria: 'material_empaque', productoNombre: 'TAPA VERDE',
+          cantidadIngresada: 30000, cantidadDistribuida: 0, mercado: null,
+          temperaturaTransporte: null, condicionEmbalaje: null, observacionesCalidad: null, aprobadoCalidad: false,
+        }],
+      }),
+    ])
+    render(<MemoryRouter><ActasPage /></MemoryRouter>)
+
+    expect(await screen.findByText('TAPA VERDE')).toBeInTheDocument()
+    expect(screen.queryByText('MATERIAL AUXILIAR TAPA VERDE')).not.toBeInTheDocument()
+
+    expect(buildActasCsv([{
+      id: 'aux-1', fecha: '2026-10-13T00:00:00.000Z', userName: 'Administrador',
+      item: {
+        id: 'aux-1', lote: '3515', categoria: 'material_empaque', productoNombre: 'TAPA VERDE',
+        cantidadIngresada: 30000, cantidadDistribuida: 0, mercado: null,
+        temperaturaTransporte: null, condicionEmbalaje: null, observacionesCalidad: null, aprobadoCalidad: false,
+      },
+    }])).toContain('"TAPA VERDE";"Material auxiliar";"";"3515";"30000 uds"')
+  })
+
   it('uses compact market badges and keeps Argentina, Colombia, and México in that filter order', async () => {
     vi.mocked(api.get).mockResolvedValue(['argentina', 'colombia', 'mexico'].map((mercado, index) => createActaListItem({
       id: `acta-${mercado}`,

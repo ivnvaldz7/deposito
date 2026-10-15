@@ -81,10 +81,8 @@ describe('ActaNuevaPage', () => {
   it('renders the form with all required fields', async () => {
     render(<ActaNuevaPage />)
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Ingreso')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Volver a actas' })).toBeInTheDocument()
     })
-
-    expect(screen.getByRole('heading', { name: 'Nuevo Ingreso' })).toBeInTheDocument()
 
     // Toggle buttons
     expect(screen.getByText('Materia Prima')).toBeInTheDocument()
@@ -306,6 +304,16 @@ describe('ActaNuevaPage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/deposito/actas')
   })
 
+  it('navigates back on Escape outside native selects', async () => {
+    render(<ActaNuevaPage />)
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Volver a actas' })).toBeInTheDocument()
+    })
+
+    fireEvent.keyDown(window, { key: 'Escape' })
+    expect(mockNavigate).toHaveBeenCalledWith('/deposito/actas')
+  })
+
   it('requires encargado role to show the form', async () => {
     ;(useAuthStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
       user: createMockUser({ apps: { deposito: { rol: 'observador', activo: true } } }),
@@ -313,10 +321,9 @@ describe('ActaNuevaPage', () => {
     })
 
     render(<ActaNuevaPage />)
-    // The form should still render but the "Registrar ingreso" button should be present
-    // (role check happens server-side via requireRole middleware)
+    // The form should still render; role authorization is enforced by the server.
     await waitFor(() => {
-      expect(screen.getByText('Nuevo Ingreso')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Registrar ingreso' })).toBeInTheDocument()
     })
   })
 

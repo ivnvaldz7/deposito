@@ -52,6 +52,10 @@ interface MercadoInventoryOperations<TRecord extends MercadoInventoryRecord, TWh
   findMany: (args: { where: TWhereInput; orderBy: MercadoInventoryOrderBy }) => Promise<TRecord[]>
   findByComposite: (articulo: string, mercado: Mercado) => Promise<TRecord | null>
   findById: (id: string) => Promise<TRecord | null>
+  /** Resuelve el id temporal que mostraban versiones anteriores del cliente. */
+  findByProductoMercado?: (productoId: string, mercado: Mercado) => Promise<TRecord | null>
+  /** Compatibilidad para clientes anteriores que no enviaban el mercado. */
+  findByProductoUnico?: (productoId: string) => Promise<TRecord | null>
   findConflict: (articulo: string, mercado: Mercado, id: string) => Promise<TRecord | null>
   create: (data: CrearMercadoInventoryData) => Promise<TRecord>
   update: (id: string, data: Partial<CrearMercadoInventoryData>) => Promise<TRecord>
@@ -73,6 +77,8 @@ interface RegisterMercadoInventoryRoutesOptions<TRecord extends MercadoInventory
     read: DepositoPermission
     manage: DepositoPermission
   }
+  /** Runs only after a successful inventory mutation has committed. */
+  afterMutation?: () => Promise<void>
 }
 
 export function parseCrearMercadoInventoryBody(body: unknown) {
@@ -132,6 +138,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
   operations,
   messages,
   permissions,
+  afterMutation,
 }: RegisterMercadoInventoryRoutesOptions<TRecord, TWhereInput>) {
   router.get('/', authenticate, requirePermission('deposito', permissions.read), async (req, res): Promise<void> => {
     const mercadoValue = resolveMercadoQuery(req.query['mercado'])
@@ -164,6 +171,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
 
       const item = await operations.create({ articulo, mercado, cantidad })
       res.status(201).json(item)
+      void afterMutation?.()
     } catch {
       res.status(500).json({ message: 'Error interno del servidor' })
     }
@@ -178,7 +186,16 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     }
 
     try {
-      const resolution = await resolveMercadoInventoryUpdate(operations, id, result.data)
+      let resolution = await resolveMercadoInventoryUpdate(operations, id, result.data)
+      if (!resolution.existing && (operations.findByProductoMercado || operations.findByProductoUnico)) {
+        // Antes de que existiera una fila de inventario el cliente usaba el id
+        // del producto (o producto:mercado) como identificador temporal.
+        const productoId = id.split(':', 1)[0]
+        const existing = result.data.mercado && operations.findByProductoMercado
+          ? await operations.findByProductoMercado(productoId, result.data.mercado)
+          : await operations.findByProductoUnico?.(productoId)
+        if (existing) resolution = { existing, hasConflict: false }
+      }
       if (!resolution.existing) {
         res.status(404).json({ message: messages.notFound })
         return
@@ -194,8 +211,9 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
         return
       }
 
-      const item = await operations.update(id, buildMercadoInventoryUpdateData(result.data))
+      const item = await operations.update(resolution.existing.id, buildMercadoInventoryUpdateData(result.data))
       res.json(item)
+      void afterMutation?.()
     } catch {
       res.status(404).json({ message: messages.notFound })
     }
@@ -206,6 +224,7 @@ export function registerMercadoInventoryRoutes<TRecord extends MercadoInventoryR
     try {
       await operations.delete(id)
       res.status(204).send()
+      void afterMutation?.()
     } catch {
       res.status(404).json({ message: messages.notFound })
     }

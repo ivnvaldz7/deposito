@@ -25,11 +25,12 @@ export function useEtiquetas() {
     queryFn: async () => {
       const [inventario, catalogo] = await Promise.all([api.get<Etiqueta[]>('/etiquetas'), fetchCatalogoProductos('etiqueta')])
       const stockMinimoByProduct = new Map(catalogo.map((product) => [product.id, product.stockMinimo ?? null]))
-      const existing = new Set(inventario.map((row) => `${row.productoId}:${row.mercado}`))
-      return [
-        ...inventario.map((row) => ({ ...row, stockMinimo: row.productoId ? stockMinimoByProduct.get(row.productoId) ?? row.stockMinimo ?? null : row.stockMinimo ?? null })),
-        ...catalogo.flatMap((p) => (p.mercadosHabilitados ?? (p.mercado ? [p.mercado] : [])).filter((mercado) => !existing.has(`${p.id}:${mercado}`)).map((mercado) => ({ id: `${p.id}:${mercado}`, productoId: p.id, articulo: p.nombreCompleto, mercado, cantidad: 0, updatedAt: new Date().toISOString(), stockMinimo: p.stockMinimo ?? null }))),
-      ]
+      return inventario.map((row) => ({
+        ...row,
+        stockMinimo: row.productoId
+          ? stockMinimoByProduct.get(row.productoId) ?? row.stockMinimo ?? null
+          : row.stockMinimo ?? null,
+      }))
     },
   })
 }

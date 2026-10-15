@@ -53,7 +53,10 @@ describe('Sidebar', () => {
     mockRol('vendedor', logoutMock)
     renderSidebar()
 
-    const changeModuleBtn = screen.getByRole('button', { name: 'Cambiar módulo' })
+    fireEvent.click(screen.getByRole('button', { name: 'Más opciones' }))
+    const changeModuleBtn = screen.getAllByRole('button', { name: 'Cambiar módulo' }).at(-1)
+    expect(changeModuleBtn).toBeDefined()
+    if (!changeModuleBtn) throw new Error('No se encontró la acción móvil para cambiar módulo')
     fireEvent.click(changeModuleBtn)
 
     expect(logoutMock).not.toHaveBeenCalled()

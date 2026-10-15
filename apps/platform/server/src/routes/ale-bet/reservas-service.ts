@@ -138,6 +138,7 @@ export async function reserveSelectedLots(
   pedidoId: string,
   items: ReservationInput,
   selections: LotSelectionInput,
+  options: { allowPartial?: boolean } = {},
 ): Promise<void> {
   const depositoId = await getDepositoLocationId(tx)
   const itemsById = new Map(items.map((item) => [item.id, item]))
@@ -159,7 +160,7 @@ export async function reserveSelectedLots(
   for (const item of items) {
     const chosen = selectedByItem.get(item.id) ?? []
     const selectedTotal = chosen.reduce((total, entry) => total + entry.cantidad, 0)
-    if (selectedTotal !== item.cantidad) {
+    if (selectedTotal > item.cantidad || (!options.allowPartial && selectedTotal !== item.cantidad)) {
       throw new StockConflictError(`La selección de lotes debe completar exactamente ${item.cantidad} unidades para cada producto`)
     }
   }

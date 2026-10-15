@@ -7,6 +7,13 @@ export type DrugStatus =
   | 'vencido'
   | 'sin_informacion'
 
+export type DrugExpiryStatus =
+  | 'vigente'
+  | 'proximo_a_vencer'
+  | 'vence_hoy'
+  | 'vencido'
+  | 'sin_vencimiento'
+
 export interface DrugLotDates {
   vencimiento: string | null
   reanalisis?: string | null
@@ -21,6 +28,27 @@ function utcCalendarDay(value: Date): number {
 function storedCalendarDay(value: string): number | null {
   const parsed = new Date(value)
   return Number.isNaN(parsed.getTime()) ? null : utcCalendarDay(parsed)
+}
+
+export function getDrugExpiryStatus(vencimiento: string | null | undefined, todayDate: Date = new Date()): DrugExpiryStatus {
+  if (!vencimiento) return 'sin_vencimiento'
+  const expiryDay = storedCalendarDay(vencimiento)
+  if (expiryDay === null) return 'sin_vencimiento'
+  const daysToExpiry = Math.round((expiryDay - utcCalendarDay(todayDate)) / (1000 * 60 * 60 * 24))
+  if (daysToExpiry < 0) return 'vencido'
+  if (daysToExpiry === 0) return 'vence_hoy'
+  if (daysToExpiry <= 90) return 'proximo_a_vencer'
+  return 'vigente'
+}
+
+export function getDrugExpiryStatusDescription(status: DrugExpiryStatus): string {
+  switch (status) {
+    case 'vigente': return 'La fecha de vencimiento registrada sigue vigente.'
+    case 'proximo_a_vencer': return 'El lote vence dentro de los próximos 90 días.'
+    case 'vence_hoy': return 'El lote vence hoy.'
+    case 'vencido': return 'La fecha de vencimiento registrada ya fue superada.'
+    case 'sin_vencimiento': return 'No hay fecha de vencimiento registrada para este lote.'
+  }
 }
 
 export function getDrugLotStatus(dates: DrugLotDates, todayDate: Date = new Date()): DrugStatus {

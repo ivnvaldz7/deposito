@@ -299,7 +299,7 @@ describe('Estuches', () => {
       expect(res.body.message).toBe('Ya existe ese artículo para ese mercado')
     })
 
-    it('bloquea la edición directa de cantidad para inventario producto-linked con movimientos', async () => {
+    it('permite ajustar la cantidad de inventario producto-linked con movimientos', async () => {
       const created = await crearEstuche('IMPORTADO', 'argentina', 10)
       created.productoId = 'producto-importado'
       prismaMock.state.productosConMovimiento.add('producto-importado')
@@ -309,9 +309,8 @@ describe('Estuches', () => {
         .set('x-test-role', 'encargado')
         .send({ cantidad: 20 })
 
-      expect(res.status).toBe(409)
-      expect(res.body.message).toBe('La cantidad de un estuche con movimientos solo puede cambiar mediante un ingreso o ajuste auditado')
-      expect(created.cantidad).toBe(10)
+      expect(res.status).toBe(200)
+      expect(res.body.cantidad).toBe(20)
     })
   })
 

@@ -10,6 +10,7 @@ import { generarLote } from '../lib/lote-generator'
 import { validateIngresoCatalogo } from '../services/ingreso-catalogo-rules'
 import { addDrugLotInventory, DrugLotConflictError } from '../services/droga-inventory-service'
 import { ExpiryMonthValidationError, parseExpiryMonth } from '../services/expiry-month'
+import { syncDepositoStockSheetsAfterCommit } from '../services/stock-sheets-projection'
 
 const router = Router()
 const mercados = Object.values(Mercado) as [Mercado, ...Mercado[]]
@@ -115,11 +116,15 @@ router.post('/', authenticate, requirePermission('deposito', 'ingresos.create'),
     const { acta, item } = created
     sseManager.broadcastGlobal({ tipo: 'ingreso_creado', mensaje: `Nuevo ingreso de ${producto.nombreCompleto} por ${currentUser.name}`, datos: { actaId: acta.id, fecha: data.fecha, producto: producto.nombreCompleto, cantidad }, timestamp: new Date().toISOString() })
     eventBus.emit({ app: 'deposito', tipo: 'ingreso_creado', titulo: 'Ingreso registrado', mensaje: `${producto.nombreCompleto} — ${cantidad} uds — ${currentUser.name}`, link: `/deposito/actas/${acta.id}`, timestamp: new Date().toISOString() })
+    if (producto.categoria === 'estuche' || producto.categoria === 'etiqueta' || producto.categoria === 'frasco') {
+      void syncDepositoStockSheetsAfterCommit()
+    }
     res.status(201).json({
       ...acta,
-      etiquetaCuarentena: producto.categoria === 'droga'
-        ? { itemId: item.id, producto: producto.nombreCompleto, lote: loteFinal, fecha: data.fecha }
-        : null,
+      // La misma etiqueta de ingreso se ofrece para cualquier insumo recibido.
+      // El lote siempre existe aquí: lo informa el operador o se genera al crear
+      // el ingreso, por lo que el diseño de cuarentena puede reutilizarse.
+      etiquetaCuarentena: { itemId: item.id, producto: producto.nombreCompleto, lote: loteFinal, fecha: data.fecha },
     })
   } catch (error) {
     console.error(error)

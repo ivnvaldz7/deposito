@@ -1,43 +1,80 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import Fuse from 'fuse.js'
 import { Command } from 'cmdk'
-import { Search, Clock, Eye, FilePlus, History, FlaskConical, Package, Tag, Box, BarChart2, FileDown, ExternalLink } from 'lucide-react'
+import { Search, Clock, Eye, FilePlus, History, FlaskConical, Package, Tag, Box, BarChart2, FileDown, ExternalLink, CornerDownLeft, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
 import { api } from '../../lib/api'
 import { compareProductsByNaturalPresentation, sortProductsByNaturalPresentation } from '@/lib/natural-product-order'
+import { formatMercadoLabel, type Mercado } from '../inventory-shared/mercados'
 
 const BASE_URL = import.meta.env.VITE_API_URL || ''
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Droga {
+interface CatalogProduct {
   id: string
   nombreCompleto: string
-  categoria: 'droga'
+  categoria: 'droga' | 'estuche' | 'etiqueta' | 'frasco'
+  mercadosHabilitados?: Mercado[]
 }
 
-interface Estuche {
-  id: string
-  nombreCompleto: string
-  categoria: 'estuche'
+const PRODUCT_CATEGORY_CONFIG: Record<CatalogProduct['categoria'], { label: string; className: string }> = {
+  droga: { label: 'Droga', className: 'border-amber-400/25 bg-amber-500/15 text-amber-100' },
+  estuche: { label: 'Estuche', className: 'border-primary/30 bg-primary-container/30 text-primary' },
+  etiqueta: { label: 'Etiqueta', className: 'border-violet-400/25 bg-violet-500/15 text-violet-200' },
+  frasco: { label: 'Frasco', className: 'border-sky-400/25 bg-sky-500/15 text-sky-200' },
 }
 
-interface Etiqueta {
-  id: string
-  nombreCompleto: string
-  categoria: 'etiqueta'
+function formatProductName(productName: string): string {
+  return productName.replace(/\bcm3\b/gi, 'cm³').replace(/cm³/gi, 'cm³')
 }
 
-interface Frasco {
-  id: string
-  nombreCompleto: string
-  categoria: 'frasco'
+function normalizeSearchText(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-AR').trim()
 }
 
-type CatalogProduct = Droga | Estuche | Etiqueta | Frasco
+function productMatchesQuery(product: CatalogProduct, query: string): boolean {
+  const terms = normalizeSearchText(query).split(/\s+/).filter(Boolean)
+  if (terms.length === 0) return false
+  const searchableText = normalizeSearchText([
+    product.nombreCompleto,
+    product.categoria,
+    PRODUCT_CATEGORY_CONFIG[product.categoria].label,
+    ...(product.mercadosHabilitados ?? []).map(formatMercadoLabel),
+  ].join(' '))
+  return terms.every((term) => searchableText.includes(term))
+}
+
+function ProductIcon({ categoria }: { categoria: CatalogProduct['categoria'] }) {
+  const props = { size: 16, strokeWidth: 1.8, 'aria-hidden': true }
+  if (categoria === 'estuche') return <Package {...props} />
+  if (categoria === 'etiqueta') return <Tag {...props} />
+  if (categoria === 'frasco') return <Box {...props} />
+  return <FlaskConical {...props} />
+}
+
+function ProductMetadata({ product }: { product: CatalogProduct }) {
+  const category = PRODUCT_CATEGORY_CONFIG[product.categoria]
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      <span className={`inline-flex rounded-md border px-1.5 py-0.5 font-body text-[10px] font-semibold uppercase tracking-wide ${category.className}`}>
+        {category.label}
+      </span>
+      {(product.mercadosHabilitados ?? []).map((mercado) => (
+        <span
+          key={mercado}
+          aria-label={formatMercadoLabel(mercado)}
+          title={formatMercadoLabel(mercado)}
+          className="inline-flex rounded-md border border-outline-variant/50 bg-surface-container-high px-1.5 py-0.5 font-body text-[10px] font-medium text-on-surface-variant"
+        >
+          {formatMercadoLabel(mercado)}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 // ─── Metrics query parser ─────────────────────────────────────────────────────
 
@@ -130,6 +167,7 @@ interface Action {
   label: string
   description: string
   icon: React.ReactNode
+  product?: CatalogProduct
   onSelect: () => void
 }
 
@@ -146,17 +184,13 @@ export function CommandPalette() {
   const [metricResult, setMetricResult] = useState<MetricQueryResult | null>(null)
   const [isLoadingMetrics, setIsLoadingMetrics] = useState(false)
 
-  const fuseRef = useRef<Fuse<CatalogProduct>>(
-    new Fuse<CatalogProduct>([], { keys: ['nombreCompleto'], threshold: 0.4 })
-  )
-
   useEffect(() => {
     if (!token) return
     Promise.all([
-      api.get<Droga[]>('/productos?categoria=droga'),
-      api.get<Estuche[]>('/productos?categoria=estuche'),
-      api.get<Etiqueta[]>('/productos?categoria=etiqueta'),
-      api.get<Frasco[]>('/productos?categoria=frasco'),
+      api.get<CatalogProduct[]>('/productos?categoria=droga'),
+      api.get<CatalogProduct[]>('/productos?categoria=estuche'),
+      api.get<CatalogProduct[]>('/productos?categoria=etiqueta'),
+      api.get<CatalogProduct[]>('/productos?categoria=frasco'),
     ])
       .then(([drogas, estuches, etiquetas, frascos]) => {
         const all = sortProductsByNaturalPresentation(
@@ -164,7 +198,6 @@ export function CommandPalette() {
           (producto) => producto.nombreCompleto,
         )
         setProducts(all)
-        fuseRef.current = new Fuse(all, { keys: ['nombreCompleto'], threshold: 0.4 })
       })
       .catch(() => {/* silencioso */})
   }, [token])
@@ -196,16 +229,11 @@ export function CommandPalette() {
 
   const productActions = useMemo((): Action[] => {
     if (!query.trim()) return []
-    const fused = fuseRef.current
-      .search(query)
-      .sort((a, b) => compareProductsByNaturalPresentation(a.item.nombreCompleto, b.item.nombreCompleto))
+    const matchingProducts = products
+      .filter((product) => productMatchesQuery(product, query))
+      .sort((a, b) => compareProductsByNaturalPresentation(a.nombreCompleto, b.nombreCompleto))
       .slice(0, 8)
-    return fused.map((r) => {
-      const p = r.item
-      let icon = <FlaskConical size={14} strokeWidth={1.5} />
-      if (p.categoria === 'estuche') icon = <Package size={14} strokeWidth={1.5} />
-      else if (p.categoria === 'etiqueta') icon = <Tag size={14} strokeWidth={1.5} />
-      else if (p.categoria === 'frasco') icon = <Box size={14} strokeWidth={1.5} />
+    return matchingProducts.map((p) => {
 
       const routes: Record<string, string> = {
         droga: '/deposito/drogas',
@@ -216,9 +244,10 @@ export function CommandPalette() {
 
       return {
         id: `producto-${p.id}`,
-        label: p.nombreCompleto,
-        description: `Ver en ${routes[p.categoria] ?? 'inventario'}`,
-        icon,
+        label: formatProductName(p.nombreCompleto),
+        description: `Abrir en ${routes[p.categoria] ?? 'inventario'}`,
+        icon: <ProductIcon categoria={p.categoria} />,
+        product: p,
         onSelect: () => {
           const base = routes[p.categoria] ?? ''
           closePalette()
@@ -227,7 +256,7 @@ export function CommandPalette() {
         },
       }
     })
-  }, [query, closePalette, navigate])
+  }, [products, query, closePalette, navigate])
 
   const metricAction = useMemo((): Action | null => {
     if (!metricResult) return null
@@ -269,24 +298,38 @@ export function CommandPalette() {
     <Command.Dialog
       open={isOpen}
       onOpenChange={(open) => { if (!open) closePalette() }}
-      label="Command Palette"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+      label="Buscador rápido"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/65 px-3 pt-[8vh] backdrop-blur-sm animate-backdrop-in sm:px-6 sm:pt-[12vh]"
     >
-      <div className="relative w-full max-w-xl" onClick={(e) => e.stopPropagation()}>
-        <Command shouldFilter={false} className="flex flex-col rounded-xl shadow-2xl bg-surface">
-          <div className="flex items-center gap-3 px-4 border-b border-outline-variant/15">
-            <Search size={16} strokeWidth={1.5} style={{ color: 'var(--color-on-surface-variant)' }} />
-            <Command.Input
-              ref={inputRef}
-              value={query}
-              onValueChange={setQuery}
-              placeholder="Buscá productos, navegá secciones, consultá métricas…"
-              className="w-full bg-transparent border-none outline-none py-3.5 font-body text-sm text-on-surface placeholder:text-on-surface-variant/60"
-            />
+      <div className="relative w-full max-w-2xl" onClick={(e) => e.stopPropagation()}>
+        <Command shouldFilter={false} className="flex max-h-[78vh] flex-col overflow-hidden rounded-2xl border border-outline-variant/60 bg-surface-container-low shadow-float animate-dialog-in">
+          <div className="border-b border-outline-variant/35 bg-surface-container px-4 py-3 sm:px-5">
+            <div className="flex items-center gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-primary/25 bg-primary-container/25 text-primary">
+                <Search size={17} strokeWidth={2} aria-hidden="true" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="mb-0.5 font-body text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">Acceso rápido</p>
+                <Command.Input
+                  ref={inputRef}
+                  value={query}
+                  onValueChange={setQuery}
+                  placeholder="Buscá productos, países o categorías…"
+                  className="w-full bg-transparent border-none outline-none font-body text-sm text-on-surface placeholder:text-on-surface-variant/70"
+                />
+              </div>
+              {query ? (
+                <button type="button" onClick={() => setQuery('')} className="rounded-md p-1.5 text-on-surface-variant transition-colors hover:bg-surface-container-high hover:text-on-surface" aria-label="Limpiar búsqueda">
+                  <X size={16} aria-hidden="true" />
+                </button>
+              ) : (
+                <kbd className="hidden rounded-md border border-outline-variant/50 bg-surface-container-low px-2 py-1 font-mono text-[10px] text-on-surface-variant sm:inline">Shift K</kbd>
+              )}
+            </div>
+            <p className="mt-2 pl-12 font-body text-xs text-on-surface-variant">Escribí todas las palabras que buscás para acotar variantes y presentaciones.</p>
           </div>
 
-          <Command.List className="max-h-72 overflow-y-auto px-2 py-2 space-y-0.5">
+          <Command.List className="min-h-0 flex-1 overflow-y-auto p-2 sm:p-3">
             {allActions.length === 0 && query.trim() && !isLoadingMetrics && (
               <div className="px-3 py-6 text-center">
                 <p className="font-body text-sm text-on-surface-variant">
@@ -302,11 +345,11 @@ export function CommandPalette() {
             )}
 
             {metricAction && (
-              <Command.Group heading="Métricas">
+              <Command.Group heading="Métricas" className="mb-3">
                 <Command.Item
                   value={metricAction.id}
                   onSelect={metricAction.onSelect}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer text-sm"
+                  className="flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-sm transition-all duration-200 hover:bg-surface-container-high data-[selected=true]:border-primary/35 data-[selected=true]:bg-primary-container/20"
                 >
                   {metricAction.icon}
                   <div className="flex-1 min-w-0">
@@ -319,19 +362,22 @@ export function CommandPalette() {
             )}
 
             {productActions.length > 0 && (
-              <Command.Group heading="Productos">
+              <Command.Group heading={`Productos · ${productActions.length}`} className="mb-3">
                 {productActions.map((action) => (
                   <Command.Item
                     key={action.id}
                     value={action.id}
                     onSelect={action.onSelect}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer text-sm"
+                    className="group flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-sm transition-all duration-200 hover:bg-surface-container-high data-[selected=true]:translate-x-0.5 data-[selected=true]:border-primary/35 data-[selected=true]:bg-primary-container/20"
                   >
-                    {action.icon}
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg border border-outline-variant/45 bg-surface-container-high text-primary transition-transform duration-200 group-data-[selected=true]:scale-105">
+                      {action.icon}
+                    </span>
                     <div className="flex-1 min-w-0">
-                      <p className="font-body text-on-surface">{action.label}</p>
-                      <p className="font-body text-xs text-on-surface-variant truncate">{action.description}</p>
+                      <p className="font-body font-semibold text-on-surface">{action.label}</p>
+                      {action.product && <ProductMetadata product={action.product} />}
                     </div>
+                    <kbd className="hidden shrink-0 items-center gap-1 rounded-md border border-outline-variant/50 bg-surface-container-low px-1.5 py-1 font-mono text-[10px] text-on-surface-variant transition-colors group-data-[selected=true]:border-primary/40 group-data-[selected=true]:text-primary sm:inline-flex"><CornerDownLeft size={11} aria-hidden="true" /> Abrir</kbd>
                   </Command.Item>
                 ))}
               </Command.Group>
@@ -343,7 +389,7 @@ export function CommandPalette() {
                   key={action.id}
                   value={action.id}
                   onSelect={action.onSelect}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded cursor-pointer text-sm"
+                className="flex cursor-pointer items-center gap-3 rounded-xl border border-transparent px-3 py-3 text-sm transition-all duration-200 hover:bg-surface-container-high data-[selected=true]:border-primary/35 data-[selected=true]:bg-primary-container/20"
                 >
                   {action.icon}
                   <div className="flex-1 min-w-0">
@@ -355,6 +401,10 @@ export function CommandPalette() {
             </Command.Group>}
 
           </Command.List>
+          <footer aria-label="Atajos del buscador" className="flex items-center justify-between gap-3 border-t border-outline-variant/30 bg-surface-container-low px-4 py-2.5 font-body text-[11px] text-on-surface-variant sm:px-5">
+            <span className="truncate">{query ? `${productActions.length} ${productActions.length === 1 ? 'producto encontrado' : 'productos encontrados'}` : 'Productos, secciones y métricas'}</span>
+            <span className="hidden shrink-0 items-center gap-2 sm:flex"><kbd className="rounded border border-outline-variant/45 px-1 py-0.5 font-mono">↑↓</kbd> navegar <kbd className="rounded border border-outline-variant/45 px-1 py-0.5 font-mono">Enter</kbd> abrir <kbd className="rounded border border-outline-variant/45 px-1 py-0.5 font-mono">Esc</kbd> cerrar</span>
+          </footer>
         </Command>
       </div>
     </Command.Dialog>,

@@ -9,7 +9,19 @@ Element.prototype.scrollIntoView = vi.fn()
 
 vi.mock('@/stores/auth-store', () => ({ useAuthStore: (selector: (s: object) => unknown) => selector({ user: {}, token: 'token' }) }))
 vi.mock('../../../stores/command-palette-store', () => ({ useCommandPaletteStore: () => ({ isOpen: true, closePalette: vi.fn() }) }))
-vi.mock('../../../lib/api', () => ({ api: { get: vi.fn((path: string) => Promise.resolve(path.includes('categoria=droga') ? [{ id: 'p1', nombreCompleto: 'Aspirina', categoria: 'droga' }] : [])) } }))
+vi.mock('../../../lib/api', () => ({
+  api: {
+    get: vi.fn((path: string) => Promise.resolve(
+      path.includes('categoria=droga')
+        ? [{ id: 'p1', nombreCompleto: 'Aspirina', categoria: 'droga' }]
+        : path.includes('categoria=estuche')
+          ? [{ id: 'p2', nombreCompleto: 'AMANTINA PREMIUM 100 ML', categoria: 'estuche', mercadosHabilitados: ['argentina', 'VENEZUELA'] }]
+          : path.includes('categoria=etiqueta')
+            ? [{ id: 'p3', nombreCompleto: 'AMANTINA 250 ML', categoria: 'etiqueta', mercadosHabilitados: ['argentina'] }]
+            : [],
+    )),
+  },
+}))
 
 function Location() { const location = useLocation(); return <output data-testid="location">{location.pathname}{location.search}</output> }
 
@@ -28,5 +40,17 @@ describe('CommandPalette', () => {
     fireEvent.change(screen.getByPlaceholderText(/Buscá productos/), { target: { value: 'zzzz-no-result' } })
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
     expect(await screen.findByText(/Sin resultados para/)).toBeInTheDocument()
+  })
+
+  it('requires every typed term and identifies the product category and markets', async () => {
+    render(<MemoryRouter><CommandPalette /></MemoryRouter>)
+    fireEvent.change(screen.getByPlaceholderText(/Buscá productos/), { target: { value: 'amantina premium' } })
+
+    expect(await screen.findByText('AMANTINA PREMIUM 100 ML')).toBeInTheDocument()
+    expect(screen.queryByText('AMANTINA 250 ML')).not.toBeInTheDocument()
+    expect(screen.getByText('Estuche')).toBeInTheDocument()
+    expect(screen.getByLabelText('Argentina')).toBeInTheDocument()
+    expect(screen.getByLabelText('Venezuela')).toBeInTheDocument()
+    expect(screen.getByLabelText('Atajos del buscador')).toHaveTextContent('Enter')
   })
 })

@@ -18,6 +18,7 @@ import {
   type EstadoPendiente,
 } from '../queries'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
+import { LoadingState } from '../components/inventory-shared/inventory-states'
 import {
   Dialog,
   DialogContent,
@@ -722,11 +723,7 @@ export default function PendientesPage() {
         />
       ) : null}
 
-      {isLoading ? (
-        <div className="flex h-48 items-center justify-center">
-          <p className="font-body text-sm text-on-surface-variant">Cargando...</p>
-        </div>
-      ) : error ? (
+      {isLoading ? <LoadingState /> : error ? (
         <div className="flex h-48 items-center justify-center">
           <p className="font-body text-sm text-warning">{error instanceof Error ? error.message : 'Error'}</p>
         </div>

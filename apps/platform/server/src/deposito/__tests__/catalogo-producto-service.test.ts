@@ -153,6 +153,40 @@ describe('catalogo product rules', () => {
     expect(created).toEqual([{ nombreCompleto: 'OLIVITASAN PREMIUM 250 ML' }])
   })
 
+  it('keeps the unit selected for a manually created one-litre label', async () => {
+    const created: Array<{ nombreCompleto: string; unidad: string | null }> = []
+    const tx = {
+      depositoProducto: {
+        create: async ({ data }: { data: { nombreCompleto: string; unidad: string | null; mercadosHabilitados: string[] } }) => {
+          created.push({ nombreCompleto: data.nombreCompleto, unidad: data.unidad })
+          return { id: 'nuevo-1l', ...data, estado: 'ACTIVO', activo: true, origen: 'MANUAL', categoria: 'etiqueta', codigo: 'IGET001' }
+        },
+      },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }) },
+      inventarioEstuche: { createMany: async () => ({ count: 0 }) },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    await service.createManual({
+      nombreBase: 'AMINOÁCIDOS',
+      nombreCompleto: 'AMINOÁCIDOS',
+      categoria: 'etiqueta',
+      codigo: 'IGET001',
+      presentacion: 1,
+      unidad: 'L',
+      mercadosHabilitados: ['argentina'],
+    }, 'enc-1')
+
+    expect(created).toEqual([{ nombreCompleto: 'AMINOÁCIDOS 1 L', unidad: 'L' }])
+  })
+
+  it('allows cm³ only for labels exclusively assigned to Venezuela', () => {
+    expect(() => validateCatalogoInput({ categoria: 'etiqueta', presentacion: 1, unidad: 'CM3', mercadosHabilitados: ['VENEZUELA'] })).not.toThrow()
+    expect(() => validateCatalogoInput({ categoria: 'etiqueta', presentacion: 1, unidad: 'CM3', mercadosHabilitados: ['argentina'] })).toThrow('Venezuela')
+  })
+
   it('rejects a PATCH that omits or clears the code of a pending etiqueta/estuche', async () => {
     const producto = {
       id: 'pendiente-1',
@@ -213,6 +247,7 @@ describe('catalogo product rules', () => {
           return { ...producto, ...data }
         },
       },
+      inventarioEtiqueta: { createMany: async () => ({ count: 0 }) },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
     const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
@@ -221,6 +256,70 @@ describe('catalogo product rules', () => {
     await expect(service.update('activo-1', { nombreCompleto: 'ETIQUETA ACTIVA 2' }, 'enc-1'))
       .resolves.toMatchObject({ codigo: 'IGET-001' })
     expect(updates[0]).not.toHaveProperty('codigo')
+  })
+
+  it('allows an active label to add markets and seeds their stock rows', async () => {
+    const seeded: unknown[] = []
+    const producto = {
+      id: 'etiqueta-activa-1', estado: 'ACTIVO', activo: true, origen: 'MANUAL',
+      categoria: 'etiqueta' as const, codigo: 'IGET-001', presentacion: 500,
+      mercadosHabilitados: ['argentina'] as string[], nombreBase: 'ETIQUETA',
+      nombreCompleto: 'ETIQUETA 500 ML', volumen: null, unidad: null, variante: null,
+    }
+    const tx = {
+      depositoProducto: {
+        findUnique: async () => producto,
+        update: async ({ data }: { data: Record<string, unknown> }) => ({ ...producto, ...data }),
+      },
+      inventarioEtiqueta: { createMany: async ({ data }: { data: unknown[] }) => { seeded.push(...data); return { count: data.length } } },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    await expect(service.update('etiqueta-activa-1', { mercadosHabilitados: ['argentina', 'colombia'] }, 'enc-1'))
+      .resolves.toMatchObject({ mercadosHabilitados: ['argentina', 'colombia'] })
+    expect(seeded).toEqual(expect.arrayContaining([
+      expect.objectContaining({ productoId: 'etiqueta-activa-1', mercado: 'colombia', cantidad: 0 }),
+    ]))
+  })
+
+  it('corrige una MP cargada por error como material de empaque y conserva su saldo', async () => {
+    const producto = {
+      id: 'sticker-bolivia', estado: 'ACTIVO', activo: true, origen: 'MANUAL',
+      categoria: 'droga' as const, codigo: null, presentacion: null,
+      mercadosHabilitados: [] as string[], nombreBase: 'STICKER BOLIVIA',
+      nombreCompleto: 'STICKER BOLIVIA', volumen: null, unidad: null, variante: null,
+    }
+    const upsert = vi.fn().mockResolvedValue({ id: 'material-1' })
+    const deleteMany = vi.fn().mockResolvedValue({ count: 2 })
+    const update = vi.fn().mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({ ...producto, ...data }))
+    const tx = {
+      depositoProducto: { findUnique: async () => producto, update },
+      inventarioDroga: {
+        findMany: async () => [{ id: 'lote-1', cantidad: 120 }, { id: 'lote-2', cantidad: 80 }],
+        deleteMany,
+      },
+      inventarioMaterialEmpaque: { upsert, createMany: async () => ({ count: 0 }) },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+
+    await expect(service.update(producto.id, { categoria: 'material_empaque' }, 'enc-1'))
+      .resolves.toMatchObject({ categoria: 'material_empaque' })
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { productoId: producto.id },
+      create: { productoId: producto.id, articulo: producto.nombreCompleto, cantidad: 200 },
+    }))
+    expect(deleteMany).toHaveBeenCalledWith({ where: { productoId: producto.id } })
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ categoria: 'material_empaque' }) }))
+  })
+
+  it('does not allow removing a market from an active label', () => {
+    expect(() => validateCatalogoUpdate('ACTIVO', {
+      categoria: 'etiqueta', codigo: 'IGET-001', mercadosHabilitados: ['argentina', 'colombia'],
+    }, { mercadosHabilitados: ['argentina'] })).toThrow('mercados están bloqueados')
   })
 
   it('persists stockMinimo independently from presentation', async () => {
@@ -239,6 +338,7 @@ describe('catalogo product rules', () => {
           return { ...producto, ...data }
         },
       },
+      inventarioFrasco: { createMany: async () => ({ count: 0 }) },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
     const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }

@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import AppLayout from './components/layout/AppLayout'
+import { LoadingState } from './components/inventory-shared/inventory-states'
 import { PermissionRoute } from '@/components/guards/PermissionRoute'
 
 // Lazy-loaded pages
@@ -14,17 +15,13 @@ const ActasPage = lazy(() => import('./pages/ActasPage'))
 const ActaNuevaPage = lazy(() => import('./pages/ActaNuevaPage'))
 
 const MovimientosPage = lazy(() => import('./pages/MovimientosPage'))
-const PendientesPage = lazy(() => import('./pages/PendientesPage'))
+const ZeroxPage = lazy(() => import('./pages/ZeroxPage'))
 const OrdenesPage = lazy(() => import('./pages/OrdenesPage'))
 const UsuariosPage = lazy(() => import('./pages/UsuariosPage'))
 const ProductosPage = lazy(() => import('./pages/ProductosPage'))
 const MetricasPage = lazy(() => import('./pages/MetricasPage'))
 function LoadingFallback() {
-  return (
-    <div className="flex h-48 items-center justify-center">
-      <p className="font-body text-sm text-on-surface-variant">Cargando...</p>
-    </div>
-  )
+  return <LoadingState />
 }
 
 export default function DepositoModule() {
@@ -45,7 +42,7 @@ export default function DepositoModule() {
           <Route path="ingresos" element={<PermissionRoute app="deposito" permission="ingresos.create"><ActaNuevaPage /></PermissionRoute>} />
           <Route path="ingresos/nueva" element={<PermissionRoute app="deposito" permission="ingresos.create"><ActaNuevaPage /></PermissionRoute>} />
           <Route path="movimientos" element={<PermissionRoute app="deposito" permission="movimientos.read"><MovimientosPage /></PermissionRoute>} />
-          <Route path="pendientes" element={<PermissionRoute app="deposito" permission="pendientes.read"><PendientesPage /></PermissionRoute>} />
+          <Route path="pendientes" element={<PermissionRoute app="deposito" permission="pendientes.read"><ZeroxPage /></PermissionRoute>} />
           <Route path="ordenes" element={<PermissionRoute app="deposito" permission="ordenes.read"><OrdenesPage /></PermissionRoute>} />
           <Route path="ordenes/archivadas" element={<PermissionRoute app="deposito" permission="ordenes.read"><OrdenesPage archivadas /></PermissionRoute>} />
           <Route path="usuarios" element={<PermissionRoute app="deposito" permission="usuarios_deposito.read"><UsuariosPage /></PermissionRoute>} />

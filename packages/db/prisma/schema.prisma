@@ -561,6 +561,7 @@ model User {
   actas                         Acta[]
   movimientos                   Movimiento[]
   insumoPendientes              InsumoPendiente[]
+  zeroxMovimientos              ZeroxMovimiento[]
   ordenesComoSolicitante        OrdenProduccion[]                @relation("OrdenesComoSolicitante")
   ordenesComoAprobador          OrdenProduccion[]                @relation("OrdenesComoAprobador")
   auditoriasCatalogo            AuditoriaCatalogoProducto[]
@@ -888,6 +889,31 @@ model InsumoPendiente {
   @@schema("deposito")
 }
 
+// Libro de movimientos externo a ZEROX. No modifica inventario del depósito.
+model ZeroxMovimiento {
+  id              String   @id @default(uuid())
+  claveOperacion  String   @unique @map("clave_operacion")
+  productoId      String   @map("producto_id")
+  nombreProducto  String   @map("nombre_producto")
+  categoria       String
+  tipo            String
+  cantidad        Int
+  delta           Int
+  saldoResultante Int      @map("saldo_resultante")
+  fechaMovimiento DateTime @map("fecha_movimiento") @db.Date
+  registradoAt    DateTime @default(now()) @map("registrado_at")
+  usuarioId       String   @map("usuario_id")
+  observacion     String?
+
+  producto DepositoProducto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+  usuario  User             @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@index([productoId, registradoAt])
+  @@index([fechaMovimiento, registradoAt])
+  @@map("zerox_movimientos")
+  @@schema("deposito")
+}
+
 enum EstadoPendiente {
   en_esterilizacion
   recibido
@@ -908,6 +934,7 @@ model OrdenProduccion {
   productoNombre String      @map("producto_nombre")
   mercado        Mercado?
   cantidad       Float
+  cantidadEntregada Float   @default(0) @map("cantidad_entregada")
   urgencia       Urgencia    @default(normal)
   estado         EstadoOrden @default(solicitada)
   motivoRechazo  String?     @map("motivo_rechazo")
@@ -974,6 +1001,7 @@ model DepositoProducto {
   movimientos                   Movimiento[]
   importacionesInicialesEstuche ImportacionInicialEstucheItem[]
   itemsSolicitud                ItemSolicitud[]
+  zeroxMovimientos              ZeroxMovimiento[]
 
   @@unique([nombreCompleto, categoria, mercado])
   @@map("productos")

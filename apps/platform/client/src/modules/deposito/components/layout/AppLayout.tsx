@@ -1,7 +1,6 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
-import { Topbar } from './Topbar'
 import { CommandPalette } from '../command-palette/CommandPalette'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
 import { useSSE } from '../../hooks/use-sse'
@@ -29,14 +28,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [togglePalette])
 
-  const showGlobalActions = pathname === '/deposito/dashboard' || pathname === '/deposito/dashboard/'
-
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 md:ml-[280px]">
-        {showGlobalActions && <Topbar />}
-        <main className="flex-1 overflow-y-auto animate-fadeIn p-3 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-5 md:p-margin-desktop">
+        <main key={pathname} className="flex-1 overflow-y-auto animate-page-enter p-3 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-5 md:p-margin-desktop">
           {children}
         </main>
       </div>

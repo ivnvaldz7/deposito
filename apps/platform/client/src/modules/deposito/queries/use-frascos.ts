@@ -25,11 +25,12 @@ export function useFrascos() {
     queryFn: async () => {
       const [inventario, catalogo] = await Promise.all([api.get<Frasco[]>('/frascos'), fetchCatalogoProductos('frasco')])
       const stockMinimoByProduct = new Map(catalogo.map((product) => [product.id, product.stockMinimo ?? null]))
-      const existing = new Set(inventario.map((row) => row.productoId))
-      return [
-        ...inventario.map((row) => ({ ...row, stockMinimo: row.productoId ? stockMinimoByProduct.get(row.productoId) ?? row.stockMinimo ?? null : row.stockMinimo ?? null })),
-        ...catalogo.filter((p) => !existing.has(p.id)).map((p) => ({ id: p.id, productoId: p.id, articulo: p.nombreCompleto, unidadesPorCaja: p.presentacion ?? 1, cantidadCajas: 0, total: 0, updatedAt: new Date().toISOString(), stockMinimo: p.stockMinimo ?? null })),
-      ]
+      return inventario.map((row) => ({
+        ...row,
+        stockMinimo: row.productoId
+          ? stockMinimoByProduct.get(row.productoId) ?? row.stockMinimo ?? null
+          : row.stockMinimo ?? null,
+      }))
     },
   })
 }

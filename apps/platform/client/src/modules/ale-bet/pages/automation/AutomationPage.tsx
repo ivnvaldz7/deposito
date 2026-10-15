@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils'
 import { useAutomationAliases, useConfirmDraft, useCreateDraft, useDeleteAutomationAlias, useDraft, useUpdateDraft } from '../../queries/use-automation'
 import { useClientes, useCreateCliente, useProductos } from '../../queries'
 import { AutomationQuantityEditor } from '../../components/AutomationQuantityEditor'
-import type { Cliente } from '../../lib/api'
+import type { Cliente, PedidoDisponibilidadStock } from '../../lib/api'
+import { LotAllocationSelector } from '../../components/LotAllocationSelector'
 import { clearAutomationWork, persistAutomationWork, readAutomationWork } from './automation-work-storage'
 
 
@@ -165,6 +166,7 @@ export default function AutomationPage() {
   const [deleteAliasPrompt, setDeleteAliasPrompt] = useState<{type: 'product' | 'client', id: string, alias: string} | null>(null)
   const [confirmOrderPrompt, setConfirmOrderPrompt] = useState(false)
   const [confirmError, setConfirmError] = useState<string | null>(null)
+  const [lotSelectorOpen, setLotSelectorOpen] = useState(false)
   
   const idempotencyKeyRef = useRef<{ version: number; key: string } | null>(null)
 
@@ -299,7 +301,7 @@ export default function AutomationPage() {
   }
 
   if (draftId && draftData) {
-    const { draft, effectiveSnapshot, availability } = draftData
+    const { draft, effectiveSnapshot, availability, lotAvailability } = draftData
     const includedLines = effectiveSnapshot.lines.filter((line: any) => !isDiscardedLine(line))
     const discardedLines = effectiveSnapshot.lines.filter((line: any) => isDiscardedLine(line))
     const validLines = includedLines.filter((line: any) => isValidIncludedLine(line))
@@ -411,6 +413,7 @@ export default function AutomationPage() {
 
     const handleConfirm = async (selecciones: any, transferencias: any) => {
       setIsProcessing(true)
+      setConfirmError(null)
       try {
         if (!idempotencyKeyRef.current || idempotencyKeyRef.current.version !== draft.version) {
           idempotencyKeyRef.current = { version: draft.version, key: newIdempotencyKey() }
@@ -463,6 +466,14 @@ export default function AutomationPage() {
 
     const canConfirm = draft.estado === 'READY' && Boolean(effectiveSnapshot.customerCandidate) && needsReviewLines.length === 0 && validLines.length > 0
     const confirmTotalUnits = includedLines.reduce((acc: number, line: any) => acc + (line.quantity?.totalUnits ?? 0), 0)
+    const lotSelectionItems = Array.from(validLines.reduce((items: Map<string, { id: string; productoId: string; nombre: string; cantidad: number }>, line: any) => {
+      const product = line.productCandidate
+      const quantity = line.quantity?.totalUnits ?? 0
+      if (!product || quantity <= 0) return items
+      const current = items.get(product.productId)
+      items.set(product.productId, current ? { ...current, cantidad: current.cantidad + quantity } : { id: product.productId, productoId: product.productId, nombre: product.nombre, cantidad: quantity })
+      return items
+    }, new Map<string, { id: string; productoId: string; nombre: string; cantidad: number }>()).values()) as Array<{ id: string; productoId: string; nombre: string; cantidad: number }>
 
     return (
       <div className={cn("mx-auto max-w-4xl space-y-5 pb-[calc(env(safe-area-inset-bottom)+9.5rem)] md:space-y-6 md:pb-8", isProcessing && "pointer-events-none opacity-50")}>
@@ -764,7 +775,7 @@ export default function AutomationPage() {
               <div className="flex items-center gap-3"><div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>Procesando pedido...</div>
             ) : (
               <div className="space-y-3">
-                <p>¿Registrar pedido? El stock se descontará únicamente cuando se apruebe cada remito.</p>
+                <p>Al continuar elegirás los lotes. El stock de las unidades seleccionadas se descontará ahora; lo que falte quedará pendiente.</p>
                 <div className="bg-surface-container p-3 rounded border border-white/5 text-sm">
                   <p className="font-semibold mb-1">{effectiveSnapshot.customerCandidate?.nombre ?? effectiveSnapshot.customerCandidateText ?? 'Cliente pendiente'}</p>
                   <p>{includedLines.length} productos</p>
@@ -780,8 +791,27 @@ export default function AutomationPage() {
           setConfirmOrderPrompt(false)
           setConfirmError(null)
         }}
-        onConfirm={() => void handleConfirm([], [])}
+        onConfirm={() => {
+          setConfirmOrderPrompt(false)
+          setConfirmError(null)
+          setLotSelectorOpen(true)
+        }}
       />
+
+      {lotSelectorOpen && lotAvailability && (
+        <LotAllocationSelector
+          items={lotSelectionItems}
+          disponibilidad={{ ...lotAvailability, transferencias: [] } as PedidoDisponibilidadStock}
+          mode="descuento"
+          allowPartial
+          submitting={isProcessing}
+          processingLabel={isProcessing ? 'Procesando pedido...' : undefined}
+          errorMessage={confirmError}
+          confirmLabel={confirmError ? 'Reintentar' : undefined}
+          onCancel={() => setLotSelectorOpen(false)}
+          onConfirm={(selecciones) => void handleConfirm(selecciones, [])}
+        />
+      )}
       
       <ConfirmDialog
         open={!!deleteAliasPrompt}

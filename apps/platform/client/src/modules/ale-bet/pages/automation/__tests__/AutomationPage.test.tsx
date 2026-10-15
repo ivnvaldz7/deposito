@@ -207,7 +207,7 @@ describe('AutomationPage', () => {
             lines: [{
               lineId: 'line-valid',
               originalText: '1 Prod 1',
-              productCandidate: { productId: 'p1' },
+              productCandidate: { productId: 'p1', nombre: 'Prod 1' },
               warnings: [],
               requiresReview: false,
               lineState: 'VALID',
@@ -216,7 +216,12 @@ describe('AutomationPage', () => {
             warnings: [],
             requiresReview: false
           },
-          availability: []
+          availability: [],
+          lotAvailability: {
+            allocations: [{ itemPedidoId: 'p1', productoId: 'p1', loteId: 'l1', cantidad: 1 }],
+            lotes: [{ itemPedidoId: 'p1', loteId: 'l1', numero: 'L1', fechaVencimiento: null, vencido: false, ubicacion: 'DEPOSITO', disponible: 1 }],
+            transferencias: [],
+          },
         },
         refetch: vi.fn()
       })
@@ -232,6 +237,12 @@ describe('AutomationPage', () => {
       const input = screen.getByPlaceholderText(/Veterinaria/i)
       await user.type(input, 'pedido de prueba')
       await user.click(screen.getByRole('button', { name: 'Interpretar pedido' }))
+    }
+
+    async function confirmSelectedLot(user: ReturnType<typeof userEvent.setup>) {
+      await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+      expect(screen.getByRole('dialog', { name: 'Seleccionar lotes' })).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Confirmar y descontar lo seleccionado' }))
     }
 
     it('desestimar una línea no requiere recordar un alias y desbloquea confirmar solo con líneas válidas', async () => {
@@ -413,7 +424,7 @@ describe('AutomationPage', () => {
       
       expect(screen.getByTestId('confirm-dialog')).toBeInTheDocument()
       expect(screen.getAllByText('Confirmar pedido').length).toBeGreaterThan(0)
-      expect(screen.getByText('¿Registrar pedido? El stock se descontará únicamente cuando se apruebe cada remito.')).toBeInTheDocument()
+      expect(screen.getByText('Al continuar elegirás los lotes. El stock de las unidades seleccionadas se descontará ahora; lo que falte quedará pendiente.')).toBeInTheDocument()
     })
 
     it('cliente desconocido permite crearlo, seleccionarlo y preservar las líneas', async () => {
@@ -518,7 +529,7 @@ describe('AutomationPage', () => {
       await waitFor(() => expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).not.toBeNull())
 
       await user.click(await screen.findByRole('button', { name: 'Confirmar pedido' }))
-      await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+      await confirmSelectedLot(user)
       await waitFor(() => expect(localStorage.getItem(AUTOMATION_WORK_STORAGE_KEY)).toBeNull())
 
       view.unmount()
@@ -538,7 +549,7 @@ describe('AutomationPage', () => {
       await user.click(btn)
       
       // Confirmar en el modal
-      await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+      await confirmSelectedLot(user)
       
       expect(screen.getByText('Procesando pedido...')).toBeInTheDocument()
       
@@ -577,7 +588,7 @@ describe('AutomationPage', () => {
       const btn = await screen.findByRole('button', { name: 'Confirmar pedido' })
       await user.click(btn)
       
-      await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+      await confirmSelectedLot(user)
       
       await waitFor(() => {
         expect(screen.getByText('No se pudo confirmar el pedido')).toBeInTheDocument()
@@ -599,6 +610,11 @@ describe('AutomationPage', () => {
             warnings: [], requiresReview: false,
           },
           availability: [],
+          lotAvailability: {
+            allocations: [{ itemPedidoId: 'p1', productoId: 'p1', loteId: 'l1', cantidad: 1 }],
+            lotes: [{ itemPedidoId: 'p1', loteId: 'l1', numero: 'L1', fechaVencimiento: null, vencido: false, ubicacion: 'DEPOSITO', disponible: 1 }],
+            transferencias: [],
+          },
         },
         refetch,
       })
@@ -607,7 +623,7 @@ describe('AutomationPage', () => {
       renderComponent()
       await triggerDraftCreation(user)
       await user.click(await screen.findByRole('button', { name: 'Confirmar pedido' }))
-      await user.click(screen.getByRole('button', { name: 'Confirmar' }))
+      await confirmSelectedLot(user)
 
       await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1))
       expect(screen.queryByTestId('confirm-dialog')).not.toBeInTheDocument()

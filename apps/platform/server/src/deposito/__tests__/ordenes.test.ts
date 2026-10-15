@@ -92,6 +92,7 @@ const mocks = vi.hoisted(() => {
         const clauses = where?.AND ?? [where ?? {}]
         for (const clause of clauses) {
           if (clause.solicitanteId && orden.solicitanteId !== clause.solicitanteId) return false
+          if (clause.grupoId && orden.grupoId !== clause.grupoId) return false
           if (typeof clause.estado === 'string' && orden.estado !== clause.estado) return false
           if (clause.estado?.in && !clause.estado.in.includes(orden.estado)) return false
           if (clause.updatedAt?.lt && !(orden.updatedAt < clause.updatedAt.lt)) return false
@@ -123,6 +124,11 @@ const mocks = vi.hoisted(() => {
         count++
       }
       return { count }
+    }),
+    delete: vi.fn(async ({ where }: any) => {
+      const index = state.ordenes.findIndex((orden) => orden.id === where.id)
+      if (index < 0) throw new Error('Orden no encontrada')
+      return state.ordenes.splice(index, 1)[0]
     }),
   }
 
@@ -335,14 +341,66 @@ describe('Órdenes de producción críticas', () => {
 
     const [withStock, withoutStock] = created.body.ordenes as Array<{ id: string }>
     await request(app).post(`/api/ordenes/${withStock!.id}/aprobar`).set('x-test-role', 'encargado').expect(200)
-    const insufficient = await request(app).post(`/api/ordenes/${withoutStock!.id}/aprobar`).set('x-test-role', 'encargado').expect(409)
+    const insufficient = await request(app).post(`/api/ordenes/${withoutStock!.id}/aprobar`).set('x-test-role', 'encargado').expect(200)
 
-    expect(insufficient.body.message).toMatch(/Stock insuficiente|no tiene inventario/)
+    expect(insufficient.body).toMatchObject({ cantidadDescontada: 0, cantidadEntregada: 0, pendiente: 2 })
     expect(mocks.state.ordenes.map((orden) => orden.estado)).toEqual(['aprobada', 'solicitada'])
     expect(mocks.state.inventarioEstuches[0]?.cantidad).toBe(2)
   })
 
-  it('rechaza ejecutar con stock insuficiente', async () => {
+  it('permite al solicitante modificar una solicitud pendiente sin alterar stock', async () => {
+    const secondProductId = '00000000-0000-4000-8000-000000000002'
+    const created = await request(app)
+      .post('/api/ordenes')
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+      .send({ categoria: 'estuche', productoId: productId, mercado: 'argentina', cantidad: 3 })
+      .expect(201)
+
+    const agregado = await request(app)
+      .post(`/api/ordenes/${created.body.id}/items`)
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+      .send({ items: [{ categoria: 'estuche', productoId: secondProductId, mercado: 'argentina', cantidad: 2 }] })
+      .expect(201)
+
+    expect(agregado.body.ordenes).toHaveLength(1)
+    expect(agregado.body.ordenes[0].grupoId).toBe(created.body.grupoId)
+
+    const actualizada = await request(app)
+      .patch(`/api/ordenes/${created.body.id}`)
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+      .send({ cantidad: 7 })
+      .expect(200)
+    expect(actualizada.body.cantidad).toBe(7)
+
+    await request(app)
+      .delete(`/api/ordenes/${agregado.body.ordenes[0].id}`)
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+      .expect(204)
+
+    expect(mocks.state.ordenes).toHaveLength(1)
+    expect(mocks.state.movimientos).toHaveLength(0)
+
+    await request(app)
+      .patch(`/api/ordenes/${created.body.id}`)
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-2')
+      .send({ cantidad: 8 })
+      .expect(403)
+
+    mocks.state.ordenes[0]!.estado = 'aprobada'
+    await request(app)
+      .patch(`/api/ordenes/${created.body.id}`)
+      .set('x-test-role', 'solicitante')
+      .set('x-test-user-id', 'sol-1')
+      .send({ cantidad: 8 })
+      .expect(409)
+  })
+
+  it('entrega lo disponible y deja pendiente el saldo cuando falta stock', async () => {
     mocks.state.inventarioEstuches.push({
       id: 'est-1',
       productoId: productId,
@@ -367,10 +425,10 @@ describe('Órdenes de producción críticas', () => {
       .post(`/api/ordenes/${created.body.id}/aprobar`)
       .set('x-test-role', 'encargado')
       .set('x-test-user-id', 'enc-1')
-    expect(insufficientApproval.status).toBe(409)
-    expect(insufficientApproval.body.message).toContain('Stock insuficiente')
-    expect(mocks.state.inventarioEstuches[0]?.cantidad).toBe(2)
-    expect(mocks.state.movimientos).toHaveLength(0)
+    expect(insufficientApproval.status).toBe(200)
+    expect(insufficientApproval.body).toMatchObject({ cantidadDescontada: 2, cantidadEntregada: 2, pendiente: 1 })
+    expect(mocks.state.inventarioEstuches[0]?.cantidad).toBe(0)
+    expect(mocks.state.movimientos).toHaveLength(1)
     expect(mocks.state.ordenes[0]?.estado).toBe('solicitada')
 
   })
@@ -502,6 +560,46 @@ describe('Órdenes de producción críticas', () => {
     expect(mocks.state.movimientos.map((movement) => movement.cantidad)).toEqual([-1, -0.5])
     expect(mocks.state.ordenes[0]?.estado).toBe('aprobada')
     expect(mocks.prisma.$queryRaw.mock.calls.some(([query]: [{ text?: string }]) => query.text?.includes('ORDER BY CASE') && query.text.includes('vencimiento ASC, id ASC'))).toBe(true)
+  })
+
+  it('permite priorizar un lote elegido sin perder la alternativa FEFO', async () => {
+    mocks.state.catalogCategory = 'droga'
+    mocks.state.inventarioDrogas.push(
+      { id: '11111111-1111-4111-8111-111111111111', productoId: productId, nombre: 'AMANTINA 500 ML', lote: 'VENCE-ANTES', cantidad: 2, vencimiento: new Date('2027-01-01T00:00:00Z') },
+      { id: '22222222-2222-4222-8222-222222222222', productoId: productId, nombre: 'AMANTINA 500 ML', lote: 'ELEGIDO', cantidad: 3, vencimiento: new Date('2028-01-01T00:00:00Z') },
+    )
+    const created = await request(app).post('/api/ordenes').set('x-test-role', 'solicitante').send({ categoria: 'droga', productoId: productId, cantidad: 1 })
+
+    const availableLots = await request(app).get(`/api/ordenes/${created.body.id}/lotes-disponibles`).set('x-test-role', 'encargado')
+    expect(availableLots.status).toBe(200)
+    expect(availableLots.body.map((lot: { lote: string }) => lot.lote)).toEqual(['VENCE-ANTES', 'ELEGIDO'])
+
+    const approved = await request(app)
+      .post(`/api/ordenes/${created.body.id}/aprobar`)
+      .set('x-test-role', 'encargado')
+      .send({ loteIdPreferido: '22222222-2222-4222-8222-222222222222' })
+
+    expect(approved.status).toBe(200)
+    expect(mocks.state.inventarioDrogas.map((lot) => ({ lote: lot.lote, cantidad: lot.cantidad }))).toEqual([
+      { lote: 'VENCE-ANTES', cantidad: 2 },
+      { lote: 'ELEGIDO', cantidad: 2 },
+    ])
+    expect(mocks.state.movimientos.map((movement) => movement.lote)).toEqual(['ELEGIDO'])
+  })
+
+  it('rechaza un lote elegido que ya no pertenece al stock disponible de la orden', async () => {
+    mocks.state.catalogCategory = 'droga'
+    mocks.state.inventarioDrogas.push({ id: '11111111-1111-4111-8111-111111111111', productoId: productId, nombre: 'AMANTINA 500 ML', lote: 'DISPONIBLE', cantidad: 2 })
+    const created = await request(app).post('/api/ordenes').set('x-test-role', 'solicitante').send({ categoria: 'droga', productoId: productId, cantidad: 1 })
+
+    const approval = await request(app)
+      .post(`/api/ordenes/${created.body.id}/aprobar`)
+      .set('x-test-role', 'encargado')
+      .send({ loteIdPreferido: '22222222-2222-4222-8222-222222222222' })
+
+    expect(approval.status).toBe(409)
+    expect(mocks.state.inventarioDrogas[0]?.cantidad).toBe(2)
+    expect(mocks.state.movimientos).toHaveLength(0)
   })
 
   it('consumes dated drug lots before APERTURA-SIN-LOTE and deletes the opening lot when exhausted', async () => {

@@ -49,29 +49,73 @@ export function LotAllocationSelector({
   items,
   disponibilidad,
   submitting,
+  processingLabel,
+  errorMessage,
+  confirmLabel,
   onCancel,
   onConfirm,
   mode = 'reserva',
+  allowPartial = false,
 }: {
   items: OrderItem[]
   disponibilidad: PedidoDisponibilidadStock
   submitting?: boolean
+  processingLabel?: string
+  errorMessage?: string | null
+  confirmLabel?: string
   onCancel: () => void
   onConfirm: (selecciones: Selection[]) => void
   /** A remito approval consumes stock; an order approval only reserves it. */
   mode?: 'reserva' | 'descuento'
+  /** Automation may ship the available part now and leave the rest pending. */
+  allowPartial?: boolean
 }) {
   const [selecciones, setSelecciones] = useState<Selection[]>(() => normalizeSelections(disponibilidad.allocations))
+  const [manualValues, setManualValues] = useState<Record<string, string>>({})
   const selectedByKey = useMemo(() => new Map(selecciones.map((entry) => [keyOf(entry.itemPedidoId, entry.loteId), entry.cantidad])), [selecciones])
   const complete = items.every((item) => selecciones
     .filter((entry) => entry.itemPedidoId === item.id)
     .reduce((total, entry) => total + entry.cantidad, 0) === item.cantidad)
+  const canConfirm = allowPartial || complete
 
   function setQuantity(item: OrderItem, loteId: string, cantidad: number): void {
     setSelecciones((current) => {
       const without = current.filter((entry) => !(entry.itemPedidoId === item.id && entry.loteId === loteId))
       return cantidad > 0 ? [...without, { itemPedidoId: item.id, productoId: item.productoId, loteId, cantidad }] : without
     })
+  }
+
+  function clearManualValue(selectionKey: string): void {
+    setManualValues((current) => {
+      if (!(selectionKey in current)) return current
+      const next = { ...current }
+      delete next[selectionKey]
+      return next
+    })
+  }
+
+  function saveManualQuantity(input: {
+    item: OrderItem
+    loteId: string
+    selectionKey: string
+    currentValue: number
+    selectedForItem: number
+    minimum: number
+    available: number
+  }): void {
+    const raw = manualValues[input.selectionKey]
+    if (raw === undefined) return
+
+    const parsed = Number(raw)
+    const maximumForLot = Math.min(
+      input.available,
+      Math.max(input.minimum, input.item.cantidad - (input.selectedForItem - input.currentValue)),
+    )
+    const nextValue = Number.isFinite(parsed)
+      ? Math.min(maximumForLot, Math.max(input.minimum, Math.trunc(parsed)))
+      : input.currentValue
+    setQuantity(input.item, input.loteId, nextValue)
+    clearManualValue(input.selectionKey)
   }
 
   return (
@@ -82,7 +126,7 @@ export function LotAllocationSelector({
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
             <h2 className="text-lg font-bold text-on-surface">{mode === 'descuento' ? 'Elegí los lotes a descontar' : 'Confirmá los lotes a reservar'}</h2>
-            <p className="mt-1 text-sm text-on-surface-variant">{mode === 'descuento' ? 'Al aprobar, se descuenta el stock solo de este remito.' : 'La propuesta es editable. Los lotes vencidos están bloqueados; los que no tienen fecha siguen disponibles y se identifican para poder completarlos después.'}</p>
+            <p className="mt-1 text-sm text-on-surface-variant">{allowPartial ? 'Elegí lo que sale ahora. Al confirmar se descuenta solo esa cantidad y lo que falte queda pendiente.' : mode === 'descuento' ? 'Al aprobar, se descuenta el stock solo de este remito.' : 'La propuesta es editable. Los lotes vencidos están bloqueados; los que no tienen fecha siguen disponibles y se identifican para poder completarlos después.'}</p>
           </div>
         </div>
 
@@ -109,6 +153,8 @@ export function LotAllocationSelector({
                     const availableAfterTransfer = availableInDeposito + automaticTransfer
                     const minimumSelection = automaticTransfer
                     const disabled = lote.vencido || availableAfterTransfer === 0
+                    const maximumForLot = Math.min(availableAfterTransfer, Math.max(minimumSelection, item.cantidad - (selected - value)))
+                    const manualValue = manualValues[selectionKey] ?? String(value)
                     return (
                       <div key={lote.loteId} className={`rounded-lg border p-3 ${lote.vencido ? 'border-error/40 bg-error/5' : 'border-white/10 bg-surface-container'}`}>
                         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -120,11 +166,36 @@ export function LotAllocationSelector({
                           {lote.acondicionado && <p>Acondicionado · {lote.acondicionado.disponible} un disponibles{automaticTransfer === 0 ? ' · no se descuentan desde aquí' : ''}</p>}
                           {automaticTransfer > 0 && <p className="font-semibold text-primary">Traslado automático: {automaticTransfer} un de Acondicionado a Depósito antes del descuento.</p>}
                         </div>
-                        <div className="mt-3 flex items-center justify-end gap-2">
+                        <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
                           <span className="mr-2 text-xs font-medium text-on-surface-variant">A descontar de Depósito</span>
-                          <button type="button" aria-label={`Restar lote ${lote.numero}`} disabled={disabled || value <= minimumSelection} onClick={() => setQuantity(item, lote.loteId, value - 1)} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-on-surface disabled:opacity-35"><Minus className="h-4 w-4" /></button>
-                          <output className="min-w-10 text-center font-bold text-on-surface">{value}</output>
-                          <button type="button" aria-label={`Sumar lote ${lote.numero}`} disabled={disabled || value >= availableAfterTransfer || selected >= item.cantidad} onClick={() => setQuantity(item, lote.loteId, value + 1)} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-on-surface disabled:opacity-35"><Plus className="h-4 w-4" /></button>
+                          <button type="button" aria-label={`Restar lote ${lote.numero}`} disabled={disabled || value <= minimumSelection} onClick={() => { clearManualValue(selectionKey); setQuantity(item, lote.loteId, value - 1) }} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-on-surface disabled:opacity-35"><Minus className="h-4 w-4" /></button>
+                          <input
+                            aria-label={`Cantidad para lote ${lote.numero}`}
+                            type="number"
+                            inputMode="numeric"
+                            min={minimumSelection}
+                            max={maximumForLot}
+                            step="1"
+                            value={manualValue}
+                            disabled={disabled}
+                            onFocus={(event) => event.currentTarget.select()}
+                            onChange={(event) => setManualValues((current) => ({ ...current, [selectionKey]: event.target.value }))}
+                            onBlur={() => saveManualQuantity({ item, loteId: lote.loteId, selectionKey, currentValue: value, selectedForItem: selected, minimum: minimumSelection, available: availableAfterTransfer })}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault()
+                                event.currentTarget.blur()
+                              }
+                              if (event.key === 'Escape') {
+                                event.preventDefault()
+                                clearManualValue(selectionKey)
+                                event.currentTarget.blur()
+                              }
+                            }}
+                            className="h-11 w-20 rounded-lg border border-white/10 bg-surface-high px-2 text-center font-bold tabular-nums text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary disabled:opacity-35"
+                            title={`Entre ${minimumSelection} y ${maximumForLot} unidades`}
+                          />
+                          <button type="button" aria-label={`Sumar lote ${lote.numero}`} disabled={disabled || value >= maximumForLot} onClick={() => { clearManualValue(selectionKey); setQuantity(item, lote.loteId, value + 1) }} className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-on-surface disabled:opacity-35"><Plus className="h-4 w-4" /></button>
                         </div>
                       </div>
                     )
@@ -135,11 +206,13 @@ export function LotAllocationSelector({
             )
           })}
         </div>
-        {!complete && <p className="mt-4 flex items-center gap-2 text-sm text-warning"><AlertTriangle className="h-4 w-4" />Cada producto debe quedar asignado exactamente a la cantidad solicitada.</p>}
+        {!complete && <p className="mt-4 flex items-center gap-2 text-sm text-warning"><AlertTriangle className="h-4 w-4" />{allowPartial ? 'Las unidades sin asignar quedarán pendientes.' : 'Cada producto debe quedar asignado exactamente a la cantidad solicitada.'}</p>}
+        {processingLabel && <p role="status" aria-live="polite" className="mt-4 text-sm text-on-surface">{processingLabel}</p>}
+        {errorMessage && <div role="alert" className="mt-4 rounded-lg border border-error/40 bg-error/10 p-3 text-sm text-error"><p className="font-semibold">No se pudo confirmar el pedido</p><p>{errorMessage}</p></div>}
         </div>
         <div className="flex shrink-0 flex-col-reverse gap-2 border-t border-white/10 bg-surface-container-low p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] sm:flex-row sm:justify-end sm:gap-3 sm:p-4">
           <Button variant="outline" onClick={onCancel} disabled={submitting} className="min-h-11">Volver</Button>
-          <Button onClick={() => onConfirm(selecciones)} disabled={!complete} loading={submitting} className="min-h-11">{mode === 'descuento' ? 'Aprobar y descontar stock' : 'Reservar lotes y confirmar'}</Button>
+          <Button onClick={() => onConfirm(selecciones)} disabled={!canConfirm} loading={submitting} className="min-h-11">{confirmLabel ?? (allowPartial ? 'Confirmar y descontar lo seleccionado' : mode === 'descuento' ? 'Aprobar y descontar stock' : 'Reservar lotes y confirmar')}</Button>
         </div>
       </section>
     </div>

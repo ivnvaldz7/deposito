@@ -5,6 +5,7 @@ import { requirePermission } from '../../middlewares/require-permission'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { PartidaError, PartidaProduccionService } from '../services/partida-produccion-service'
+import { syncDepositoStockSheetsAfterCommit } from '../services/stock-sheets-projection'
 
 const router = Router()
 const service = new PartidaProduccionService(prisma)
@@ -23,6 +24,6 @@ router.get('/', requirePermission('deposito', 'partidas.read'), async (req, res)
 router.get('/:id', requirePermission('deposito', 'partidas.read'), async (req, res) => { try { const partida = await service.getById(String(req.params.id)); if (!partida) { res.status(404).json({ message: 'Solicitud no encontrada' }); return }; if (!isManager(req) && partida.solicitanteId !== req.depositoUser?.id) { res.status(403).json({ message: 'No tiene permiso para ver esta solicitud' }); return }; res.json(partida) } catch (error) { sendError(res, error) } })
 router.post('/', requirePermission('deposito', 'partidas.create'), async (req, res) => { try { res.status(201).json(await service.create({ solicitanteId: req.depositoUser!.id, ...createSchema.parse(req.body) })) } catch (error) { sendError(res, error) } })
 router.patch('/:id/items', requirePermission('deposito', 'partidas.manage'), async (req, res) => { if (!isManager(req)) { res.status(403).json({ message: 'Solo el encargado puede ajustar cantidades' }); return }; try { res.json(await service.ajustarCantidades(String(req.params.id), ajustarSchema.parse(req.body).items)) } catch (error) { sendError(res, error) } })
-router.post('/:id/confirmar', requirePermission('deposito', 'partidas.confirm'), async (req, res) => { if (!isManager(req)) { res.status(403).json({ message: 'Solo el encargado puede confirmar' }); return }; try { res.json(await service.confirmar(String(req.params.id), req.depositoUser!.id)) } catch (error) { sendError(res, error) } })
+router.post('/:id/confirmar', requirePermission('deposito', 'partidas.confirm'), async (req, res) => { if (!isManager(req)) { res.status(403).json({ message: 'Solo el encargado puede confirmar' }); return }; try { const partida = await service.confirmar(String(req.params.id), req.depositoUser!.id); res.json(partida); void syncDepositoStockSheetsAfterCommit() } catch (error) { sendError(res, error) } })
 router.post('/:id/rechazar', requirePermission('deposito', 'partidas.confirm'), async (req, res) => { if (!isManager(req)) { res.status(403).json({ message: 'Solo el encargado puede rechazar' }); return }; try { res.json(await service.rechazar(String(req.params.id), rechazarSchema.parse(req.body).motivoRechazo)) } catch (error) { sendError(res, error) } })
 export default router

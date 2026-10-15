@@ -4,7 +4,7 @@ import { useProductFocus } from '../hooks/use-product-focus'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Search, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { useEstuches, useCreateEstuche, useUpdateEstuche, useDeleteEstuche } from '../queries/use-estuches'
@@ -331,7 +331,7 @@ function CantidadCell({ estuche }: { estuche: Estuche }) {
       label="cantidad"
       onSave={async (nextValue) => {
         try {
-          const updated = await updateMutation.mutateAsync({ id: estuche.id, cantidad: nextValue })
+          const updated = await updateMutation.mutateAsync({ id: estuche.id, mercado: estuche.mercado, cantidad: nextValue })
           if (getStockStatus(updated.cantidad, estuche.stockMinimo) === 'bajo') {
             toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidad}).`)
           } else {
@@ -361,6 +361,7 @@ export default function EstuchesPage() {
     (searchParams.get('mercado') as Mercado | 'todos') ?? 'todos'
   )
   const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
+  const [search, setSearch] = useState('')
   const [editingEstuche, setEditingEstuche] = useState<Estuche | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
@@ -416,10 +417,15 @@ export default function EstuchesPage() {
       byMercado = byMercado.filter(e => getStockStatus(e.cantidad, e.stockMinimo) === 'bajo')
     }
 
+    if (search.trim()) {
+      const query = normalizeProducto(search)
+      byMercado = byMercado.filter((estuche) => normalizeProducto(getDisplayName(estuche)).includes(query))
+    }
+
     if (!productoFiltro || selected) return byMercado
     const target = normalizeProducto(productoFiltro)
     return byMercado.filter((estuche) => normalizeProducto(getDisplayName(estuche)) === target)
-  }, [sortedEstuches, mercadoFiltro, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
+  }, [sortedEstuches, mercadoFiltro, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName, search])
 
   async function handleDelete(id: string) {
     try {
@@ -458,15 +464,7 @@ export default function EstuchesPage() {
             onClick: () => setStockBajoFiltro((prev) => !prev)
           },
         ]}
-        primaryAction={
-          canManage
-            ? {
-                label: 'Agregar estuche',
-                onClick: () => setAgregarOpen(true),
-                icon: <Plus size={14} strokeWidth={2} />,
-              }
-            : undefined
-        }
+        actionSlot={<label className="relative block"><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" /><input aria-label="Buscar estuche" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar estuche..." className="input-field min-h-11 w-full pl-10 sm:w-72" /></label>}
       >
         <MercadoFilter
           mercadoActivo={mercadoFiltro}
@@ -475,20 +473,6 @@ export default function EstuchesPage() {
           countsByMercado={countsByMercado}
         />
       </InventoryPageHeader>
-
-      {canManage ? (
-        <AgregarEstucheModal
-          open={agregarOpen}
-          onOpenChange={setAgregarOpen}
-        />
-      ) : null}
-
-      {editingEstuche && (
-        <EditarEstucheModal
-          estuche={editingEstuche}
-          onClose={() => setEditingEstuche(null)}
-        />
-      )}
 
       {estuches.length === 0 ? (
         <EmptyState message={productoFiltro ? 'No se encontró ese estuche con los filtros aplicados.' : 'No hay estuches para este mercado.'} />
@@ -501,8 +485,6 @@ export default function EstuchesPage() {
                   <TableHead>Artículo</TableHead>
                   <TableHead className="w-36">Mercado</TableHead>
                   <TableHead className="w-32">Cantidad</TableHead>
-                  <TableHead className="w-28">Estado</TableHead>
-                  {canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -519,17 +501,6 @@ export default function EstuchesPage() {
                         <span className="font-body text-on-surface tabular-nums">{estuche.cantidad}</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <StockChip cantidad={estuche.cantidad} stockMinimo={estuche.stockMinimo} />
-                    </TableCell>
-                    {canManage && (
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <RowActionButton label={`Editar ${estuche.articulo}`} onClick={() => setEditingEstuche(estuche)} icon={<Pencil size={16} strokeWidth={1.5} />} />
-                          <RowActionButton destructive label={`Eliminar ${estuche.articulo}`} onClick={() => handleDelete(estuche.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
-                        </div>
-                      </TableCell>
-                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -550,14 +521,11 @@ export default function EstuchesPage() {
                     <span className="font-body text-on-surface-variant text-xs tabular-nums">
                       {estuche.cantidad} uds
                     </span>
-                    <StockChip cantidad={estuche.cantidad} stockMinimo={estuche.stockMinimo} />
                   </div>
                 </div>
                 {canManage && (
                   <div className="flex items-center gap-3 shrink-0">
                     <CantidadCell estuche={estuche} />
-                    <RowActionButton label={`Editar ${estuche.articulo}`} onClick={() => setEditingEstuche(estuche)} icon={<Pencil size={16} strokeWidth={1.5} />} />
-                    <RowActionButton destructive label={`Eliminar ${estuche.articulo}`} onClick={() => handleDelete(estuche.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                   </div>
                 )}
               </div>

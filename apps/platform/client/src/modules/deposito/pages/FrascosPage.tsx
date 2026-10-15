@@ -4,7 +4,7 @@ import { useProductFocus } from '../hooks/use-product-focus'
 import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Search, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
 import { ApiError } from '../lib/api'
 import { useFrascos, useCreateFrasco, useUpdateFrasco, useDeleteFrasco } from '../queries/use-frascos'
@@ -193,6 +193,7 @@ export default function FrascosPage() {
   const { data: frascos = [], isLoading, error } = useFrascos()
   const deleteMutation = useDeleteFrasco()
   const [stockBajoFiltro, setStockBajoFiltro] = useState(false)
+  const [search, setSearch] = useState('')
   const [editingFrasco, setEditingFrasco] = useState<Frasco | null>(null)
   const [catalogMap, setCatalogMap] = useState<Record<string, string>>({})
   const [agregarOpen, setAgregarOpen] = useState(false)
@@ -221,10 +222,15 @@ export default function FrascosPage() {
       baseList = baseList.filter(f => getStockStatus(f.cantidadCajas, f.stockMinimo) === 'bajo')
     }
 
+    if (search.trim()) {
+      const query = normalizeProducto(search)
+      baseList = baseList.filter((frasco) => normalizeProducto(getDisplayName(frasco)).includes(query))
+    }
+
     if (!productoFiltro || selected) return baseList
     const target = normalizeProducto(productoFiltro)
     return baseList.filter((f) => normalizeProducto(getDisplayName(f)) === target)
-  }, [sortedFrascos, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName])
+  }, [sortedFrascos, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName, search])
 
   async function handleDelete(id: string) {
     try {
@@ -251,33 +257,22 @@ export default function FrascosPage() {
           active: stockBajoFiltro,
           onClick: () => setStockBajoFiltro((prev) => !prev)
         },
-      ]} primaryAction={canManage ? { label: 'Agregar frasco', onClick: () => setAgregarOpen(true), icon: <Plus size={14} strokeWidth={2} /> } : undefined} />
+      ]} actionSlot={<label className="relative block"><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" /><input aria-label="Buscar frasco" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar frasco..." className="input-field min-h-11 w-full pl-10 sm:w-72" /></label>} />
 
-      {canManage && <AgregarFrascoModal open={agregarOpen} onOpenChange={setAgregarOpen} />}
-      {editingFrasco && <EditarFrascoModal frasco={editingFrasco} onClose={() => setEditingFrasco(null)} />}
 
       {filteredFrascos.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />
       : (
         <>
           <InventoryDataSurface label="Inventario de frascos"><div className="hidden md:block">
             <Table>
-              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-32 text-right">Unid/Caja</TableHead><TableHead className="w-32 text-right">Cajas</TableHead><TableHead className="w-36">Estado</TableHead><TableHead className="w-36 text-right">Total uds</TableHead>{canManage && <TableHead className="w-24 text-right">Acciones</TableHead>}</TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-32 text-right">Unid/Caja</TableHead><TableHead className="w-32 text-right">Cajas</TableHead><TableHead className="w-36 text-right">Total uds</TableHead></TableRow></TableHeader>
               <TableBody>
                 {filteredFrascos.map((frasco) => (
                   <TableRow key={frasco.id} {...focus.targetProps(frasco.id)} className={focus.isFocused(frasco.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
                     <TableCell className="font-body text-on-surface">{getDisplayName(frasco)}</TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface-variant tabular-nums text-sm">{frasco.unidadesPorCaja}</span></TableCell>
                     <TableCell className="text-right">{canManage ? <div className="flex justify-end"><CajasCell frasco={frasco} /></div> : <span className="font-body text-on-surface tabular-nums">{frasco.cantidadCajas}</span>}</TableCell>
-                    <TableCell><StockChip cantidad={frasco.cantidadCajas} stockMinimo={frasco.stockMinimo} /></TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface font-medium tabular-nums">{frasco.total.toLocaleString()}</span></TableCell>
-                    {canManage && (
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <RowActionButton label={`Editar ${frasco.articulo}`} onClick={() => setEditingFrasco(frasco)} icon={<Pencil size={16} strokeWidth={1.5} />} />
-                          <RowActionButton destructive label={`Eliminar ${frasco.articulo}`} onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
-                        </div>
-                      </TableCell>
-                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -289,13 +284,10 @@ export default function FrascosPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-body text-on-surface text-sm truncate">{getDisplayName(frasco)}</p>
                   <p className="font-body text-on-surface-variant text-xs mt-0.5 tabular-nums">{frasco.unidadesPorCaja} uds/caja · {frasco.cantidadCajas} cajas · <span className="text-on-surface font-medium">{frasco.total.toLocaleString()} total</span></p>
-                  <div className="mt-1"><StockChip cantidad={frasco.cantidadCajas} stockMinimo={frasco.stockMinimo} /></div>
                 </div>
                 {canManage && (
                   <div className="flex items-center gap-3 shrink-0">
 <CajasCell frasco={frasco} />
-                    <RowActionButton label={`Editar ${frasco.articulo}`} onClick={() => setEditingFrasco(frasco)} icon={<Pencil size={16} strokeWidth={1.5} />} />
-                    <RowActionButton destructive label={`Eliminar ${frasco.articulo}`} onClick={() => handleDelete(frasco.id)} disabled={deleteMutation.isPending} icon={<Trash2 size={16} strokeWidth={1.5} />} />
                   </div>
                 )}
               </div>

@@ -15,6 +15,7 @@ import { eventBus, createNotificationHandler } from '@platform/core'
 import { platformDb } from '@platform/db'
 import { getHealthResponse } from './health'
 import { syncStockProjectionAfterCommit } from './routes/ale-bet/stock-projection/direct-sync'
+import { syncDepositoStockSheetsAfterCommit } from './deposito/services/stock-sheets-projection'
 
 const app = express()
 const PORT = Number(process.env.PORT ?? 3000)
@@ -22,11 +23,14 @@ const HOST = process.env.HOST ?? '0.0.0.0'
 
 const localhostRegex = /^http:\/\/localhost(:\d+)?$/
 const privateNetworkRegex = /^http:\/\/(?:(?:127\.0\.0\.1)|(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3})|(?:192\.168\.\d{1,3}\.\d{1,3})|(?:172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}))(?::\d+)?$/
+// Tailscale Serve termina HTTPS dentro de la red privada del tailnet. Los
+// módulos ES de Vite incluyen un header Origin, por eso deben pasar CORS.
+const tailscaleHttpsRegex = /^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)*\.ts\.net$/i
 
 app.use(cors({
   origin: (origin, callback) => {
     // Permitir requests sin origin (móvil, postman, etc.), localhost y LAN privada en desarrollo.
-    if (!origin || localhostRegex.test(origin) || privateNetworkRegex.test(origin) || origin === process.env.FRONTEND_URL) {
+    if (!origin || localhostRegex.test(origin) || privateNetworkRegex.test(origin) || tailscaleHttpsRegex.test(origin) || origin === process.env.FRONTEND_URL) {
       callback(null, true)
     } else {
       callback(new Error('Not allowed by CORS'))
@@ -106,6 +110,8 @@ app.listen(PORT, HOST, () => {
   // Mantiene STOCK APP sincronizada al publicar una nueva versión, incluso si
   // todavía no hubo un movimiento de stock desde el reinicio.
   void syncStockProjectionAfterCommit()
+  // Las solapas de Depósito son proyecciones de consulta del inventario real.
+  void syncDepositoStockSheetsAfterCommit()
 })
 
 export default app

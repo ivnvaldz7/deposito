@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import { Prisma, TipoReglaTransferenciaProducto, platformDb as prisma } from '@platform/db'
 import { descomponerUnidades } from '../constants'
 import { getProductAvailability } from '../inventory-service'
+import { consumeActiveReservations, reserveSelectedLots } from '../reservas-service'
 import type { InterpretationLineState, MatchProduct, MatchCustomer, ParsedOrder, ParsedOrderLine } from './contracts'
 import { hasStrongMismatch, interpretOrder, normalizeForMatch, presentationMismatch } from './interpreter'
 
@@ -428,7 +429,6 @@ export async function getDraftLotAvailability(snapshot: ParsedOrder) {
     else if (result.status === 'DISPONIBLE_CON_TRANSFERENCIA' && status === 'DISPONIBLE') status = 'DISPONIBLE_CON_TRANSFERENCIA'
     stockTotal += result.stockTotal; stockDeposito += result.stockDeposito; stockAcondicionado += result.stockAcondicionado; shortfall += result.shortfall
     allocations.push(...result.allocations.map((entry) => ({ itemPedidoId: item.productId, productoId: item.productId, ...entry })))
-    allocations.push(...result.transferencias.map((entry) => ({ itemPedidoId: item.productId, productoId: item.productId, loteId: entry.loteId, cantidad: entry.cantidad })))
     transferencias.push(...result.transferencias.map((entry) => ({ productoId: item.productId, loteId: entry.loteId, origen: 'ACONDICIONADO' as const, destino: 'DEPOSITO' as const, cantidad: entry.cantidad })))
     for (const balance of balances.filter((candidate) => candidate.productoId === item.productId && (candidate.ubicacion.codigo === 'DEPOSITO' || candidate.ubicacion.codigo === 'ACONDICIONADO'))) {
       const date = balance.lote.fechaVencimiento
@@ -479,14 +479,32 @@ export async function confirmDraftInTransaction(tx: Prisma.TransactionClient, in
   if (products.length !== items.length) throw new AutomationConflictError('Uno o más productos no existen o están inactivos')
   const pedido = await tx.pedido.create({ data: { numero: orderNumber(), clienteId: customer.id, origen: 'AUTOMATION', descuentoPorRemito: true, estado: 'BORRADOR', items: { create: items.map((item) => ({ producto: { connect: { id: item.productId } }, cantidad: item.cantidad })) } }, include: { cliente: true, items: { include: { producto: true } } } })
   await audit(tx, pedido.id, input.actorId, 'BORRADOR_CREADO_AUTOMATION', { draftId: draft.id, items })
-  const { getOrderAvailability } = await import('../inventory-service')
-  const availability = await getOrderAvailability(tx, pedido)
-  // Do not reserve, transfer or consume anything here. Facturación can issue
-  // one or more partial remitos; Encargado/Admin will choose lots and discount
-  // stock only for each remito that actually leaves the plant.
-  const estado = availability.status === 'INSUFICIENTE' ? 'PENDIENTE_PRODUCCION' : 'APROBADO'
-  const approved = await tx.pedido.update({ where: { id: pedido.id }, data: { estado, aprobadoAt: new Date(), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
-  await audit(tx, approved.id, input.actorId, 'PEDIDO_REGISTRADO_AUTOMATION', { draftId: draft.id, estado: approved.estado, stockDisponible: availability.status !== 'INSUFICIENTE' })
+  const itemByProductId = new Map(pedido.items.map((item) => [item.productoId, item]))
+  const selecciones = input.selecciones ?? []
+  const selectedByItem = new Map<string, number>()
+  const selectionsForPedido = selecciones.map((selection) => {
+    const item = itemByProductId.get(selection.productoId)
+    if (!item) throw new AutomationConflictError('La selección de lote no corresponde a un producto del pedido')
+    selectedByItem.set(item.id, (selectedByItem.get(item.id) ?? 0) + selection.cantidad)
+    return { ...selection, itemPedidoId: item.id }
+  })
+
+  // Automation is the operational confirmation: consume exactly the lots
+  // chosen by the operator now. If some quantity is not selected because it
+  // is unavailable, the same order remains pending only for that remainder.
+  if (selectionsForPedido.length > 0) {
+    await reserveSelectedLots(tx, pedido.id, pedido.items, selectionsForPedido, { allowPartial: true })
+    await consumeActiveReservations(tx, pedido.id, input.actorId)
+    for (const item of pedido.items) {
+      const delivered = selectedByItem.get(item.id) ?? 0
+      if (delivered > 0) await tx.itemPedido.update({ where: { id: item.id }, data: { cantidadEntregada: { increment: delivered } } })
+    }
+  }
+  const complete = pedido.items.every((item) => (selectedByItem.get(item.id) ?? 0) === item.cantidad)
+  const anyDelivered = [...selectedByItem.values()].some((cantidad) => cantidad > 0)
+  const estado = complete ? 'DESPACHADO' : anyDelivered ? 'PENDIENTE_PARCIAL' : 'PENDIENTE_PRODUCCION'
+  const approved = await tx.pedido.update({ where: { id: pedido.id }, data: { estado, aprobadoAt: new Date(), ...(complete ? { despachadoAt: new Date() } : {}), version: { increment: 1 } }, include: { cliente: true, items: { include: { producto: true } } } })
+  await audit(tx, approved.id, input.actorId, 'PEDIDO_CONFIRMADO_AUTOMATION', { draftId: draft.id, estado: approved.estado, selecciones: selectionsForPedido, pendiente: !complete })
   await tx.orderInterpretationDraft.update({ where: { id: draft.id }, data: { estado: 'CONFIRMED', confirmedBy: input.actorId, pedidoId: approved.id, version: { increment: 1 } } })
   return { draftId: draft.id, pedido: approved, syncStatus: 'UNCHANGED' as const }
 }

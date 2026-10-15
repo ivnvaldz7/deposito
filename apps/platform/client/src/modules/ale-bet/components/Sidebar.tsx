@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/auth-store'
 import {
-  LayoutDashboard, ClipboardList, Package, Box, Truck, Users, History, Zap, FileText, Menu, X
+  LayoutDashboard, ClipboardList, Package, Box, Truck, Users, History, Zap, FileText, Menu, X, ArrowLeftRight
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { AppSidebarLayout, SidebarNavItem } from '@/components/layout/AppSidebar'
@@ -76,6 +76,11 @@ export default function Sidebar() {
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
+  }
+
+  function handleChangeModule() {
+    setMoreOpen(false)
+    navigate('/app-selector')
   }
 
   const items = visibleItems(user)
@@ -153,6 +158,14 @@ export default function Sidebar() {
               </NavLink>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={handleChangeModule}
+            className="mt-2 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-primary/30 bg-primary/10 px-3 font-body text-[13px] font-semibold text-primary transition-colors hover:bg-primary/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          >
+            <ArrowLeftRight size={18} aria-hidden="true" />
+            Cambiar módulo
+          </button>
         </div>
       </div>
       )}

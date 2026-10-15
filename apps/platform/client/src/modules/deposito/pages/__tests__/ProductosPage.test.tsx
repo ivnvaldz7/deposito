@@ -786,7 +786,7 @@ describe('ProductosPage', () => {
       })
     })
 
-    it('renders immutable category, markets and code for ACTIVO products', async () => {
+    it('allows adding, but not removing, markets from an active etiqueta', async () => {
       const activa = createProducto({
         id: 'prod-etiqueta-activa',
         nombreBase: 'ETIQUETA ACTIVA',
@@ -801,13 +801,34 @@ describe('ProductosPage', () => {
       // Category is static text, not an editable select
       expect(within(dialog).getByText('Etiqueta')).toBeInTheDocument()
       expect(within(dialog).queryByRole('combobox')).not.toBeInTheDocument()
-      // Market chips are not interactive for ACTIVO: canEditMercados is only
-      // true for PENDIENTE_REVISION, so the section is not rendered at all
-      expect(within(dialog).queryByRole('button', { name: 'Argentina' })).not.toBeInTheDocument()
-      expect(within(dialog).queryByText('País / mercados habilitados')).not.toBeInTheDocument()
+      expect(within(dialog).getByText('País / mercados habilitados')).toBeInTheDocument()
+      expect(within(dialog).getByRole('button', { name: 'Argentina' })).toBeDisabled()
+      expect(within(dialog).getByRole('button', { name: 'Colombia' })).toBeDisabled()
+      expect(within(dialog).getByRole('button', { name: 'México' })).toBeEnabled()
       // Code input is disabled with the immutable-state hint
       expect(within(dialog).getByLabelText(/Código/)).toBeDisabled()
       expect(within(dialog).getByText(/No se puede modificar en estado Activo/)).toBeInTheDocument()
+    })
+
+    it('permite corregir una MP activa a material de empaque sin duplicar el producto', async () => {
+      const mp = createProducto({
+        id: 'sticker-bolivia',
+        nombreBase: 'STICKER BOLIVIA',
+        nombreCompleto: 'STICKER BOLIVIA',
+        categoria: 'droga',
+        estado: 'ACTIVO',
+      })
+      vi.mocked(api.patch).mockResolvedValue({ ...mp, categoria: 'material_empaque' })
+      await openEditFor([mp])
+
+      const dialog = screen.getByRole('dialog')
+      fireEvent.change(within(dialog).getByRole('combobox'), { target: { value: 'material_empaque' } })
+      expect(screen.getByText(/Se conservará el saldo actual/i)).toBeInTheDocument()
+      fireEvent.click(screen.getByText('Guardar cambios'))
+
+      await waitFor(() => expect(api.patch).toHaveBeenCalledWith('/productos/sticker-bolivia', expect.objectContaining({
+        categoria: 'material_empaque',
+      })))
     })
 
     it('refetches the products list after a successful edit', async () => {

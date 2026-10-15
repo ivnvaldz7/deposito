@@ -1,6 +1,6 @@
 import { getStockStatus, STOCK_STATUS_LABEL } from '../../lib/stock-status'
 
-export function StockChip({ cantidad, stockMinimo }: { cantidad: number; stockMinimo: number | null | undefined }) {
+export function StockChip({ cantidad, stockMinimo, labelPrefix }: { cantidad: number; stockMinimo: number | null | undefined; labelPrefix?: string }) {
   const status = getStockStatus(cantidad, stockMinimo)
   const bajo = status === 'bajo'
   return (
@@ -13,7 +13,7 @@ export function StockChip({ cantidad, stockMinimo }: { cantidad: number; stockMi
             : 'border-outline-variant/40 bg-surface-container-high text-on-surface-variant'
       }`}
     >
-      {STOCK_STATUS_LABEL[status]}
+      {labelPrefix ? `${labelPrefix}: ${STOCK_STATUS_LABEL[status]}` : STOCK_STATUS_LABEL[status]}
     </span>
   )
 }

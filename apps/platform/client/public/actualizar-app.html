@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <title>Actualizando Plataforma</title>
+  </head>
+  <body>
+    <p id="status">Actualizando la aplicación…</p>
+    <script>
+      (async () => {
+        const status = document.getElementById('status')
+        try {
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          await Promise.all(registrations.map((registration) => registration.unregister()))
+          const cacheNames = await caches.keys()
+          await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)))
+          status.textContent = 'Actualización completada. Abriendo Pedidos…'
+          location.replace('/ale-bet/pedidos?actualizado=' + Date.now())
+        } catch (error) {
+          status.textContent = 'No se pudo limpiar automáticamente. Cerrá el navegador e intentá de nuevo.'
+        }
+      })()
+    </script>
+  </body>
+</html>

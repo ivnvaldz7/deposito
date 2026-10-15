@@ -2,6 +2,7 @@ import request from 'supertest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Express, NextFunction, Request, Response } from 'express'
 import jwt from 'jsonwebtoken'
+import { automationDocumentTrayWhere } from '../automation-document-tray'
 
 // ──────────────────────────────────────────────────
 // Hoisted mocks
@@ -141,6 +142,43 @@ describe('Ale-Bet Dashboard', () => {
   })
 
   describe('GET /api/ale-bet/dashboard', () => {
+    it('counts the document tray but lists all recent orders, including dispatched ones', async () => {
+      mockDb.producto.findMany.mockResolvedValue([])
+      mockDb.pedido.count.mockResolvedValue(0)
+      mockDb.pedido.findMany.mockResolvedValue([{
+        id: 'dispatched-1', numero: 'P-RECENT', estado: 'DESPACHADO', origen: 'AUTOMATION',
+        cliente: { nombre: 'Cliente reciente' }, vendedorId: null, armadorId: null,
+        items: [], createdAt: new Date('2026-10-13T12:00:00.000Z'),
+      }])
+      mockDb.platformUser.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const response = await request(app).get('/api/ale-bet/dashboard').set('Authorization', `Bearer ${signToken()}`).expect(200)
+
+      expect(mockDb.pedido.count).toHaveBeenCalledWith({ where: automationDocumentTrayWhere() })
+      expect(mockDb.pedido.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: {},
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      }))
+      expect(response.body.pedidosRecientes[0]).toMatchObject({ numero: 'P-RECENT', estado: 'DESPACHADO' })
+    })
+
+    it('limits a vendor’s recent orders to their own, as Pedidos and Historial do', async () => {
+      mockDb.producto.findMany.mockResolvedValue([])
+      mockDb.pedido.count.mockResolvedValue(0)
+      mockDb.pedido.findMany.mockResolvedValue([])
+      mockDb.platformUser.findMany.mockResolvedValue([])
+
+      const app = await createTestApp()
+      const token = signToken({ sub: 'vendor-1', apps: { 'ale-bet': { rol: 'vendedor', activo: true } } })
+      await request(app).get('/api/ale-bet/dashboard').set('Authorization', `Bearer ${token}`).expect(200)
+
+      expect(mockDb.pedido.findMany).toHaveBeenCalledWith(expect.objectContaining({
+        where: { vendedorId: 'vendor-1' },
+      }))
+    })
+
     it('returns aggregated data with stockCritico, counts, and recent pedidos', async () => {
       mockDb.producto.findMany.mockResolvedValue([
         {

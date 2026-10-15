@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, AlertTriangle, X } from 'lucide-react'
+import { AlertTriangle, X } from 'lucide-react'
 import { toast } from '@/lib/toast'
 import { type Producto, type LoteAdminStock } from '../lib/api'
 import { useProductoAdminStock, useAjusteAdminStock, useIngresarAdminStock, useTransferirStock, useCreateAdminLote, useProductTransferRules, useUpdateLote } from '../queries'
@@ -11,17 +11,22 @@ interface GestionarStockModalProps {
   onClose: () => void
 }
 
+type LotesTab = 'operables' | 'agotados'
+
 export function GestionarStockModal({ producto, onClose }: GestionarStockModalProps) {
-  // A zero balance does not make an active lot historical. Keep it operable so
-  // the operator can correct or replenish it without creating a duplicate lot.
+  // A zero balance remains traceable. The UI separates it from daily work and
+  // exposes the latest exhausted lots only for deliberate replenishment.
   const { data: stockData, isLoading, error } = useProductoAdminStock(producto.id, { includeZero: true })
   const transferRulesQuery = useProductTransferRules(producto.id, true)
   
   const [ajusteModal, setAjusteModal] = useState<{ loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; activo: boolean } | null>(null)
-  const [ingresoModal, setIngresoModal] = useState<{ loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; activo: boolean } | null>(null)
+  const [ingresoModal, setIngresoModal] = useState<{ loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; activo: boolean; isReactivation: boolean } | null>(null)
   const [transferirModal, setTransferirModal] = useState<{ loteId: string; loteNumero: string; origen: 'DEPOSITO' | 'ACONDICIONADO'; cantidadActual: number } | null>(null)
+  const [reactivarModal, setReactivarModal] = useState<LoteAdminStock | null>(null)
   const [createLoteModal, setCreateLoteModal] = useState(false)
   const [editingExpiration, setEditingExpiration] = useState<{ loteId: string; value: string } | null>(null)
+  const [activeTab, setActiveTab] = useState<LotesTab>('operables')
+  const [selectedLoteId, setSelectedLoteId] = useState<string | null>(null)
   const updateLote = useUpdateLote()
 
   if (isLoading) {
@@ -46,7 +51,10 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
   }
 
   const { lotes, ubicaciones } = stockData
-  const operationalLotes = lotes.filter((lote) => lote.activo)
+  const operationalLotes = lotes.filter((lote) => lote.activo && lote.stockTotal > 0)
+  // getManagedProductStock returns lots by number; the most recent three are
+  // enough to replenish a recently exhausted lot without cluttering operations.
+  const exhaustedLotes = lotes.filter((lote) => lote.activo && lote.stockTotal === 0).slice(-3).reverse()
   const depositoUbicacion = ubicaciones.find(u => u.codigo === 'DEPOSITO')
   const acondicionadoUbicacion = ubicaciones.find(u => u.codigo === 'ACONDICIONADO')
   const stockTotal = operationalLotes.reduce((acc, lote) => acc + lote.stockTotal, 0)
@@ -67,6 +75,17 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'No se pudo actualizar el vencimiento')
     }
+  }
+
+  function changeTab(tab: LotesTab): void {
+    setActiveTab(tab)
+    setSelectedLoteId(null)
+    setEditingExpiration(null)
+  }
+
+  function toggleLotSelection(loteId: string): void {
+    setSelectedLoteId((selectedId) => selectedId === loteId ? null : loteId)
+    setEditingExpiration(null)
   }
 
   return (
@@ -94,99 +113,97 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
 
         <div className="mt-6 flex items-center justify-between gap-3 sm:mt-8">
           <h3 className="text-[16px] font-semibold text-on-surface">Lotes</h3>
-          <button 
-            onClick={() => setCreateLoteModal(true)} 
+          <button
+            type="button"
+            onClick={() => setCreateLoteModal(true)}
             className="min-h-11 shrink-0 rounded-xl border border-primary px-3 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/20"
           >
             + Nuevo lote
           </button>
         </div>
 
-        {operationalLotes.length === 0 ? (
-          <p className="mt-4 py-6 text-center font-body text-[13px] text-on-surface-variant">Sin lotes registrados</p>
+        <div className="mt-4 flex gap-2 border-b border-white/10" role="tablist" aria-label="Estado de los lotes">
+          <button type="button" role="tab" aria-selected={activeTab === 'operables'} onClick={() => changeTab('operables')} className={`min-h-11 border-b-2 px-3 font-body text-[12px] font-semibold transition ${activeTab === 'operables' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>
+            Lotes operables ({operationalLotes.length})
+          </button>
+          <button type="button" role="tab" aria-selected={activeTab === 'agotados'} onClick={() => changeTab('agotados')} className={`min-h-11 border-b-2 px-3 font-body text-[12px] font-semibold transition ${activeTab === 'agotados' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant hover:text-on-surface'}`}>
+            Agotados recientes ({exhaustedLotes.length})
+          </button>
+        </div>
+
+        {activeTab === 'operables' ? (
+          operationalLotes.length === 0 ? (
+            <p className="mt-4 py-6 text-center font-body text-[13px] text-on-surface-variant">No hay lotes con stock disponible.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {operationalLotes.map((lote) => {
+                const isSelected = selectedLoteId === lote.id
+                return (
+                  <div key={lote.id} className={`rounded-xl border p-4 transition ${isSelected ? 'border-primary/70 bg-surface-container-high ring-1 ring-primary/20' : 'border-white/10 bg-surface-container-high'}`}>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <button type="button" aria-label={`${isSelected ? 'Cerrar selección del lote' : 'Seleccionar lote'} ${lote.numero}`} onClick={() => toggleLotSelection(lote.id)} className="flex min-w-0 items-center justify-between gap-3 rounded-lg text-left hover:text-primary">
+                        <span className="font-semibold text-[15px] text-primary">LOTE {lote.numero}</span>
+                        <span className={`shrink-0 rounded-full px-2 py-1 font-body text-[10px] font-medium ${isSelected ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant'}`}>{isSelected ? 'Seleccionado' : 'Seleccionar'}</span>
+                      </button>
+                      {isSelected && (editingExpiration?.loteId === lote.id ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input aria-label={`Vencimiento del lote ${lote.numero}`} type="date" value={editingExpiration.value} onChange={(event) => setEditingExpiration({ loteId: lote.id, value: event.target.value })} className="min-h-10 rounded border border-white/15 bg-surface-container px-2 text-[14px] text-on-surface" />
+                          <button type="button" disabled={updateLote.isPending} onClick={() => void saveExpiration(lote.id)} className="min-h-10 rounded-lg px-2 text-xs font-semibold text-primary disabled:opacity-50">Guardar</button>
+                          <button type="button" disabled={updateLote.isPending} onClick={() => setEditingExpiration(null)} className="min-h-10 rounded-lg px-2 text-xs text-on-surface-variant">Cancelar</button>
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => setEditingExpiration({ loteId: lote.id, value: lote.fechaVencimiento ? lote.fechaVencimiento.slice(0, 10) : '' })} className="min-h-10 rounded-lg px-2 text-left font-body text-[12px] text-on-surface-variant hover:bg-surface-container hover:text-primary">Vto: {formatOptionalDate(lote.fechaVencimiento)} · Editar</button>
+                      ))}
+                    </div>
+
+                    {!isSelected ? (
+                      <p className="mt-3 font-body text-[12px] text-on-surface-variant">Disponible: {lote.stockTotal} · Tocá para operar este lote.</p>
+                    ) : (
+                      <>
+                        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                          <div className="rounded-lg bg-surface-container/30 p-3">
+                            <div className="mb-3 flex items-center justify-between gap-2"><p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Depósito</p><p className="text-[16px] font-semibold text-on-surface">{lote.stockDeposito}</p></div>
+                            {depositoUbicacion && <div className="grid grid-cols-2 gap-2">
+                              <button type="button" onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: depositoUbicacion.id, ubicacionNombre: 'Depósito', cantidadActual: lote.stockDeposito, activo: lote.activo })} className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface">Ajustar</button>
+                              <button type="button" onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'DEPOSITO', cantidadActual: lote.stockDeposito })} className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface">Transferir</button>
+                            </div>}
+                          </div>
+                          <div className="rounded-lg bg-surface-container/30 p-3">
+                            <div className="mb-3 flex items-center justify-between gap-2"><p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Acondicionado</p><p className="text-[16px] font-semibold text-on-surface">{lote.stockAcondicionado}</p></div>
+                            {acondicionadoUbicacion && <div className="grid grid-cols-2 gap-2">
+                              <button type="button" onClick={() => setIngresoModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo, isReactivation: false })} className="min-h-10 rounded-full border border-primary/50 px-2 py-1 font-body text-[11px] font-medium text-primary transition hover:bg-primary/10">Ingresar</button>
+                              <button type="button" onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo })} className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface">Ajustar</button>
+                              <button type="button" onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'ACONDICIONADO', cantidadActual: lote.stockAcondicionado })} className="col-span-2 min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface">{hasPresentationDestinations ? 'Transferir a presentación' : 'Transferir'}</button>
+                            </div>}
+                          </div>
+                        </div>
+                        <div className="mt-3 flex justify-between border-t border-white/5 pt-3"><p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Total</p><p className="text-[16px] font-semibold text-on-surface">{lote.stockTotal}</p></div>
+                      </>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )
         ) : (
-          <div className="mt-4 space-y-3">
-            {operationalLotes.map(lote => (
-              <div key={lote.id} className={`rounded-xl border p-4 ${lote.activo ? 'border-white/10 bg-surface-container-high' : 'border-white/5 bg-surface-container-high/60'}`}>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <span className={`font-semibold text-[15px] ${lote.activo ? 'text-primary' : 'text-on-surface-variant'}`}>LOTE {lote.numero}</span>
-                    {!lote.activo && (
-                      <span className="rounded-full bg-yellow-500/20 px-2 py-0.5 font-body text-[10px] font-medium text-yellow-400">Inactivo</span>
-                    )}
+          exhaustedLotes.length === 0 ? (
+            <p className="mt-4 py-6 text-center font-body text-[13px] text-on-surface-variant">No hay lotes agotados para reactivar.</p>
+          ) : (
+            <div className="mt-4 space-y-3">
+              {exhaustedLotes.map((lote) => {
+                const isSelected = selectedLoteId === lote.id
+                return (
+                  <div key={lote.id} className={`rounded-xl border p-4 transition ${isSelected ? 'border-primary/70 bg-surface-container-high ring-1 ring-primary/20' : 'border-white/10 bg-surface-container-high'}`}>
+                    <button type="button" aria-label={`${isSelected ? 'Cerrar selección del lote' : 'Seleccionar lote'} ${lote.numero}`} onClick={() => toggleLotSelection(lote.id)} className="flex w-full items-center justify-between gap-3 rounded-lg text-left hover:text-primary">
+                      <span><span className="block font-semibold text-[15px] text-on-surface">LOTE {lote.numero}</span><span className="mt-1 block font-body text-[12px] text-on-surface-variant">Vto: {formatOptionalDate(lote.fechaVencimiento)} · Total: 0</span></span>
+                      <span className={`shrink-0 rounded-full px-2 py-1 font-body text-[10px] font-medium ${isSelected ? 'bg-primary/20 text-primary' : 'bg-surface-container text-on-surface-variant'}`}>{isSelected ? 'Seleccionado' : 'Seleccionar'}</span>
+                    </button>
+                    {isSelected && <div className="mt-4 border-t border-white/5 pt-4"><p className="font-body text-[12px] text-on-surface-variant">Este lote no tiene saldo. Elegí dónde ingresar el stock para reactivarlo.</p><button type="button" aria-label={`Reactivar lote ${lote.numero}`} onClick={() => setReactivarModal(lote)} className="mt-3 min-h-10 rounded-full border border-primary/50 px-4 font-body text-[12px] font-semibold text-primary transition hover:bg-primary/10">Reactivar lote</button></div>}
                   </div>
-                  {editingExpiration?.loteId === lote.id ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <input aria-label={`Vencimiento del lote ${lote.numero}`} type="date" value={editingExpiration.value} onChange={(event) => setEditingExpiration({ loteId: lote.id, value: event.target.value })} className="min-h-10 rounded border border-white/15 bg-surface-container px-2 text-[14px] text-on-surface" />
-                      <button type="button" disabled={updateLote.isPending} onClick={() => void saveExpiration(lote.id)} className="min-h-10 rounded-lg px-2 text-xs font-semibold text-primary disabled:opacity-50">Guardar</button>
-                      <button type="button" disabled={updateLote.isPending} onClick={() => setEditingExpiration(null)} className="min-h-10 rounded-lg px-2 text-xs text-on-surface-variant">Cancelar</button>
-                    </div>
-                  ) : (
-                    <button type="button" onClick={() => setEditingExpiration({ loteId: lote.id, value: lote.fechaVencimiento ? lote.fechaVencimiento.slice(0, 10) : '' })} className="min-h-10 rounded-lg px-2 text-left font-body text-[12px] text-on-surface-variant hover:bg-surface-container hover:text-primary">Vto: {formatOptionalDate(lote.fechaVencimiento)} · Editar</button>
-                  )}
-                </div>
-                
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                  <div className="rounded-lg bg-surface-container/30 p-3">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Depósito</p>
-                      <p className="text-[16px] font-semibold text-on-surface">{lote.stockDeposito}</p>
-                    </div>
-                    {depositoUbicacion && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button 
-                          onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: depositoUbicacion.id, ubicacionNombre: 'Depósito', cantidadActual: lote.stockDeposito, activo: lote.activo })}
-                          className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
-                        >
-                          Ajustar
-                        </button>
-                        <button 
-                          onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'DEPOSITO', cantidadActual: lote.stockDeposito })}
-                          className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
-                        >
-                          Transferir
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="rounded-lg bg-surface-container/30 p-3">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Acondicionado</p>
-                      <p className="text-[16px] font-semibold text-on-surface">{lote.stockAcondicionado}</p>
-                    </div>
-                    {acondicionadoUbicacion && (
-                      <div className="grid grid-cols-2 gap-2">
-                        <button 
-                          onClick={() => setIngresoModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo })}
-                          className={`min-h-10 rounded-full border px-2 py-1 font-body text-[11px] font-medium transition ${lote.activo ? 'border-primary/50 text-primary hover:bg-primary/10' : 'border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10'}`}
-                        >
-                          {lote.activo ? 'Ingresar' : 'Reactivar e ingresar'}
-                        </button>
-                        <button 
-                          onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo })}
-                          className="min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
-                        >
-                          Ajustar
-                        </button>
-                        <button 
-                          onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'ACONDICIONADO', cantidadActual: lote.stockAcondicionado })}
-                          className="col-span-2 min-h-10 rounded-full border border-white/10 px-2 py-1 font-body text-[11px] text-on-surface-variant transition hover:bg-surface-variant/50 hover:text-on-surface"
-                        >
-                          {hasPresentationDestinations ? 'Transferir a presentación' : 'Transferir'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="mt-3 flex justify-between border-t border-white/5 pt-3">
-                  <p className="font-body text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">Total</p>
-                  <p className="text-[16px] font-semibold text-on-surface">{lote.stockTotal}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+                )
+              })}
+            </div>
+          )
         )}
       </div>
 
@@ -212,8 +229,29 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
           ubicacionNombre={ingresoModal.ubicacionNombre}
           cantidadActual={ingresoModal.cantidadActual}
           loteActivo={ingresoModal.activo}
+          isReactivation={ingresoModal.isReactivation}
           onClose={() => setIngresoModal(null)}
           onCompleted={onClose}
+        />
+      )}
+
+      {reactivarModal && (
+        <ReactivarLoteModal
+          lote={reactivarModal}
+          ubicaciones={ubicaciones}
+          onClose={() => setReactivarModal(null)}
+          onContinue={(ubicacion) => {
+            setReactivarModal(null)
+            setIngresoModal({
+              loteId: reactivarModal.id,
+              loteNumero: reactivarModal.numero,
+              ubicacionId: ubicacion.id,
+              ubicacionNombre: ubicacion.nombre,
+              cantidadActual: 0,
+              activo: reactivarModal.activo,
+              isReactivation: true,
+            })
+          }}
         />
       )}
 
@@ -237,6 +275,39 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
           onClose={() => setCreateLoteModal(false)}
         />
       )}
+    </div>
+  )
+}
+
+function ReactivarLoteModal({ lote, ubicaciones, onClose, onContinue }: {
+  lote: LoteAdminStock
+  ubicaciones: Array<{ id: string; codigo: string; nombre: string }>
+  onClose: () => void
+  onContinue: (ubicacion: { id: string; nombre: string }) => void
+}) {
+  const availableLocations = ubicaciones.filter((ubicacion) => ubicacion.codigo === 'DEPOSITO' || ubicacion.codigo === 'ACONDICIONADO')
+  const [ubicacionId, setUbicacionId] = useState(availableLocations[0]?.id ?? '')
+  const selectedLocation = availableLocations.find((ubicacion) => ubicacion.id === ubicacionId)
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-labelledby="reactivar-lote-title" className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <h3 id="reactivar-lote-title" className="text-[18px] font-semibold text-on-surface">Reactivar lote {lote.numero}</h3>
+        <p className="mt-1 font-body text-[13px] text-on-surface-variant">Elegí dónde ingresará el nuevo stock. El lote volverá a la solapa operativa al confirmar el ingreso.</p>
+        <fieldset className="mt-5 space-y-2">
+          <legend className="font-body text-[12px] text-outline">Destino del ingreso</legend>
+          {availableLocations.map((ubicacion) => (
+            <label key={ubicacion.id} className="flex min-h-11 items-center gap-3 rounded-lg border border-white/10 px-3 text-[14px] text-on-surface has-[:checked]:border-primary has-[:checked]:bg-primary/10">
+              <input type="radio" name="ubicacion-reactivacion" value={ubicacion.id} checked={ubicacion.id === ubicacionId} onChange={() => setUbicacionId(ubicacion.id)} />
+              {ubicacion.nombre}
+            </label>
+          ))}
+        </fieldset>
+        <div className="flex justify-end gap-3 pt-6">
+          <button type="button" onClick={onClose} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface">Cancelar</button>
+          <button type="button" disabled={!selectedLocation} onClick={() => selectedLocation && onContinue({ id: selectedLocation.id, nombre: selectedLocation.nombre })} className="rounded-full bg-primary px-4 py-2 font-body text-[12px] font-semibold text-on-primary transition hover:bg-primary/90 disabled:opacity-50">Continuar</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -348,7 +419,7 @@ function AjusteModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionNom
   )
 }
 
-function IngresarModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionNombre, cantidadActual, loteActivo, onClose, onCompleted }: { productoId: string; loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; loteActivo: boolean; onClose: () => void; onCompleted: () => void }) {
+function IngresarModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionNombre, cantidadActual, loteActivo, isReactivation, onClose, onCompleted }: { productoId: string; loteId: string; loteNumero: string; ubicacionId: string; ubicacionNombre: string; cantidadActual: number; loteActivo: boolean; isReactivation: boolean; onClose: () => void; onCompleted: () => void }) {
   const [cantidad, setCantidad] = useState<string>('')
   const [step, setStep] = useState<'form' | 'confirm'>('form')
   const [errorLocal, setErrorLocal] = useState<string | null>(null)
@@ -364,7 +435,7 @@ function IngresarModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionN
         cantidad: Number(cantidad),
         idempotencyKey: crypto.randomUUID()
       })
-      toast.success(loteActivo ? 'Stock ingresado correctamente' : 'Lote reactivado y stock ingresado correctamente')
+      toast.success(isReactivation || !loteActivo ? 'Lote reactivado y stock ingresado correctamente' : 'Stock ingresado correctamente')
       onCompleted()
     } catch (err) {
       setErrorLocal(err instanceof Error ? err.message : 'Error al ingresar stock')
@@ -395,9 +466,9 @@ function IngresarModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionN
               <span className="font-body text-[13px] text-on-surface-variant">Ubicación:</span>
               <span className="text-[14px] font-semibold text-on-surface">{ubicacionNombre}</span>
             </div>
-            {!loteActivo && (
+            {(isReactivation || !loteActivo) && (
               <div className="rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-3 py-2">
-                <p className="font-body text-[12px] font-medium text-yellow-400">Este lote está inactivo. Se reactivará al confirmar el ingreso.</p>
+                <p className="font-body text-[12px] font-medium text-yellow-400">Este lote volverá a la solapa operativa al confirmar el ingreso.</p>
               </div>
             )}
             <div className="flex justify-between items-center border-t border-white/5 pt-2">
@@ -415,8 +486,8 @@ function IngresarModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionN
           </div>
           <div className="flex justify-end gap-3 pt-6">
             <button type="button" disabled={ingresoMutation.isPending} onClick={() => setStep('form')} className="rounded-full border border-white/10 px-4 py-2 font-body text-[12px] text-outline transition hover:text-on-surface disabled:opacity-50">Cancelar</button>
-            <button type="button" disabled={ingresoMutation.isPending} onClick={handleConfirm} className={`rounded-full px-4 py-2 font-body text-[12px] font-semibold transition disabled:opacity-50 ${loteActivo ? 'bg-primary text-on-primary hover:bg-primary/90' : 'bg-yellow-500 text-black hover:bg-yellow-400'}`}>
-              {ingresoMutation.isPending ? 'Confirmando...' : loteActivo ? 'Confirmar ingreso' : 'Reactivar e ingresar'}
+            <button type="button" disabled={ingresoMutation.isPending} onClick={handleConfirm} className={`rounded-full px-4 py-2 font-body text-[12px] font-semibold transition disabled:opacity-50 ${isReactivation || !loteActivo ? 'bg-yellow-500 text-black hover:bg-yellow-400' : 'bg-primary text-on-primary hover:bg-primary/90'}`}>
+              {ingresoMutation.isPending ? 'Confirmando...' : isReactivation || !loteActivo ? 'Reactivar e ingresar' : 'Confirmar ingreso'}
             </button>
           </div>
         </div>
@@ -427,7 +498,7 @@ function IngresarModal({ productoId, loteId, loteNumero, ubicacionId, ubicacionN
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60" onClick={onClose}>
       <div className="w-full max-w-sm rounded-xl border border-white/10 bg-surface-container p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-[18px] font-semibold text-on-surface">Ingresar stock</h3>
+        <h3 className="text-[18px] font-semibold text-on-surface">{isReactivation ? 'Reactivar lote' : 'Ingresar stock'}</h3>
         <p className="mt-1 font-body text-[13px] text-on-surface-variant">Lote: <span className="font-semibold text-on-surface">{loteNumero}</span> | Ubicación: <span className="font-semibold text-on-surface">{ubicacionNombre}</span></p>
         
         {errorLocal && (

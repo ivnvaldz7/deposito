@@ -6,6 +6,7 @@ import { can } from '@/lib/permissions'
 import { useActas } from '../queries/use-actas'
 import { ApiError } from '../lib/api'
 import { formatCantidad } from '../lib/format-units'
+import { LoadingState } from '../components/inventory-shared/inventory-states'
 import type { ActaItemSummary, Categoria, Mercado } from '../lib/actas-types'
 
 const CATEGORIA_LABEL: Record<Categoria, string> = {
@@ -53,7 +54,7 @@ const MERCADO_COLOR: Record<Mercado, string> = {
 export type ActaRow = { id: string; fecha: string; userName: string; item: ActaItemSummary }
 
 function formatProductName(item: ActaItemSummary): string {
-  return item.categoria === 'droga'
+  return item.categoria === 'droga' || item.categoria === 'material_empaque'
     ? item.productoNombre
     : `${CATEGORIA_LABEL[item.categoria].toUpperCase()} ${item.productoNombre}`
 }
@@ -159,7 +160,7 @@ export default function ActasPage() {
       {hasFilters && <button onClick={clearFilters} className="h-[38px] font-body text-xs text-on-surface-variant hover:text-on-surface transition-colors px-2">Limpiar filtros</button>}
     </div>
 
-    {isLoading ? <div className="flex items-center justify-center h-48"><p className="font-body text-on-surface-variant text-sm">Cargando...</p></div>
+    {isLoading ? <LoadingState />
       : error ? <div className="flex items-center justify-center h-48"><p className="font-body text-error text-sm">{error instanceof ApiError ? error.message : 'No se pudieron cargar las actas'}</p></div>
       : filtered.length === 0 ? <div className="flex flex-col items-center justify-center h-48 rounded-lg bg-surface-container-high border border-white/10 gap-3"><p className="font-body text-on-surface-variant text-sm">{hasFilters ? 'No se encontraron ingresos con esos filtros.' : 'No hay actas registradas todavía.'}</p>{canCreate && !hasFilters && <p className="font-body text-on-surface-variant/60 text-xs">Usá "Nuevo Ingreso" para empezar.</p>}</div>
       : <div className="bg-surface-container border border-white/10 rounded-xl overflow-hidden flex-1 shadow-float flex flex-col">{isMobile ? <div className="divide-y divide-white/10">{paginatedRows.map(({ id, fecha, userName, item }) => <article key={id} className="p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-medium text-on-surface break-words">{formatProductName(item)} <MarketBadge mercado={item.mercado} /></p><p className="mt-1 text-xs text-on-surface-variant">Lote {item.lote || '—'} · {formatFecha(fecha)}</p></div><p className="shrink-0 font-semibold tabular-nums text-primary">{formatCantidad(item.cantidadIngresada, item.categoria)}</p></div><p className="mt-2 text-xs text-outline">Registró: {userName}</p></article>)}</div> : <div className="overflow-x-auto flex-1"><table className="w-full text-left border-collapse text-xs"><thead className="bg-surface-container-highest border-b border-white/10"><tr><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider whitespace-nowrap">Fecha</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider w-1/3">Producto</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider">Lote</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider text-right">Cantidad</th><th className="p-3 font-body text-[11px] font-medium text-on-surface-variant uppercase tracking-wider text-center">Usuario</th></tr></thead><tbody className="divide-y divide-white/5">

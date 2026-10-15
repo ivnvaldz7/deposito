@@ -81,4 +81,18 @@ describe('DashboardPage (Ale-Bet)', () => {
     expect(screen.queryByText('APROBADO')).not.toBeInTheDocument()
     expect(screen.queryByText('Pendiente de armado')).not.toBeInTheDocument()
   })
+
+  it('shows the actual state for a dispatched Automation order', async () => {
+    vi.mocked(aleBetApi.dashboard).mockResolvedValue(createDashboardOverview({
+      pedidosRecientes: [{
+        id: 'dispatched-1', numero: 'P-RECENT', estado: 'DESPACHADO', origen: 'AUTOMATION',
+        clienteNombre: 'Cliente reciente', vendedorNombre: 'Automation', armadorNombre: null,
+        cantidadItems: 1, createdAt: new Date().toISOString(),
+      }],
+    }))
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>)
+    await screen.findByText('Cliente reciente')
+    expect(screen.getAllByText('Despachado')).toHaveLength(2)
+    expect(screen.queryByText('Pendiente de remito')).not.toBeInTheDocument()
+  })
 })

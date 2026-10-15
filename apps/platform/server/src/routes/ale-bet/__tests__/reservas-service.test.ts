@@ -88,6 +88,21 @@ describe('reserveSelectedLots', () => {
     ])).rejects.toThrow('vencido')
     expect(create).not.toHaveBeenCalled()
   })
+
+  it('allows Automation to reserve only the available part when partial delivery is enabled', async () => {
+    const create = vi.fn().mockResolvedValue({ id: 'reservation-partial' })
+    const tx = {
+      ubicacionStock: { findUnique: vi.fn().mockResolvedValue({ id: 'deposito-id' }) },
+      $queryRaw: vi.fn().mockResolvedValue([{ id: 'lot-selected', numero: 'PL0614', activo: true, fechaVencimiento: null, fechaProduccion: null, createdAt: new Date('2026-01-01'), cantidad: 10, reservado: 0 }]),
+      reservaStock: { create, groupBy: vi.fn().mockResolvedValue([]) },
+    }
+
+    await reserveSelectedLots(tx as never, 'order-1', [{ id: 'item-1', productoId: 'product-1', cantidad: 4 }], [
+      { itemPedidoId: 'item-1', productoId: 'product-1', loteId: 'lot-selected', cantidad: 2 },
+    ], { allowPartial: true })
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ cantidad: 2 }) }))
+  })
 })
 
 describe('returnConsumedReservations', () => {

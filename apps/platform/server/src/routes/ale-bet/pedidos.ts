@@ -11,6 +11,7 @@ import { consumeActiveReservations, releaseActiveReservations, reserveFefo, rese
 import { getOrderAvailability, InventoryConflictError, transferInternal } from './inventory-service'
 import { sseManager } from './sse-manager'
 import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
+import { automationDocumentTrayWhere } from './automation-document-tray'
 
 const router = Router()
 const itemSchema = z.object({ productoId: z.string().min(1), cantidad: z.number().int().positive() })
@@ -192,13 +193,9 @@ router.get('/', requirePermission('ale-bet', 'pedidos.read'), async (req, res) =
   // vuelve a ser verdadero y el pedido reaparece sin mutar stock ni Pedido.
   const billingTray = role === 'facturacion' || requestedTray === 'FACTURACION'
   if (billingTray) {
-    where.origen = 'AUTOMATION'
     // Partial Automation orders remain in the billing tray after their first
     // remito: Facturación may document the next available product later.
-    where.OR = [
-      { descuentoPorRemito: true, estado: { in: ['APROBADO', 'PENDIENTE_PRODUCCION', 'PENDIENTE_PARCIAL', 'PREPARADO'] } },
-      { descuentoPorRemito: false, estado: { not: 'CANCELADO' }, remitos: { none: { estado: 'VIGENTE' } } },
-    ]
+    Object.assign(where, automationDocumentTrayWhere())
   } else {
     if (requestedState && ['BORRADOR', 'APROBADO', 'EN_ARMADO', 'PREPARADO', 'DESPACHADO', 'CANCELADO'].includes(requestedState)) where.estado = requestedState as OrderState
     if (role === 'vendedor') where.vendedorId = user.sub

@@ -20,6 +20,7 @@ interface InventoryPageHeaderProps {
   description?: string
   stats: InventoryPageHeaderStat[]
   primaryAction?: InventoryPageHeaderAction
+  actionSlot?: ReactNode
   secondaryActions?: InventoryPageHeaderAction[]
   children?: ReactNode
 }
@@ -29,6 +30,7 @@ export function InventoryPageHeader({
   description,
   stats,
   primaryAction,
+  actionSlot,
   secondaryActions,
   children,
 }: InventoryPageHeaderProps) {
@@ -39,23 +41,29 @@ export function InventoryPageHeader({
           <h1 className="text-2xl font-bold tracking-tight text-primary sm:text-3xl">{title}</h1>
           {description && <p className="mt-1 text-sm text-on-surface-variant">{description}</p>}
         </div>
-        {primaryAction && (
-          <button type="button" onClick={primaryAction.onClick} className="btn-primary inline-flex min-h-11 w-full items-center justify-center gap-2 self-start px-5 py-2.5 text-sm sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
-            {primaryAction.icon}{primaryAction.label}
-          </button>
+        {(actionSlot || primaryAction) && (
+          <div className="w-full self-start sm:w-auto">
+            {actionSlot}
+            {primaryAction && (
+              <button type="button" onClick={primaryAction.onClick} className="btn-primary btn-press inline-flex min-h-11 w-full items-center justify-center gap-2 self-start px-5 py-2.5 text-sm sm:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface">
+                {primaryAction.icon}{primaryAction.label}
+              </button>
+            )}
+          </div>
         )}
       </div>
       <section aria-label="Resumen" className="grid gap-3 sm:grid-cols-2">
-        {stats.map((stat) => (
+        {stats.map((stat, index) => (
           <article
             key={stat.label}
-            className={`min-h-24 rounded-xl border p-4 sm:min-h-28 sm:p-5 transition-colors ${
+            className={`min-h-24 rounded-xl border p-4 animate-reveal sm:min-h-28 sm:p-5 transition-[background-color,border-color,transform,box-shadow] ${
               stat.active
                 ? 'bg-primary-container/20 border-primary/50 ring-1 ring-primary/50'
                 : 'border-outline-variant/20 bg-surface-container-low'
             } ${
-              stat.onClick ? 'cursor-pointer hover:bg-surface-bright focus:outline-none focus:ring-2 focus:ring-primary' : ''
+              stat.onClick ? 'cursor-pointer hover:-translate-y-0.5 hover:bg-surface-bright hover:shadow-float focus:outline-none focus:ring-2 focus:ring-primary' : ''
             }`}
+            style={{ animationDelay: `${index * 45}ms` }}
             onClick={stat.onClick}
             role={stat.onClick ? "button" : undefined}
             tabIndex={stat.onClick ? 0 : undefined}
@@ -79,7 +87,7 @@ export function InventoryPageHeader({
       {secondaryActions?.length ? (
         <div aria-label="Acciones contextuales" className="flex flex-wrap items-center gap-2">
           {secondaryActions?.map((action) => (
-            <button key={action.label} type="button" onClick={action.onClick} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-on-surface hover:bg-surface-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            <button key={action.label} type="button" onClick={action.onClick} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-4 text-sm font-semibold text-on-surface btn-press hover:bg-surface-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
               {action.icon}{action.label}
             </button>
           ))}

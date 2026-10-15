@@ -34,14 +34,13 @@ describe('InlineNumberEditor', () => {
     expect(onSave).not.toHaveBeenCalled()
   })
 
-  it('permite borrar el valor y escribir sin anteponer el cero original', async () => {
+  it('abre vacío y permite escribir sin anteponer el cero original', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined)
     const user = userEvent.setup()
     render(<InlineNumberEditor value={0} label="cantidad" onSave={onSave} />)
 
     await user.click(screen.getByRole('button', { name: 'Editar cantidad' }))
     const input = screen.getByRole('spinbutton', { name: 'cantidad' })
-    await user.clear(input)
     expect(input).toHaveValue(null)
     await user.type(input, '200')
     expect(input).toHaveValue(200)

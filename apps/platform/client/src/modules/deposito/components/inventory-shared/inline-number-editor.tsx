@@ -45,7 +45,7 @@ export function InlineNumberEditor({ value, label, onSave }: InlineNumberEditorP
         <span className="font-body text-on-surface tabular-nums">{value}</span>
         <button
           type="button"
-          onClick={() => { setDraft(String(value)); setEditing(true) }}
+          onClick={() => { setDraft(''); setEditing(true) }}
           className="inline-flex size-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-bright hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary md:opacity-60 md:group-hover:opacity-100 md:focus-visible:opacity-100"
           title={`Editar ${label}`}
           aria-label={`Editar ${label}`}
@@ -62,6 +62,7 @@ export function InlineNumberEditor({ value, label, onSave }: InlineNumberEditorP
         type="number"
         min="0"
         value={draft}
+        placeholder={String(value)}
         onChange={(e) => setDraft(e.target.value)}
         className="w-16 font-body text-sm text-on-surface bg-surface-high rounded px-1.5 py-1 tabular-nums text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         autoFocus

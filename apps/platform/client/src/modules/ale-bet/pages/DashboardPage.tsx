@@ -43,11 +43,20 @@ function getEstadoBadgeVariant(estado: string): 'default' | 'success' | 'warning
     case 'BORRADOR': return 'default'
     case 'APROBADO': return 'warning'
     case 'EN_ARMADO': return 'info'
+    case 'PENDIENTE_PARCIAL': return 'info'
     case 'COMPLETADO':
     case 'DESPACHADO': return 'success'
     case 'CANCELADO': return 'error'
     default: return 'default'
   }
+}
+
+function getPedidoStatusLabel(pedido: DashboardPedidoReciente): string {
+  if (pedido.origen === 'AUTOMATION' && pedido.estado === 'APROBADO') return 'Pendiente de remito'
+  if (pedido.estado === 'PENDIENTE_PARCIAL') return 'Entrega parcial'
+  if (pedido.estado === 'DESPACHADO') return 'Despachado'
+  if (pedido.estado === 'CANCELADO') return 'Cancelado'
+  return pedido.estado.replaceAll('_', ' ')
 }
 
 function MetricCard({
@@ -77,8 +86,8 @@ function MetricCard({
 function PedidoRow({ pedido, onOpen }: { pedido: DashboardPedidoReciente; onOpen: (pedidoId: string) => void }) {
   const adminVendor = isAdminVendor(pedido.vendedorNombre)
   const esAutomation = pedido.origen === 'AUTOMATION'
-  const estadoDocumental = esAutomation ? 'Pendiente de remito' : pedido.estado.replace('_', ' ')
-  const variant = esAutomation ? 'default' : getEstadoBadgeVariant(pedido.estado)
+  const estadoDocumental = getPedidoStatusLabel(pedido)
+  const variant = esAutomation && pedido.estado === 'APROBADO' ? 'default' : getEstadoBadgeVariant(pedido.estado)
 
   return (
     <div

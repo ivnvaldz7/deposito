@@ -6,7 +6,6 @@ import { useCommandPaletteStore } from '../../../stores/command-palette-store'
 import { useSSE } from '../../../hooks/use-sse'
 
 vi.mock('../Sidebar', () => ({ Sidebar: () => <div data-testid="sidebar" /> }))
-vi.mock('../Topbar', () => ({ Topbar: () => <div data-testid="topbar">Buscar Notificaciones Tema</div> }))
 vi.mock('../command-palette/CommandPalette', () => ({ CommandPalette: () => <div data-testid="command-palette" /> }))
 
 vi.mock('../../../stores/command-palette-store', () => ({
@@ -34,24 +33,10 @@ describe('AppLayout', () => {
     ;(useCommandPaletteStore as unknown as ReturnType<typeof vi.fn>).mockReturnValue(togglePaletteMock)
   })
 
-  it('renders the Topbar on /deposito/dashboard', () => {
+  it('keeps the same content origin on dashboard as on the other pages', () => {
     renderAt('/deposito/dashboard')
     expect(useSSE).toHaveBeenCalled()
-    expect(screen.getByTestId('topbar')).toBeInTheDocument()
-    expect(screen.getByText(/Buscar/)).toBeInTheDocument()
-    expect(screen.getByText(/Notificaciones/)).toBeInTheDocument()
-    expect(screen.getByText(/Tema/)).toBeInTheDocument()
-  })
-
-  it('hides the Topbar on /productos and other pages to free up space', () => {
-    const paths = ['/productos', '/actas', '/drogas', '/ingresos/nueva']
-
-    paths.forEach(path => {
-      const { unmount } = renderAt(path)
-      expect(screen.queryByTestId('topbar')).not.toBeInTheDocument()
-      expect(screen.getByTestId('content')).toBeInTheDocument()
-      unmount()
-    })
+    expect(screen.getByTestId('content')).toBeInTheDocument()
   })
 
   it('allows Shift+K globally from Dashboard', () => {

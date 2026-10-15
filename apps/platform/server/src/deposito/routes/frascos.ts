@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requirePermission } from '../../middlewares/require-permission'
+import { syncDepositoStockSheetsAfterCommit } from '../services/stock-sheets-projection'
 
 const router = Router()
 
@@ -71,6 +72,7 @@ router.post(
         },
       })
       res.status(201).json(frasco)
+      void syncDepositoStockSheetsAfterCommit()
     } catch {
       res.status(500).json({ message: 'Error interno del servidor' })
     }
@@ -94,12 +96,28 @@ router.put(
     const { articulo, unidadesPorCaja, cantidadCajas } = result.data
 
     try {
-      const existing = await prisma.inventarioFrasco.findUnique({ where: { id } })
-      if (!existing) { res.status(404).json({ message: 'Frasco no encontrado' }); return }
+      let existing = await prisma.inventarioFrasco.findUnique({ where: { id } })
+      if (!existing) {
+        // Las filas creadas antes de centralizar el catálogo se representan con el
+        // id del producto. Al primer ajuste se materializa su inventario real.
+        const producto = await prisma.depositoProducto.findFirst({
+          where: { id, categoria: 'frasco', activo: true },
+        })
+        if (!producto) { res.status(404).json({ message: 'Frasco no encontrado' }); return }
+        existing = await prisma.inventarioFrasco.create({
+          data: {
+            productoId: producto.id,
+            articulo: producto.nombreCompleto,
+            unidadesPorCaja: producto.presentacion ?? 1,
+            cantidadCajas: 0,
+            total: 0,
+          },
+        })
+      }
 
       if (articulo !== undefined && articulo !== existing.articulo) {
         const conflict = await prisma.inventarioFrasco.findFirst({
-          where: { articulo, NOT: { id } },
+          where: { articulo, NOT: { id: existing.id } },
         })
         if (conflict) {
           res.status(409).json({ message: 'Ya existe un frasco con ese artículo' })
@@ -117,7 +135,7 @@ router.put(
         : existing.total
 
       const frasco = await prisma.inventarioFrasco.update({
-        where: { id },
+        where: { id: existing.id },
         data: {
           ...(articulo !== undefined ? { articulo } : {}),
           ...(unidadesPorCaja !== undefined ? { unidadesPorCaja } : {}),
@@ -126,6 +144,7 @@ router.put(
         },
       })
       res.json(frasco)
+      void syncDepositoStockSheetsAfterCommit()
     } catch {
       res.status(404).json({ message: 'Frasco no encontrado' })
     }
@@ -142,6 +161,7 @@ router.delete(
     try {
       await prisma.inventarioFrasco.delete({ where: { id } })
       res.status(204).send()
+      void syncDepositoStockSheetsAfterCommit()
     } catch {
       res.status(404).json({ message: 'Frasco no encontrado' })
     }

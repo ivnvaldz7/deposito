@@ -28,6 +28,20 @@ describe('DrogasPage', () => {
     expect((await screen.findAllByRole('button', { name: 'Ajustar cantidad' })).length).toBeGreaterThan(0)
   })
 
+  it('muestra por separado el estado del vencimiento y el del stock', async () => {
+    apiMock.get.mockResolvedValue([{
+      productoId: 'product-1', nombre: 'ATP', stockMinimo: 50,
+      lotes: [{ id: 'lot-1', lote: '260720', vencimiento: '2028-07-30T00:00:00.000Z', cantidad: 75, createdAt: '2026-10-13T00:00:00.000Z' }],
+    }])
+    render(<MemoryRouter><DrogasPage /></MemoryRouter>)
+
+    expect(await screen.findAllByText('Stock: Normal')).not.toHaveLength(0)
+    expect(screen.getAllByText('Vencimiento: vigente')).not.toHaveLength(0)
+    fireEvent.click((await screen.findAllByRole('button', { name: /atp/i }))[0])
+    expect(await screen.findAllByText('Estado de vencimiento')).not.toHaveLength(0)
+    expect(screen.getAllByText('Estado de stock')).not.toHaveLength(0)
+  })
+
   it('sends the adjustment to the deposit API', async () => {
     apiMock.get.mockResolvedValue([{
       productoId: 'product-1', nombre: 'VITAMINA A', stockMinimo: null,

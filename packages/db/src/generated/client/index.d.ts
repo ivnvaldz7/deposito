@@ -189,6 +189,11 @@ export type Movimiento = $Result.DefaultSelection<Prisma.$MovimientoPayload>
  */
 export type InsumoPendiente = $Result.DefaultSelection<Prisma.$InsumoPendientePayload>
 /**
+ * Model ZeroxMovimiento
+ * 
+ */
+export type ZeroxMovimiento = $Result.DefaultSelection<Prisma.$ZeroxMovimientoPayload>
+/**
  * Model OrdenProduccion
  * 
  */
@@ -1063,6 +1068,16 @@ export class PrismaClient<
   get insumoPendiente(): Prisma.InsumoPendienteDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.zeroxMovimiento`: Exposes CRUD operations for the **ZeroxMovimiento** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ZeroxMovimientos
+    * const zeroxMovimientos = await prisma.zeroxMovimiento.findMany()
+    * ```
+    */
+  get zeroxMovimiento(): Prisma.ZeroxMovimientoDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.ordenProduccion`: Exposes CRUD operations for the **OrdenProduccion** model.
     * Example usage:
     * ```ts
@@ -1630,6 +1645,7 @@ export namespace Prisma {
     InventarioMaterialEmpaque: 'InventarioMaterialEmpaque',
     Movimiento: 'Movimiento',
     InsumoPendiente: 'InsumoPendiente',
+    ZeroxMovimiento: 'ZeroxMovimiento',
     OrdenProduccion: 'OrdenProduccion',
     DepositoProducto: 'DepositoProducto',
     SecuenciaCodigoEstuche: 'SecuenciaCodigoEstuche',
@@ -1655,7 +1671,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "productoTransferRule" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "configuracionRemito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "inventarioMaterialEmpaque" | "movimiento" | "insumoPendiente" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem" | "partidaProduccion" | "itemSolicitud"
+      modelProps: "platformUser" | "appAccess" | "notification" | "session" | "platformAuditoria" | "idempotencyRecord" | "producto" | "productAlias" | "lote" | "productoTransferRule" | "cliente" | "clientAlias" | "pedido" | "itemPedido" | "movimientoStock" | "reservaStock" | "ubicacionStock" | "saldoStock" | "pedidoAuditoria" | "orderInterpretationDraft" | "stockProjectionOutbox" | "transportista" | "remito" | "configuracionRemito" | "user" | "acta" | "actaItem" | "auditoriaCatalogoProducto" | "inventarioDroga" | "inventarioEstuche" | "inventarioEtiqueta" | "inventarioFrasco" | "inventarioMaterialEmpaque" | "movimiento" | "insumoPendiente" | "zeroxMovimiento" | "ordenProduccion" | "depositoProducto" | "secuenciaCodigoEstuche" | "secuenciaCodigoEtiqueta" | "secuenciaCodigoFrasco" | "importacionInicialEstucheBatch" | "importacionInicialEstucheIdempotencyKey" | "importacionInicialEstucheItem" | "partidaProduccion" | "itemSolicitud"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4249,6 +4265,80 @@ export namespace Prisma {
           }
         }
       }
+      ZeroxMovimiento: {
+        payload: Prisma.$ZeroxMovimientoPayload<ExtArgs>
+        fields: Prisma.ZeroxMovimientoFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ZeroxMovimientoFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ZeroxMovimientoFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>
+          }
+          findFirst: {
+            args: Prisma.ZeroxMovimientoFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ZeroxMovimientoFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>
+          }
+          findMany: {
+            args: Prisma.ZeroxMovimientoFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>[]
+          }
+          create: {
+            args: Prisma.ZeroxMovimientoCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>
+          }
+          createMany: {
+            args: Prisma.ZeroxMovimientoCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ZeroxMovimientoCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>[]
+          }
+          delete: {
+            args: Prisma.ZeroxMovimientoDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>
+          }
+          update: {
+            args: Prisma.ZeroxMovimientoUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>
+          }
+          deleteMany: {
+            args: Prisma.ZeroxMovimientoDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ZeroxMovimientoUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ZeroxMovimientoUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>[]
+          }
+          upsert: {
+            args: Prisma.ZeroxMovimientoUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ZeroxMovimientoPayload>
+          }
+          aggregate: {
+            args: Prisma.ZeroxMovimientoAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateZeroxMovimiento>
+          }
+          groupBy: {
+            args: Prisma.ZeroxMovimientoGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ZeroxMovimientoGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ZeroxMovimientoCountArgs<ExtArgs>
+            result: $Utils.Optional<ZeroxMovimientoCountAggregateOutputType> | number
+          }
+        }
+      }
       OrdenProduccion: {
         payload: Prisma.$OrdenProduccionPayload<ExtArgs>
         fields: Prisma.OrdenProduccionFieldRefs
@@ -5132,6 +5222,7 @@ export namespace Prisma {
     inventarioMaterialEmpaque?: InventarioMaterialEmpaqueOmit
     movimiento?: MovimientoOmit
     insumoPendiente?: InsumoPendienteOmit
+    zeroxMovimiento?: ZeroxMovimientoOmit
     ordenProduccion?: OrdenProduccionOmit
     depositoProducto?: DepositoProductoOmit
     secuenciaCodigoEstuche?: SecuenciaCodigoEstucheOmit
@@ -5626,6 +5717,7 @@ export namespace Prisma {
     actas: number
     movimientos: number
     insumoPendientes: number
+    zeroxMovimientos: number
     ordenesComoSolicitante: number
     ordenesComoAprobador: number
     auditoriasCatalogo: number
@@ -5638,6 +5730,7 @@ export namespace Prisma {
     actas?: boolean | UserCountOutputTypeCountActasArgs
     movimientos?: boolean | UserCountOutputTypeCountMovimientosArgs
     insumoPendientes?: boolean | UserCountOutputTypeCountInsumoPendientesArgs
+    zeroxMovimientos?: boolean | UserCountOutputTypeCountZeroxMovimientosArgs
     ordenesComoSolicitante?: boolean | UserCountOutputTypeCountOrdenesComoSolicitanteArgs
     ordenesComoAprobador?: boolean | UserCountOutputTypeCountOrdenesComoAprobadorArgs
     auditoriasCatalogo?: boolean | UserCountOutputTypeCountAuditoriasCatalogoArgs
@@ -5676,6 +5769,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountInsumoPendientesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: InsumoPendienteWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountZeroxMovimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ZeroxMovimientoWhereInput
   }
 
   /**
@@ -5768,6 +5868,7 @@ export namespace Prisma {
     movimientos: number
     importacionesInicialesEstuche: number
     itemsSolicitud: number
+    zeroxMovimientos: number
   }
 
   export type DepositoProductoCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -5782,6 +5883,7 @@ export namespace Prisma {
     movimientos?: boolean | DepositoProductoCountOutputTypeCountMovimientosArgs
     importacionesInicialesEstuche?: boolean | DepositoProductoCountOutputTypeCountImportacionesInicialesEstucheArgs
     itemsSolicitud?: boolean | DepositoProductoCountOutputTypeCountItemsSolicitudArgs
+    zeroxMovimientos?: boolean | DepositoProductoCountOutputTypeCountZeroxMovimientosArgs
   }
 
   // Custom InputTypes
@@ -5870,6 +5972,13 @@ export namespace Prisma {
    */
   export type DepositoProductoCountOutputTypeCountItemsSolicitudArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ItemSolicitudWhereInput
+  }
+
+  /**
+   * DepositoProductoCountOutputType without action
+   */
+  export type DepositoProductoCountOutputTypeCountZeroxMovimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ZeroxMovimientoWhereInput
   }
 
 
@@ -34106,6 +34215,7 @@ export namespace Prisma {
     actas?: boolean | User$actasArgs<ExtArgs>
     movimientos?: boolean | User$movimientosArgs<ExtArgs>
     insumoPendientes?: boolean | User$insumoPendientesArgs<ExtArgs>
+    zeroxMovimientos?: boolean | User$zeroxMovimientosArgs<ExtArgs>
     ordenesComoSolicitante?: boolean | User$ordenesComoSolicitanteArgs<ExtArgs>
     ordenesComoAprobador?: boolean | User$ordenesComoAprobadorArgs<ExtArgs>
     auditoriasCatalogo?: boolean | User$auditoriasCatalogoArgs<ExtArgs>
@@ -34150,6 +34260,7 @@ export namespace Prisma {
     actas?: boolean | User$actasArgs<ExtArgs>
     movimientos?: boolean | User$movimientosArgs<ExtArgs>
     insumoPendientes?: boolean | User$insumoPendientesArgs<ExtArgs>
+    zeroxMovimientos?: boolean | User$zeroxMovimientosArgs<ExtArgs>
     ordenesComoSolicitante?: boolean | User$ordenesComoSolicitanteArgs<ExtArgs>
     ordenesComoAprobador?: boolean | User$ordenesComoAprobadorArgs<ExtArgs>
     auditoriasCatalogo?: boolean | User$auditoriasCatalogoArgs<ExtArgs>
@@ -34167,6 +34278,7 @@ export namespace Prisma {
       actas: Prisma.$ActaPayload<ExtArgs>[]
       movimientos: Prisma.$MovimientoPayload<ExtArgs>[]
       insumoPendientes: Prisma.$InsumoPendientePayload<ExtArgs>[]
+      zeroxMovimientos: Prisma.$ZeroxMovimientoPayload<ExtArgs>[]
       ordenesComoSolicitante: Prisma.$OrdenProduccionPayload<ExtArgs>[]
       ordenesComoAprobador: Prisma.$OrdenProduccionPayload<ExtArgs>[]
       auditoriasCatalogo: Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>[]
@@ -34579,6 +34691,7 @@ export namespace Prisma {
     actas<T extends User$actasArgs<ExtArgs> = {}>(args?: Subset<T, User$actasArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ActaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     movimientos<T extends User$movimientosArgs<ExtArgs> = {}>(args?: Subset<T, User$movimientosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     insumoPendientes<T extends User$insumoPendientesArgs<ExtArgs> = {}>(args?: Subset<T, User$insumoPendientesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$InsumoPendientePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    zeroxMovimientos<T extends User$zeroxMovimientosArgs<ExtArgs> = {}>(args?: Subset<T, User$zeroxMovimientosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ordenesComoSolicitante<T extends User$ordenesComoSolicitanteArgs<ExtArgs> = {}>(args?: Subset<T, User$ordenesComoSolicitanteArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrdenProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ordenesComoAprobador<T extends User$ordenesComoAprobadorArgs<ExtArgs> = {}>(args?: Subset<T, User$ordenesComoAprobadorArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrdenProduccionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     auditoriasCatalogo<T extends User$auditoriasCatalogoArgs<ExtArgs> = {}>(args?: Subset<T, User$auditoriasCatalogoArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AuditoriaCatalogoProductoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -35083,6 +35196,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: InsumoPendienteScalarFieldEnum | InsumoPendienteScalarFieldEnum[]
+  }
+
+  /**
+   * User.zeroxMovimientos
+   */
+  export type User$zeroxMovimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    where?: ZeroxMovimientoWhereInput
+    orderBy?: ZeroxMovimientoOrderByWithRelationInput | ZeroxMovimientoOrderByWithRelationInput[]
+    cursor?: ZeroxMovimientoWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ZeroxMovimientoScalarFieldEnum | ZeroxMovimientoScalarFieldEnum[]
   }
 
   /**
@@ -46886,6 +47023,1223 @@ export namespace Prisma {
 
 
   /**
+   * Model ZeroxMovimiento
+   */
+
+  export type AggregateZeroxMovimiento = {
+    _count: ZeroxMovimientoCountAggregateOutputType | null
+    _avg: ZeroxMovimientoAvgAggregateOutputType | null
+    _sum: ZeroxMovimientoSumAggregateOutputType | null
+    _min: ZeroxMovimientoMinAggregateOutputType | null
+    _max: ZeroxMovimientoMaxAggregateOutputType | null
+  }
+
+  export type ZeroxMovimientoAvgAggregateOutputType = {
+    cantidad: number | null
+    delta: number | null
+    saldoResultante: number | null
+  }
+
+  export type ZeroxMovimientoSumAggregateOutputType = {
+    cantidad: number | null
+    delta: number | null
+    saldoResultante: number | null
+  }
+
+  export type ZeroxMovimientoMinAggregateOutputType = {
+    id: string | null
+    claveOperacion: string | null
+    productoId: string | null
+    nombreProducto: string | null
+    categoria: string | null
+    tipo: string | null
+    cantidad: number | null
+    delta: number | null
+    saldoResultante: number | null
+    fechaMovimiento: Date | null
+    registradoAt: Date | null
+    usuarioId: string | null
+    observacion: string | null
+  }
+
+  export type ZeroxMovimientoMaxAggregateOutputType = {
+    id: string | null
+    claveOperacion: string | null
+    productoId: string | null
+    nombreProducto: string | null
+    categoria: string | null
+    tipo: string | null
+    cantidad: number | null
+    delta: number | null
+    saldoResultante: number | null
+    fechaMovimiento: Date | null
+    registradoAt: Date | null
+    usuarioId: string | null
+    observacion: string | null
+  }
+
+  export type ZeroxMovimientoCountAggregateOutputType = {
+    id: number
+    claveOperacion: number
+    productoId: number
+    nombreProducto: number
+    categoria: number
+    tipo: number
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: number
+    registradoAt: number
+    usuarioId: number
+    observacion: number
+    _all: number
+  }
+
+
+  export type ZeroxMovimientoAvgAggregateInputType = {
+    cantidad?: true
+    delta?: true
+    saldoResultante?: true
+  }
+
+  export type ZeroxMovimientoSumAggregateInputType = {
+    cantidad?: true
+    delta?: true
+    saldoResultante?: true
+  }
+
+  export type ZeroxMovimientoMinAggregateInputType = {
+    id?: true
+    claveOperacion?: true
+    productoId?: true
+    nombreProducto?: true
+    categoria?: true
+    tipo?: true
+    cantidad?: true
+    delta?: true
+    saldoResultante?: true
+    fechaMovimiento?: true
+    registradoAt?: true
+    usuarioId?: true
+    observacion?: true
+  }
+
+  export type ZeroxMovimientoMaxAggregateInputType = {
+    id?: true
+    claveOperacion?: true
+    productoId?: true
+    nombreProducto?: true
+    categoria?: true
+    tipo?: true
+    cantidad?: true
+    delta?: true
+    saldoResultante?: true
+    fechaMovimiento?: true
+    registradoAt?: true
+    usuarioId?: true
+    observacion?: true
+  }
+
+  export type ZeroxMovimientoCountAggregateInputType = {
+    id?: true
+    claveOperacion?: true
+    productoId?: true
+    nombreProducto?: true
+    categoria?: true
+    tipo?: true
+    cantidad?: true
+    delta?: true
+    saldoResultante?: true
+    fechaMovimiento?: true
+    registradoAt?: true
+    usuarioId?: true
+    observacion?: true
+    _all?: true
+  }
+
+  export type ZeroxMovimientoAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ZeroxMovimiento to aggregate.
+     */
+    where?: ZeroxMovimientoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ZeroxMovimientos to fetch.
+     */
+    orderBy?: ZeroxMovimientoOrderByWithRelationInput | ZeroxMovimientoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ZeroxMovimientoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ZeroxMovimientos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ZeroxMovimientos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ZeroxMovimientos
+    **/
+    _count?: true | ZeroxMovimientoCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ZeroxMovimientoAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ZeroxMovimientoSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ZeroxMovimientoMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ZeroxMovimientoMaxAggregateInputType
+  }
+
+  export type GetZeroxMovimientoAggregateType<T extends ZeroxMovimientoAggregateArgs> = {
+        [P in keyof T & keyof AggregateZeroxMovimiento]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateZeroxMovimiento[P]>
+      : GetScalarType<T[P], AggregateZeroxMovimiento[P]>
+  }
+
+
+
+
+  export type ZeroxMovimientoGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ZeroxMovimientoWhereInput
+    orderBy?: ZeroxMovimientoOrderByWithAggregationInput | ZeroxMovimientoOrderByWithAggregationInput[]
+    by: ZeroxMovimientoScalarFieldEnum[] | ZeroxMovimientoScalarFieldEnum
+    having?: ZeroxMovimientoScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ZeroxMovimientoCountAggregateInputType | true
+    _avg?: ZeroxMovimientoAvgAggregateInputType
+    _sum?: ZeroxMovimientoSumAggregateInputType
+    _min?: ZeroxMovimientoMinAggregateInputType
+    _max?: ZeroxMovimientoMaxAggregateInputType
+  }
+
+  export type ZeroxMovimientoGroupByOutputType = {
+    id: string
+    claveOperacion: string
+    productoId: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date
+    registradoAt: Date
+    usuarioId: string
+    observacion: string | null
+    _count: ZeroxMovimientoCountAggregateOutputType | null
+    _avg: ZeroxMovimientoAvgAggregateOutputType | null
+    _sum: ZeroxMovimientoSumAggregateOutputType | null
+    _min: ZeroxMovimientoMinAggregateOutputType | null
+    _max: ZeroxMovimientoMaxAggregateOutputType | null
+  }
+
+  type GetZeroxMovimientoGroupByPayload<T extends ZeroxMovimientoGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ZeroxMovimientoGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ZeroxMovimientoGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ZeroxMovimientoGroupByOutputType[P]>
+            : GetScalarType<T[P], ZeroxMovimientoGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ZeroxMovimientoSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    claveOperacion?: boolean
+    productoId?: boolean
+    nombreProducto?: boolean
+    categoria?: boolean
+    tipo?: boolean
+    cantidad?: boolean
+    delta?: boolean
+    saldoResultante?: boolean
+    fechaMovimiento?: boolean
+    registradoAt?: boolean
+    usuarioId?: boolean
+    observacion?: boolean
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    usuario?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["zeroxMovimiento"]>
+
+  export type ZeroxMovimientoSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    claveOperacion?: boolean
+    productoId?: boolean
+    nombreProducto?: boolean
+    categoria?: boolean
+    tipo?: boolean
+    cantidad?: boolean
+    delta?: boolean
+    saldoResultante?: boolean
+    fechaMovimiento?: boolean
+    registradoAt?: boolean
+    usuarioId?: boolean
+    observacion?: boolean
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    usuario?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["zeroxMovimiento"]>
+
+  export type ZeroxMovimientoSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    claveOperacion?: boolean
+    productoId?: boolean
+    nombreProducto?: boolean
+    categoria?: boolean
+    tipo?: boolean
+    cantidad?: boolean
+    delta?: boolean
+    saldoResultante?: boolean
+    fechaMovimiento?: boolean
+    registradoAt?: boolean
+    usuarioId?: boolean
+    observacion?: boolean
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    usuario?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["zeroxMovimiento"]>
+
+  export type ZeroxMovimientoSelectScalar = {
+    id?: boolean
+    claveOperacion?: boolean
+    productoId?: boolean
+    nombreProducto?: boolean
+    categoria?: boolean
+    tipo?: boolean
+    cantidad?: boolean
+    delta?: boolean
+    saldoResultante?: boolean
+    fechaMovimiento?: boolean
+    registradoAt?: boolean
+    usuarioId?: boolean
+    observacion?: boolean
+  }
+
+  export type ZeroxMovimientoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "claveOperacion" | "productoId" | "nombreProducto" | "categoria" | "tipo" | "cantidad" | "delta" | "saldoResultante" | "fechaMovimiento" | "registradoAt" | "usuarioId" | "observacion", ExtArgs["result"]["zeroxMovimiento"]>
+  export type ZeroxMovimientoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    usuario?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ZeroxMovimientoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    usuario?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type ZeroxMovimientoIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    producto?: boolean | DepositoProductoDefaultArgs<ExtArgs>
+    usuario?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $ZeroxMovimientoPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ZeroxMovimiento"
+    objects: {
+      producto: Prisma.$DepositoProductoPayload<ExtArgs>
+      usuario: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      claveOperacion: string
+      productoId: string
+      nombreProducto: string
+      categoria: string
+      tipo: string
+      cantidad: number
+      delta: number
+      saldoResultante: number
+      fechaMovimiento: Date
+      registradoAt: Date
+      usuarioId: string
+      observacion: string | null
+    }, ExtArgs["result"]["zeroxMovimiento"]>
+    composites: {}
+  }
+
+  type ZeroxMovimientoGetPayload<S extends boolean | null | undefined | ZeroxMovimientoDefaultArgs> = $Result.GetResult<Prisma.$ZeroxMovimientoPayload, S>
+
+  type ZeroxMovimientoCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ZeroxMovimientoFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ZeroxMovimientoCountAggregateInputType | true
+    }
+
+  export interface ZeroxMovimientoDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ZeroxMovimiento'], meta: { name: 'ZeroxMovimiento' } }
+    /**
+     * Find zero or one ZeroxMovimiento that matches the filter.
+     * @param {ZeroxMovimientoFindUniqueArgs} args - Arguments to find a ZeroxMovimiento
+     * @example
+     * // Get one ZeroxMovimiento
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ZeroxMovimientoFindUniqueArgs>(args: SelectSubset<T, ZeroxMovimientoFindUniqueArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ZeroxMovimiento that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ZeroxMovimientoFindUniqueOrThrowArgs} args - Arguments to find a ZeroxMovimiento
+     * @example
+     * // Get one ZeroxMovimiento
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ZeroxMovimientoFindUniqueOrThrowArgs>(args: SelectSubset<T, ZeroxMovimientoFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ZeroxMovimiento that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ZeroxMovimientoFindFirstArgs} args - Arguments to find a ZeroxMovimiento
+     * @example
+     * // Get one ZeroxMovimiento
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ZeroxMovimientoFindFirstArgs>(args?: SelectSubset<T, ZeroxMovimientoFindFirstArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ZeroxMovimiento that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ZeroxMovimientoFindFirstOrThrowArgs} args - Arguments to find a ZeroxMovimiento
+     * @example
+     * // Get one ZeroxMovimiento
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ZeroxMovimientoFindFirstOrThrowArgs>(args?: SelectSubset<T, ZeroxMovimientoFindFirstOrThrowArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ZeroxMovimientos that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ZeroxMovimientoFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ZeroxMovimientos
+     * const zeroxMovimientos = await prisma.zeroxMovimiento.findMany()
+     * 
+     * // Get first 10 ZeroxMovimientos
+     * const zeroxMovimientos = await prisma.zeroxMovimiento.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const zeroxMovimientoWithIdOnly = await prisma.zeroxMovimiento.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ZeroxMovimientoFindManyArgs>(args?: SelectSubset<T, ZeroxMovimientoFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ZeroxMovimiento.
+     * @param {ZeroxMovimientoCreateArgs} args - Arguments to create a ZeroxMovimiento.
+     * @example
+     * // Create one ZeroxMovimiento
+     * const ZeroxMovimiento = await prisma.zeroxMovimiento.create({
+     *   data: {
+     *     // ... data to create a ZeroxMovimiento
+     *   }
+     * })
+     * 
+     */
+    create<T extends ZeroxMovimientoCreateArgs>(args: SelectSubset<T, ZeroxMovimientoCreateArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ZeroxMovimientos.
+     * @param {ZeroxMovimientoCreateManyArgs} args - Arguments to create many ZeroxMovimientos.
+     * @example
+     * // Create many ZeroxMovimientos
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ZeroxMovimientoCreateManyArgs>(args?: SelectSubset<T, ZeroxMovimientoCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ZeroxMovimientos and returns the data saved in the database.
+     * @param {ZeroxMovimientoCreateManyAndReturnArgs} args - Arguments to create many ZeroxMovimientos.
+     * @example
+     * // Create many ZeroxMovimientos
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ZeroxMovimientos and only return the `id`
+     * const zeroxMovimientoWithIdOnly = await prisma.zeroxMovimiento.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ZeroxMovimientoCreateManyAndReturnArgs>(args?: SelectSubset<T, ZeroxMovimientoCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ZeroxMovimiento.
+     * @param {ZeroxMovimientoDeleteArgs} args - Arguments to delete one ZeroxMovimiento.
+     * @example
+     * // Delete one ZeroxMovimiento
+     * const ZeroxMovimiento = await prisma.zeroxMovimiento.delete({
+     *   where: {
+     *     // ... filter to delete one ZeroxMovimiento
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ZeroxMovimientoDeleteArgs>(args: SelectSubset<T, ZeroxMovimientoDeleteArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ZeroxMovimiento.
+     * @param {ZeroxMovimientoUpdateArgs} args - Arguments to update one ZeroxMovimiento.
+     * @example
+     * // Update one ZeroxMovimiento
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ZeroxMovimientoUpdateArgs>(args: SelectSubset<T, ZeroxMovimientoUpdateArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ZeroxMovimientos.
+     * @param {ZeroxMovimientoDeleteManyArgs} args - Arguments to filter ZeroxMovimientos to delete.
+     * @example
+     * // Delete a few ZeroxMovimientos
+     * const { count } = await prisma.zeroxMovimiento.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ZeroxMovimientoDeleteManyArgs>(args?: SelectSubset<T, ZeroxMovimientoDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ZeroxMovimientos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ZeroxMovimientoUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ZeroxMovimientos
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ZeroxMovimientoUpdateManyArgs>(args: SelectSubset<T, ZeroxMovimientoUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ZeroxMovimientos and returns the data updated in the database.
+     * @param {ZeroxMovimientoUpdateManyAndReturnArgs} args - Arguments to update many ZeroxMovimientos.
+     * @example
+     * // Update many ZeroxMovimientos
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ZeroxMovimientos and only return the `id`
+     * const zeroxMovimientoWithIdOnly = await prisma.zeroxMovimiento.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ZeroxMovimientoUpdateManyAndReturnArgs>(args: SelectSubset<T, ZeroxMovimientoUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ZeroxMovimiento.
+     * @param {ZeroxMovimientoUpsertArgs} args - Arguments to update or create a ZeroxMovimiento.
+     * @example
+     * // Update or create a ZeroxMovimiento
+     * const zeroxMovimiento = await prisma.zeroxMovimiento.upsert({
+     *   create: {
+     *     // ... data to create a ZeroxMovimiento
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ZeroxMovimiento we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ZeroxMovimientoUpsertArgs>(args: SelectSubset<T, ZeroxMovimientoUpsertArgs<ExtArgs>>): Prisma__ZeroxMovimientoClient<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ZeroxMovimientos.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ZeroxMovimientoCountArgs} args - Arguments to filter ZeroxMovimientos to count.
+     * @example
+     * // Count the number of ZeroxMovimientos
+     * const count = await prisma.zeroxMovimiento.count({
+     *   where: {
+     *     // ... the filter for the ZeroxMovimientos we want to count
+     *   }
+     * })
+    **/
+    count<T extends ZeroxMovimientoCountArgs>(
+      args?: Subset<T, ZeroxMovimientoCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ZeroxMovimientoCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ZeroxMovimiento.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ZeroxMovimientoAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ZeroxMovimientoAggregateArgs>(args: Subset<T, ZeroxMovimientoAggregateArgs>): Prisma.PrismaPromise<GetZeroxMovimientoAggregateType<T>>
+
+    /**
+     * Group by ZeroxMovimiento.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ZeroxMovimientoGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ZeroxMovimientoGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ZeroxMovimientoGroupByArgs['orderBy'] }
+        : { orderBy?: ZeroxMovimientoGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ZeroxMovimientoGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetZeroxMovimientoGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ZeroxMovimiento model
+   */
+  readonly fields: ZeroxMovimientoFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ZeroxMovimiento.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ZeroxMovimientoClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    producto<T extends DepositoProductoDefaultArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProductoDefaultArgs<ExtArgs>>): Prisma__DepositoProductoClient<$Result.GetResult<Prisma.$DepositoProductoPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    usuario<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ZeroxMovimiento model
+   */
+  interface ZeroxMovimientoFieldRefs {
+    readonly id: FieldRef<"ZeroxMovimiento", 'String'>
+    readonly claveOperacion: FieldRef<"ZeroxMovimiento", 'String'>
+    readonly productoId: FieldRef<"ZeroxMovimiento", 'String'>
+    readonly nombreProducto: FieldRef<"ZeroxMovimiento", 'String'>
+    readonly categoria: FieldRef<"ZeroxMovimiento", 'String'>
+    readonly tipo: FieldRef<"ZeroxMovimiento", 'String'>
+    readonly cantidad: FieldRef<"ZeroxMovimiento", 'Int'>
+    readonly delta: FieldRef<"ZeroxMovimiento", 'Int'>
+    readonly saldoResultante: FieldRef<"ZeroxMovimiento", 'Int'>
+    readonly fechaMovimiento: FieldRef<"ZeroxMovimiento", 'DateTime'>
+    readonly registradoAt: FieldRef<"ZeroxMovimiento", 'DateTime'>
+    readonly usuarioId: FieldRef<"ZeroxMovimiento", 'String'>
+    readonly observacion: FieldRef<"ZeroxMovimiento", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ZeroxMovimiento findUnique
+   */
+  export type ZeroxMovimientoFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * Filter, which ZeroxMovimiento to fetch.
+     */
+    where: ZeroxMovimientoWhereUniqueInput
+  }
+
+  /**
+   * ZeroxMovimiento findUniqueOrThrow
+   */
+  export type ZeroxMovimientoFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * Filter, which ZeroxMovimiento to fetch.
+     */
+    where: ZeroxMovimientoWhereUniqueInput
+  }
+
+  /**
+   * ZeroxMovimiento findFirst
+   */
+  export type ZeroxMovimientoFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * Filter, which ZeroxMovimiento to fetch.
+     */
+    where?: ZeroxMovimientoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ZeroxMovimientos to fetch.
+     */
+    orderBy?: ZeroxMovimientoOrderByWithRelationInput | ZeroxMovimientoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ZeroxMovimientos.
+     */
+    cursor?: ZeroxMovimientoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ZeroxMovimientos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ZeroxMovimientos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ZeroxMovimientos.
+     */
+    distinct?: ZeroxMovimientoScalarFieldEnum | ZeroxMovimientoScalarFieldEnum[]
+  }
+
+  /**
+   * ZeroxMovimiento findFirstOrThrow
+   */
+  export type ZeroxMovimientoFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * Filter, which ZeroxMovimiento to fetch.
+     */
+    where?: ZeroxMovimientoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ZeroxMovimientos to fetch.
+     */
+    orderBy?: ZeroxMovimientoOrderByWithRelationInput | ZeroxMovimientoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ZeroxMovimientos.
+     */
+    cursor?: ZeroxMovimientoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ZeroxMovimientos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ZeroxMovimientos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ZeroxMovimientos.
+     */
+    distinct?: ZeroxMovimientoScalarFieldEnum | ZeroxMovimientoScalarFieldEnum[]
+  }
+
+  /**
+   * ZeroxMovimiento findMany
+   */
+  export type ZeroxMovimientoFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * Filter, which ZeroxMovimientos to fetch.
+     */
+    where?: ZeroxMovimientoWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ZeroxMovimientos to fetch.
+     */
+    orderBy?: ZeroxMovimientoOrderByWithRelationInput | ZeroxMovimientoOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ZeroxMovimientos.
+     */
+    cursor?: ZeroxMovimientoWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ZeroxMovimientos from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ZeroxMovimientos.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ZeroxMovimientos.
+     */
+    distinct?: ZeroxMovimientoScalarFieldEnum | ZeroxMovimientoScalarFieldEnum[]
+  }
+
+  /**
+   * ZeroxMovimiento create
+   */
+  export type ZeroxMovimientoCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ZeroxMovimiento.
+     */
+    data: XOR<ZeroxMovimientoCreateInput, ZeroxMovimientoUncheckedCreateInput>
+  }
+
+  /**
+   * ZeroxMovimiento createMany
+   */
+  export type ZeroxMovimientoCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ZeroxMovimientos.
+     */
+    data: ZeroxMovimientoCreateManyInput | ZeroxMovimientoCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ZeroxMovimiento createManyAndReturn
+   */
+  export type ZeroxMovimientoCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * The data used to create many ZeroxMovimientos.
+     */
+    data: ZeroxMovimientoCreateManyInput | ZeroxMovimientoCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ZeroxMovimiento update
+   */
+  export type ZeroxMovimientoUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ZeroxMovimiento.
+     */
+    data: XOR<ZeroxMovimientoUpdateInput, ZeroxMovimientoUncheckedUpdateInput>
+    /**
+     * Choose, which ZeroxMovimiento to update.
+     */
+    where: ZeroxMovimientoWhereUniqueInput
+  }
+
+  /**
+   * ZeroxMovimiento updateMany
+   */
+  export type ZeroxMovimientoUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ZeroxMovimientos.
+     */
+    data: XOR<ZeroxMovimientoUpdateManyMutationInput, ZeroxMovimientoUncheckedUpdateManyInput>
+    /**
+     * Filter which ZeroxMovimientos to update
+     */
+    where?: ZeroxMovimientoWhereInput
+    /**
+     * Limit how many ZeroxMovimientos to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ZeroxMovimiento updateManyAndReturn
+   */
+  export type ZeroxMovimientoUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * The data used to update ZeroxMovimientos.
+     */
+    data: XOR<ZeroxMovimientoUpdateManyMutationInput, ZeroxMovimientoUncheckedUpdateManyInput>
+    /**
+     * Filter which ZeroxMovimientos to update
+     */
+    where?: ZeroxMovimientoWhereInput
+    /**
+     * Limit how many ZeroxMovimientos to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ZeroxMovimiento upsert
+   */
+  export type ZeroxMovimientoUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ZeroxMovimiento to update in case it exists.
+     */
+    where: ZeroxMovimientoWhereUniqueInput
+    /**
+     * In case the ZeroxMovimiento found by the `where` argument doesn't exist, create a new ZeroxMovimiento with this data.
+     */
+    create: XOR<ZeroxMovimientoCreateInput, ZeroxMovimientoUncheckedCreateInput>
+    /**
+     * In case the ZeroxMovimiento was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ZeroxMovimientoUpdateInput, ZeroxMovimientoUncheckedUpdateInput>
+  }
+
+  /**
+   * ZeroxMovimiento delete
+   */
+  export type ZeroxMovimientoDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    /**
+     * Filter which ZeroxMovimiento to delete.
+     */
+    where: ZeroxMovimientoWhereUniqueInput
+  }
+
+  /**
+   * ZeroxMovimiento deleteMany
+   */
+  export type ZeroxMovimientoDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ZeroxMovimientos to delete
+     */
+    where?: ZeroxMovimientoWhereInput
+    /**
+     * Limit how many ZeroxMovimientos to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ZeroxMovimiento without action
+   */
+  export type ZeroxMovimientoDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model OrdenProduccion
    */
 
@@ -46899,10 +48253,12 @@ export namespace Prisma {
 
   export type OrdenProduccionAvgAggregateOutputType = {
     cantidad: number | null
+    cantidadEntregada: number | null
   }
 
   export type OrdenProduccionSumAggregateOutputType = {
     cantidad: number | null
+    cantidadEntregada: number | null
   }
 
   export type OrdenProduccionMinAggregateOutputType = {
@@ -46915,6 +48271,7 @@ export namespace Prisma {
     productoNombre: string | null
     mercado: $Enums.Mercado | null
     cantidad: number | null
+    cantidadEntregada: number | null
     urgencia: $Enums.Urgencia | null
     estado: $Enums.EstadoOrden | null
     motivoRechazo: string | null
@@ -46932,6 +48289,7 @@ export namespace Prisma {
     productoNombre: string | null
     mercado: $Enums.Mercado | null
     cantidad: number | null
+    cantidadEntregada: number | null
     urgencia: $Enums.Urgencia | null
     estado: $Enums.EstadoOrden | null
     motivoRechazo: string | null
@@ -46949,6 +48307,7 @@ export namespace Prisma {
     productoNombre: number
     mercado: number
     cantidad: number
+    cantidadEntregada: number
     urgencia: number
     estado: number
     motivoRechazo: number
@@ -46960,10 +48319,12 @@ export namespace Prisma {
 
   export type OrdenProduccionAvgAggregateInputType = {
     cantidad?: true
+    cantidadEntregada?: true
   }
 
   export type OrdenProduccionSumAggregateInputType = {
     cantidad?: true
+    cantidadEntregada?: true
   }
 
   export type OrdenProduccionMinAggregateInputType = {
@@ -46976,6 +48337,7 @@ export namespace Prisma {
     productoNombre?: true
     mercado?: true
     cantidad?: true
+    cantidadEntregada?: true
     urgencia?: true
     estado?: true
     motivoRechazo?: true
@@ -46993,6 +48355,7 @@ export namespace Prisma {
     productoNombre?: true
     mercado?: true
     cantidad?: true
+    cantidadEntregada?: true
     urgencia?: true
     estado?: true
     motivoRechazo?: true
@@ -47010,6 +48373,7 @@ export namespace Prisma {
     productoNombre?: true
     mercado?: true
     cantidad?: true
+    cantidadEntregada?: true
     urgencia?: true
     estado?: true
     motivoRechazo?: true
@@ -47114,6 +48478,7 @@ export namespace Prisma {
     productoNombre: string
     mercado: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada: number
     urgencia: $Enums.Urgencia
     estado: $Enums.EstadoOrden
     motivoRechazo: string | null
@@ -47150,6 +48515,7 @@ export namespace Prisma {
     productoNombre?: boolean
     mercado?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
@@ -47170,6 +48536,7 @@ export namespace Prisma {
     productoNombre?: boolean
     mercado?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
@@ -47190,6 +48557,7 @@ export namespace Prisma {
     productoNombre?: boolean
     mercado?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
@@ -47210,6 +48578,7 @@ export namespace Prisma {
     productoNombre?: boolean
     mercado?: boolean
     cantidad?: boolean
+    cantidadEntregada?: boolean
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
@@ -47217,7 +48586,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type OrdenProduccionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "solicitanteId" | "aprobadoPor" | "productoId" | "grupoId" | "categoria" | "productoNombre" | "mercado" | "cantidad" | "urgencia" | "estado" | "motivoRechazo" | "createdAt" | "updatedAt", ExtArgs["result"]["ordenProduccion"]>
+  export type OrdenProduccionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "solicitanteId" | "aprobadoPor" | "productoId" | "grupoId" | "categoria" | "productoNombre" | "mercado" | "cantidad" | "cantidadEntregada" | "urgencia" | "estado" | "motivoRechazo" | "createdAt" | "updatedAt", ExtArgs["result"]["ordenProduccion"]>
   export type OrdenProduccionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     solicitante?: boolean | UserDefaultArgs<ExtArgs>
     aprobador?: boolean | OrdenProduccion$aprobadorArgs<ExtArgs>
@@ -47251,6 +48620,7 @@ export namespace Prisma {
       productoNombre: string
       mercado: $Enums.Mercado | null
       cantidad: number
+      cantidadEntregada: number
       urgencia: $Enums.Urgencia
       estado: $Enums.EstadoOrden
       motivoRechazo: string | null
@@ -47691,6 +49061,7 @@ export namespace Prisma {
     readonly productoNombre: FieldRef<"OrdenProduccion", 'String'>
     readonly mercado: FieldRef<"OrdenProduccion", 'Mercado'>
     readonly cantidad: FieldRef<"OrdenProduccion", 'Float'>
+    readonly cantidadEntregada: FieldRef<"OrdenProduccion", 'Float'>
     readonly urgencia: FieldRef<"OrdenProduccion", 'Urgencia'>
     readonly estado: FieldRef<"OrdenProduccion", 'EstadoOrden'>
     readonly motivoRechazo: FieldRef<"OrdenProduccion", 'String'>
@@ -48462,6 +49833,7 @@ export namespace Prisma {
     movimientos?: boolean | DepositoProducto$movimientosArgs<ExtArgs>
     importacionesInicialesEstuche?: boolean | DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>
     itemsSolicitud?: boolean | DepositoProducto$itemsSolicitudArgs<ExtArgs>
+    zeroxMovimientos?: boolean | DepositoProducto$zeroxMovimientosArgs<ExtArgs>
     _count?: boolean | DepositoProductoCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["depositoProducto"]>
 
@@ -48538,6 +49910,7 @@ export namespace Prisma {
     movimientos?: boolean | DepositoProducto$movimientosArgs<ExtArgs>
     importacionesInicialesEstuche?: boolean | DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>
     itemsSolicitud?: boolean | DepositoProducto$itemsSolicitudArgs<ExtArgs>
+    zeroxMovimientos?: boolean | DepositoProducto$zeroxMovimientosArgs<ExtArgs>
     _count?: boolean | DepositoProductoCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type DepositoProductoIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -48557,6 +49930,7 @@ export namespace Prisma {
       movimientos: Prisma.$MovimientoPayload<ExtArgs>[]
       importacionesInicialesEstuche: Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>[]
       itemsSolicitud: Prisma.$ItemSolicitudPayload<ExtArgs>[]
+      zeroxMovimientos: Prisma.$ZeroxMovimientoPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -48981,6 +50355,7 @@ export namespace Prisma {
     movimientos<T extends DepositoProducto$movimientosArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$movimientosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$MovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importacionesInicialesEstuche<T extends DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$importacionesInicialesEstucheArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportacionInicialEstucheItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     itemsSolicitud<T extends DepositoProducto$itemsSolicitudArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$itemsSolicitudArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItemSolicitudPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    zeroxMovimientos<T extends DepositoProducto$zeroxMovimientosArgs<ExtArgs> = {}>(args?: Subset<T, DepositoProducto$zeroxMovimientosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ZeroxMovimientoPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -49681,6 +51056,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ItemSolicitudScalarFieldEnum | ItemSolicitudScalarFieldEnum[]
+  }
+
+  /**
+   * DepositoProducto.zeroxMovimientos
+   */
+  export type DepositoProducto$zeroxMovimientosArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ZeroxMovimiento
+     */
+    select?: ZeroxMovimientoSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ZeroxMovimiento
+     */
+    omit?: ZeroxMovimientoOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ZeroxMovimientoInclude<ExtArgs> | null
+    where?: ZeroxMovimientoWhereInput
+    orderBy?: ZeroxMovimientoOrderByWithRelationInput | ZeroxMovimientoOrderByWithRelationInput[]
+    cursor?: ZeroxMovimientoWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ZeroxMovimientoScalarFieldEnum | ZeroxMovimientoScalarFieldEnum[]
   }
 
   /**
@@ -58917,6 +60316,25 @@ export namespace Prisma {
   export type InsumoPendienteScalarFieldEnum = (typeof InsumoPendienteScalarFieldEnum)[keyof typeof InsumoPendienteScalarFieldEnum]
 
 
+  export const ZeroxMovimientoScalarFieldEnum: {
+    id: 'id',
+    claveOperacion: 'claveOperacion',
+    productoId: 'productoId',
+    nombreProducto: 'nombreProducto',
+    categoria: 'categoria',
+    tipo: 'tipo',
+    cantidad: 'cantidad',
+    delta: 'delta',
+    saldoResultante: 'saldoResultante',
+    fechaMovimiento: 'fechaMovimiento',
+    registradoAt: 'registradoAt',
+    usuarioId: 'usuarioId',
+    observacion: 'observacion'
+  };
+
+  export type ZeroxMovimientoScalarFieldEnum = (typeof ZeroxMovimientoScalarFieldEnum)[keyof typeof ZeroxMovimientoScalarFieldEnum]
+
+
   export const OrdenProduccionScalarFieldEnum: {
     id: 'id',
     solicitanteId: 'solicitanteId',
@@ -58927,6 +60345,7 @@ export namespace Prisma {
     productoNombre: 'productoNombre',
     mercado: 'mercado',
     cantidad: 'cantidad',
+    cantidadEntregada: 'cantidadEntregada',
     urgencia: 'urgencia',
     estado: 'estado',
     motivoRechazo: 'motivoRechazo',
@@ -61557,6 +62976,7 @@ export namespace Prisma {
     actas?: ActaListRelationFilter
     movimientos?: MovimientoListRelationFilter
     insumoPendientes?: InsumoPendienteListRelationFilter
+    zeroxMovimientos?: ZeroxMovimientoListRelationFilter
     ordenesComoSolicitante?: OrdenProduccionListRelationFilter
     ordenesComoAprobador?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
@@ -61576,6 +62996,7 @@ export namespace Prisma {
     actas?: ActaOrderByRelationAggregateInput
     movimientos?: MovimientoOrderByRelationAggregateInput
     insumoPendientes?: InsumoPendienteOrderByRelationAggregateInput
+    zeroxMovimientos?: ZeroxMovimientoOrderByRelationAggregateInput
     ordenesComoSolicitante?: OrdenProduccionOrderByRelationAggregateInput
     ordenesComoAprobador?: OrdenProduccionOrderByRelationAggregateInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoOrderByRelationAggregateInput
@@ -61598,6 +63019,7 @@ export namespace Prisma {
     actas?: ActaListRelationFilter
     movimientos?: MovimientoListRelationFilter
     insumoPendientes?: InsumoPendienteListRelationFilter
+    zeroxMovimientos?: ZeroxMovimientoListRelationFilter
     ordenesComoSolicitante?: OrdenProduccionListRelationFilter
     ordenesComoAprobador?: OrdenProduccionListRelationFilter
     auditoriasCatalogo?: AuditoriaCatalogoProductoListRelationFilter
@@ -62412,6 +63834,106 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"InsumoPendiente"> | Date | string
   }
 
+  export type ZeroxMovimientoWhereInput = {
+    AND?: ZeroxMovimientoWhereInput | ZeroxMovimientoWhereInput[]
+    OR?: ZeroxMovimientoWhereInput[]
+    NOT?: ZeroxMovimientoWhereInput | ZeroxMovimientoWhereInput[]
+    id?: StringFilter<"ZeroxMovimiento"> | string
+    claveOperacion?: StringFilter<"ZeroxMovimiento"> | string
+    productoId?: StringFilter<"ZeroxMovimiento"> | string
+    nombreProducto?: StringFilter<"ZeroxMovimiento"> | string
+    categoria?: StringFilter<"ZeroxMovimiento"> | string
+    tipo?: StringFilter<"ZeroxMovimiento"> | string
+    cantidad?: IntFilter<"ZeroxMovimiento"> | number
+    delta?: IntFilter<"ZeroxMovimiento"> | number
+    saldoResultante?: IntFilter<"ZeroxMovimiento"> | number
+    fechaMovimiento?: DateTimeFilter<"ZeroxMovimiento"> | Date | string
+    registradoAt?: DateTimeFilter<"ZeroxMovimiento"> | Date | string
+    usuarioId?: StringFilter<"ZeroxMovimiento"> | string
+    observacion?: StringNullableFilter<"ZeroxMovimiento"> | string | null
+    producto?: XOR<DepositoProductoScalarRelationFilter, DepositoProductoWhereInput>
+    usuario?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type ZeroxMovimientoOrderByWithRelationInput = {
+    id?: SortOrder
+    claveOperacion?: SortOrder
+    productoId?: SortOrder
+    nombreProducto?: SortOrder
+    categoria?: SortOrder
+    tipo?: SortOrder
+    cantidad?: SortOrder
+    delta?: SortOrder
+    saldoResultante?: SortOrder
+    fechaMovimiento?: SortOrder
+    registradoAt?: SortOrder
+    usuarioId?: SortOrder
+    observacion?: SortOrderInput | SortOrder
+    producto?: DepositoProductoOrderByWithRelationInput
+    usuario?: UserOrderByWithRelationInput
+  }
+
+  export type ZeroxMovimientoWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    claveOperacion?: string
+    AND?: ZeroxMovimientoWhereInput | ZeroxMovimientoWhereInput[]
+    OR?: ZeroxMovimientoWhereInput[]
+    NOT?: ZeroxMovimientoWhereInput | ZeroxMovimientoWhereInput[]
+    productoId?: StringFilter<"ZeroxMovimiento"> | string
+    nombreProducto?: StringFilter<"ZeroxMovimiento"> | string
+    categoria?: StringFilter<"ZeroxMovimiento"> | string
+    tipo?: StringFilter<"ZeroxMovimiento"> | string
+    cantidad?: IntFilter<"ZeroxMovimiento"> | number
+    delta?: IntFilter<"ZeroxMovimiento"> | number
+    saldoResultante?: IntFilter<"ZeroxMovimiento"> | number
+    fechaMovimiento?: DateTimeFilter<"ZeroxMovimiento"> | Date | string
+    registradoAt?: DateTimeFilter<"ZeroxMovimiento"> | Date | string
+    usuarioId?: StringFilter<"ZeroxMovimiento"> | string
+    observacion?: StringNullableFilter<"ZeroxMovimiento"> | string | null
+    producto?: XOR<DepositoProductoScalarRelationFilter, DepositoProductoWhereInput>
+    usuario?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "claveOperacion">
+
+  export type ZeroxMovimientoOrderByWithAggregationInput = {
+    id?: SortOrder
+    claveOperacion?: SortOrder
+    productoId?: SortOrder
+    nombreProducto?: SortOrder
+    categoria?: SortOrder
+    tipo?: SortOrder
+    cantidad?: SortOrder
+    delta?: SortOrder
+    saldoResultante?: SortOrder
+    fechaMovimiento?: SortOrder
+    registradoAt?: SortOrder
+    usuarioId?: SortOrder
+    observacion?: SortOrderInput | SortOrder
+    _count?: ZeroxMovimientoCountOrderByAggregateInput
+    _avg?: ZeroxMovimientoAvgOrderByAggregateInput
+    _max?: ZeroxMovimientoMaxOrderByAggregateInput
+    _min?: ZeroxMovimientoMinOrderByAggregateInput
+    _sum?: ZeroxMovimientoSumOrderByAggregateInput
+  }
+
+  export type ZeroxMovimientoScalarWhereWithAggregatesInput = {
+    AND?: ZeroxMovimientoScalarWhereWithAggregatesInput | ZeroxMovimientoScalarWhereWithAggregatesInput[]
+    OR?: ZeroxMovimientoScalarWhereWithAggregatesInput[]
+    NOT?: ZeroxMovimientoScalarWhereWithAggregatesInput | ZeroxMovimientoScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ZeroxMovimiento"> | string
+    claveOperacion?: StringWithAggregatesFilter<"ZeroxMovimiento"> | string
+    productoId?: StringWithAggregatesFilter<"ZeroxMovimiento"> | string
+    nombreProducto?: StringWithAggregatesFilter<"ZeroxMovimiento"> | string
+    categoria?: StringWithAggregatesFilter<"ZeroxMovimiento"> | string
+    tipo?: StringWithAggregatesFilter<"ZeroxMovimiento"> | string
+    cantidad?: IntWithAggregatesFilter<"ZeroxMovimiento"> | number
+    delta?: IntWithAggregatesFilter<"ZeroxMovimiento"> | number
+    saldoResultante?: IntWithAggregatesFilter<"ZeroxMovimiento"> | number
+    fechaMovimiento?: DateTimeWithAggregatesFilter<"ZeroxMovimiento"> | Date | string
+    registradoAt?: DateTimeWithAggregatesFilter<"ZeroxMovimiento"> | Date | string
+    usuarioId?: StringWithAggregatesFilter<"ZeroxMovimiento"> | string
+    observacion?: StringNullableWithAggregatesFilter<"ZeroxMovimiento"> | string | null
+  }
+
   export type OrdenProduccionWhereInput = {
     AND?: OrdenProduccionWhereInput | OrdenProduccionWhereInput[]
     OR?: OrdenProduccionWhereInput[]
@@ -62425,6 +63947,7 @@ export namespace Prisma {
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
     cantidad?: FloatFilter<"OrdenProduccion"> | number
+    cantidadEntregada?: FloatFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
@@ -62445,6 +63968,7 @@ export namespace Prisma {
     productoNombre?: SortOrder
     mercado?: SortOrderInput | SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrderInput | SortOrder
@@ -62468,6 +63992,7 @@ export namespace Prisma {
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
     cantidad?: FloatFilter<"OrdenProduccion"> | number
+    cantidadEntregada?: FloatFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
@@ -62488,6 +64013,7 @@ export namespace Prisma {
     productoNombre?: SortOrder
     mercado?: SortOrderInput | SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrderInput | SortOrder
@@ -62513,6 +64039,7 @@ export namespace Prisma {
     productoNombre?: StringWithAggregatesFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableWithAggregatesFilter<"OrdenProduccion"> | $Enums.Mercado | null
     cantidad?: FloatWithAggregatesFilter<"OrdenProduccion"> | number
+    cantidadEntregada?: FloatWithAggregatesFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaWithAggregatesFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenWithAggregatesFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
@@ -62552,6 +64079,7 @@ export namespace Prisma {
     movimientos?: MovimientoListRelationFilter
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemListRelationFilter
     itemsSolicitud?: ItemSolicitudListRelationFilter
+    zeroxMovimientos?: ZeroxMovimientoListRelationFilter
   }
 
   export type DepositoProductoOrderByWithRelationInput = {
@@ -62583,6 +64111,7 @@ export namespace Prisma {
     movimientos?: MovimientoOrderByRelationAggregateInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemOrderByRelationAggregateInput
     itemsSolicitud?: ItemSolicitudOrderByRelationAggregateInput
+    zeroxMovimientos?: ZeroxMovimientoOrderByRelationAggregateInput
   }
 
   export type DepositoProductoWhereUniqueInput = Prisma.AtLeast<{
@@ -62618,6 +64147,7 @@ export namespace Prisma {
     movimientos?: MovimientoListRelationFilter
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemListRelationFilter
     itemsSolicitud?: ItemSolicitudListRelationFilter
+    zeroxMovimientos?: ZeroxMovimientoListRelationFilter
   }, "id" | "codigo" | "nombreCompleto_categoria_mercado">
 
   export type DepositoProductoOrderByWithAggregationInput = {
@@ -65356,6 +66886,7 @@ export namespace Prisma {
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
@@ -65375,6 +66906,7 @@ export namespace Prisma {
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
@@ -65394,6 +66926,7 @@ export namespace Prisma {
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
@@ -65413,6 +66946,7 @@ export namespace Prisma {
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
@@ -66271,6 +67805,116 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ZeroxMovimientoCreateInput = {
+    id?: string
+    claveOperacion: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    observacion?: string | null
+    producto: DepositoProductoCreateNestedOneWithoutZeroxMovimientosInput
+    usuario: UserCreateNestedOneWithoutZeroxMovimientosInput
+  }
+
+  export type ZeroxMovimientoUncheckedCreateInput = {
+    id?: string
+    claveOperacion: string
+    productoId: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    usuarioId: string
+    observacion?: string | null
+  }
+
+  export type ZeroxMovimientoUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+    producto?: DepositoProductoUpdateOneRequiredWithoutZeroxMovimientosNestedInput
+    usuario?: UserUpdateOneRequiredWithoutZeroxMovimientosNestedInput
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usuarioId?: StringFieldUpdateOperationsInput | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ZeroxMovimientoCreateManyInput = {
+    id?: string
+    claveOperacion: string
+    productoId: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    usuarioId: string
+    observacion?: string | null
+  }
+
+  export type ZeroxMovimientoUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usuarioId?: StringFieldUpdateOperationsInput | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type OrdenProduccionCreateInput = {
     id?: string
     grupoId?: string | null
@@ -66278,6 +67922,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -66298,6 +67943,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -66312,6 +67958,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66332,6 +67979,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66349,6 +67997,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -66363,6 +68012,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66380,6 +68030,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -66416,6 +68067,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateInput = {
@@ -66447,6 +68099,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUpdateInput = {
@@ -66478,6 +68131,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateInput = {
@@ -66509,6 +68163,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateManyInput = {
@@ -68797,6 +70452,12 @@ export namespace Prisma {
     none?: InsumoPendienteWhereInput
   }
 
+  export type ZeroxMovimientoListRelationFilter = {
+    every?: ZeroxMovimientoWhereInput
+    some?: ZeroxMovimientoWhereInput
+    none?: ZeroxMovimientoWhereInput
+  }
+
   export type OrdenProduccionListRelationFilter = {
     every?: OrdenProduccionWhereInput
     some?: OrdenProduccionWhereInput
@@ -68830,6 +70491,10 @@ export namespace Prisma {
   }
 
   export type InsumoPendienteOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ZeroxMovimientoOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -69554,6 +71219,66 @@ export namespace Prisma {
     _max?: NestedEnumEstadoPendienteFilter<$PrismaModel>
   }
 
+  export type ZeroxMovimientoCountOrderByAggregateInput = {
+    id?: SortOrder
+    claveOperacion?: SortOrder
+    productoId?: SortOrder
+    nombreProducto?: SortOrder
+    categoria?: SortOrder
+    tipo?: SortOrder
+    cantidad?: SortOrder
+    delta?: SortOrder
+    saldoResultante?: SortOrder
+    fechaMovimiento?: SortOrder
+    registradoAt?: SortOrder
+    usuarioId?: SortOrder
+    observacion?: SortOrder
+  }
+
+  export type ZeroxMovimientoAvgOrderByAggregateInput = {
+    cantidad?: SortOrder
+    delta?: SortOrder
+    saldoResultante?: SortOrder
+  }
+
+  export type ZeroxMovimientoMaxOrderByAggregateInput = {
+    id?: SortOrder
+    claveOperacion?: SortOrder
+    productoId?: SortOrder
+    nombreProducto?: SortOrder
+    categoria?: SortOrder
+    tipo?: SortOrder
+    cantidad?: SortOrder
+    delta?: SortOrder
+    saldoResultante?: SortOrder
+    fechaMovimiento?: SortOrder
+    registradoAt?: SortOrder
+    usuarioId?: SortOrder
+    observacion?: SortOrder
+  }
+
+  export type ZeroxMovimientoMinOrderByAggregateInput = {
+    id?: SortOrder
+    claveOperacion?: SortOrder
+    productoId?: SortOrder
+    nombreProducto?: SortOrder
+    categoria?: SortOrder
+    tipo?: SortOrder
+    cantidad?: SortOrder
+    delta?: SortOrder
+    saldoResultante?: SortOrder
+    fechaMovimiento?: SortOrder
+    registradoAt?: SortOrder
+    usuarioId?: SortOrder
+    observacion?: SortOrder
+  }
+
+  export type ZeroxMovimientoSumOrderByAggregateInput = {
+    cantidad?: SortOrder
+    delta?: SortOrder
+    saldoResultante?: SortOrder
+  }
+
   export type EnumUrgenciaFilter<$PrismaModel = never> = {
     equals?: $Enums.Urgencia | EnumUrgenciaFieldRefInput<$PrismaModel>
     in?: $Enums.Urgencia[] | ListEnumUrgenciaFieldRefInput<$PrismaModel>
@@ -69583,6 +71308,7 @@ export namespace Prisma {
     productoNombre?: SortOrder
     mercado?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrder
@@ -69592,6 +71318,7 @@ export namespace Prisma {
 
   export type OrdenProduccionAvgOrderByAggregateInput = {
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
   }
 
   export type OrdenProduccionMaxOrderByAggregateInput = {
@@ -69604,6 +71331,7 @@ export namespace Prisma {
     productoNombre?: SortOrder
     mercado?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrder
@@ -69621,6 +71349,7 @@ export namespace Prisma {
     productoNombre?: SortOrder
     mercado?: SortOrder
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrder
@@ -69630,6 +71359,7 @@ export namespace Prisma {
 
   export type OrdenProduccionSumOrderByAggregateInput = {
     cantidad?: SortOrder
+    cantidadEntregada?: SortOrder
   }
 
   export type EnumUrgenciaWithAggregatesFilter<$PrismaModel = never> = {
@@ -71748,6 +73478,13 @@ export namespace Prisma {
     connect?: InsumoPendienteWhereUniqueInput | InsumoPendienteWhereUniqueInput[]
   }
 
+  export type ZeroxMovimientoCreateNestedManyWithoutUsuarioInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutUsuarioInput, ZeroxMovimientoUncheckedCreateWithoutUsuarioInput> | ZeroxMovimientoCreateWithoutUsuarioInput[] | ZeroxMovimientoUncheckedCreateWithoutUsuarioInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutUsuarioInput | ZeroxMovimientoCreateOrConnectWithoutUsuarioInput[]
+    createMany?: ZeroxMovimientoCreateManyUsuarioInputEnvelope
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+  }
+
   export type OrdenProduccionCreateNestedManyWithoutSolicitanteInput = {
     create?: XOR<OrdenProduccionCreateWithoutSolicitanteInput, OrdenProduccionUncheckedCreateWithoutSolicitanteInput> | OrdenProduccionCreateWithoutSolicitanteInput[] | OrdenProduccionUncheckedCreateWithoutSolicitanteInput[]
     connectOrCreate?: OrdenProduccionCreateOrConnectWithoutSolicitanteInput | OrdenProduccionCreateOrConnectWithoutSolicitanteInput[]
@@ -71809,6 +73546,13 @@ export namespace Prisma {
     connectOrCreate?: InsumoPendienteCreateOrConnectWithoutUserInput | InsumoPendienteCreateOrConnectWithoutUserInput[]
     createMany?: InsumoPendienteCreateManyUserInputEnvelope
     connect?: InsumoPendienteWhereUniqueInput | InsumoPendienteWhereUniqueInput[]
+  }
+
+  export type ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutUsuarioInput, ZeroxMovimientoUncheckedCreateWithoutUsuarioInput> | ZeroxMovimientoCreateWithoutUsuarioInput[] | ZeroxMovimientoUncheckedCreateWithoutUsuarioInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutUsuarioInput | ZeroxMovimientoCreateOrConnectWithoutUsuarioInput[]
+    createMany?: ZeroxMovimientoCreateManyUsuarioInputEnvelope
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
   }
 
   export type OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput = {
@@ -71897,6 +73641,20 @@ export namespace Prisma {
     update?: InsumoPendienteUpdateWithWhereUniqueWithoutUserInput | InsumoPendienteUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: InsumoPendienteUpdateManyWithWhereWithoutUserInput | InsumoPendienteUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: InsumoPendienteScalarWhereInput | InsumoPendienteScalarWhereInput[]
+  }
+
+  export type ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutUsuarioInput, ZeroxMovimientoUncheckedCreateWithoutUsuarioInput> | ZeroxMovimientoCreateWithoutUsuarioInput[] | ZeroxMovimientoUncheckedCreateWithoutUsuarioInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutUsuarioInput | ZeroxMovimientoCreateOrConnectWithoutUsuarioInput[]
+    upsert?: ZeroxMovimientoUpsertWithWhereUniqueWithoutUsuarioInput | ZeroxMovimientoUpsertWithWhereUniqueWithoutUsuarioInput[]
+    createMany?: ZeroxMovimientoCreateManyUsuarioInputEnvelope
+    set?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    disconnect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    delete?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    update?: ZeroxMovimientoUpdateWithWhereUniqueWithoutUsuarioInput | ZeroxMovimientoUpdateWithWhereUniqueWithoutUsuarioInput[]
+    updateMany?: ZeroxMovimientoUpdateManyWithWhereWithoutUsuarioInput | ZeroxMovimientoUpdateManyWithWhereWithoutUsuarioInput[]
+    deleteMany?: ZeroxMovimientoScalarWhereInput | ZeroxMovimientoScalarWhereInput[]
   }
 
   export type OrdenProduccionUpdateManyWithoutSolicitanteNestedInput = {
@@ -72023,6 +73781,20 @@ export namespace Prisma {
     update?: InsumoPendienteUpdateWithWhereUniqueWithoutUserInput | InsumoPendienteUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: InsumoPendienteUpdateManyWithWhereWithoutUserInput | InsumoPendienteUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: InsumoPendienteScalarWhereInput | InsumoPendienteScalarWhereInput[]
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutUsuarioInput, ZeroxMovimientoUncheckedCreateWithoutUsuarioInput> | ZeroxMovimientoCreateWithoutUsuarioInput[] | ZeroxMovimientoUncheckedCreateWithoutUsuarioInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutUsuarioInput | ZeroxMovimientoCreateOrConnectWithoutUsuarioInput[]
+    upsert?: ZeroxMovimientoUpsertWithWhereUniqueWithoutUsuarioInput | ZeroxMovimientoUpsertWithWhereUniqueWithoutUsuarioInput[]
+    createMany?: ZeroxMovimientoCreateManyUsuarioInputEnvelope
+    set?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    disconnect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    delete?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    update?: ZeroxMovimientoUpdateWithWhereUniqueWithoutUsuarioInput | ZeroxMovimientoUpdateWithWhereUniqueWithoutUsuarioInput[]
+    updateMany?: ZeroxMovimientoUpdateManyWithWhereWithoutUsuarioInput | ZeroxMovimientoUpdateManyWithWhereWithoutUsuarioInput[]
+    deleteMany?: ZeroxMovimientoScalarWhereInput | ZeroxMovimientoScalarWhereInput[]
   }
 
   export type OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput = {
@@ -72439,6 +74211,34 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutInsumoPendientesInput, UserUpdateWithoutInsumoPendientesInput>, UserUncheckedUpdateWithoutInsumoPendientesInput>
   }
 
+  export type DepositoProductoCreateNestedOneWithoutZeroxMovimientosInput = {
+    create?: XOR<DepositoProductoCreateWithoutZeroxMovimientosInput, DepositoProductoUncheckedCreateWithoutZeroxMovimientosInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutZeroxMovimientosInput
+    connect?: DepositoProductoWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutZeroxMovimientosInput = {
+    create?: XOR<UserCreateWithoutZeroxMovimientosInput, UserUncheckedCreateWithoutZeroxMovimientosInput>
+    connectOrCreate?: UserCreateOrConnectWithoutZeroxMovimientosInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type DepositoProductoUpdateOneRequiredWithoutZeroxMovimientosNestedInput = {
+    create?: XOR<DepositoProductoCreateWithoutZeroxMovimientosInput, DepositoProductoUncheckedCreateWithoutZeroxMovimientosInput>
+    connectOrCreate?: DepositoProductoCreateOrConnectWithoutZeroxMovimientosInput
+    upsert?: DepositoProductoUpsertWithoutZeroxMovimientosInput
+    connect?: DepositoProductoWhereUniqueInput
+    update?: XOR<XOR<DepositoProductoUpdateToOneWithWhereWithoutZeroxMovimientosInput, DepositoProductoUpdateWithoutZeroxMovimientosInput>, DepositoProductoUncheckedUpdateWithoutZeroxMovimientosInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutZeroxMovimientosNestedInput = {
+    create?: XOR<UserCreateWithoutZeroxMovimientosInput, UserUncheckedCreateWithoutZeroxMovimientosInput>
+    connectOrCreate?: UserCreateOrConnectWithoutZeroxMovimientosInput
+    upsert?: UserUpsertWithoutZeroxMovimientosInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutZeroxMovimientosInput, UserUpdateWithoutZeroxMovimientosInput>, UserUncheckedUpdateWithoutZeroxMovimientosInput>
+  }
+
   export type UserCreateNestedOneWithoutOrdenesComoSolicitanteInput = {
     create?: XOR<UserCreateWithoutOrdenesComoSolicitanteInput, UserUncheckedCreateWithoutOrdenesComoSolicitanteInput>
     connectOrCreate?: UserCreateOrConnectWithoutOrdenesComoSolicitanteInput
@@ -72574,6 +74374,13 @@ export namespace Prisma {
     connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
   }
 
+  export type ZeroxMovimientoCreateNestedManyWithoutProductoInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutProductoInput, ZeroxMovimientoUncheckedCreateWithoutProductoInput> | ZeroxMovimientoCreateWithoutProductoInput[] | ZeroxMovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutProductoInput | ZeroxMovimientoCreateOrConnectWithoutProductoInput[]
+    createMany?: ZeroxMovimientoCreateManyProductoInputEnvelope
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+  }
+
   export type InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput = {
     create?: XOR<InventarioDrogaCreateWithoutProductoInput, InventarioDrogaUncheckedCreateWithoutProductoInput> | InventarioDrogaCreateWithoutProductoInput[] | InventarioDrogaUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: InventarioDrogaCreateOrConnectWithoutProductoInput | InventarioDrogaCreateOrConnectWithoutProductoInput[]
@@ -72649,6 +74456,13 @@ export namespace Prisma {
     connectOrCreate?: ItemSolicitudCreateOrConnectWithoutProductoInput | ItemSolicitudCreateOrConnectWithoutProductoInput[]
     createMany?: ItemSolicitudCreateManyProductoInputEnvelope
     connect?: ItemSolicitudWhereUniqueInput | ItemSolicitudWhereUniqueInput[]
+  }
+
+  export type ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutProductoInput, ZeroxMovimientoUncheckedCreateWithoutProductoInput> | ZeroxMovimientoCreateWithoutProductoInput[] | ZeroxMovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutProductoInput | ZeroxMovimientoCreateOrConnectWithoutProductoInput[]
+    createMany?: ZeroxMovimientoCreateManyProductoInputEnvelope
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
   }
 
   export type NullableDecimalFieldUpdateOperationsInput = {
@@ -72826,6 +74640,20 @@ export namespace Prisma {
     deleteMany?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
   }
 
+  export type ZeroxMovimientoUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutProductoInput, ZeroxMovimientoUncheckedCreateWithoutProductoInput> | ZeroxMovimientoCreateWithoutProductoInput[] | ZeroxMovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutProductoInput | ZeroxMovimientoCreateOrConnectWithoutProductoInput[]
+    upsert?: ZeroxMovimientoUpsertWithWhereUniqueWithoutProductoInput | ZeroxMovimientoUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: ZeroxMovimientoCreateManyProductoInputEnvelope
+    set?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    disconnect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    delete?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    update?: ZeroxMovimientoUpdateWithWhereUniqueWithoutProductoInput | ZeroxMovimientoUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: ZeroxMovimientoUpdateManyWithWhereWithoutProductoInput | ZeroxMovimientoUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: ZeroxMovimientoScalarWhereInput | ZeroxMovimientoScalarWhereInput[]
+  }
+
   export type InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput = {
     create?: XOR<InventarioDrogaCreateWithoutProductoInput, InventarioDrogaUncheckedCreateWithoutProductoInput> | InventarioDrogaCreateWithoutProductoInput[] | InventarioDrogaUncheckedCreateWithoutProductoInput[]
     connectOrCreate?: InventarioDrogaCreateOrConnectWithoutProductoInput | InventarioDrogaCreateOrConnectWithoutProductoInput[]
@@ -72978,6 +74806,20 @@ export namespace Prisma {
     update?: ItemSolicitudUpdateWithWhereUniqueWithoutProductoInput | ItemSolicitudUpdateWithWhereUniqueWithoutProductoInput[]
     updateMany?: ItemSolicitudUpdateManyWithWhereWithoutProductoInput | ItemSolicitudUpdateManyWithWhereWithoutProductoInput[]
     deleteMany?: ItemSolicitudScalarWhereInput | ItemSolicitudScalarWhereInput[]
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput = {
+    create?: XOR<ZeroxMovimientoCreateWithoutProductoInput, ZeroxMovimientoUncheckedCreateWithoutProductoInput> | ZeroxMovimientoCreateWithoutProductoInput[] | ZeroxMovimientoUncheckedCreateWithoutProductoInput[]
+    connectOrCreate?: ZeroxMovimientoCreateOrConnectWithoutProductoInput | ZeroxMovimientoCreateOrConnectWithoutProductoInput[]
+    upsert?: ZeroxMovimientoUpsertWithWhereUniqueWithoutProductoInput | ZeroxMovimientoUpsertWithWhereUniqueWithoutProductoInput[]
+    createMany?: ZeroxMovimientoCreateManyProductoInputEnvelope
+    set?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    disconnect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    delete?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    connect?: ZeroxMovimientoWhereUniqueInput | ZeroxMovimientoWhereUniqueInput[]
+    update?: ZeroxMovimientoUpdateWithWhereUniqueWithoutProductoInput | ZeroxMovimientoUpdateWithWhereUniqueWithoutProductoInput[]
+    updateMany?: ZeroxMovimientoUpdateManyWithWhereWithoutProductoInput | ZeroxMovimientoUpdateManyWithWhereWithoutProductoInput[]
+    deleteMany?: ZeroxMovimientoScalarWhereInput | ZeroxMovimientoScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutImportacionesInicialesEstucheInput = {
@@ -77912,6 +79754,46 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ZeroxMovimientoCreateWithoutUsuarioInput = {
+    id?: string
+    claveOperacion: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    observacion?: string | null
+    producto: DepositoProductoCreateNestedOneWithoutZeroxMovimientosInput
+  }
+
+  export type ZeroxMovimientoUncheckedCreateWithoutUsuarioInput = {
+    id?: string
+    claveOperacion: string
+    productoId: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    observacion?: string | null
+  }
+
+  export type ZeroxMovimientoCreateOrConnectWithoutUsuarioInput = {
+    where: ZeroxMovimientoWhereUniqueInput
+    create: XOR<ZeroxMovimientoCreateWithoutUsuarioInput, ZeroxMovimientoUncheckedCreateWithoutUsuarioInput>
+  }
+
+  export type ZeroxMovimientoCreateManyUsuarioInputEnvelope = {
+    data: ZeroxMovimientoCreateManyUsuarioInput | ZeroxMovimientoCreateManyUsuarioInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrdenProduccionCreateWithoutSolicitanteInput = {
     id?: string
     grupoId?: string | null
@@ -77919,6 +79801,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -77937,6 +79820,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -77961,6 +79845,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -77979,6 +79864,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -78222,6 +80108,41 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"InsumoPendiente"> | Date | string
   }
 
+  export type ZeroxMovimientoUpsertWithWhereUniqueWithoutUsuarioInput = {
+    where: ZeroxMovimientoWhereUniqueInput
+    update: XOR<ZeroxMovimientoUpdateWithoutUsuarioInput, ZeroxMovimientoUncheckedUpdateWithoutUsuarioInput>
+    create: XOR<ZeroxMovimientoCreateWithoutUsuarioInput, ZeroxMovimientoUncheckedCreateWithoutUsuarioInput>
+  }
+
+  export type ZeroxMovimientoUpdateWithWhereUniqueWithoutUsuarioInput = {
+    where: ZeroxMovimientoWhereUniqueInput
+    data: XOR<ZeroxMovimientoUpdateWithoutUsuarioInput, ZeroxMovimientoUncheckedUpdateWithoutUsuarioInput>
+  }
+
+  export type ZeroxMovimientoUpdateManyWithWhereWithoutUsuarioInput = {
+    where: ZeroxMovimientoScalarWhereInput
+    data: XOR<ZeroxMovimientoUpdateManyMutationInput, ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioInput>
+  }
+
+  export type ZeroxMovimientoScalarWhereInput = {
+    AND?: ZeroxMovimientoScalarWhereInput | ZeroxMovimientoScalarWhereInput[]
+    OR?: ZeroxMovimientoScalarWhereInput[]
+    NOT?: ZeroxMovimientoScalarWhereInput | ZeroxMovimientoScalarWhereInput[]
+    id?: StringFilter<"ZeroxMovimiento"> | string
+    claveOperacion?: StringFilter<"ZeroxMovimiento"> | string
+    productoId?: StringFilter<"ZeroxMovimiento"> | string
+    nombreProducto?: StringFilter<"ZeroxMovimiento"> | string
+    categoria?: StringFilter<"ZeroxMovimiento"> | string
+    tipo?: StringFilter<"ZeroxMovimiento"> | string
+    cantidad?: IntFilter<"ZeroxMovimiento"> | number
+    delta?: IntFilter<"ZeroxMovimiento"> | number
+    saldoResultante?: IntFilter<"ZeroxMovimiento"> | number
+    fechaMovimiento?: DateTimeFilter<"ZeroxMovimiento"> | Date | string
+    registradoAt?: DateTimeFilter<"ZeroxMovimiento"> | Date | string
+    usuarioId?: StringFilter<"ZeroxMovimiento"> | string
+    observacion?: StringNullableFilter<"ZeroxMovimiento"> | string | null
+  }
+
   export type OrdenProduccionUpsertWithWhereUniqueWithoutSolicitanteInput = {
     where: OrdenProduccionWhereUniqueInput
     update: XOR<OrdenProduccionUpdateWithoutSolicitanteInput, OrdenProduccionUncheckedUpdateWithoutSolicitanteInput>
@@ -78251,6 +80172,7 @@ export namespace Prisma {
     productoNombre?: StringFilter<"OrdenProduccion"> | string
     mercado?: EnumMercadoNullableFilter<"OrdenProduccion"> | $Enums.Mercado | null
     cantidad?: FloatFilter<"OrdenProduccion"> | number
+    cantidadEntregada?: FloatFilter<"OrdenProduccion"> | number
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
@@ -78389,6 +80311,7 @@ export namespace Prisma {
     createdAt?: Date | string
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
@@ -78407,6 +80330,7 @@ export namespace Prisma {
     createdAt?: Date | string
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
@@ -78485,6 +80409,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
@@ -78503,6 +80428,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
@@ -78601,6 +80527,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutActaItemsInput = {
@@ -78631,6 +80558,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutActaItemsInput = {
@@ -78708,6 +80636,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutActaItemsInput = {
@@ -78738,6 +80667,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutAuditoriasCatalogoInput = {
@@ -78768,6 +80698,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutAuditoriasCatalogoInput = {
@@ -78798,6 +80729,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutAuditoriasCatalogoInput = {
@@ -78816,6 +80748,7 @@ export namespace Prisma {
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
@@ -78834,6 +80767,7 @@ export namespace Prisma {
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
@@ -78885,6 +80819,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutAuditoriasCatalogoInput = {
@@ -78915,6 +80850,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type UserUpsertWithoutAuditoriasCatalogoInput = {
@@ -78939,6 +80875,7 @@ export namespace Prisma {
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
@@ -78957,6 +80894,7 @@ export namespace Prisma {
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
@@ -78992,6 +80930,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioDrogasInput = {
@@ -79022,6 +80961,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioDrogasInput = {
@@ -79068,6 +81008,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioDrogasInput = {
@@ -79098,6 +81039,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioEstuchesInput = {
@@ -79128,6 +81070,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioEstuchesInput = {
@@ -79158,6 +81101,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioEstuchesInput = {
@@ -79233,6 +81177,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioEstuchesInput = {
@@ -79263,6 +81208,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type ImportacionInicialEstucheItemUpsertWithoutInventarioInput = {
@@ -79328,6 +81274,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioEtiquetasInput = {
@@ -79358,6 +81305,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioEtiquetasInput = {
@@ -79404,6 +81352,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioEtiquetasInput = {
@@ -79434,6 +81383,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioFrascosInput = {
@@ -79464,6 +81414,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioFrascosInput = {
@@ -79494,6 +81445,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioFrascosInput = {
@@ -79540,6 +81492,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioFrascosInput = {
@@ -79570,6 +81523,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoCreateWithoutInventarioMaterialesEmpaqueInput = {
@@ -79600,6 +81554,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutInventarioMaterialesEmpaqueInput = {
@@ -79630,6 +81585,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutInventarioMaterialesEmpaqueInput = {
@@ -79676,6 +81632,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutInventarioMaterialesEmpaqueInput = {
@@ -79706,6 +81663,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type UserCreateWithoutMovimientosInput = {
@@ -79718,6 +81676,7 @@ export namespace Prisma {
     createdAt?: Date | string
     actas?: ActaCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
@@ -79736,6 +81695,7 @@ export namespace Prisma {
     createdAt?: Date | string
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
@@ -79777,6 +81737,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutMovimientosInput = {
@@ -79807,6 +81768,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutMovimientosInput = {
@@ -79864,6 +81826,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     actas?: ActaUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
@@ -79882,6 +81845,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
@@ -79929,6 +81893,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutMovimientosInput = {
@@ -79959,6 +81924,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type ImportacionInicialEstucheItemUpsertWithoutMovimientoInput = {
@@ -80006,6 +81972,7 @@ export namespace Prisma {
     createdAt?: Date | string
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
@@ -80024,6 +81991,7 @@ export namespace Prisma {
     createdAt?: Date | string
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
@@ -80058,6 +82026,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
@@ -80076,6 +82045,239 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUncheckedUpdateManyWithoutConfirmadoPorNestedInput
+  }
+
+  export type DepositoProductoCreateWithoutZeroxMovimientosInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    stockMinimo?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: $Enums.Mercado | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoUncheckedCreateWithoutZeroxMovimientosInput = {
+    id?: string
+    nombreBase: string
+    volumen?: Decimal | DecimalJsLike | number | string | null
+    unidad?: string | null
+    variante?: string | null
+    categoria: $Enums.Categoria
+    nombreCompleto: string
+    activo?: boolean
+    estado?: $Enums.EstadoProductoCatalogo | null
+    codigo?: string | null
+    origen?: $Enums.OrigenProductoCatalogo
+    presentacion?: number | null
+    stockMinimo?: number | null
+    mercadosHabilitados?: DepositoProductoCreatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: $Enums.Mercado | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEstuches?: InventarioEstucheUncheckedCreateNestedManyWithoutProductoInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedCreateNestedManyWithoutProductoInput
+    inventarioFrascos?: InventarioFrascoUncheckedCreateNestedManyWithoutProductoInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedCreateNestedManyWithoutProductoInput
+    actaItems?: ActaItemUncheckedCreateNestedManyWithoutProductoInput
+    ordenes?: OrdenProduccionUncheckedCreateNestedManyWithoutProductoInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+  }
+
+  export type DepositoProductoCreateOrConnectWithoutZeroxMovimientosInput = {
+    where: DepositoProductoWhereUniqueInput
+    create: XOR<DepositoProductoCreateWithoutZeroxMovimientosInput, DepositoProductoUncheckedCreateWithoutZeroxMovimientosInput>
+  }
+
+  export type UserCreateWithoutZeroxMovimientosInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionCreateNestedManyWithoutConfirmadoPorInput
+  }
+
+  export type UserUncheckedCreateWithoutZeroxMovimientosInput = {
+    id?: string
+    email: string
+    passwordHash: string
+    name: string
+    role?: $Enums.Role
+    platformUserId?: string | null
+    createdAt?: Date | string
+    actas?: ActaUncheckedCreateNestedManyWithoutUserInput
+    movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
+    insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
+    partidasSolicitadas?: PartidaProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
+    partidasConfirmadas?: PartidaProduccionUncheckedCreateNestedManyWithoutConfirmadoPorInput
+  }
+
+  export type UserCreateOrConnectWithoutZeroxMovimientosInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutZeroxMovimientosInput, UserUncheckedCreateWithoutZeroxMovimientosInput>
+  }
+
+  export type DepositoProductoUpsertWithoutZeroxMovimientosInput = {
+    update: XOR<DepositoProductoUpdateWithoutZeroxMovimientosInput, DepositoProductoUncheckedUpdateWithoutZeroxMovimientosInput>
+    create: XOR<DepositoProductoCreateWithoutZeroxMovimientosInput, DepositoProductoUncheckedCreateWithoutZeroxMovimientosInput>
+    where?: DepositoProductoWhereInput
+  }
+
+  export type DepositoProductoUpdateToOneWithWhereWithoutZeroxMovimientosInput = {
+    where?: DepositoProductoWhereInput
+    data: XOR<DepositoProductoUpdateWithoutZeroxMovimientosInput, DepositoProductoUncheckedUpdateWithoutZeroxMovimientosInput>
+  }
+
+  export type DepositoProductoUpdateWithoutZeroxMovimientosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+  }
+
+  export type DepositoProductoUncheckedUpdateWithoutZeroxMovimientosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    nombreBase?: StringFieldUpdateOperationsInput | string
+    volumen?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    unidad?: NullableStringFieldUpdateOperationsInput | string | null
+    variante?: NullableStringFieldUpdateOperationsInput | string | null
+    categoria?: EnumCategoriaFieldUpdateOperationsInput | $Enums.Categoria
+    nombreCompleto?: StringFieldUpdateOperationsInput | string
+    activo?: BoolFieldUpdateOperationsInput | boolean
+    estado?: NullableEnumEstadoProductoCatalogoFieldUpdateOperationsInput | $Enums.EstadoProductoCatalogo | null
+    codigo?: NullableStringFieldUpdateOperationsInput | string | null
+    origen?: EnumOrigenProductoCatalogoFieldUpdateOperationsInput | $Enums.OrigenProductoCatalogo
+    presentacion?: NullableIntFieldUpdateOperationsInput | number | null
+    stockMinimo?: NullableIntFieldUpdateOperationsInput | number | null
+    mercadosHabilitados?: DepositoProductoUpdatemercadosHabilitadosInput | $Enums.Mercado[]
+    mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventarioDrogas?: InventarioDrogaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEstuches?: InventarioEstucheUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioEtiquetas?: InventarioEtiquetaUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioFrascos?: InventarioFrascoUncheckedUpdateManyWithoutProductoNestedInput
+    inventarioMaterialesEmpaque?: InventarioMaterialEmpaqueUncheckedUpdateManyWithoutProductoNestedInput
+    actaItems?: ActaItemUncheckedUpdateManyWithoutProductoNestedInput
+    ordenes?: OrdenProduccionUncheckedUpdateManyWithoutProductoNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+  }
+
+  export type UserUpsertWithoutZeroxMovimientosInput = {
+    update: XOR<UserUpdateWithoutZeroxMovimientosInput, UserUncheckedUpdateWithoutZeroxMovimientosInput>
+    create: XOR<UserCreateWithoutZeroxMovimientosInput, UserUncheckedCreateWithoutZeroxMovimientosInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutZeroxMovimientosInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutZeroxMovimientosInput, UserUncheckedUpdateWithoutZeroxMovimientosInput>
+  }
+
+  export type UserUpdateWithoutZeroxMovimientosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
+    ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
+    auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
+    importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
+    partidasSolicitadas?: PartidaProduccionUpdateManyWithoutSolicitanteNestedInput
+    partidasConfirmadas?: PartidaProduccionUpdateManyWithoutConfirmadoPorNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutZeroxMovimientosInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    passwordHash?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    role?: EnumRoleFieldUpdateOperationsInput | $Enums.Role
+    platformUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
+    movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
+    insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
@@ -80095,6 +82297,7 @@ export namespace Prisma {
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
@@ -80113,6 +82316,7 @@ export namespace Prisma {
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
@@ -80136,6 +82340,7 @@ export namespace Prisma {
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchCreateNestedManyWithoutActorInput
@@ -80154,6 +82359,7 @@ export namespace Prisma {
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedCreateNestedManyWithoutActorInput
@@ -80194,6 +82400,7 @@ export namespace Prisma {
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutOrdenesInput = {
@@ -80224,6 +82431,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutOrdenesInput = {
@@ -80253,6 +82461,7 @@ export namespace Prisma {
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
@@ -80271,6 +82480,7 @@ export namespace Prisma {
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
@@ -80300,6 +82510,7 @@ export namespace Prisma {
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUpdateManyWithoutActorNestedInput
@@ -80318,6 +82529,7 @@ export namespace Prisma {
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheBatchUncheckedUpdateManyWithoutActorNestedInput
@@ -80364,6 +82576,7 @@ export namespace Prisma {
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutOrdenesInput = {
@@ -80394,6 +82607,7 @@ export namespace Prisma {
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type InventarioDrogaCreateWithoutProductoInput = {
@@ -80583,6 +82797,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -80601,6 +82816,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -80745,6 +82961,46 @@ export namespace Prisma {
 
   export type ItemSolicitudCreateManyProductoInputEnvelope = {
     data: ItemSolicitudCreateManyProductoInput | ItemSolicitudCreateManyProductoInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ZeroxMovimientoCreateWithoutProductoInput = {
+    id?: string
+    claveOperacion: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    observacion?: string | null
+    usuario: UserCreateNestedOneWithoutZeroxMovimientosInput
+  }
+
+  export type ZeroxMovimientoUncheckedCreateWithoutProductoInput = {
+    id?: string
+    claveOperacion: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    usuarioId: string
+    observacion?: string | null
+  }
+
+  export type ZeroxMovimientoCreateOrConnectWithoutProductoInput = {
+    where: ZeroxMovimientoWhereUniqueInput
+    create: XOR<ZeroxMovimientoCreateWithoutProductoInput, ZeroxMovimientoUncheckedCreateWithoutProductoInput>
+  }
+
+  export type ZeroxMovimientoCreateManyProductoInputEnvelope = {
+    data: ZeroxMovimientoCreateManyProductoInput | ZeroxMovimientoCreateManyProductoInput[]
     skipDuplicates?: boolean
   }
 
@@ -81013,6 +83269,22 @@ export namespace Prisma {
     cantidadFinal?: FloatNullableFilter<"ItemSolicitud"> | number | null
   }
 
+  export type ZeroxMovimientoUpsertWithWhereUniqueWithoutProductoInput = {
+    where: ZeroxMovimientoWhereUniqueInput
+    update: XOR<ZeroxMovimientoUpdateWithoutProductoInput, ZeroxMovimientoUncheckedUpdateWithoutProductoInput>
+    create: XOR<ZeroxMovimientoCreateWithoutProductoInput, ZeroxMovimientoUncheckedCreateWithoutProductoInput>
+  }
+
+  export type ZeroxMovimientoUpdateWithWhereUniqueWithoutProductoInput = {
+    where: ZeroxMovimientoWhereUniqueInput
+    data: XOR<ZeroxMovimientoUpdateWithoutProductoInput, ZeroxMovimientoUncheckedUpdateWithoutProductoInput>
+  }
+
+  export type ZeroxMovimientoUpdateManyWithWhereWithoutProductoInput = {
+    where: ZeroxMovimientoScalarWhereInput
+    data: XOR<ZeroxMovimientoUpdateManyMutationInput, ZeroxMovimientoUncheckedUpdateManyWithoutProductoInput>
+  }
+
   export type UserCreateWithoutImportacionesInicialesEstucheInput = {
     id?: string
     email: string
@@ -81024,6 +83296,7 @@ export namespace Prisma {
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
@@ -81042,6 +83315,7 @@ export namespace Prisma {
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
@@ -81132,6 +83406,7 @@ export namespace Prisma {
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
@@ -81150,6 +83425,7 @@ export namespace Prisma {
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
@@ -81320,6 +83596,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutImportacionesInicialesEstucheInput = {
@@ -81350,6 +83627,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     itemsSolicitud?: ItemSolicitudUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutImportacionesInicialesEstucheInput = {
@@ -81491,6 +83769,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutImportacionesInicialesEstucheInput = {
@@ -81521,6 +83800,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     itemsSolicitud?: ItemSolicitudUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type InventarioEstucheUpsertWithoutImportacionInicialItemInput = {
@@ -81606,6 +83886,7 @@ export namespace Prisma {
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
@@ -81624,6 +83905,7 @@ export namespace Prisma {
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
@@ -81647,6 +83929,7 @@ export namespace Prisma {
     actas?: ActaCreateNestedManyWithoutUserInput
     movimientos?: MovimientoCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutUsuarioInput
@@ -81665,6 +83948,7 @@ export namespace Prisma {
     actas?: ActaUncheckedCreateNestedManyWithoutUserInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutUserInput
     insumoPendientes?: InsumoPendienteUncheckedCreateNestedManyWithoutUserInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutUsuarioInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedCreateNestedManyWithoutSolicitanteInput
     ordenesComoAprobador?: OrdenProduccionUncheckedCreateNestedManyWithoutAprobadorInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutUsuarioInput
@@ -81725,6 +84009,7 @@ export namespace Prisma {
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
@@ -81743,6 +84028,7 @@ export namespace Prisma {
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
@@ -81772,6 +84058,7 @@ export namespace Prisma {
     actas?: ActaUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutUsuarioNestedInput
@@ -81790,6 +84077,7 @@ export namespace Prisma {
     actas?: ActaUncheckedUpdateManyWithoutUserNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutUserNestedInput
     insumoPendientes?: InsumoPendienteUncheckedUpdateManyWithoutUserNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioNestedInput
     ordenesComoSolicitante?: OrdenProduccionUncheckedUpdateManyWithoutSolicitanteNestedInput
     ordenesComoAprobador?: OrdenProduccionUncheckedUpdateManyWithoutAprobadorNestedInput
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutUsuarioNestedInput
@@ -81868,6 +84156,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoUncheckedCreateWithoutItemsSolicitudInput = {
@@ -81898,6 +84187,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedCreateNestedManyWithoutProductoInput
     movimientos?: MovimientoUncheckedCreateNestedManyWithoutProductoInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedCreateNestedManyWithoutProductoInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedCreateNestedManyWithoutProductoInput
   }
 
   export type DepositoProductoCreateOrConnectWithoutItemsSolicitudInput = {
@@ -81977,6 +84267,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUpdateManyWithoutProductoNestedInput
   }
 
   export type DepositoProductoUncheckedUpdateWithoutItemsSolicitudInput = {
@@ -82007,6 +84298,7 @@ export namespace Prisma {
     auditoriasCatalogo?: AuditoriaCatalogoProductoUncheckedUpdateManyWithoutProductoNestedInput
     movimientos?: MovimientoUncheckedUpdateManyWithoutProductoNestedInput
     importacionesInicialesEstuche?: ImportacionInicialEstucheItemUncheckedUpdateManyWithoutProductoNestedInput
+    zeroxMovimientos?: ZeroxMovimientoUncheckedUpdateManyWithoutProductoNestedInput
   }
 
   export type AppAccessCreateManyUserInput = {
@@ -83304,6 +85596,21 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type ZeroxMovimientoCreateManyUsuarioInput = {
+    id?: string
+    claveOperacion: string
+    productoId: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    observacion?: string | null
+  }
+
   export type OrdenProduccionCreateManySolicitanteInput = {
     id?: string
     aprobadoPor?: string | null
@@ -83313,6 +85620,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -83329,6 +85637,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -83497,6 +85806,51 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ZeroxMovimientoUpdateWithoutUsuarioInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+    producto?: DepositoProductoUpdateOneRequiredWithoutZeroxMovimientosNestedInput
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateWithoutUsuarioInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateManyWithoutUsuarioInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    productoId?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
   export type OrdenProduccionUpdateWithoutSolicitanteInput = {
     id?: StringFieldUpdateOperationsInput | string
     grupoId?: NullableStringFieldUpdateOperationsInput | string | null
@@ -83504,6 +85858,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -83522,6 +85877,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -83538,6 +85894,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -83552,6 +85909,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -83570,6 +85928,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -83586,6 +85945,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -83854,6 +86214,7 @@ export namespace Prisma {
     productoNombre: string
     mercado?: $Enums.Mercado | null
     cantidad: number
+    cantidadEntregada?: number
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
@@ -83903,6 +86264,21 @@ export namespace Prisma {
     mercado?: $Enums.Mercado | null
     cantidadSolicitada: number
     cantidadFinal?: number | null
+  }
+
+  export type ZeroxMovimientoCreateManyProductoInput = {
+    id?: string
+    claveOperacion: string
+    nombreProducto: string
+    categoria: string
+    tipo: string
+    cantidad: number
+    delta: number
+    saldoResultante: number
+    fechaMovimiento: Date | string
+    registradoAt?: Date | string
+    usuarioId: string
+    observacion?: string | null
   }
 
   export type InventarioDrogaUpdateWithoutProductoInput = {
@@ -84091,6 +86467,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -84109,6 +86486,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -84125,6 +86503,7 @@ export namespace Prisma {
     productoNombre?: StringFieldUpdateOperationsInput | string
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidad?: FloatFieldUpdateOperationsInput | number
+    cantidadEntregada?: FloatFieldUpdateOperationsInput | number
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
@@ -84264,6 +86643,51 @@ export namespace Prisma {
     mercado?: NullableEnumMercadoFieldUpdateOperationsInput | $Enums.Mercado | null
     cantidadSolicitada?: FloatFieldUpdateOperationsInput | number
     cantidadFinal?: NullableFloatFieldUpdateOperationsInput | number | null
+  }
+
+  export type ZeroxMovimientoUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+    usuario?: UserUpdateOneRequiredWithoutZeroxMovimientosNestedInput
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usuarioId?: StringFieldUpdateOperationsInput | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type ZeroxMovimientoUncheckedUpdateManyWithoutProductoInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    claveOperacion?: StringFieldUpdateOperationsInput | string
+    nombreProducto?: StringFieldUpdateOperationsInput | string
+    categoria?: StringFieldUpdateOperationsInput | string
+    tipo?: StringFieldUpdateOperationsInput | string
+    cantidad?: IntFieldUpdateOperationsInput | number
+    delta?: IntFieldUpdateOperationsInput | number
+    saldoResultante?: IntFieldUpdateOperationsInput | number
+    fechaMovimiento?: DateTimeFieldUpdateOperationsInput | Date | string
+    registradoAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    usuarioId?: StringFieldUpdateOperationsInput | string
+    observacion?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ImportacionInicialEstucheItemCreateManyBatchInput = {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { GestionarStockModal } from '../GestionarStockModal'
-import { aleBetApi } from '../../lib/api'
+import { aleBetApi, type ProductoAdminStock } from '../../lib/api'
 
 vi.mock('../../lib/api', () => ({
   aleBetApi: {
@@ -38,6 +38,22 @@ function renderComponent(onClose = vi.fn(), productoNombre = 'Test Prod') {
   return onClose
 }
 
+function stockResponse(lotes: ProductoAdminStock['lotes']): ProductoAdminStock {
+  return {
+    producto: { id: 'p1', nombre: 'Test Prod' },
+    lotes,
+    ubicaciones: [
+      { id: 'u1', codigo: 'DEPOSITO', nombre: 'Depósito' },
+      { id: 'u2', codigo: 'ACONDICIONADO', nombre: 'Acondicionado' },
+    ],
+  }
+}
+
+async function selectLot(numero = 'L01'): Promise<void> {
+  await waitFor(() => expect(screen.getByRole('button', { name: `Seleccionar lote ${numero}` })).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: `Seleccionar lote ${numero}` }))
+}
+
 describe('GestionarStockModal', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -66,9 +82,54 @@ describe('GestionarStockModal', () => {
     vi.mocked(aleBetApi.stock.transferRules).mockResolvedValue({ rules: [] })
 
     renderComponent()
-    await waitFor(() => expect(screen.getByText(/EN0124/)).toBeInTheDocument())
-    expect(screen.getAllByRole('button', { name: 'Ajustar' })).toHaveLength(2)
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Agotados recientes (1)' })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('tab', { name: 'Agotados recientes (1)' }))
+    await selectLot('EN0124')
+    expect(screen.getByRole('button', { name: 'Reactivar lote EN0124' })).toBeInTheDocument()
     expect(aleBetApi.productos.stock.get).toHaveBeenCalledWith('p1', { includeArchived: false, includeZero: true })
+  })
+
+  it('separates operable lots from the three most recent exhausted lots and reveals actions after selection', async () => {
+    vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue(stockResponse([
+        { id: 'operable', numero: 'OP001', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 120, stockDeposito: 120, stockAcondicionado: 0 },
+        { id: 'zero-1', numero: 'Z001', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 },
+        { id: 'zero-2', numero: 'Z002', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 },
+        { id: 'zero-3', numero: 'Z003', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 },
+        { id: 'zero-4', numero: 'Z004', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 },
+    ]))
+
+    renderComponent()
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Lotes operables (1)' })).toBeInTheDocument())
+
+    expect(screen.queryByRole('button', { name: 'Ingresar' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Seleccionar lote OP001' }))
+    expect(screen.getByRole('button', { name: 'Ingresar' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Agotados recientes (3)' }))
+    expect(screen.queryByText('LOTE Z001')).not.toBeInTheDocument()
+    expect(screen.getByText('LOTE Z004')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Seleccionar lote Z003' }))
+    expect(screen.getByRole('button', { name: 'Reactivar lote Z003' })).toBeInTheDocument()
+  })
+
+  it('asks for the destination before reactivating an exhausted lot', async () => {
+    vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue(stockResponse([
+        { id: 'zero-1', numero: 'Z001', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 },
+    ]))
+
+    renderComponent()
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Agotados recientes (1)' })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('tab', { name: 'Agotados recientes (1)' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Seleccionar lote Z001' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Reactivar lote Z001' }))
+
+    expect(screen.getByRole('dialog', { name: 'Reactivar lote Z001' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Depósito' })).toBeChecked()
+    fireEvent.click(screen.getByRole('radio', { name: 'Acondicionado' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Continuar' }))
+    expect(screen.getByRole('heading', { name: 'Reactivar lote' })).toBeInTheDocument()
+    expect(screen.getByText((_, element) => element?.textContent === 'Lote: Z001 | Ubicación: Acondicionado')).toBeInTheDocument()
   })
 
   it('ingreso flow: adds delta to existing stock atomically', async () => {
@@ -83,7 +144,7 @@ describe('GestionarStockModal', () => {
     } as any)
 
     const onClose = renderComponent()
-    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+    await selectLot()
     
     const ingresarBtns = screen.getAllByRole('button', { name: 'Ingresar' })
     fireEvent.click(ingresarBtns[0]) // Ingresar to Acondicionado
@@ -177,10 +238,11 @@ describe('GestionarStockModal', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByText('LOTE L02')).toBeInTheDocument()
-      expect(screen.getAllByText('600').length).toBeGreaterThanOrEqual(2)
+      expect(screen.getByRole('button', { name: 'Seleccionar lote L02' })).toBeInTheDocument()
       expect(screen.getByText('700')).toBeInTheDocument()
     })
+    fireEvent.click(screen.getByRole('button', { name: 'Seleccionar lote L02' }))
+    expect(screen.getAllByText('600').length).toBeGreaterThanOrEqual(2)
   })
 
   it('sugiere el prefijo del producto al crear un lote, sin bloquear su edición', async () => {
@@ -198,7 +260,7 @@ describe('GestionarStockModal', () => {
   it('flujo de ajuste: no usa window.confirm y muestra Confirmar ajuste in-app', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm')
     const onClose = renderComponent()
-    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+    await selectLot()
     
     const ajustarBtns = screen.getAllByRole('button', { name: 'Ajustar' })
     fireEvent.click(ajustarBtns[0]) // Ajustar deposito
@@ -226,7 +288,7 @@ describe('GestionarStockModal', () => {
 
   it('flujo de transferencia: ACONDICIONADO -> DEPOSITO', async () => {
     const onClose = renderComponent()
-    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+    await selectLot()
     
     // The second Transferir button is for Acondicionado
     const transferirBtns = screen.getAllByRole('button', { name: 'Transferir' })
@@ -255,7 +317,7 @@ describe('GestionarStockModal', () => {
 
   it('permite transferir el total disponible del lote con un solo click', async () => {
     const onClose = renderComponent()
-    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+    await selectLot()
     fireEvent.click(screen.getAllByRole('button', { name: 'Transferir' })[1])
 
     fireEvent.click(screen.getByRole('button', { name: 'Transferir todo (20)' }))
@@ -273,7 +335,7 @@ describe('GestionarStockModal', () => {
 
   it('keeps the stock modal open when a transfer fails', async () => {
     const onClose = renderComponent()
-    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+    await selectLot()
     fireEvent.click(screen.getAllByRole('button', { name: 'Transferir' })[1])
     fireEvent.change(screen.getByLabelText('Cantidad a transferir'), { target: { value: '10' } })
     vi.mocked(aleBetApi.stock.transferir).mockRejectedValue(new Error('Sin stock disponible'))
@@ -293,7 +355,7 @@ describe('GestionarStockModal', () => {
       ],
     })
     const onClose = renderComponent()
-    await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
+    await selectLot()
     fireEvent.click(screen.getByRole('button', { name: 'Transferir a presentación' }))
     await waitFor(() => expect(screen.getByLabelText('Preparar como')).toBeInTheDocument())
     expect(screen.getByRole('option', { name: 'Aves' })).toBeInTheDocument()
@@ -336,7 +398,7 @@ describe('GestionarStockModal', () => {
     })
 
     renderComponent()
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Transferir a presentación' })).toBeInTheDocument())
+    await selectLot('A00298')
     fireEvent.click(screen.getByRole('button', { name: 'Transferir a presentación' }))
 
     await waitFor(() => expect(screen.getByLabelText('Preparar como')).toBeInTheDocument())
@@ -364,7 +426,7 @@ describe('GestionarStockModal', () => {
     })
 
     renderComponent(vi.fn(), productoNombre)
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Transferir a presentación' })).toBeInTheDocument())
+    await selectLot()
     fireEvent.click(screen.getByRole('button', { name: 'Transferir a presentación' }))
     await waitFor(() => expect(screen.getByLabelText('Preparar como')).toBeInTheDocument())
     expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['Seleccionar presentación', ...labels])

@@ -12,6 +12,7 @@ import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requirePermission } from '../../middlewares/require-permission'
 import { CatalogoError, CatalogoProductoService, isMarketCategory, normalizeCodigo, validateCatalogoInput } from '../services/catalogo-producto-service'
+import { syncDepositoStockSheetsAfterCommit } from '../services/stock-sheets-projection'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } })
@@ -441,7 +442,7 @@ router.get('/:id', authenticate, requirePermission('deposito', 'productos_catalo
 router.post('/', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
   const parsed = baseSchema.safeParse(req.body)
   if (!parsed.success) { res.status(400).json({ message: 'Datos inválidos', errors: parsed.error.flatten() }); return }
-  try { res.status(201).json(await service.createManual(toCreateInput(parsed.data), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
+  try { res.status(201).json(await service.createManual(toCreateInput(parsed.data), req.depositoUser!.id)); void syncDepositoStockSheetsAfterCommit() } catch (error) { sendError(res, error) }
 })
 
 router.patch('/:id', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
@@ -459,20 +460,20 @@ router.patch('/:id', authenticate, requirePermission('deposito', 'productos_cata
     ...(parsed.data.variante !== undefined ? { variante: parsed.data.variante } : {}),
     ...(parsed.data.stockMinimo !== undefined ? { stockMinimo: parsed.data.stockMinimo } : {}),
   }
-  try { res.json(await service.update(String(req.params.id), input, req.depositoUser!.id)) } catch (error) { sendError(res, error) }
+  try { res.json(await service.update(String(req.params.id), input, req.depositoUser!.id)); void syncDepositoStockSheetsAfterCommit() } catch (error) { sendError(res, error) }
 })
 
 router.post('/:id/activar', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
-  try { res.json(await service.activate(String(req.params.id), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
+  try { res.json(await service.activate(String(req.params.id), req.depositoUser!.id)); void syncDepositoStockSheetsAfterCommit() } catch (error) { sendError(res, error) }
 })
 router.post('/:id/reactivar', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
-  try { res.json(await service.reactivate(String(req.params.id), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
+  try { res.json(await service.reactivate(String(req.params.id), req.depositoUser!.id)); void syncDepositoStockSheetsAfterCommit() } catch (error) { sendError(res, error) }
 })
 router.post('/:id/desactivar', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
-  try { res.json(await service.deactivate(String(req.params.id), req.depositoUser!.id)) } catch (error) { sendError(res, error) }
+  try { res.json(await service.deactivate(String(req.params.id), req.depositoUser!.id)); void syncDepositoStockSheetsAfterCommit() } catch (error) { sendError(res, error) }
 })
 router.delete('/:id', authenticate, requirePermission('deposito', 'productos_catalogo.manage'), async (req, res): Promise<void> => {
-  try { await service.deletePending(String(req.params.id)); res.status(204).send() } catch (error) { sendError(res, error) }
+  try { await service.deletePending(String(req.params.id)); res.status(204).send(); void syncDepositoStockSheetsAfterCommit() } catch (error) { sendError(res, error) }
 })
 
 router.post('/importaciones/dry-run', authenticate, requirePermission('deposito', 'productos_catalogo.import'), upload.single('archivo'), async (req, res): Promise<void> => {
@@ -519,6 +520,7 @@ async function confirmPendingImport(res: Response, result: ImportResult[], usuar
     total: result.length,
     productos: created.productos,
   })
+  void syncDepositoStockSheetsAfterCommit()
 }
 
 router.post('/importaciones/confirmar', authenticate, requirePermission('deposito', 'productos_catalogo.import'), upload.single('archivo'), async (req, res): Promise<void> => {

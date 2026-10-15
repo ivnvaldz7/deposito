@@ -552,6 +552,22 @@ exports.Prisma.InsumoPendienteScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ZeroxMovimientoScalarFieldEnum = {
+  id: 'id',
+  claveOperacion: 'claveOperacion',
+  productoId: 'productoId',
+  nombreProducto: 'nombreProducto',
+  categoria: 'categoria',
+  tipo: 'tipo',
+  cantidad: 'cantidad',
+  delta: 'delta',
+  saldoResultante: 'saldoResultante',
+  fechaMovimiento: 'fechaMovimiento',
+  registradoAt: 'registradoAt',
+  usuarioId: 'usuarioId',
+  observacion: 'observacion'
+};
+
 exports.Prisma.OrdenProduccionScalarFieldEnum = {
   id: 'id',
   solicitanteId: 'solicitanteId',
@@ -562,6 +578,7 @@ exports.Prisma.OrdenProduccionScalarFieldEnum = {
   productoNombre: 'productoNombre',
   mercado: 'mercado',
   cantidad: 'cantidad',
+  cantidadEntregada: 'cantidadEntregada',
   urgencia: 'urgencia',
   estado: 'estado',
   motivoRechazo: 'motivoRechazo',
@@ -891,6 +908,7 @@ exports.Prisma.ModelName = {
   InventarioMaterialEmpaque: 'InventarioMaterialEmpaque',
   Movimiento: 'Movimiento',
   InsumoPendiente: 'InsumoPendiente',
+  ZeroxMovimiento: 'ZeroxMovimiento',
   OrdenProduccion: 'OrdenProduccion',
   DepositoProducto: 'DepositoProducto',
   SecuenciaCodigoEstuche: 'SecuenciaCodigoEstuche',
