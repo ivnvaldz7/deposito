@@ -119,7 +119,7 @@ export function useProductTransferRules(productoId: string, enabled: boolean) {
 export function useCreateAdminLote() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({ productoId, idempotencyKey, ...data }: { productoId: string; numero: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null; idempotencyKey?: string }) =>
+    mutationFn: ({ productoId, idempotencyKey, ...data }: { productoId: string; numero: string; prefijo: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null; idempotencyKey?: string }) =>
       aleBetApi.productos.stock.lotes.create(productoId, data, { idempotencyKey }),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: [...productosKeys.all, 'admin-stock', variables.productoId] })

@@ -47,11 +47,11 @@ describe('PRODUCTOS stock administration', () => {
 
   it('keeps a zero-stock lot in the administrative archive without showing it operationally', async () => {
     const data = await fixture()
-    const created = await request(app).post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`).set('Authorization', auth('admin')).send({ numero: 'L-ADMIN' })
+    const created = await request(app).post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`).set('Authorization', auth('admin')).send({ prefijo: 'LA', numero: 'LA0001' })
     expect(created.status).toBe(201)
     const response = await request(app).get(`/api/ale-bet/productos/${data.producto.id}/stock?includeArchived=true`).set('Authorization', auth('admin'))
     expect(response.status).toBe(200)
-    expect(response.body.lotes[0]).toMatchObject({ numero: 'L-ADMIN', stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 })
+    expect(response.body.lotes[0]).toMatchObject({ numero: 'LA0001', stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 })
     expect(response.body.ubicaciones).toHaveLength(2)
   })
 
@@ -62,11 +62,11 @@ describe('PRODUCTOS stock administration', () => {
       .post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`)
       .set('Authorization', auth('admin'))
       .set('Idempotency-Key', 'create-lot-opening-600')
-      .send({ numero: 'L-OPEN-600', cantidadInicial: 600 })
+      .send({ prefijo: 'LO', numero: 'LO0600', cantidadInicial: 600 })
 
     expect(created.status).toBe(201)
     expect(created.body).toMatchObject({
-      numero: 'L-OPEN-600',
+      numero: 'LO0600',
       stockTotal: 600,
       stockDeposito: 0,
       stockAcondicionado: 600,
@@ -76,13 +76,13 @@ describe('PRODUCTOS stock administration', () => {
       .post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`)
       .set('Authorization', auth('admin'))
       .set('Idempotency-Key', 'create-lot-opening-600')
-      .send({ numero: 'L-OPEN-600', cantidadInicial: 600 })
+      .send({ prefijo: 'LO', numero: 'LO0600', cantidadInicial: 600 })
 
     expect(retry.status).toBe(201)
     expect(retry.body).toEqual(created.body)
 
     const lot = await prisma.lote.findUniqueOrThrow({
-      where: { numero_productoId: { numero: 'L-OPEN-600', productoId: data.producto.id } },
+      where: { numero_productoId: { numero: 'LO0600', productoId: data.producto.id } },
     })
     expect(await prisma.saldoStock.findUnique({
       where: {
@@ -126,13 +126,28 @@ describe('PRODUCTOS stock administration', () => {
       .post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`)
       .set('Authorization', auth('admin'))
       .set('Idempotency-Key', 'create-lot-opening-fail')
-      .send({ numero: 'L-ROLLBACK', cantidadInicial: 600 })
+      .send({ prefijo: 'LR', numero: 'LR0001', cantidadInicial: 600 })
 
     expect(response.status).toBe(409)
-    expect(await prisma.lote.findFirst({ where: { productoId: data.producto.id, numero: 'L-ROLLBACK' } })).toBeNull()
+    expect(await prisma.lote.findFirst({ where: { productoId: data.producto.id, numero: 'LR0001' } })).toBeNull()
+    expect((await prisma.producto.findUniqueOrThrow({ where: { id: data.producto.id } })).prefijoLote).toBeNull()
     expect(await prisma.saldoStock.count({ where: { productoId: data.producto.id } })).toBe(0)
     expect(await prisma.movimientoStock.count({ where: { productoId: data.producto.id } })).toBe(0)
     expect(await prisma.stockProjectionOutbox.count({ where: { productId: data.producto.id } })).toBe(0)
+  })
+
+  it('fija la primera sigla y rechaza una diferente incluso con solicitudes simultáneas', async () => {
+    const data = await fixture()
+    const create = (prefijo: string) => request(app)
+      .post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`)
+      .set('Authorization', auth('admin'))
+      .send({ prefijo, numero: `${prefijo}0001` })
+    const results = await Promise.all([create('CB'), create('CO')])
+    expect(results.map((result) => result.status).sort()).toEqual([201, 409])
+    const product = await prisma.producto.findUniqueOrThrow({ where: { id: data.producto.id } })
+    const lots = await prisma.lote.findMany({ where: { productoId: data.producto.id } })
+    expect(lots).toHaveLength(1)
+    expect(lots[0].numero).toBe(`${product.prefijoLote}0001`)
   })
 
   it('adjusts final quantity transactionally, is idempotent, and audits signed delta', async () => {
@@ -183,9 +198,9 @@ describe('PRODUCTOS stock administration', () => {
   it('accepts the same physical lot number for different products but not twice for one product', async () => {
     const data = await fixture()
     const other = await prisma.producto.create({ data: { nombre: 'Otro producto', sku: 'SKU-OTHER-LOT', unidadesPorCaja: 1 } })
-    const first = await request(app).post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`).set('Authorization', auth('admin')).send({ numero: 'LOTE-FISICO-1' })
-    const duplicate = await request(app).post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`).set('Authorization', auth('admin')).send({ numero: 'LOTE-FISICO-1' })
-    const otherProduct = await request(app).post(`/api/ale-bet/productos/${other.id}/stock/lotes`).set('Authorization', auth('admin')).send({ numero: 'LOTE-FISICO-1' })
+    const first = await request(app).post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`).set('Authorization', auth('admin')).send({ prefijo: 'LF', numero: 'LF0001' })
+    const duplicate = await request(app).post(`/api/ale-bet/productos/${data.producto.id}/stock/lotes`).set('Authorization', auth('admin')).send({ prefijo: 'LF', numero: 'LF0001' })
+    const otherProduct = await request(app).post(`/api/ale-bet/productos/${other.id}/stock/lotes`).set('Authorization', auth('admin')).send({ prefijo: 'LF', numero: 'LF0001' })
 
     expect(first.status).toBe(201)
     expect(duplicate.status).toBe(409)

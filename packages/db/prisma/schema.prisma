@@ -131,6 +131,7 @@ model Producto {
   id                  String                  @id @default(cuid())
   nombre              String
   sku                 String                  @unique
+  prefijoLote         String?
   stockMinimo         Int?
   unidadesPorCaja     Int
   activo              Boolean                 @default(true)

@@ -208,7 +208,7 @@ describe('GestionarStockModal', () => {
         producto: { id: 'p1', nombre: 'Test Prod' },
         lotes: [
           { id: 'l1', numero: 'L01', fechaProduccion: null, fechaVencimiento: null, activo: true, stockTotal: 100, stockDeposito: 80, stockAcondicionado: 20 },
-          { id: 'new-id', numero: 'L02', fechaProduccion: '2026-08-01T00:00:00.000Z', fechaVencimiento: '2028-08-31T23:59:59.000Z', activo: true, stockTotal: 600, stockDeposito: 0, stockAcondicionado: 600 }
+          { id: 'new-id', numero: 'TE02', fechaProduccion: '2026-08-01T00:00:00.000Z', fechaVencimiento: '2028-08-31T23:59:59.000Z', activo: true, stockTotal: 600, stockDeposito: 0, stockAcondicionado: 600 }
         ],
         ubicaciones: [
           { id: 'u1', codigo: 'DEPOSITO', nombre: 'Depósito' },
@@ -227,7 +227,8 @@ describe('GestionarStockModal', () => {
     
     expect(expInput).toBeDisabled()
 
-    fireEvent.change(screen.getByLabelText('Número de lote'), { target: { value: 'L02' } })
+    fireEvent.change(screen.getByLabelText('Sigla del lote'), { target: { value: 'TE' } })
+    fireEvent.change(screen.getByLabelText('Correlativo de lote'), { target: { value: '02' } })
     fireEvent.change(prodInput, { target: { value: '2026-08' } })
     fireEvent.change(screen.getByLabelText('Cajas'), { target: { value: '600' } })
     
@@ -235,7 +236,7 @@ describe('GestionarStockModal', () => {
 
     vi.mocked(aleBetApi.productos.stock.lotes.create).mockResolvedValue({
       id: 'new-id',
-      numero: 'L02',
+      numero: 'TE02',
       fechaProduccion: '2026-08-01T00:00:00.000Z',
       fechaVencimiento: '2028-08-31T23:59:59.000Z',
       activo: true,
@@ -249,7 +250,7 @@ describe('GestionarStockModal', () => {
       expect(aleBetApi.productos.stock.lotes.create).toHaveBeenCalledWith(
         'p1',
         expect.objectContaining({
-          numero: 'L02',
+          numero: 'TE02',
           cantidadInicial: 600,
           fechaProduccion: '2026-08-01T00:00:00.000Z',
           fechaVencimiento: '2028-08-31T23:59:59.000Z'
@@ -259,23 +260,31 @@ describe('GestionarStockModal', () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Seleccionar lote L02' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Seleccionar lote TE02' })).toBeInTheDocument()
       expect(screen.getByText('700')).toBeInTheDocument()
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Seleccionar lote L02' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Seleccionar lote TE02' }))
     expect(screen.getAllByText('600').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('sugiere el prefijo del producto al crear un lote, sin bloquear su edición', async () => {
-    renderComponent(undefined, 'OLIVITASAN PLUS 500 ML')
+  it('permite definir la sigla sin proponer iniciales', async () => {
+    renderComponent(undefined, 'COMPLEJO B B12 B15 250 ML')
     await waitFor(() => expect(screen.getAllByText(/L01/)[0]).toBeInTheDocument())
-
     fireEvent.click(screen.getByRole('button', { name: '+ Nuevo lote' }))
-    const numero = screen.getByLabelText('Número de lote')
-    expect(numero).toHaveValue('PL')
+    const sigla = screen.getByLabelText('Sigla del lote')
+    expect(sigla).toHaveValue('')
+    fireEvent.change(sigla, { target: { value: 'cb' } })
+    expect(sigla).toHaveValue('CB')
+    expect(screen.getByText(/esta sigla quedará fija/)).toBeInTheDocument()
+  })
 
-    fireEvent.change(numero, { target: { value: 'PL0619' } })
-    expect(numero).toHaveValue('PL0619')
+  it('muestra la sigla guardada sin permitir modificarla', async () => {
+    vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue({ ...stockResponse([]), producto: { id: 'p1', nombre: 'Complejo', prefijoLote: 'CB' } })
+    renderComponent()
+    await waitFor(() => expect(screen.getByRole('button', { name: '+ Nuevo lote' })).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: '+ Nuevo lote' }))
+    expect(screen.getByLabelText('Sigla del lote')).toHaveValue('CB')
+    expect(screen.getByLabelText('Sigla del lote')).toHaveAttribute('readonly')
   })
 
   it('flujo de ajuste: no usa window.confirm y muestra Confirmar ajuste in-app', async () => {

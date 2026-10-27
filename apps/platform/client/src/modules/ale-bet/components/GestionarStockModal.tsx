@@ -4,7 +4,6 @@ import { toast } from '@/lib/toast'
 import { type Producto, type LoteAdminStock } from '../lib/api'
 import { useProductoAdminStock, useAjusteAdminStock, useIngresarAdminStock, useTransferirStock, useCreateAdminLote, useProductTransferRules, useUpdateLote } from '../queries'
 import { formatOptionalDate } from '../lib/logistics-display'
-import { suggestedLotPrefix } from '../lib/lot-prefix'
 
 interface GestionarStockModalProps {
   producto: Producto
@@ -339,6 +338,7 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
         <CreateLoteModal 
           productoId={producto.id}
           productoNombre={producto.nombre}
+          prefijoFijo={stockData.producto?.prefijoLote ?? null}
           unidadesPorCaja={producto.unidadesPorCaja}
           onClose={() => setCreateLoteModal(false)}
         />
@@ -757,8 +757,9 @@ function TransferirModal({ productoId, productoNombre, loteId, loteNumero, orige
   )
 }
 
-function CreateLoteModal({ productoId, productoNombre, unidadesPorCaja, onClose }: { productoId: string; productoNombre: string; unidadesPorCaja: number; onClose: () => void }) {
-  const [numero, setNumero] = useState(() => suggestedLotPrefix(productoNombre))
+function CreateLoteModal({ productoId, productoNombre, prefijoFijo, unidadesPorCaja, onClose }: { productoId: string; productoNombre: string; prefijoFijo: string | null; unidadesPorCaja: number; onClose: () => void }) {
+  const [prefix, setPrefix] = useState(prefijoFijo ?? '')
+  const [correlativo, setCorrelativo] = useState('')
   const [cajas, setCajas] = useState('')
   const [sueltos, setSueltos] = useState('')
   const [fechaProduccionStr, setFechaProduccionStr] = useState('')
@@ -775,7 +776,7 @@ function CreateLoteModal({ productoId, productoNombre, unidadesPorCaja, onClose 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErrorLocal(null)
-    if (!numero.trim() || !fechaProduccionStr || cantidadInicial === null || cantidadInicial <= 0) {
+    if (!prefix || !correlativo.trim() || !fechaProduccionStr || cantidadInicial === null || cantidadInicial <= 0) {
       setErrorLocal('Completá los datos y cargá al menos una caja o una unidad suelta')
       return
     }
@@ -795,7 +796,8 @@ function CreateLoteModal({ productoId, productoNombre, unidadesPorCaja, onClose 
     try {
       await createMutation.mutateAsync({
         productoId,
-        numero: numero.trim(),
+        numero: `${prefix}${correlativo.trim()}`,
+        prefijo: prefix,
         cantidadInicial,
         fechaProduccion,
         fechaVencimiento,
@@ -821,17 +823,24 @@ function CreateLoteModal({ productoId, productoNombre, unidadesPorCaja, onClose 
         
         <form onSubmit={handleSubmit} className="mt-5 space-y-4">
           <div>
-            <label htmlFor="numero-lote" className="font-body text-[12px] text-outline">Número de lote</label>
-            <input 
-              id="numero-lote"
-              type="text" 
-              required
-              value={numero}
-              onChange={(e) => setNumero(e.target.value)}
-              className="input-field mt-1 min-h-11 w-full text-[16px]"
-              autoFocus
-            />
-            <p className="mt-1 font-body text-[11px] text-on-surface-variant">Prefijo sugerido para {productoNombre}; podés modificarlo.</p>
+            <label htmlFor="correlativo-lote" className="font-body text-[12px] text-outline">Número de lote</label>
+            <div className="mt-1 flex min-h-11 overflow-hidden rounded border border-outline-variant bg-surface-container">
+              <input aria-label="Sigla del lote" required value={prefix} readOnly={Boolean(prefijoFijo)} maxLength={12} onChange={(event) => setPrefix(event.target.value.toUpperCase().replace(/[^A-Z]/g, ''))} className="w-20 border-r border-outline-variant bg-primary/10 px-3 font-mono text-[16px] font-bold text-primary outline-none" placeholder="Sigla" />
+              <input
+                id="correlativo-lote"
+                aria-label="Correlativo de lote"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                required
+                value={correlativo}
+                onChange={(event) => setCorrelativo(event.target.value.replace(/\D/g, ''))}
+                className="min-w-0 flex-1 bg-transparent px-3 text-[16px] outline-none"
+                placeholder="0302"
+                autoFocus
+              />
+            </div>
+            <p className="mt-1 font-body text-[11px] text-on-surface-variant">{prefijoFijo ? `La sigla ${prefix} es fija para ${productoNombre}.` : 'Al crear el lote, esta sigla quedará fija para este producto.'}</p>
           </div>
           <div>
             <label htmlFor="fecha-produccion" className="font-body text-[12px] text-outline">Fecha de producción (MM/AAAA)</label>

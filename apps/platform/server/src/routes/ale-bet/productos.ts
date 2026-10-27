@@ -6,7 +6,7 @@ import { getAppAccess, hasPermission } from '@platform/core'
 import { requireApp } from '../../middlewares/require-app'
 import { requirePermission } from '../../middlewares/require-permission'
 import { VENCIMIENTO_DEFAULT_AÑOS, calcularUnidades, validarSueltos } from './constants'
-import { adjustManagedStock, assertLotExpirationIsNotPast, createManagedLot, getManagedProductStock, ProductStockAdminConflict } from './product-stock-admin-service'
+import { adjustManagedStock, assertLotExpirationIsNotPast, createManagedLot, getManagedProductStock, lockProductLotPrefix, ProductStockAdminConflict } from './product-stock-admin-service'
 import { aggregateProductAvailability } from './stock-aggregation'
 import { acquireIdempotencyRecord, calculateFingerprint, completeIdempotencyRecord, getSingleIdempotencyKey, toPersistableResponseBody } from '../../utils/idempotency'
 import { syncStockProjectionAfterCommit } from './stock-projection/direct-sync'
@@ -63,10 +63,6 @@ const loteSchema = z.object({
   sueltos: z.number().int().min(0),
   fechaProduccion: z.string().datetime(),
 })
-
-function buildLoteNumber(sku: string, sequence: number): string {
-  return `${sku}${String(sequence).padStart(4, '0')}`
-}
 
 function isUniqueConstraintError(error: unknown): error is { code: string } {
   return typeof error === 'object' && error !== null && 'code' in error && (error as { code: string }).code === 'P2002'
@@ -354,13 +350,17 @@ router.post('/:id/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 's
   const fechaVencimiento = new Date(fechaProduccion)
   fechaVencimiento.setFullYear(fechaVencimiento.getFullYear() + VENCIMIENTO_DEFAULT_AÑOS)
 
-  const sequence = (await prisma.lote.count({ where: { productoId: producto.id } })) + 1
-  const numero = parsed.data.numero ?? buildLoteNumber(producto.sku, sequence)
+  const numero = parsed.data.numero
+  if (!numero) {
+    res.status(400).json({ error: 'Ingresá la sigla y el número del lote' })
+    return
+  }
   const cantidad = calcularUnidades(parsed.data.cajas, parsed.data.sueltos, producto.unidadesPorCaja)
 
   try {
     assertLotExpirationIsNotPast(fechaVencimiento)
     const lote = await prisma.$transaction(async (tx) => {
+      await lockProductLotPrefix(tx, producto.id, numero)
       const created = await tx.lote.create({
         data: {
           numero,
@@ -491,6 +491,7 @@ router.get('/:id/lotes/historial', requireApp('ale-bet'), requirePermission('ale
 router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-bet', 'stock.lots.create'), async (req, res) => {
   const schema = z.object({
     numero: z.string().trim().min(1).max(60),
+    prefijo: z.string().regex(/^[A-Z]{1,12}$/),
     cantidadInicial: z.number().int().positive().optional(),
     fechaProduccion: z.string().datetime().nullable().optional(),
     fechaVencimiento: z.string().datetime().nullable().optional(),
@@ -509,6 +510,12 @@ router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-be
     return
   }
 
+  const producto = await prisma.producto.findUnique({ where: { id: productoId }, select: { nombre: true } })
+  if (!producto) {
+    res.status(404).json({ error: 'Producto no encontrado' })
+    return
+  }
+
   const idempotencyKey = cantidadInicial === undefined ? null : getSingleIdempotencyKey(req.rawHeaders)
   if (cantidadInicial !== undefined && !idempotencyKey) {
     res.status(400).json({ error: 'Idempotency-Key requerido' })
@@ -517,12 +524,15 @@ router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-be
 
   try {
     if (cantidadInicial === undefined || !idempotencyKey) {
-      const lote = await prisma.$transaction((tx) => createManagedLot(tx, {
+      const lote = await prisma.$transaction(async (tx) => {
+        await lockProductLotPrefix(tx, productoId, parsed.data.numero, parsed.data.prefijo)
+        return createManagedLot(tx, {
         productoId,
         numero: parsed.data.numero,
         fechaProduccion: parseOptionalDate(parsed.data.fechaProduccion),
         fechaVencimiento: parseOptionalDate(parsed.data.fechaVencimiento),
-      }))
+        })
+      })
       res.status(201).json({ id: lote.id, numero: lote.numero, fechaProduccion: lote.fechaProduccion, fechaVencimiento: lote.fechaVencimiento, activo: lote.activo, stockTotal: 0, stockDeposito: 0, stockAcondicionado: 0 })
       return
     }
@@ -534,6 +544,7 @@ router.post('/:id/stock/lotes', requireApp('ale-bet'), requirePermission('ale-be
       const acquired = await acquireIdempotencyRecord(tx, user.sub, scope, idempotencyKey, fingerprint)
       if (acquired.type === 'REPLAY') return acquired.body
 
+      await lockProductLotPrefix(tx, productoId, parsed.data.numero, parsed.data.prefijo)
       const lote = await createManagedLot(tx, {
         productoId,
         numero: parsed.data.numero,

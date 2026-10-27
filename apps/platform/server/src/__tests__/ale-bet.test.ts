@@ -404,19 +404,30 @@ describe('ALEBET-01 HTTP contracts', () => {
   })
 
   it('creates a lot using the product presentation and rejects overflowing loose units', async () => {
-    mockDb.producto.findUnique.mockResolvedValue({ id: 'producto-20', sku: 'P20', unidadesPorCaja: 20 })
+    mockDb.producto.findUnique.mockResolvedValue({ id: 'producto-20', sku: 'P20', unidadesPorCaja: 20, prefijoLote: 'CB' })
     mockDb.lote.count.mockResolvedValue(0)
-    mockDb.lote.create.mockResolvedValue({ id: 'lote-20', numero: 'P200001', cajas: 2, sueltos: 7 })
+    mockDb.lote.create.mockResolvedValue({ id: 'lote-20', numero: 'CB0001', cajas: 2, sueltos: 7 })
     mockDb.movimientoStock.create.mockResolvedValue({})
     const server = await app()
 
     const created = await request(server).post('/api/ale-bet/productos/producto-20/lotes').set('Authorization', `Bearer ${token('admin')}`)
-      .send({ cajas: 2, sueltos: 7, fechaProduccion: '2026-01-01T00:00:00.000Z' }).expect(201)
+      .send({ numero: 'CB0001', cajas: 2, sueltos: 7, fechaProduccion: '2026-01-01T00:00:00.000Z' }).expect(201)
     expect(created.body).toMatchObject({ unidades: 47, unidadesPorCaja: 20 })
 
     mockDb.producto.findUnique.mockResolvedValue({ id: 'producto-4', sku: 'P4', unidadesPorCaja: 4 })
     await request(server).post('/api/ale-bet/productos/producto-4/lotes').set('Authorization', `Bearer ${token('admin')}`)
       .send({ cajas: 2, sueltos: 4, fechaProduccion: '2026-01-01T00:00:00.000Z' }).expect(400)
+  })
+
+  it('rechaza una sigla distinta de la guardada para el producto', async () => {
+    mockDb.producto.findUnique.mockResolvedValue({ id: 'producto-amino', nombre: 'AMINOÁCIDOS 1 L', prefijoLote: 'AO' })
+    const server = await app()
+    await request(server)
+      .post('/api/ale-bet/productos/producto-amino/stock/lotes')
+      .set('Authorization', `Bearer ${token('admin')}`)
+      .send({ numero: 'AM0300', prefijo: 'AM' })
+      .expect(409)
+    expect(mockDb.lote.create).not.toHaveBeenCalled()
   })
 
   it('rejects a lot edit whose loose units reach the product presentation', async () => {

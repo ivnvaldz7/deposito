@@ -441,7 +441,7 @@ export interface LoteAdminStock {
 }
 
 export interface ProductoAdminStock {
-  producto: { id: string; nombre: string }
+  producto: { id: string; nombre: string; prefijoLote?: string | null }
   lotes: LoteAdminStock[]
   ubicaciones: Array<{ id: string; codigo: string; nombre: string }>
 }
@@ -482,7 +482,7 @@ export const aleBetApi = {
         return apiClient.get<ProductoAdminStock>(`${BASE}/productos/${id}/stock${query ? `?${query}` : ''}`)
       },
       lotes: {
-        create: (id: string, data: { numero: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null }, options?: MutationOptions) =>
+        create: (id: string, data: { numero: string; prefijo: string; cantidadInicial?: number; fechaProduccion?: string | null; fechaVencimiento?: string | null }, options?: MutationOptions) =>
           apiClient.post<{ id: string; numero: string; fechaProduccion: string | null; fechaVencimiento: string | null; activo: boolean; stockTotal: number; stockDeposito: number; stockAcondicionado: number }>(`${BASE}/productos/${id}/stock/lotes`, data, undefined, mutationOptions(options)),
         ajuste: (id: string, loteId: string, data: { ubicacionId: string; cantidadFinal: number; motivo?: string }, options?: MutationOptions) =>
           apiClient.patch<{ loteId: string; ubicacionId: string; anterior: number; nuevo: number; delta: number; movimientoId: string | null }>(`${BASE}/productos/${id}/stock/lotes/${loteId}/ajuste`, data, undefined, mutationOptions(options)),

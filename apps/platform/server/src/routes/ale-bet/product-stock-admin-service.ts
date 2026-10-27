@@ -26,6 +26,22 @@ export function assertLotExpirationIsNotPast(fechaVencimiento: Date | null | und
   }
 }
 
+export async function lockProductLotPrefix(tx: Tx, productoId: string, numero: string, requestedPrefix?: string) {
+  const match = /^([A-Z]{1,12})([0-9]+)$/.exec(numero)
+  if (!match || (requestedPrefix && requestedPrefix !== match[1])) {
+    throw new ProductStockAdminConflict('Ingresá una sigla de letras y un correlativo numérico')
+  }
+  await tx.$queryRaw(Prisma.sql`SELECT id FROM "ale_bet"."Producto" WHERE id = ${productoId} FOR UPDATE`)
+  const product = await tx.producto.findUnique({ where: { id: productoId }, select: { prefijoLote: true } })
+  if (!product) throw new ProductStockAdminConflict('Producto no encontrado')
+  if (product.prefijoLote && product.prefijoLote !== match[1]) {
+    throw new ProductStockAdminConflict(`La sigla fija del producto es ${product.prefijoLote}`)
+  }
+  if (!product.prefijoLote) {
+    await tx.producto.update({ where: { id: productoId }, data: { prefijoLote: match[1] } })
+  }
+}
+
 export async function createManagedLot(
   tx: Tx,
   input: { productoId: string; numero: string; fechaProduccion?: Date | null; fechaVencimiento?: Date | null },
@@ -183,6 +199,7 @@ export async function getManagedProductStock(productoId: string, db: typeof plat
       select: {
         id: true,
         nombre: true,
+        prefijoLote: true,
         lotes: {
           where: includeArchived ? undefined : { activo: true },
           orderBy: [{ fechaVencimiento: 'asc' }, { fechaProduccion: 'asc' }, { id: 'asc' }],
@@ -206,7 +223,7 @@ export async function getManagedProductStock(productoId: string, db: typeof plat
   // The stock overview hides zero balances. The management modal can opt in to
   // active zero-balance lots so they can be corrected or replenished in place.
   return {
-    producto: { id: producto.id, nombre: producto.nombre },
+    producto: { id: producto.id, nombre: producto.nombre, prefijoLote: producto.prefijoLote },
     lotes: includeArchived || includeZero ? lotes : lotes.filter((lote) => lote.stockTotal > 0),
     ubicaciones,
   }
