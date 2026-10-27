@@ -27,12 +27,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from '../components/ui/Dialog'
 import { InventoryPageHeader } from '../components/inventory-shared/InventoryPageHeader'
 import { InventoryDataSurface, RowActionButton } from '../components/inventory-shared/inventory-surfaces'
 import { StockChip } from '../components/inventory-shared/stock-chip'
 import { getStockStatus } from '../lib/stock-status'
+import { findClosestMatches } from '../lib/fuzzy-search'
 
 interface Frasco {
   id: string
@@ -40,6 +40,7 @@ interface Frasco {
   articulo: string
   unidadesPorCaja: number
   cantidadCajas: number
+  unidadesSueltas: number
   total: number
   updatedAt: string
   stockMinimo?: number | null
@@ -75,8 +76,8 @@ function AgregarFrascoModal({ open, onOpenChange }: { open: boolean; onOpenChang
   async function onSubmit(data: AgregarFormData) {
     setServerError(null)
     try {
-      const frasco = await createMutation.mutateAsync({ articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
-      if (getStockStatus(frasco.cantidadCajas, frasco.stockMinimo) === 'bajo') toast.warning(`"${frasco.articulo}" quedó con stock bajo (${frasco.cantidadCajas} cajas).`)
+      const frasco = await createMutation.mutateAsync({ articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas), unidadesSueltas: 0 })
+      if (getStockStatus(frasco.total, frasco.stockMinimo) === 'bajo') toast.warning(`"${frasco.articulo}" quedó con stock bajo (${frasco.total} unidades).`)
       else toast.success(`Frasco "${frasco.articulo}" agregado.`)
       reset(); onOpenChange(false)
     } catch (err) { setServerError(err instanceof ApiError ? err.message : 'Error al guardar') }
@@ -86,7 +87,7 @@ function AgregarFrascoModal({ open, onOpenChange }: { open: boolean; onOpenChang
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Agregar frasco</DialogTitle><DialogDescription>Ingresá el artículo, unidades por caja y cantidad de cajas.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Agregar frasco</DialogTitle><DialogDescription>Registrá cajas completas. El total se calcula automáticamente.</DialogDescription></DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           <div className="space-y-1">
             <label htmlFor="agregar-frasco-articulo" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">Artículo</label>
@@ -109,7 +110,7 @@ function AgregarFrascoModal({ open, onOpenChange }: { open: boolean; onOpenChang
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
           <div className="flex gap-3 pt-1">
             <button type="submit" disabled={createMutation.isPending} className="btn-primary flex-1 py-2.5 text-sm">{createMutation.isPending ? 'Guardando...' : 'Guardar'}</button>
-            <DialogClose asChild><button type="button" className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button></DialogClose>
+            <button type="button" onClick={() => handleOpenChange(false)} className="flex-1 py-2.5 text-sm font-semibold rounded text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">Cancelar</button>
           </div>
         </form>
       </DialogContent>
@@ -134,13 +135,17 @@ function EditarFrascoModal({ frasco, onClose }: { frasco: Frasco; onClose: () =>
   })
   const unidades = Number(useWatch({ control, name: 'unidadesPorCaja' })) || 0
   const cajas = Number(useWatch({ control, name: 'cantidadCajas' })) || 0
-  const totalPreview = unidades * cajas
+  const boxesChanged = cajas !== frasco.cantidadCajas
+  const totalPreview = unidades !== frasco.unidadesPorCaja && !boxesChanged ? frasco.total : unidades * cajas + frasco.unidadesSueltas
 
   async function onSubmit(data: EditarFormData) {
     setServerError(null)
     try {
-      const updated = await updateMutation.mutateAsync({ id: frasco.id, articulo: data.articulo, unidadesPorCaja: Number(data.unidadesPorCaja), cantidadCajas: Number(data.cantidadCajas) })
-      if (getStockStatus(updated.cantidadCajas, frasco.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
+      const newUnits = Number(data.unidadesPorCaja)
+      if (newUnits === frasco.unidadesPorCaja && !boxesChanged && (frasco.productoId || data.articulo === frasco.articulo)) { onClose(); return }
+      if (boxesChanged && frasco.unidadesSueltas >= newUnits) { setServerError('El tamaño de caja no puede ser menor o igual al saldo histórico de unidades sueltas.'); return }
+      const updated = await updateMutation.mutateAsync({ id: frasco.id, ...(frasco.productoId ? {} : { articulo: data.articulo }), ...(newUnits !== frasco.unidadesPorCaja ? { unidadesPorCaja: newUnits } : {}), ...(boxesChanged ? { cantidadCajas: Number(data.cantidadCajas), unidadesSueltas: frasco.unidadesSueltas } : {}) })
+      if (getStockStatus(updated.total, frasco.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.total} unidades).`)
       else toast.info(`Frasco "${updated.articulo}" actualizado.`)
       onClose()
     } catch (err) { setServerError(err instanceof ApiError ? err.message : 'Error al guardar') }
@@ -149,9 +154,9 @@ function EditarFrascoModal({ frasco, onClose }: { frasco: Frasco; onClose: () =>
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent>
-        <DialogHeader><DialogTitle>Editar frasco</DialogTitle><DialogDescription>Modificá el artículo, unidades por caja y/o cantidad de cajas.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Editar frasco</DialogTitle><DialogDescription>Indicá las cajas y la cantidad de unidades que contiene cada una.</DialogDescription></DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
-          <div className="space-y-1"><label htmlFor="editar-frasco-articulo" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">Artículo</label><input id="editar-frasco-articulo" {...register('articulo')} type="text" className="input-field" autoFocus />{errors.articulo && <p className="font-body text-error text-xs">{errors.articulo.message}</p>}</div>
+          <div className="space-y-1"><label htmlFor="editar-frasco-articulo" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">Artículo</label><input id="editar-frasco-articulo" {...register('articulo')} type="text" className="input-field" readOnly={Boolean(frasco.productoId)} autoFocus />{frasco.productoId && <p className="text-xs text-on-surface-variant">Para cambiar el nombre, editá el producto en el catálogo.</p>}{errors.articulo && <p className="font-body text-error text-xs">{errors.articulo.message}</p>}</div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1"><label htmlFor="editar-frasco-unidades" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">Unidades / Caja</label><input id="editar-frasco-unidades" {...register('unidadesPorCaja')} type="number" min="1" className="input-field" />{errors.unidadesPorCaja && <p className="font-body text-error text-xs">{errors.unidadesPorCaja.message}</p>}</div>
             <div className="space-y-1"><label htmlFor="editar-frasco-cajas" className="font-body text-on-surface-variant text-xs uppercase tracking-widest font-medium">Cajas</label><input id="editar-frasco-cajas" {...register('cantidadCajas')} type="number" min="0" className="input-field" />{errors.cantidadCajas && <p className="font-body text-error text-xs">{errors.cantidadCajas.message}</p>}</div>
@@ -174,7 +179,7 @@ function CajasCell({ frasco }: { frasco: Frasco }) {
     <InlineNumberEditor value={frasco.cantidadCajas} label="Cajas" onSave={async (nextValue) => {
       try {
         const updated = await updateMutation.mutateAsync({ id: frasco.id, cantidadCajas: nextValue })
-        if (getStockStatus(updated.cantidadCajas, frasco.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.cantidadCajas} cajas).`)
+        if (getStockStatus(updated.total, frasco.stockMinimo) === 'bajo') toast.warning(`"${updated.articulo}" quedó con stock bajo (${updated.total} unidades).`)
         else toast.info(`Stock de cajas para "${updated.articulo}" actualizado.`)
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Error al guardar')
@@ -209,27 +214,29 @@ export default function FrascosPage() {
   const hasFocusSignal = Boolean(searchParams.get('focus'))
   const focus = useProductFocus(frascos.map((item) => ({ id: item.id, productoId: item.productoId, name: getDisplayName(item) })))
   const sortedFrascos = useMemo(() => sortFrascos(frascos), [frascos])
-  const filteredFrascos = useMemo(() => {
+  const { filteredFrascos, hasApproximateMatches } = useMemo(() => {
     const selected = hasFocusSignal
       ? sortedFrascos.find((item) =>
           (productoIdFiltro && item.productoId === productoIdFiltro)
           || (productoFiltro && normalizeProducto(getDisplayName(item)) === normalizeProducto(productoFiltro)))
       : undefined
-    if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) return []
+    if (hasFocusSignal && (productoIdFiltro || productoFiltro) && !selected) {
+      return { filteredFrascos: [], hasApproximateMatches: false }
+    }
     
     let baseList = sortedFrascos
     if (stockBajoFiltro) {
-      baseList = baseList.filter(f => getStockStatus(f.cantidadCajas, f.stockMinimo) === 'bajo')
+      baseList = baseList.filter(f => getStockStatus(f.total, f.stockMinimo) === 'bajo')
     }
 
-    if (search.trim()) {
-      const query = normalizeProducto(search)
-      baseList = baseList.filter((frasco) => normalizeProducto(getDisplayName(frasco)).includes(query))
+    if (!productoFiltro || selected) {
+      const result = findClosestMatches(baseList, search, getDisplayName)
+      return { filteredFrascos: result.matches, hasApproximateMatches: result.isApproximate }
     }
-
-    if (!productoFiltro || selected) return baseList
     const target = normalizeProducto(productoFiltro)
-    return baseList.filter((f) => normalizeProducto(getDisplayName(f)) === target)
+    const exactProductMatches = baseList.filter((f) => normalizeProducto(getDisplayName(f)) === target)
+    const result = findClosestMatches(exactProductMatches, search, getDisplayName)
+    return { filteredFrascos: result.matches, hasApproximateMatches: result.isApproximate }
   }, [sortedFrascos, stockBajoFiltro, productoFiltro, productoIdFiltro, hasFocusSignal, getDisplayName, search])
 
   async function handleDelete(id: string) {
@@ -244,7 +251,7 @@ export default function FrascosPage() {
   if (error) return <ErrorState message={error instanceof ApiError ? error.message : 'No se pudo cargar los frascos'} />
 
   const totalCajas = frascos.reduce((s, f) => s + f.cantidadCajas, 0)
-  const stockBajoCount = frascos.filter((f) => getStockStatus(f.cantidadCajas, f.stockMinimo) === 'bajo').length
+  const stockBajoCount = frascos.filter((f) => getStockStatus(f.total, f.stockMinimo) === 'bajo').length
 
   return (
     <div className="space-y-5">
@@ -257,15 +264,19 @@ export default function FrascosPage() {
           active: stockBajoFiltro,
           onClick: () => setStockBajoFiltro((prev) => !prev)
         },
-      ]} actionSlot={<label className="relative block"><Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" /><input aria-label="Buscar frasco" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar frasco..." className="input-field min-h-11 w-full pl-10 sm:w-72" /></label>} />
+      ]} hideStatsOnMobile primaryAction={canManage ? { label: 'Agregar frasco', onClick: () => setAgregarOpen(true), icon: <Plus size={16} /> } : undefined} actionSlot={<label className="relative block"><Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-primary" /><input aria-label="Buscar frasco" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar frasco..." className="input-field min-h-14 w-full rounded-xl border-primary/30 bg-surface-container-high pl-11 text-base shadow-sm transition-[border-color,box-shadow] focus:border-primary focus:ring-2 focus:ring-primary/30 sm:min-h-11 sm:w-72 sm:pl-10" /></label>} />
 
 
       {filteredFrascos.length === 0 ? <EmptyState message={productoFiltro ? 'No se encontró ese frasco en inventario.' : 'No hay frascos cargados.'} />
       : (
         <>
+          <div className="flex items-center justify-between gap-3 px-1 text-sm text-on-surface-variant md:hidden">
+            <span>{filteredFrascos.length} {filteredFrascos.length === 1 ? 'resultado' : 'resultados'}</span>
+            {hasApproximateMatches && <span role="status" className="text-right text-primary">Coincidencias aproximadas</span>}
+          </div>
           <InventoryDataSurface label="Inventario de frascos"><div className="hidden md:block">
             <Table>
-              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-32 text-right">Unid/Caja</TableHead><TableHead className="w-32 text-right">Cajas</TableHead><TableHead className="w-36 text-right">Total uds</TableHead></TableRow></TableHeader>
+              <TableHeader><TableRow><TableHead>Artículo</TableHead><TableHead className="w-28 text-right">Unid/Caja</TableHead><TableHead className="w-24 text-right">Cajas</TableHead><TableHead className="w-32 text-right">Total uds</TableHead>{canManage && <TableHead className="w-16 text-right">Acciones</TableHead>}</TableRow></TableHeader>
               <TableBody>
                 {filteredFrascos.map((frasco) => (
                   <TableRow key={frasco.id} {...focus.targetProps(frasco.id)} className={focus.isFocused(frasco.id) ? 'bg-primary/10 ring-2 ring-inset ring-primary/50 focus:outline-none' : undefined}>
@@ -273,21 +284,22 @@ export default function FrascosPage() {
                     <TableCell className="text-right"><span className="font-body text-on-surface-variant tabular-nums text-sm">{frasco.unidadesPorCaja}</span></TableCell>
                     <TableCell className="text-right">{canManage ? <div className="flex justify-end"><CajasCell frasco={frasco} /></div> : <span className="font-body text-on-surface tabular-nums">{frasco.cantidadCajas}</span>}</TableCell>
                     <TableCell className="text-right"><span className="font-body text-on-surface font-medium tabular-nums">{frasco.total.toLocaleString()}</span></TableCell>
+                    {canManage && <TableCell className="text-right"><RowActionButton label={`Editar ${getDisplayName(frasco)}`} icon={<Pencil size={16} />} onClick={() => setEditingFrasco(frasco)} /></TableCell>}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div></InventoryDataSurface>
           <div className="md:hidden space-y-2">
-            {filteredFrascos.map((frasco) => (
-              <div key={frasco.id} {...focus.targetProps(frasco.id)} className={`bg-surface-container-low focus:outline-none rounded px-4 py-3 flex items-center justify-between gap-3 ${focus.isFocused(frasco.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}>
+            {filteredFrascos.map((frasco, index) => (
+              <div key={`${frasco.id}-${search}`} {...focus.targetProps(frasco.id)} style={{ animationDelay: `${Math.min(index, 6) * 35}ms` }} className={`animate-fade-up bg-surface-container-low focus:outline-none rounded px-4 py-3 flex items-center justify-between gap-3 ${focus.isFocused(frasco.id) ? 'ring-2 ring-primary/60 bg-primary/10' : ''}`}>
                 <div className="flex-1 min-w-0">
-                  <p className="font-body text-on-surface text-sm truncate">{getDisplayName(frasco)}</p>
+                  <p className="font-body text-on-surface text-sm break-words">{getDisplayName(frasco)}</p>
                   <p className="font-body text-on-surface-variant text-xs mt-0.5 tabular-nums">{frasco.unidadesPorCaja} uds/caja · {frasco.cantidadCajas} cajas · <span className="text-on-surface font-medium">{frasco.total.toLocaleString()} total</span></p>
                 </div>
                 {canManage && (
                   <div className="flex items-center gap-3 shrink-0">
-<CajasCell frasco={frasco} />
+                    <RowActionButton label={`Editar ${getDisplayName(frasco)}`} icon={<Pencil size={16} />} onClick={() => setEditingFrasco(frasco)} />
                   </div>
                 )}
               </div>
@@ -295,6 +307,8 @@ export default function FrascosPage() {
           </div>
         </>
       )}
+      <AgregarFrascoModal open={agregarOpen} onOpenChange={setAgregarOpen} />
+      {editingFrasco && <EditarFrascoModal frasco={editingFrasco} onClose={() => setEditingFrasco(null)} />}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useAuthStore } from '@/stores/auth-store'
 import { usePermission } from '@/lib/permissions'
+import { findApproximateMatches } from '@/lib/approximate-search'
 import { ApiError } from '../lib/api'
 import {
   useProductos,
@@ -29,6 +30,7 @@ import { MercadoChip } from '../components/inventory-shared/mercado-chip'
 import { MERCADOS, type Mercado } from '../components/inventory-shared/mercados'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/Dialog'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/Table'
+import { useUpdateFrasco } from '../queries/use-frascos'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -45,15 +47,19 @@ const ACCEPTED_EXTENSIONS_LIST = ['xls', 'xlsx', 'csv']
 const mercadoSchema = z.enum(['argentina', 'colombia', 'mexico', 'ecuador', 'bolivia', 'paraguay', 'VENEZUELA', 'no_exportable'])
 const ETIQUETA_UNITS = ['ML', 'L', 'CM3'] as const
 type EtiquetaUnit = typeof ETIQUETA_UNITS[number]
+const FRASCO_UNITS = ['ML', 'L', 'GR'] as const
+const PRESENTATION_UNITS = ['ML', 'L', 'CM3', 'GR'] as const
+type PresentationUnit = typeof PRESENTATION_UNITS[number]
 
 // ─── Schemas ──────────────────────────────────────────────────────────────────
 
 const formSchema = z.object({
-  nombreBase: z.string().min(1, 'El nombre es requerido').max(200),
+  nombreBase: z.string().trim().min(2, 'Ingresá al menos 2 caracteres').max(100),
   codigo: z.string().max(50).optional().or(z.literal('')),
   categoria: z.enum(['droga', 'estuche', 'etiqueta', 'frasco', 'material_empaque']),
   presentacion: z.string().optional().or(z.literal('')),
-  unidad: z.enum(ETIQUETA_UNITS).optional(),
+  unidad: z.enum(PRESENTATION_UNITS).optional(),
+  unidadesPorCaja: z.string().optional().refine((value) => value === undefined || value === '' || (Number.isInteger(Number(value)) && Number(value) > 0), 'Debe ser entero positivo'),
   mercadosHabilitados: z.array(mercadoSchema).optional(),
   stockMinimo: z.string().refine((value) => value === '' || (Number.isInteger(Number(value)) && Number(value) >= 0), 'Debe ser entero no negativo').optional(),
 })
@@ -87,7 +93,10 @@ function normalizeFormData(values: FormValues): ProductoFormData {
     data.presentacion = presentacion
   }
 
-  if (values.categoria === 'etiqueta') data.unidad = unidad
+  if (values.categoria === 'etiqueta' || values.categoria === 'frasco') {
+    data.unidad = unidad
+    data.volumen = presentacion
+  }
 
   if (requiresMercados) {
     data.mercadosHabilitados = values.mercadosHabilitados ?? []
@@ -104,15 +113,31 @@ function inferEtiquetaUnit(producto: Pick<Producto, 'categoria' | 'unidad' | 'no
   return ETIQUETA_UNITS.includes(value as EtiquetaUnit) ? value as EtiquetaUnit : 'ML'
 }
 
-function formatPresentation(producto: Pick<Producto, 'categoria' | 'presentacion' | 'unidad' | 'nombreCompleto'>): string {
+function inferFrascoUnit(producto: Pick<Producto, 'categoria' | 'unidad' | 'nombreCompleto'>): Extract<PresentationUnit, 'ML' | 'L' | 'GR'> {
+  if (producto.categoria !== 'frasco') return 'ML'
+  const unit = producto.unidad?.toUpperCase()
+  if (FRASCO_UNITS.includes(unit as typeof FRASCO_UNITS[number])) return unit as Extract<PresentationUnit, 'ML' | 'L' | 'GR'>
+  const match = producto.nombreCompleto.match(/\b\d+(?:[.,]\d+)?\s*(ML\b|L\b|GR\b)/i)
+  const detected = match?.[1]?.toUpperCase()
+  return FRASCO_UNITS.includes(detected as typeof FRASCO_UNITS[number]) ? detected as Extract<PresentationUnit, 'ML' | 'L' | 'GR'> : 'ML'
+}
+
+function formatPresentation(producto: Pick<Producto, 'categoria' | 'presentacion' | 'volumen' | 'unidad' | 'nombreCompleto'>): string {
+  if (producto.categoria === 'frasco') {
+    const contenido = producto.volumen ?? producto.presentacion
+    return contenido == null ? 'Sin completar' : `${contenido} ${inferFrascoUnit(producto)}`
+  }
   if (producto.presentacion == null) return '—'
-  if (producto.categoria === 'frasco') return `${producto.presentacion} ml`
   if (producto.categoria === 'etiqueta') return `${producto.presentacion} ${inferEtiquetaUnit(producto) === 'CM3' ? 'cm³' : inferEtiquetaUnit(producto)}`
   return String(producto.presentacion)
 }
 
 function displayProductoTitle(producto: Pick<Producto, 'nombreBase' | 'nombreCompleto'>): string {
-  return /\bMANUAL\b/i.test(producto.nombreCompleto) ? `${producto.nombreBase} · MANUAL` : producto.nombreBase
+  if (/\bMANUAL\b/i.test(producto.nombreCompleto)) return `${producto.nombreBase} · MANUAL`
+  const presentacion = /\b\d+(?:[.,]\d+)?\s*(?:ML\b|L\b|CM3\b|CM³)/i
+  if (!presentacion.test(producto.nombreCompleto)) return producto.nombreBase
+  const nombreConVariante = producto.nombreCompleto.replace(presentacion, '').replace(/\s+/g, ' ').trim()
+  return nombreConVariante.toLocaleUpperCase('es-AR').startsWith(`${producto.nombreBase.toLocaleUpperCase('es-AR')} `) ? nombreConVariante : producto.nombreBase
 }
 
 function ProductoMobileCard({ producto, canManage, onEdit, onAction }: {
@@ -122,7 +147,7 @@ function ProductoMobileCard({ producto, canManage, onEdit, onAction }: {
   onAction: (type: 'activar' | 'reactivar' | 'desactivar' | 'eliminar') => void
 }) {
   const code = producto.categoria === 'droga' ? 'Por ingreso' : producto.codigo ?? 'Código pendiente'
-  const stockMinimo = producto.stockMinimo == null ? 'Sin configurar' : `${producto.stockMinimo}${producto.categoria === 'frasco' ? ' cajas' : producto.categoria === 'material_empaque' ? ' unidades' : ''}`
+  const stockMinimo = producto.stockMinimo == null ? 'Sin configurar' : `${producto.stockMinimo}${producto.categoria === 'frasco' || producto.categoria === 'material_empaque' ? ' unidades' : ''}`
 
   return <article className="rounded-xl border border-outline-variant bg-surface-container p-4 shadow-float">
     <div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="break-words text-base font-semibold text-on-surface">{displayProductoTitle(producto)}</p><p className="mt-1 text-xs text-on-surface-variant">{CATEGORIA_LABELS[producto.categoria]} · {code}</p></div><EstadoProductoChip estado={producto.estado} /></div>
@@ -139,20 +164,84 @@ function isCodigoRequired(categoria: string): boolean {
   return CODE_REQUIRED_CATEGORIES.includes(categoria)
 }
 
-function validateForm(values: FormValues): string | null {
+function CodigoInput({
+  id,
+  categoria,
+  codigo,
+  onChange,
+  disabled = false,
+}: {
+  id: string
+  categoria: CategoriaProducto
+  codigo: string
+  onChange: (codigo: string) => void
+  disabled?: boolean
+}) {
+  const prefix = isCodigoRequired(categoria) ? CODE_PREFIX[categoria] : null
+  const suffix = prefix && codigo.toUpperCase().startsWith(prefix)
+    ? codigo.slice(prefix.length)
+    : codigo
+
+  function handleChange(value: string) {
+    if (!prefix) {
+      onChange(value)
+      return
+    }
+
+    const normalized = value.toUpperCase()
+    const nextSuffix = normalized.startsWith(prefix) ? normalized.slice(prefix.length) : normalized
+    onChange(`${prefix}${nextSuffix}`)
+  }
+
+  if (!prefix) {
+    return <input
+      id={id}
+      value={codigo}
+      onChange={(event) => handleChange(event.target.value)}
+      type="text"
+      placeholder="Ej: AMT-001"
+      className="input-field"
+      disabled={disabled}
+      style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+    />
+  }
+
+  return (
+    <div className="flex">
+      <span aria-hidden="true" className="inline-flex min-h-11 items-center rounded-l-lg border border-r-0 border-primary/30 bg-primary/10 px-3 font-mono text-sm font-bold tracking-wide text-primary">
+        {prefix}
+      </span>
+      <input
+        id={id}
+        value={suffix}
+        onChange={(event) => handleChange(event.target.value)}
+        type="text"
+        placeholder="Completá el código"
+        className="input-field min-w-0 flex-1 rounded-l-none"
+        disabled={disabled}
+        style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+      />
+    </div>
+  )
+}
+
+function validateForm(values: FormValues, allowAutomaticCode = false): string | null {
   const codeRequired = isCodigoRequired(values.categoria)
   const codigo = values.codigo?.trim()
 
-  if (codeRequired && !codigo) return 'El código es obligatorio para etiquetas y estuches'
+  if (codeRequired && !codigo && !allowAutomaticCode) return 'El código es obligatorio para etiquetas y estuches'
 
   if (codeRequired && codigo) {
     const prefix = CODE_PREFIX[values.categoria]
     const normalized = codigo.toUpperCase()
-    if (!normalized.startsWith(prefix)) {
+    if (!normalized.startsWith(prefix) || normalized.length <= prefix.length) {
       return `El código de ${values.categoria === 'etiqueta' ? 'etiqueta' : 'estuche'} debe comenzar con ${prefix}`
     }
   }
 
+  if ((values.categoria === 'etiqueta' || values.categoria === 'estuche') && (!Number.isInteger(Number(values.presentacion)) || Number(values.presentacion) <= 0)) return 'Ingresá una presentación entera mayor que cero'
+  if (values.categoria === 'frasco' && values.presentacion && (!Number.isInteger(Number(values.presentacion)) || Number(values.presentacion) <= 0)) return 'Ingresá una presentación entera mayor que cero'
+  if (values.categoria === 'estuche' && values.mercadosHabilitados?.length !== 1) return 'El estuche requiere exactamente un mercado'
   if (values.categoria === 'etiqueta' || values.categoria === 'estuche') {
     if (!values.mercadosHabilitados || values.mercadosHabilitados.length === 0) {
       return 'Debe seleccionar al menos un mercado'
@@ -186,11 +275,13 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   async function onSubmit(values: FormValues) {
     setServerError(null)
-    const validationError = validateForm(values)
+    const validationError = validateForm({ ...values, codigo: isCodigoRequired(values.categoria) ? '' : values.codigo }, true)
     if (validationError) { setServerError(validationError); return }
 
     try {
-      await createMutation.mutateAsync(normalizeFormData(values))
+      const data = normalizeFormData(values)
+      if (isCodigoRequired(values.categoria)) delete data.codigo
+      await createMutation.mutateAsync(data)
       toast.success('Producto creado correctamente.')
       reset()
       onOpenChange(false)
@@ -231,6 +322,8 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                   type="button"
                   onClick={() => {
                     setValue('categoria', cat)
+                    setValue('codigo', '')
+                    setValue('unidad', 'ML')
                     if (cat !== 'estuche' && cat !== 'etiqueta') setValue('mercadosHabilitados', [])
                   }}
                   className={`px-3 py-1.5 rounded font-body text-xs transition-colors ${
@@ -250,28 +343,31 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <label htmlFor="create-nombre" className="label-field">Nombre</label>
             <input id="create-nombre" {...register('nombreBase')} type="text" placeholder="Ej: AMANTINA" className="input-field" autoFocus />
             {errors.nombreBase && <p className="field-error">{errors.nombreBase.message}</p>}
+            {requiresMercados && <p className="text-xs text-on-surface-variant">Cargá cada variante como producto separado e incluíla en el nombre: por ejemplo, AMINOÁCIDOS AVES, AMINOÁCIDOS EQUINOS o AMINOÁCIDOS CERDOS.</p>}
           </div>
-          <div className="space-y-1"><label htmlFor="create-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : categoria === 'material_empaque' ? '(unidades)' : ''}</label><input id="create-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
+            <div className="space-y-1"><label htmlFor="create-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' || categoria === 'material_empaque' ? '(unidades)' : ''}</label><input id="create-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" />{errors.stockMinimo && <p className="field-error">{errors.stockMinimo.message}</p>}</div>
 
           {/* C. Presentación (conditional) */}
           {requiresPresentacion && (
             <div className="space-y-1">
               <label htmlFor="create-presentacion" className="label-field">
-                Presentación {categoria === 'frasco' ? '(ml)' : ''}
+                {categoria === 'frasco' ? 'Presentación nominal (contenido)' : 'Presentación'}
               </label>
-              <input id="create-presentacion" {...register('presentacion')} type="number" min="1" placeholder="Ej: 250" className="input-field" />
+              <input id="create-presentacion" {...register('presentacion')} type="number" min="1" placeholder={categoria === 'frasco' ? 'Ej: 500' : 'Ej: 250'} className="input-field" />
             </div>
           )}
 
-          {categoria === 'etiqueta' && (
+          {(categoria === 'etiqueta' || categoria === 'frasco') && (
             <div className="space-y-1">
-              <label htmlFor="create-unidad" className="label-field">Unidad de presentación</label>
+              <label htmlFor="create-unidad" className="label-field">Unidad de {categoria === 'frasco' ? 'contenido' : 'presentación'}</label>
               <select id="create-unidad" {...register('unidad')} className="input-field">
                 <option value="ML">ml</option>
                 <option value="L">L (litro)</option>
-                <option value="CM3" disabled={selectedMercados.length !== 1 || selectedMercados[0] !== 'VENEZUELA'}>cm³ (centímetro cúbico, sólo Venezuela)</option>
+                {categoria === 'frasco'
+                  ? <option value="GR">g (gramos)</option>
+                  : <option value="CM3" disabled={selectedMercados.length !== 1 || selectedMercados[0] !== 'VENEZUELA'}>cm³ (centímetro cúbico, sólo Venezuela)</option>}
               </select>
-              <p className="text-xs text-on-surface-variant">Para una etiqueta de 1 litro, ingresá 1 y elegí L.</p>
+              <p className="text-xs text-on-surface-variant">{categoria === 'frasco' ? 'Ejemplo: 500 ml, 1 L o 35 g.' : 'Para una etiqueta de 1 litro, ingresá 1 y elegí L.'}</p>
             </div>
           )}
 
@@ -301,24 +397,14 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             </div>
           )}
 
-          {/* E. Código */}
-          <div className="space-y-1">
-            <label htmlFor="create-codigo" className="label-field">
-              Código
-              {requiresMercados ? (
-                <span className="text-error/80 text-xs ml-1">(requiere prefijo {CODE_PREFIX[categoria]})</span>
-              ) : (
-                <span className="text-on-surface-variant/60 text-xs ml-1">(opcional)</span>
-              )}
-            </label>
-            <input
-              id="create-codigo"
-              {...register('codigo')}
-              type="text"
-              placeholder={requiresMercados ? `Ej: ${CODE_PREFIX[categoria]}001` : 'Ej: AMT-001'}
-              className="input-field"
-            />
-          </div>
+          {requiresMercados ? (
+            <p className="text-sm text-on-surface-variant">El código {categoria === 'etiqueta' ? 'IGET' : 'IGES'} se asignará automáticamente al guardar.</p>
+          ) : (
+            <div className="space-y-1">
+              <label htmlFor="create-codigo" className="label-field">{categoria === 'frasco' ? 'Código ENV' : 'Código'} <span className="text-on-surface-variant/60 text-xs">(opcional)</span></label>
+              <input id="create-codigo" {...register('codigo')} type="text" className="input-field" />
+            </div>
+          )}
 
           {serverError && <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded">{serverError}</div>}
 
@@ -341,8 +427,9 @@ function CreateProductoDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose: () => void }) {
   const [serverError, setServerError] = useState<string | null>(null)
   const updateMutation = useUpdateProducto()
+  const updateFrascoMutation = useUpdateFrasco()
   const isPending = producto.estado === 'PENDIENTE_REVISION'
-  const canEditCodigo = isPending || (producto.estado === 'INACTIVO' && !producto.codigo)
+  const canEditCodigo = isPending || (producto.estado === 'INACTIVO' && !producto.codigo) || producto.categoria === 'frasco'
   const canEditCategoria = isPending || (producto.estado === 'ACTIVO' && producto.categoria === 'droga')
   // Una etiqueta activa puede incorporar nuevos mercados. No se permite quitar
   // los ya habilitados porque podrían tener movimientos o stock asociado.
@@ -354,14 +441,16 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
       nombreBase: producto.nombreBase,
       codigo: producto.codigo ?? '',
       categoria: producto.categoria,
-      presentacion: producto.presentacion?.toString() ?? '',
-      unidad: inferEtiquetaUnit(producto),
+      presentacion: (producto.categoria === 'frasco' ? producto.volumen ?? producto.presentacion : producto.presentacion ?? producto.volumen)?.toString() ?? '',
+      unidad: producto.categoria === 'frasco' ? inferFrascoUnit(producto) : inferEtiquetaUnit(producto),
+      unidadesPorCaja: producto.unidadesPorCaja?.toString() ?? '',
       mercadosHabilitados: producto.mercadosHabilitados ?? [],
       stockMinimo: producto.stockMinimo == null ? '' : String(producto.stockMinimo),
     },
   })
 
   const categoria = useWatch({ control, name: 'categoria' })
+  const codigo = useWatch({ control, name: 'codigo' }) ?? ''
   const selectedMercados = useWatch({ control, name: 'mercadosHabilitados' }) ?? []
   const unidad = useWatch({ control, name: 'unidad' }) ?? 'ML'
   const requiresMercados = (categoria === 'etiqueta' || categoria === 'estuche') && canEditMercados
@@ -371,6 +460,7 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
     : ([['droga', CATEGORIA_LABELS.droga], ['material_empaque', CATEGORIA_LABELS.material_empaque]] as const)
   const corrigeMpComoMaterialEmpaque = producto.estado === 'ACTIVO' && producto.categoria === 'droga' && categoria === 'material_empaque'
   const canEditUnidad = isPending
+  const canEditFrascoContenido = categoria === 'frasco'
 
   async function onSubmit(values: FormValues) {
     setServerError(null)
@@ -393,18 +483,42 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
 
     try {
       const normalized = normalizeFormData(values)
-      const payload: Partial<ProductoFormData> = {
-        nombreBase: normalized.nombreBase,
-        nombreCompleto: normalized.nombreCompleto,
+      const nombreCambio = normalized.nombreBase !== producto.nombreBase
+      const presentacionCambio = requiresPresentacion && (values.presentacion ? Number(values.presentacion) : null) !== (producto.categoria === 'frasco' ? producto.volumen ?? producto.presentacion : producto.presentacion ?? producto.volumen)
+      const payload: Partial<ProductoFormData> = {}
+      if (nombreCambio || presentacionCambio) {
+        payload.nombreBase = normalized.nombreBase
+        if (!nombreCambio && presentacionCambio && (categoria === 'etiqueta' || categoria === 'estuche')) {
+          const unit = categoria === 'etiqueta' ? (unidad === 'CM3' ? 'cm³' : unidad) : 'ML'
+          const presentation = `${values.presentacion} ${unit}`
+          const pattern = /\b\d+(?:[.,]\d+)?\s*(?:ML\b|L\b|CM3\b|CM³)/i
+          payload.nombreCompleto = pattern.test(producto.nombreCompleto)
+            ? producto.nombreCompleto.replace(pattern, presentation)
+            : `${producto.nombreCompleto} ${presentation}`
+        } else {
+          payload.nombreCompleto = normalized.nombreCompleto
+        }
       }
       if (canEditCodigo) payload.codigo = values.codigo?.trim().toUpperCase() || undefined
       if (canEditCategoria) payload.categoria = values.categoria
       if (requiresPresentacion) payload.presentacion = values.presentacion ? Number(values.presentacion) : null
       if (canEditUnidad && categoria === 'etiqueta') payload.unidad = normalized.unidad
+      if (canEditFrascoContenido) {
+        payload.unidad = values.unidad
+        payload.volumen = values.presentacion ? Number(values.presentacion) : null
+      }
       if (canEditMercados && requiresMercados) payload.mercadosHabilitados = values.mercadosHabilitados ?? []
       payload.stockMinimo = values.stockMinimo === '' ? null : Number(values.stockMinimo)
 
       await updateMutation.mutateAsync({ id: producto.id, ...payload })
+      if (categoria === 'frasco' && values.unidadesPorCaja && Number(values.unidadesPorCaja) !== producto.unidadesPorCaja) {
+        try {
+          await updateFrascoMutation.mutateAsync({ id: producto.frascoId ?? producto.id, unidadesPorCaja: Number(values.unidadesPorCaja) })
+        } catch {
+          setServerError('Los datos del producto se guardaron, pero no se pudo confirmar la cantidad por caja. Revisá el stock antes de volver a intentar.')
+          return
+        }
+      }
       toast.success('Producto actualizado.')
       onClose()
     } catch (err) {
@@ -455,28 +569,37 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
 
           {/* C. Presentación */}
           {requiresPresentacion && (
-            <div className="space-y-1">
-              <label htmlFor="edit-presentacion" className="label-field">Presentación</label>
+          <div className="space-y-1">
+              <label htmlFor="edit-presentacion" className="label-field">{categoria === 'frasco' ? 'Presentación nominal (contenido)' : 'Presentación'}</label>
               <input id="edit-presentacion" {...register('presentacion')} type="number" min="1" className="input-field" />
             </div>
           )}
-          {categoria === 'etiqueta' && (
+          {(categoria === 'etiqueta' || categoria === 'frasco') && (
             <div className="space-y-1">
-              <label htmlFor="edit-unidad" className="label-field">Unidad de presentación</label>
-              {canEditUnidad ? <>
+              <label htmlFor="edit-unidad" className="label-field">Unidad de {categoria === 'frasco' ? 'contenido' : 'presentación'}</label>
+              {(canEditUnidad || categoria === 'frasco') ? <>
                 <select id="edit-unidad" {...register('unidad')} className="input-field">
                   <option value="ML">ml</option>
                   <option value="L">L (litro)</option>
-                  <option value="CM3" disabled={selectedMercados.length !== 1 || selectedMercados[0] !== 'VENEZUELA'}>cm³ (centímetro cúbico, sólo Venezuela)</option>
+                  {categoria === 'frasco'
+                    ? <option value="GR">g (gramos)</option>
+                    : <option value="CM3" disabled={selectedMercados.length !== 1 || selectedMercados[0] !== 'VENEZUELA'}>cm³ (centímetro cúbico, sólo Venezuela)</option>}
                 </select>
-                <p className="text-xs text-on-surface-variant">Para una etiqueta de 1 litro, ingresá 1 y elegí L.</p>
+                <p className="text-xs text-on-surface-variant">{categoria === 'frasco' ? 'Describe el contenido del envase; no modifica el saldo de inventario.' : 'Para una etiqueta de 1 litro, ingresá 1 y elegí L.'}</p>
               </> : <>
                 <p id="edit-unidad" className="font-body text-sm text-on-surface">{inferEtiquetaUnit(producto)}</p>
                 <p className="text-xs text-on-surface-variant">La unidad se conserva en productos activos para proteger su historial.</p>
               </>}
             </div>
           )}
-          <div className="space-y-1"><label htmlFor="edit-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' ? '(cajas)' : categoria === 'material_empaque' ? '(unidades)' : ''}</label><input id="edit-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
+          {categoria === 'frasco' && (
+            <div className="space-y-1">
+              <label htmlFor="edit-unidades-por-caja" className="label-field">Unidades por caja</label>
+              <input id="edit-unidades-por-caja" {...register('unidadesPorCaja')} type="number" min="1" className="input-field" />
+              <p className="text-xs text-on-surface-variant">Cambia el tamaño de la caja. El stock físico total se conserva y se redistribuye entre cajas y sueltas.</p>
+            </div>
+          )}
+          <div className="space-y-1"><label htmlFor="edit-stock-minimo" className="label-field">Stock mínimo {categoria === 'frasco' || categoria === 'material_empaque' ? '(unidades)' : ''}</label><input id="edit-stock-minimo" {...register('stockMinimo')} type="number" min="0" className="input-field" placeholder="Sin configurar" /></div>
 
           {/* D. Mercados (conditional) */}
           {requiresMercados && (
@@ -509,20 +632,19 @@ function EditProductoDialog({ producto, onClose }: { producto: Producto; onClose
           {/* E. Código */}
           <div className="space-y-1">
             <label htmlFor="edit-codigo" className="label-field">
-              Código
+              {categoria === 'frasco' ? 'Código ENV' : 'Código'}
               {canEditCodigo && (
                 isCodigoRequired(categoria)
-                  ? <span className="text-error/80 text-xs ml-1">(requiere prefijo {CODE_PREFIX[categoria]})</span>
+                  ? <span className="text-on-surface-variant/60 text-xs ml-1">(prefijo fijo)</span>
                   : <span className="text-on-surface-variant/60 text-xs ml-1">(opcional)</span>
               )}
             </label>
-            <input
+            <CodigoInput
               id="edit-codigo"
-              {...register('codigo')}
-              type="text"
-              className="input-field"
+              categoria={categoria}
+              codigo={codigo}
+              onChange={(nextCodigo) => setValue('codigo', nextCodigo, { shouldDirty: true, shouldValidate: true })}
               disabled={!canEditCodigo}
-              style={!canEditCodigo ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
             />
             {!canEditCodigo && <p className="text-on-surface-variant/60 text-xs">No se puede modificar en estado {producto.estado === 'ACTIVO' ? 'Activo' : 'Inactivo'}.</p>}
           </div>
@@ -963,6 +1085,7 @@ export default function ProductosPage() {
   const [confirmAction, setConfirmAction] = useState<{ type: string; producto: Producto } | null>(null)
   const [categoriaFiltro, setCategoriaFiltro] = useState<CategoriaProducto | 'todos'>('todos')
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoProducto | 'todos'>('todos')
+  const [mercadoFiltro, setMercadoFiltro] = useState<Mercado | 'todos'>('todos')
   const [isMobile, setIsMobile] = useState(false)
 
   useEffect(() => {
@@ -975,13 +1098,17 @@ export default function ProductosPage() {
   }, [])
 
   const searchFilters = useMemo(() => {
-    const filters: { buscar?: string; categoria?: CategoriaProducto; estado?: EstadoProducto } = {}
-    if (searchQuery) filters.buscar = searchQuery
+    const filters: { categoria?: CategoriaProducto; estado?: EstadoProducto; mercado?: Mercado } = {}
     if (categoriaFiltro !== 'todos') filters.categoria = categoriaFiltro
     if (estadoFiltro !== 'todos') filters.estado = estadoFiltro
+    if (mercadoFiltro !== 'todos') filters.mercado = mercadoFiltro
     return Object.keys(filters).length > 0 ? filters : undefined
-  }, [searchQuery, categoriaFiltro, estadoFiltro])
-  const { data: productos = [], isLoading, isFetching, error } = useProductos(searchFilters)
+  }, [searchQuery, categoriaFiltro, estadoFiltro, mercadoFiltro])
+  const { data: productosSinFiltrar = [], isLoading, isFetching, error } = useProductos(searchFilters)
+  const productos = useMemo(
+    () => findApproximateMatches(productosSinFiltrar, searchQuery, (producto) => `${producto.nombreCompleto} ${producto.nombreBase} ${producto.codigo ?? ''}`).matches,
+    [productosSinFiltrar, searchQuery],
+  )
 
   const deleteMutation = useDeleteProducto()
   const activarMutation = useActivarProducto()
@@ -1125,12 +1252,19 @@ export default function ProductosPage() {
             <option value="INACTIVO">Inactivo</option>
           </select>
 
+          <select
+            aria-label="Filtrar por país"
+            value={mercadoFiltro}
+            onChange={(event) => setMercadoFiltro(event.target.value as Mercado | 'todos')}
+            className="col-span-2 min-h-11 w-full sm:col-auto sm:min-h-0 sm:w-auto bg-surface-container-high border border-outline-variant rounded-lg px-3 py-2 font-body text-sm text-on-surface"
+          >
+            <option value="todos">Todos los países</option>
+            {MERCADOS.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
+          </select>
+
           {canManage && (
             <>
-              <button type="button" onClick={() => setShowImport(true)} className="inline-flex min-h-11 items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors">
-                <Upload size={14} />
-                Importar
-              </button>
+              <button type="button" onClick={() => setShowImport(true)} className="inline-flex min-h-11 items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold text-on-surface-variant bg-surface-container-high hover:bg-surface-bright transition-colors"><Upload size={14} />Importar</button>
               <button type="button" onClick={() => setShowCreate(true)} className="btn-primary inline-flex min-h-11 items-center justify-center gap-1.5 px-3 py-2 text-sm">
                 <Plus size={14} />
                 Nuevo
@@ -1188,7 +1322,7 @@ export default function ProductosPage() {
                         : <span className="italic text-on-surface-variant">—</span>
                       }
                     </TableCell>
-                    <TableCell className="text-sm">{p.stockMinimo == null ? <span className="rounded-full bg-surface-variant px-2 py-1 text-on-surface-variant">Sin configurar</span> : <span>{p.stockMinimo}{p.categoria === 'frasco' ? ' cajas' : p.categoria === 'material_empaque' ? ' unidades' : ''}</span>}</TableCell>
+                    <TableCell className="text-sm">{p.stockMinimo == null ? <span className="rounded-full bg-surface-variant px-2 py-1 text-on-surface-variant">Sin configurar</span> : <span>{p.stockMinimo}{p.categoria === 'frasco' || p.categoria === 'material_empaque' ? ' unidades' : ''}</span>}</TableCell>
                     <TableCell>
                       {p.mercadosHabilitados.length > 0 ? (
                         <div className="flex flex-wrap gap-1">
@@ -1269,8 +1403,8 @@ export default function ProductosPage() {
 
       {/* Dialogs */}
       <CreateProductoDialog open={showCreate} onOpenChange={setShowCreate} />
-      {editingProducto && <EditProductoDialog producto={editingProducto} onClose={() => setEditingProducto(null)} />}
       <ImportDialog open={showImport} onOpenChange={setShowImport} />
+      {editingProducto && <EditProductoDialog producto={editingProducto} onClose={() => setEditingProducto(null)} />}
       {confirmDialog}
     </div>
   )

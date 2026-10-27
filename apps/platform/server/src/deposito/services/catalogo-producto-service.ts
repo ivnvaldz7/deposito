@@ -1,3 +1,5 @@
+import type { FrascoStock } from '../lib/frasco-stock'
+import { codeForCatalogSequence, isInitialEstuchesMarket } from './importacion-inicial-estuches-helpers'
 import {
   Categoria,
   EstadoProductoCatalogo,
@@ -9,7 +11,7 @@ import {
 } from '@platform/db'
 
 const MARKET_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche']
-const PRESENTATION_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche', 'frasco']
+const PRESENTATION_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche']
 const CODE_REQUIRED_CATEGORIES: readonly Categoria[] = ['etiqueta', 'estuche']
 const ETIQUETA_UNITS = ['ML', 'L', 'CM3'] as const
 
@@ -60,6 +62,7 @@ export interface CatalogoCreateInput extends CatalogoValidationInput {
   volumen?: Prisma.Decimal | null
   unidad?: string | null
   variante?: string | null
+  stockInicialFrasco?: FrascoStock
 }
 
 export interface CatalogoUpdateInput {
@@ -129,9 +132,7 @@ export function validateCatalogoInput(input: CatalogoValidationInput): void {
     }
   }
 
-  const canDeferPresentation = input.estado === 'PENDIENTE_REVISION' && input.categoria === 'frasco'
-
-  if (requiresPresentation && !canDeferPresentation && (!Number.isInteger(input.presentacion) || (input.presentacion ?? 0) <= 0)) {
+  if (requiresPresentation && (!Number.isInteger(input.presentacion) || (input.presentacion ?? 0) <= 0)) {
     throw new Error('La presentación es obligatoria para esta categoría')
   }
 }
@@ -164,6 +165,12 @@ export function validateCatalogoUpdate(
     actual.codigo === null &&
     codigoNormalizado !== undefined &&
     codigoNormalizado !== null
+  // Los códigos ENV de frascos se completan y corrigen durante la operación
+  // del depósito. A diferencia de etiquetas y estuches, no forman parte de
+  // una identidad de mercado, por lo que se permite corregirlos aun activos.
+  const actualizaCodigoDeFrasco =
+    actual.categoria === 'frasco' &&
+    input.codigo !== undefined
   const mercadosPropuestos = input.mercadosHabilitados
   const mercadosSeAmplianEnEtiquetaActiva =
     estado === 'ACTIVO' &&
@@ -178,11 +185,11 @@ export function validateCatalogoUpdate(
     actual.categoria === 'droga' &&
     input.categoria === 'material_empaque'
   const cambiaIdentidad =
-    (input.codigo !== undefined && codigoNormalizado !== actual.codigo && !asignaCodigoHistoricoInactivo) ||
+    (input.codigo !== undefined && codigoNormalizado !== actual.codigo && !asignaCodigoHistoricoInactivo && !actualizaCodigoDeFrasco) ||
     (input.categoria !== undefined && input.categoria !== actual.categoria && !corrigeMpComoMaterialEmpaque) ||
     (mercadosPropuestos !== undefined && JSON.stringify(mercadosPropuestos) !== JSON.stringify(actual.mercadosHabilitados) && !mercadosSeAmplianEnEtiquetaActiva)
   if (cambiaIdentidad) throw new CatalogoError('CONFLICT', 'Código, categoría y mercados están bloqueados después de activar')
-  if (input.volumen !== undefined || input.unidad !== undefined || input.variante !== undefined) {
+  if (actual.categoria !== 'frasco' && (input.volumen !== undefined || input.unidad !== undefined || input.variante !== undefined)) {
     throw new CatalogoError('CONFLICT', 'Solo el nombre y la presentación se pueden editar después de activar')
   }
 }
@@ -211,6 +218,7 @@ function audit(
 async function seedInitialInventory(
   tx: TransactionClient,
   producto: { id: string; categoria: Categoria; nombreCompleto: string; mercadosHabilitados: Mercado[]; presentacion: number | null },
+  stockInicialFrasco?: FrascoStock,
 ) {
   if (producto.categoria === 'etiqueta') {
     await tx.inventarioEtiqueta.createMany({
@@ -225,16 +233,18 @@ async function seedInitialInventory(
     })
   }
   if (producto.categoria === 'frasco') {
-    await tx.inventarioFrasco.createMany({
+    const inserted = await tx.inventarioFrasco.createMany({
       data: [{
         productoId: producto.id,
         articulo: producto.nombreCompleto,
-        unidadesPorCaja: producto.presentacion ?? 1,
-        cantidadCajas: 0,
-        total: 0,
+        unidadesPorCaja: stockInicialFrasco?.unidadesPorCaja ?? 1,
+        cantidadCajas: stockInicialFrasco?.cantidadCajas ?? 0,
+        unidadesSueltas: stockInicialFrasco?.unidadesSueltas ?? 0,
+        total: stockInicialFrasco?.total ?? 0,
       }],
       skipDuplicates: true,
     })
+    if (stockInicialFrasco && inserted.count !== 1) throw new CatalogoError('CONFLICT', 'Ya existe un frasco con ese artículo')
   }
   if (producto.categoria === 'material_empaque') {
     await tx.inventarioMaterialEmpaque.createMany({
@@ -242,6 +252,15 @@ async function seedInitialInventory(
       skipDuplicates: true,
     })
   }
+}
+
+async function ensureMarketInventory(tx: TransactionClient, producto: { id: string; categoria: Categoria; mercadosHabilitados: Mercado[] }, mercados: Mercado[]) {
+  if (!mercados.length || (producto.categoria !== 'etiqueta' && producto.categoria !== 'estuche')) return
+  const where = { productoId: producto.id, mercado: { in: mercados } }
+  const rows = producto.categoria === 'etiqueta'
+    ? await tx.inventarioEtiqueta.findMany({ where, select: { mercado: true } })
+    : await tx.inventarioEstuche.findMany({ where, select: { mercado: true } })
+  if (rows.length !== mercados.length) throw new CatalogoError('CONFLICT', 'Ya existe un artículo con ese nombre en el mercado seleccionado. Revisá la variante y la presentación.')
 }
 
 export class CatalogoProductoService {
@@ -255,11 +274,28 @@ export class CatalogoProductoService {
       nombreCompleto: canonicalManualProductName(input),
     }
     validateCatalogoInput(canonicalInput)
-    const codigo = normalizeCodigo(canonicalInput.codigo)
-    validateCodigoPrefix(canonicalInput.categoria, codigo)
-    validateTransition(null, 'ACTIVO', codigo, canonicalInput.categoria)
+    const requestedCodigo = normalizeCodigo(canonicalInput.codigo)
+    validateCodigoPrefix(canonicalInput.categoria, requestedCodigo)
+    const automatic = !requestedCodigo && CODE_REQUIRED_CATEGORIES.includes(canonicalInput.categoria)
+    for (let attempt = 0; attempt < 4; attempt++) {
     try {
       return await this.db.$transaction(async (tx) => {
+        let codigo = requestedCodigo
+        if (automatic) {
+          const markets = canonicalInput.mercadosHabilitados ?? []
+          const market = markets.includes('argentina') ? 'argentina' : markets.find(isInitialEstuchesMarket) ?? 'argentina'
+          for (;;) {
+            const args = { where: { mercado: market }, create: { mercado: market, ultimo: 1 }, update: { ultimo: { increment: 1 } } }
+            const reserved = canonicalInput.categoria === 'etiqueta'
+              ? await tx.secuenciaCodigoEtiqueta.upsert(args)
+              : await tx.secuenciaCodigoEstuche.upsert(args)
+            if (reserved.ultimo > 999) throw new CatalogoError('CONFLICT', 'Se agotaron los códigos disponibles para este mercado')
+            const candidate = codeForCatalogSequence(canonicalInput.categoria === 'etiqueta' ? 'etiqueta' : 'estuche', market, reserved.ultimo)
+            const existing = await tx.depositoProducto.findUnique({ where: { codigo: candidate }, select: { id: true } })
+            if (!existing) { codigo = candidate; break }
+          }
+        }
+        validateTransition(null, 'ACTIVO', codigo, canonicalInput.categoria)
         const producto = await tx.depositoProducto.create({
           data: {
             nombreBase: canonicalInput.nombreBase,
@@ -278,15 +314,20 @@ export class CatalogoProductoService {
             stockMinimo: canonicalInput.stockMinimo ?? null,
           },
         })
-        await seedInitialInventory(tx, producto)
+        await seedInitialInventory(tx, producto, canonicalInput.stockInicialFrasco)
+        await ensureMarketInventory(tx, producto, producto.mercadosHabilitados)
         await audit(tx, producto.id, usuarioId, 'CREADO', null, { estado: producto.estado, codigo: producto.codigo })
         await audit(tx, producto.id, usuarioId, 'ACTIVADO', null, { estado: producto.estado })
         return producto
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
-    } catch (e: any) {
-      if (e && typeof e === 'object' && e.code === 'P2002') throw new CatalogoError('CONFLICT', 'El código o producto ya existe')
+    } catch (e) {
+      const code = typeof e === 'object' && e !== null && 'code' in e ? e.code : undefined
+      if (automatic && (code === 'P2034' || code === 'P2002') && attempt < 3) continue
+      if (code === 'P2002' || code === 'P2034') throw new CatalogoError('CONFLICT', 'El código o producto ya existe; intentá nuevamente')
       throw e
     }
+    }
+    throw new CatalogoError('CONFLICT', 'No se pudo asignar un código; intentá nuevamente')
   }
 
   async activate(productoId: string, usuarioId: string) {
@@ -300,6 +341,7 @@ export class CatalogoProductoService {
       validateTransition(producto.estado, 'ACTIVO', producto.codigo, producto.categoria)
       const actualizado = await tx.depositoProducto.update({ where: { id: producto.id }, data: { estado: 'ACTIVO', activo: true } })
       await seedInitialInventory(tx, actualizado)
+      await ensureMarketInventory(tx, actualizado, actualizado.mercadosHabilitados)
       await audit(tx, actualizado.id, usuarioId, 'ACTIVADO', { estado: producto.estado }, { estado: actualizado.estado })
       if (producto.origen === OrigenProductoCatalogo.IMPORTACION) {
         await audit(tx, actualizado.id, usuarioId, 'IMPORTACION_APROBADA', { estado: producto.estado }, { estado: actualizado.estado })
@@ -319,6 +361,7 @@ export class CatalogoProductoService {
       validateTransition(producto.estado, 'ACTIVO', producto.codigo, producto.categoria)
       const actualizado = await tx.depositoProducto.update({ where: { id: producto.id }, data: { estado: 'ACTIVO', activo: true } })
       await seedInitialInventory(tx, actualizado)
+      await ensureMarketInventory(tx, actualizado, actualizado.mercadosHabilitados)
       await audit(tx, actualizado.id, usuarioId, 'REACTIVADO', { estado: producto.estado }, { estado: actualizado.estado })
       return actualizado
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
@@ -363,7 +406,7 @@ export class CatalogoProductoService {
           ...(input.categoria !== undefined ? { categoria } : {}),
           ...(input.mercadosHabilitados !== undefined ? { mercadosHabilitados: mercados } : {}),
           ...(input.categoria !== undefined || input.mercadosHabilitados !== undefined
-            ? { mercado: categoria === 'estuche' ? mercados[0] : null }
+            ? { mercado: categoria === 'estuche' ? mercados[0] : categoria === 'etiqueta' && producto.categoria === 'etiqueta' ? producto.mercado : null }
             : {}),
           ...(input.volumen !== undefined ? { volumen: input.volumen } : {}),
           ...(input.unidad !== undefined ? { unidad: categoria === 'etiqueta' ? normalizeEtiquetaUnit(input.unidad) : input.unidad } : {}),
@@ -384,9 +427,37 @@ export class CatalogoProductoService {
           await tx.inventarioDroga.deleteMany({ where: { productoId } })
         }
         const actualizado = await tx.depositoProducto.update({ where: { id: productoId }, data })
+        if (input.nombreCompleto !== undefined && input.nombreCompleto !== producto.nombreCompleto) {
+          if (actualizado.categoria === 'etiqueta') {
+            await tx.inventarioEtiqueta.updateMany({ where: { productoId }, data: { articulo: actualizado.nombreCompleto } })
+          } else if (actualizado.categoria === 'estuche') {
+            await tx.inventarioEstuche.updateMany({ where: { productoId }, data: { articulo: actualizado.nombreCompleto } })
+          }
+        }
+        if (actualizado.categoria === 'frasco' && input.nombreCompleto !== undefined) {
+          const inventario = await tx.inventarioFrasco.findUnique({ where: { productoId } })
+          if (inventario) {
+            await tx.inventarioFrasco.update({
+              where: { id: inventario.id },
+              data: {
+                articulo: actualizado.nombreCompleto,
+              },
+            })
+          }
+        }
+        if (actualizado.activo && actualizado.categoria === 'etiqueta' && input.mercadosHabilitados) {
+          const nuevosMercados = mercados.filter((mercado) => !producto.mercadosHabilitados.includes(mercado))
+          if (nuevosMercados.length) {
+            const conflicto = await tx.inventarioEtiqueta.findFirst({ where: { articulo: actualizado.nombreCompleto, mercado: { in: nuevosMercados }, OR: [{ productoId: null }, { productoId: { not: productoId } }] } })
+            if (conflicto) throw new CatalogoError('CONFLICT', 'Ya existe una etiqueta con ese nombre en uno de los mercados seleccionados. Revisá la variante y la presentación.')
+          }
+        }
         // Si al editar se habilita un mercado nuevo, su fila de inventario debe
         // existir antes de que el operador pueda cargarle cantidad.
-        if (actualizado.activo) await seedInitialInventory(tx, actualizado)
+        if (actualizado.activo) {
+          await seedInitialInventory(tx, actualizado)
+          if (input.mercadosHabilitados) await ensureMarketInventory(tx, actualizado, mercados.filter((mercado) => !producto.mercadosHabilitados.includes(mercado)))
+        }
         const tipo = input.codigo !== undefined
           ? 'CODIGO_ACTUALIZADO'
           : input.nombreCompleto !== undefined || input.nombreBase !== undefined
@@ -405,7 +476,7 @@ export class CatalogoProductoService {
         return actualizado
       })
     } catch (e: any) {
-      if (e && typeof e === 'object' && e.code === 'P2002') throw new CatalogoError('CONFLICT', 'El código o producto ya existe')
+      if (e && typeof e === 'object' && e.code === 'P2002') throw new CatalogoError('CONFLICT', 'Ya existe un producto o artículo con ese nombre y mercado. Revisá la variante y la presentación antes de guardar.')
       throw e
     }
   }

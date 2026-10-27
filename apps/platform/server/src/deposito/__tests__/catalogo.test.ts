@@ -45,6 +45,7 @@ interface Producto {
   categoria: 'droga' | 'estuche' | 'etiqueta' | 'frasco'
   nombreCompleto: string
   activo: boolean
+  mercadosHabilitados?: string[]
   stockMinimo?: number | null
 }
 
@@ -71,6 +72,7 @@ const mocks = vi.hoisted(() => {
         state.productos.filter((producto) => {
           if (where?.activo != null && producto.activo !== where.activo) return false
           if (where?.categoria && producto.categoria !== where.categoria) return false
+          if (where?.mercadosHabilitados?.has && !producto.mercadosHabilitados?.includes(where.mercadosHabilitados.has)) return false
           if (where?.codigo?.in && !where.codigo.in.includes(producto.codigo)) return false
           if (where?.nombreCompleto?.contains) {
             return producto.nombreCompleto.toLowerCase().includes(where.nombreCompleto.contains.toLowerCase())
@@ -224,6 +226,21 @@ describe('Catálogo de productos', () => {
     expect(res.body.every((producto: any) => producto.categoria === 'frasco')).toBe(true)
   })
 
+  it('GET /api/productos con filtro mercado devuelve solo productos habilitados para ese país', async () => {
+    mocks.state.productos = [
+      { ...MOCK_PRODUCTOS[2], mercadosHabilitados: ['argentina'] },
+      { ...MOCK_PRODUCTOS[3], mercadosHabilitados: ['VENEZUELA'] },
+    ]
+
+    const res = await request(app)
+      .get('/api/productos?mercado=argentina')
+      .set('x-test-role', 'encargado')
+
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(1)
+    expect(res.body[0]).toMatchObject({ id: 'prod-3', mercadosHabilitados: ['argentina'] })
+  })
+
   it('GET /api/productos con incluirStock devuelve el inventario real', async () => {
     mocks.prisma.inventarioEtiqueta.findMany.mockResolvedValueOnce([
       { productoId: 'prod-5', mercado: 'argentina', cantidad: 740 },
@@ -259,7 +276,7 @@ describe('Catálogo de productos', () => {
     }
   })
 
-  it('POST /api/productos sin código rechaza para etiqueta', async () => {
+  it('POST /api/productos sin código permite la asignación automática para etiqueta', async () => {
     const res = await request(app)
       .post('/api/productos')
       .set('x-test-role', 'encargado')
@@ -271,7 +288,7 @@ describe('Catálogo de productos', () => {
         mercadosHabilitados: ['argentina'],
       })
 
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(201)
   })
 
   it('POST /api/productos permite frasco sin código', async () => {
@@ -473,7 +490,7 @@ describe('Catálogo de productos', () => {
     expect(res.body).toMatchObject({ estado: 'ACTIVO', codigo: null, categoria: 'droga' })
   })
 
-  it('POST /api/productos sin código rechaza para estuche', async () => {
+  it('POST /api/productos sin código permite la asignación automática para estuche', async () => {
     const res = await request(app)
       .post('/api/productos')
       .set('x-test-role', 'encargado')
@@ -485,7 +502,7 @@ describe('Catálogo de productos', () => {
         mercadosHabilitados: ['argentina'],
       })
 
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(201)
   })
 
   it('POST /api/productos rechaza un prefijo incorrecto en etiqueta con mensaje IGET', async () => {
@@ -604,7 +621,7 @@ describe('Catálogo de productos', () => {
     // The dead branch would have produced a flat { codigo: [...] } object; the
     // schema path produces fieldErrors — this locks in what the user actually
     // sees so the S1 cleanup stays behavior-neutral.
-    expect(JSON.stringify(res.body.filas[0].errores)).toContain('fieldErrors')
+    expect(JSON.stringify(res.body.filas[0].errores)).toContain('código es obligatorio')
     expect(importMocks.createImportPendingBatch).not.toHaveBeenCalled()
   })
 

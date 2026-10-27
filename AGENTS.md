@@ -46,6 +46,10 @@ RED → GREEN → REFACTOR
 
 Para ejecutar trabajo con esos agentes, respetar el protocolo: **Planner → Builder → Tester → Reviewer → Verify**. Cada rol entrega su salida al siguiente; ningún rol aprueba su propio trabajo. Ante un bloqueo, registrar evidencia y estado `bloqueado`; no avanzar.
 
+## Publicación de cambios
+
+Por regla general, cada cambio solicitado debe implementarse, verificarse y aplicarse en la instancia productiva local, salvo que el usuario indique expresamente lo contrario. No dar por terminado el trabajo solo porque los cambios quedaron en el código: comprobar que la aplicación productiva los está sirviendo y comunicar el resultado. Respetar el procedimiento de publicación, la integridad de los datos, las restricciones de Git y el alcance autorizado; si una condición impide publicar, explicar el impedimento y dejar preparado lo necesario para resolverlo.
+
 ## Reglas de colaboración y Git
 
 - No hacer commits ni push sin pedido explícito del usuario.

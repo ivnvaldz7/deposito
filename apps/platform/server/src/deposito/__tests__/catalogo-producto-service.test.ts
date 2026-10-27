@@ -106,7 +106,7 @@ describe('catalogo product rules', () => {
           return { id: 'nuevo-1', ...data, estado: 'ACTIVO', activo: true, origen: 'MANUAL', mercadosHabilitados: data.mercadosHabilitados ?? [] }
         },
       },
-      inventarioEtiqueta: { createMany: async () => ({ count: 1 }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }), findMany: async ({ where }: { where: { mercado: { in: string[] } } }) => where.mercado.in.map((mercado) => ({ mercado })) },
       inventarioEstuche: { createMany: async () => ({ count: 0 }) },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
@@ -125,6 +125,55 @@ describe('catalogo product rules', () => {
     expect(created).toEqual([{ codigo: 'IGET-001' }])
   })
 
+  it('reserves a category code and retries a concurrent conflict', async () => {
+    let attempts = 0
+    const created: string[] = []
+    const tx = {
+      depositoProducto: {
+        findUnique: async () => null,
+        create: async ({ data }: { data: { codigo: string; mercadosHabilitados: string[] } }) => {
+          if (attempts === 1) throw { code: 'P2034' }
+          created.push(data.codigo)
+          return { id: 'auto', ...data, categoria: 'etiqueta', estado: 'ACTIVO' }
+        },
+      },
+      secuenciaCodigoEtiqueta: { upsert: async () => ({ ultimo: attempts === 1 ? 3 : 4 }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }), findMany: async ({ where }: { where: { mercado: { in: string[] } } }) => where.mercado.in.map((mercado) => ({ mercado })) },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => { attempts++; return callback(tx) } }
+    const service = new CatalogoProductoService(db as PrismaClient)
+    await service.createManual({ nombreBase: 'NUEVA', nombreCompleto: 'NUEVA', categoria: 'etiqueta', presentacion: 10, mercadosHabilitados: ['argentina'] }, 'enc-1')
+    expect(created).toEqual(['IGET004'])
+    expect(attempts).toBe(2)
+  })
+
+  it('rejects creation if an existing inventory row belongs to another product', async () => {
+    const audit = vi.fn()
+    const tx = {
+      depositoProducto: { create: async ({ data }: { data: { mercadosHabilitados: string[] } }) => ({ id: 'new', ...data, categoria: 'etiqueta', estado: 'ACTIVO' }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 0 }), findMany: async () => [] },
+      auditoriaCatalogoProducto: { create: audit },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+    await expect(service.createManual({ nombreBase: 'AMINOÁCIDOS AVES', nombreCompleto: 'AMINOÁCIDOS AVES', categoria: 'etiqueta', codigo: 'IGET010', presentacion: 1, mercadosHabilitados: ['argentina'] }, 'enc-1')).rejects.toThrow('Ya existe un artículo')
+    expect(audit).not.toHaveBeenCalled()
+  })
+
+  it('creates a bottle and its initial stock inside the same transaction', async () => {
+    const seed = vi.fn().mockResolvedValue({ count: 1 })
+    const tx = {
+      depositoProducto: { create: async ({ data }: { data: Record<string, unknown> }) => ({ id: 'frasco-nuevo', ...data, estado: 'ACTIVO' }) },
+      inventarioFrasco: { createMany: seed },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+    await service.createManual({ nombreBase: 'FRASCO NUEVO', nombreCompleto: 'FRASCO NUEVO', categoria: 'frasco', mercadosHabilitados: [], stockInicialFrasco: { unidadesPorCaja: 10, cantidadCajas: 2, unidadesSueltas: 0, total: 20 } }, 'enc-1')
+    expect(seed).toHaveBeenCalledWith(expect.objectContaining({ data: [expect.objectContaining({ productoId: 'frasco-nuevo', total: 20, cantidadCajas: 2 })] }))
+  })
+
   it('adds the presentation to a manually created label name when only the base name is supplied', async () => {
     const created: Array<{ nombreCompleto: string }> = []
     const tx = {
@@ -134,7 +183,7 @@ describe('catalogo product rules', () => {
           return { id: 'nuevo-250', ...data, estado: 'ACTIVO', activo: true, origen: 'MANUAL', categoria: 'etiqueta', codigo: 'IGETEC005' }
         },
       },
-      inventarioEtiqueta: { createMany: async () => ({ count: 1 }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }), findMany: async ({ where }: { where: { mercado: { in: string[] } } }) => where.mercado.in.map((mercado) => ({ mercado })) },
       inventarioEstuche: { createMany: async () => ({ count: 0 }) },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
@@ -162,7 +211,7 @@ describe('catalogo product rules', () => {
           return { id: 'nuevo-1l', ...data, estado: 'ACTIVO', activo: true, origen: 'MANUAL', categoria: 'etiqueta', codigo: 'IGET001' }
         },
       },
-      inventarioEtiqueta: { createMany: async () => ({ count: 1 }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }), findMany: async ({ where }: { where: { mercado: { in: string[] } } }) => where.mercado.in.map((mercado) => ({ mercado })) },
       inventarioEstuche: { createMany: async () => ({ count: 0 }) },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
@@ -247,7 +296,7 @@ describe('catalogo product rules', () => {
           return { ...producto, ...data }
         },
       },
-      inventarioEtiqueta: { createMany: async () => ({ count: 0 }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 0 }), updateMany: async () => ({ count: 1 }) },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
     const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
@@ -271,7 +320,7 @@ describe('catalogo product rules', () => {
         findUnique: async () => producto,
         update: async ({ data }: { data: Record<string, unknown> }) => ({ ...producto, ...data }),
       },
-      inventarioEtiqueta: { createMany: async ({ data }: { data: unknown[] }) => { seeded.push(...data); return { count: data.length } } },
+      inventarioEtiqueta: { findFirst: async () => null, findMany: async ({ where }: { where: { mercado: { in: string[] } } }) => where.mercado.in.map((mercado) => ({ mercado })), createMany: async ({ data }: { data: unknown[] }) => { seeded.push(...data); return { count: data.length } } },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
     const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
@@ -382,6 +431,22 @@ describe('catalogo product rules', () => {
     await expect(service.update('historica-1', { codigo: 'IGET-LEGACY' }, 'enc-1')).resolves.toMatchObject({ codigo: 'IGET-LEGACY' })
   })
 
+  it('renames a label and its inventory without changing the original market or stock', async () => {
+    const producto = { id: 'e1', estado: 'ACTIVO', activo: true, categoria: 'etiqueta' as const, codigo: 'IGET009', presentacion: 1, mercadosHabilitados: ['argentina'], mercado: 'argentina', nombreBase: 'AMINOÁCIDOS', nombreCompleto: 'AMINOÁCIDOS 1 L' }
+    const renameInventory = vi.fn().mockResolvedValue({ count: 1 })
+    const update = vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ ...producto, ...data }))
+    const tx = {
+      depositoProducto: { findUnique: async () => producto, update },
+      inventarioEtiqueta: { updateMany: renameInventory, createMany: async () => ({ count: 0 }) },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    const service = new CatalogoProductoService(db as PrismaClient)
+    await service.update('e1', { nombreBase: 'AMINOÁCIDOS EQUINOS', nombreCompleto: 'AMINOÁCIDOS EQUINOS 1 L', mercadosHabilitados: ['argentina'] }, 'enc-1')
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ mercado: 'argentina' }) }))
+    expect(renameInventory).toHaveBeenCalledWith({ where: { productoId: 'e1' }, data: { articulo: 'AMINOÁCIDOS EQUINOS 1 L' } })
+  })
+
   it('rejects activating a pending etiqueta whose code lacks the IGET prefix', async () => {
     const producto = {
       id: 'pendiente-2',
@@ -403,7 +468,7 @@ describe('catalogo product rules', () => {
         findUnique: async () => producto,
         update: async () => ({ ...producto, estado: 'ACTIVO', activo: true }),
       },
-      inventarioEtiqueta: { createMany: async () => ({ count: 1 }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }), findMany: async ({ where }: { where: { mercado: { in: string[] } } }) => where.mercado.in.map((mercado) => ({ mercado })) },
       inventarioEstuche: { createMany: async () => ({ count: 0 }) },
       auditoriaCatalogoProducto: { create: async () => ({ id: 'audit-1' }) },
     }
@@ -428,10 +493,10 @@ describe('catalogo product rules', () => {
     ], 'enc-1')).rejects.toThrow('IGES')
   })
 
-  it('requires presentation for packaging categories but not for materia prima', () => {
+  it('requires presentation for labels and cases, while frasco content can be completed later', () => {
     expect(() => validateCatalogoInput({ categoria: 'etiqueta', codigo: 'ET-1', presentacion: null, mercadosHabilitados: ['argentina'] })).toThrow('presentación')
     expect(() => validateCatalogoInput({ categoria: 'estuche', codigo: 'ES-1', presentacion: null, mercadosHabilitados: ['argentina'] })).toThrow('presentación')
-    expect(() => validateCatalogoInput({ categoria: 'frasco', codigo: 'FR-1', presentacion: null, mercadosHabilitados: [] })).toThrow('presentación')
+    expect(() => validateCatalogoInput({ categoria: 'frasco', codigo: 'FR-1', presentacion: null, mercadosHabilitados: [] })).not.toThrow()
     expect(() => validateCatalogoInput({ categoria: 'droga', codigo: 'MP-1', presentacion: null, mercadosHabilitados: [] })).not.toThrow()
   })
 
@@ -455,6 +520,12 @@ describe('catalogo product rules', () => {
     expect(() => validateCatalogoUpdate('INACTIVO', { ...historical, codigo: 'MP-LOAD-1' }, { codigo: 'MP-LOAD-2' })).toThrow('bloqueados')
     expect(() => validateCatalogoUpdate('INACTIVO', historical, { categoria: 'frasco' })).toThrow('bloqueados')
     expect(() => validateCatalogoUpdate('INACTIVO', historical, { mercadosHabilitados: ['argentina'] })).toThrow('bloqueados')
+  })
+
+  it('allows an active frasco to add or correct its ENV code', () => {
+    const frasco = { categoria: 'frasco' as const, codigo: null, mercadosHabilitados: [] as const }
+    expect(() => validateCatalogoUpdate('ACTIVO', frasco, { codigo: 'ENV101' })).not.toThrow()
+    expect(() => validateCatalogoUpdate('ACTIVO', { ...frasco, codigo: 'ENV101' }, { codigo: 'ENV102' })).not.toThrow()
   })
 
   it('permits FRASCO activo without a code', () => {
@@ -644,7 +715,7 @@ describe('catalogo product rules', () => {
         findUnique: async () => producto,
         update: async () => ({ ...producto, estado: 'ACTIVO', activo: true }),
       },
-      inventarioEtiqueta: { createMany: async () => ({ count: 1 }) },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }), findMany: async ({ where }: { where: { mercado: { in: string[] } } }) => where.mercado.in.map((mercado) => ({ mercado })) },
       inventarioEstuche: { createMany: async () => ({ count: 0 }) },
       auditoriaCatalogoProducto: {
         create: async ({ data }: { data: { tipo: string } }) => {

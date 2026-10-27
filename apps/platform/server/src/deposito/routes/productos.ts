@@ -85,17 +85,15 @@ const commonCatalogSchema = z.object({
 const baseSchema = z.discriminatedUnion('categoria', [
   commonCatalogSchema.extend({
     categoria: z.literal('etiqueta'),
-    codigo: z.string().trim().min(1).max(100)
-      .transform((value) => value.toUpperCase())
-      .refine((value) => value.startsWith('IGET'), 'El código de etiqueta debe comenzar con IGET'),
+    codigo: z.string().trim().max(100).optional().transform((value) => value?.toUpperCase() || undefined)
+      .refine((value) => !value || (value.startsWith('IGET') && value.length > 4), 'El código de etiqueta debe comenzar con IGET y tener un sufijo'),
     presentacion: positivePresentation,
     mercadosHabilitados: z.array(z.enum(mercados)).min(1),
   }),
   commonCatalogSchema.extend({
     categoria: z.literal('estuche'),
-    codigo: z.string().trim().min(1).max(100)
-      .transform((value) => value.toUpperCase())
-      .refine((value) => value.startsWith('IGES'), 'El código de estuche debe comenzar con IGES'),
+    codigo: z.string().trim().max(100).optional().transform((value) => value?.toUpperCase() || undefined)
+      .refine((value) => !value || (value.startsWith('IGES') && value.length > 4), 'El código de estuche debe comenzar con IGES y tener un sufijo'),
     presentacion: positivePresentation,
     mercadosHabilitados: z.array(z.enum(mercados)).min(1),
   }),
@@ -297,10 +295,8 @@ function validateImportRows(rows: unknown[]): ImportResult[] {
   return rows.map((raw, index) => {
     const parsed = baseSchema.safeParse(coerceImportRow(raw as Record<string, unknown>))
     if (!parsed.success) return { fila: index + 2, valido: false, errores: parsed.error.flatten() }
-    // S1 cleanup: for etiqueta/estuche the schema above already enforces a
-    // non-empty codigo (min 1) and the IGET/IGES prefix via refine, so the
-    // friendly Spanish messages surface from parsed.error.flatten(). The old
-    // flat branches for "código obligatorio" and prefix checks were unreachable.
+    // La importación requiere códigos explícitos; la carga manual puede asignarlos automáticamente.
+    if ((parsed.data.categoria === 'etiqueta' || parsed.data.categoria === 'estuche') && !parsed.data.codigo) return { fila: index + 2, valido: false, errores: { codigo: ['El código es obligatorio al importar'] } }
     const codigo = normalizeCodigo(parsed.data.codigo)
     try {
       validateCatalogoInput({
@@ -375,14 +371,26 @@ function getMultipartFile(req: Request): { bytes: Buffer; fileName: string } | n
 router.get('/', authenticate, requirePermission('deposito', 'productos_catalogo.read'), async (req, res): Promise<void> => {
   const categoria = typeof req.query.categoria === 'string' && categorias.includes(req.query.categoria as Categoria) ? req.query.categoria as Categoria : undefined
   const estado = typeof req.query.estado === 'string' && estados.includes(req.query.estado as EstadoProductoCatalogo) ? req.query.estado as EstadoProductoCatalogo : undefined
+  const mercado = typeof req.query.mercado === 'string' && mercados.includes(req.query.mercado as Mercado) ? req.query.mercado as Mercado : undefined
   const activo = req.query.activo === 'true' ? true : req.query.activo === 'false' ? false : undefined
   const buscar = typeof req.query.buscar === 'string' ? req.query.buscar.trim() : undefined
   const incluirStock = req.query.incluirStock === 'true'
-  const where: Prisma.DepositoProductoWhereInput = { ...(categoria ? { categoria } : {}), ...(estado ? { estado } : {}), ...(activo !== undefined ? { activo } : {}), ...(buscar ? { OR: [{ nombreCompleto: { contains: buscar, mode: 'insensitive' } }, { codigo: { contains: buscar, mode: 'insensitive' } }] } : {}) }
+  const where: Prisma.DepositoProductoWhereInput = { ...(categoria ? { categoria } : {}), ...(estado ? { estado } : {}), ...(mercado ? { mercadosHabilitados: { has: mercado } } : {}), ...(activo !== undefined ? { activo } : {}), ...(buscar ? { OR: [{ nombreCompleto: { contains: buscar, mode: 'insensitive' } }, { codigo: { contains: buscar, mode: 'insensitive' } }] } : {}) }
   try {
     if (!incluirStock) {
-      const productos = await prisma.depositoProducto.findMany({ where, orderBy: { nombreCompleto: 'asc' } })
-      res.json(productos)
+      const [productos, frascos] = await Promise.all([
+        prisma.depositoProducto.findMany({ where, orderBy: { nombreCompleto: 'asc' } }),
+        prisma.inventarioFrasco.findMany({ select: { id: true, productoId: true, unidadesPorCaja: true } }),
+      ])
+      const frascoPorProducto = new Map(frascos.filter((frasco) => frasco.productoId).map((frasco) => [frasco.productoId!, frasco]))
+      res.json(productos.map((producto) => {
+        const frasco = producto.categoria === 'frasco' ? frascoPorProducto.get(producto.id) : undefined
+        return {
+          ...producto,
+          frascoId: frasco?.id ?? null,
+          unidadesPorCaja: frasco?.unidadesPorCaja ?? null,
+        }
+      }))
       return
     }
 

@@ -19,6 +19,8 @@ interface InventoryPageHeaderProps {
   title: string
   description?: string
   stats: InventoryPageHeaderStat[]
+  statsColumns?: 2 | 3
+  hideStatsOnMobile?: boolean
   primaryAction?: InventoryPageHeaderAction
   actionSlot?: ReactNode
   secondaryActions?: InventoryPageHeaderAction[]
@@ -29,6 +31,8 @@ export function InventoryPageHeader({
   title,
   description,
   stats,
+  statsColumns = 2,
+  hideStatsOnMobile = false,
   primaryAction,
   actionSlot,
   secondaryActions,
@@ -52,7 +56,7 @@ export function InventoryPageHeader({
           </div>
         )}
       </div>
-      <section aria-label="Resumen" className="grid gap-3 sm:grid-cols-2">
+      <section aria-label="Resumen" className={`grid gap-3 ${statsColumns === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}${hideStatsOnMobile ? ' hidden sm:grid' : ''}`}>
         {stats.map((stat, index) => (
           <article
             key={stat.label}

@@ -25,6 +25,7 @@ interface FrascoMock {
   articulo: string
   unidadesPorCaja: number
   cantidadCajas: number
+  unidadesSueltas: number
   total: number
 }
 
@@ -40,7 +41,7 @@ const prismaMock = vi.hoisted(() => {
   return {
     state,
     reset,
-    depositoProducto: { findMany: vi.fn(async () => state.frascos.map((row) => ({ id: row.productoId ?? row.id, nombreCompleto: row.articulo, presentacion: row.unidadesPorCaja, updatedAt: new Date() })).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto))) },
+    depositoProducto: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => state.frascos.map((row) => ({ id: row.productoId ?? row.id, nombreCompleto: row.articulo, presentacion: row.unidadesPorCaja, updatedAt: new Date() })).sort((a, b) => a.nombreCompleto.localeCompare(b.nombreCompleto))) },
     inventarioFrasco: {
       findMany: vi.fn(async ({ orderBy }: any = {}) => {
         const result = [...state.frascos]
@@ -53,6 +54,17 @@ const prismaMock = vi.hoisted(() => {
         if (where.articulo) return state.frascos.find((f) => f.articulo === where.articulo) ?? null
         if (where.id) return state.frascos.find((f) => f.id === where.id) ?? null
         return null
+      }),
+      findUniqueOrThrow: vi.fn(async ({ where }: any) => {
+        const row = state.frascos.find((f) => f.id === where.id || f.productoId === where.productoId)
+        if (!row) throw new Error('Record not found')
+        return row
+      }),
+      updateMany: vi.fn(async ({ where, data }: any) => {
+        const index = state.frascos.findIndex((f) => f.id === where.id && f.articulo === where.articulo && f.unidadesPorCaja === where.unidadesPorCaja && f.cantidadCajas === where.cantidadCajas && f.unidadesSueltas === where.unidadesSueltas && f.total === where.total)
+        if (index < 0) return { count: 0 }
+        state.frascos[index] = { ...state.frascos[index], ...data }
+        return { count: 1 }
       }),
       findFirst: vi.fn(async ({ where }: any) => {
         return state.frascos.find((f) => {
@@ -69,13 +81,14 @@ const prismaMock = vi.hoisted(() => {
           articulo: data.articulo,
           unidadesPorCaja: data.unidadesPorCaja,
           cantidadCajas: data.cantidadCajas,
+          unidadesSueltas: data.unidadesSueltas ?? (data.total % data.unidadesPorCaja),
           total: data.total,
         }
         state.frascos.push(frasco)
         return frasco
       }),
       update: vi.fn(async ({ where, data }: any) => {
-        const idx = state.frascos.findIndex((f) => f.id === where.id)
+        const idx = state.frascos.findIndex((f) => f.id === where.id || f.productoId === where.productoId)
         if (idx === -1) {
           const err = new Error('Record not found')
           ;(err as any).code = 'P2025'
@@ -97,7 +110,22 @@ const prismaMock = vi.hoisted(() => {
   }
 })
 
+const catalogoMocks = vi.hoisted(() => ({ createManual: vi.fn() }))
+
 vi.mock('../lib/prisma', () => ({ prisma: prismaMock }))
+vi.mock('../services/catalogo-producto-service', () => ({
+  CatalogoProductoService: class CatalogoProductoService {
+    createManual = catalogoMocks.createManual
+  },
+  CatalogoError: class CatalogoError extends Error {
+    constructor(public readonly code: 'NOT_FOUND' | 'CONFLICT' | 'INVALID', message: string) {
+      super(message)
+    }
+  },
+}))
+vi.mock('../services/stock-sheets-projection', () => ({
+  syncDepositoStockSheetsAfterCommit: vi.fn().mockResolvedValue(undefined),
+}))
 
 import frascosRouter from '../routes/frascos'
 
@@ -107,6 +135,20 @@ describe('Frascos', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     prismaMock.reset()
+    catalogoMocks.createManual.mockImplementation(async (input: { nombreCompleto: string; presentacion?: number | null; stockInicialFrasco?: { unidadesPorCaja: number; cantidadCajas: number; unidadesSueltas: number; total: number } }) => {
+      const productoId = 'producto-manual-1'
+      await prismaMock.inventarioFrasco.create({
+        data: {
+          productoId,
+          articulo: input.nombreCompleto,
+          unidadesPorCaja: input.stockInicialFrasco?.unidadesPorCaja ?? 1,
+          cantidadCajas: input.stockInicialFrasco?.cantidadCajas ?? 0,
+          unidadesSueltas: input.stockInicialFrasco?.unidadesSueltas ?? 0,
+          total: input.stockInicialFrasco?.total ?? 0,
+        },
+      })
+      return { id: productoId }
+    })
   })
 
   describe('GET /api/frascos', () => {
@@ -144,6 +186,12 @@ describe('Frascos', () => {
   })
 
   describe('POST /api/frascos', () => {
+    it('rechaza un total mayor al máximo antes de crear el producto', async () => {
+      const res = await request(app).post('/api/frascos').set('x-test-role', 'encargado').send({ articulo: 'GRANDE', unidadesPorCaja: 2, cantidadCajas: 2147483647 })
+      expect(res.status).toBe(400)
+      expect(catalogoMocks.createManual).not.toHaveBeenCalled()
+    })
+
     it('crea un frasco con cálculo de total', async () => {
       const res = await request(app)
         .post('/api/frascos')
@@ -155,6 +203,12 @@ describe('Frascos', () => {
       expect(res.body.unidadesPorCaja).toBe(10)
       expect(res.body.cantidadCajas).toBe(5)
       expect(res.body.total).toBe(50)
+      expect(catalogoMocks.createManual).toHaveBeenCalledWith(expect.objectContaining({
+        nombreBase: 'FRASCO NUEVO',
+        nombreCompleto: 'FRASCO NUEVO',
+        categoria: 'frasco',
+        presentacion: null,
+      }), 'enc-1')
     })
 
     it('rechaza datos inválidos', async () => {
@@ -206,6 +260,14 @@ describe('Frascos', () => {
       expect(res.body.total).toBe(100)
     })
 
+    it('devuelve 409 y no pisa el saldo cuando otra edición lo cambió', async () => {
+      const created = await prismaMock.inventarioFrasco.create({ data: { articulo: 'CONCURRENTE', unidadesPorCaja: 10, cantidadCajas: 5, total: 50 } })
+      prismaMock.inventarioFrasco.updateMany.mockImplementationOnce(async () => ({ count: 0 }))
+      const res = await request(app).put(`/api/frascos/${created.id}`).set('x-test-role', 'encargado').send({ cantidadCajas: 6 })
+      expect(res.status).toBe(409)
+      expect(prismaMock.state.frascos[0].total).toBe(50)
+    })
+
     it('conserva unidades sueltas al editar cantidad de cajas', async () => {
       const created = await prismaMock.inventarioFrasco.create({
         data: { articulo: 'CON RESTO', unidadesPorCaja: 10, cantidadCajas: 5, total: 53 },
@@ -218,6 +280,21 @@ describe('Frascos', () => {
 
       expect(res.status).toBe(200)
       expect(res.body.total).toBe(63)
+      expect(res.body.unidadesSueltas).toBe(3)
+    })
+
+    it('guarda el saldo explícito de unidades sueltas', async () => {
+      const created = await prismaMock.inventarioFrasco.create({
+        data: { articulo: 'CONTEO FÍSICO', unidadesPorCaja: 12, cantidadCajas: 2, unidadesSueltas: 3, total: 27 },
+      })
+
+      const res = await request(app)
+        .put(`/api/frascos/${created.id}`)
+        .set('x-test-role', 'encargado')
+        .send({ cantidadCajas: 4, unidadesSueltas: 5 })
+
+      expect(res.status).toBe(200)
+      expect(res.body).toMatchObject({ unidadesPorCaja: 12, cantidadCajas: 4, unidadesSueltas: 5, total: 53 })
     })
 
     it('conserva el total al cambiar unidades por caja sin ajuste absoluto', async () => {
@@ -235,6 +312,22 @@ describe('Frascos', () => {
       expect(res.body.unidadesPorCaja).toBe(20)
       expect(res.body.total).toBe(50)
       expect(res.body.cantidadCajas).toBe(2)
+    })
+
+    it('recalcula el total exacto al redefinir cajas y unidades por caja', async () => {
+      const created = await prismaMock.inventarioFrasco.create({
+        data: { articulo: 'TRANSPARENTE 500 ML', unidadesPorCaja: 100, cantidadCajas: 1, total: 100 },
+      })
+
+      const res = await request(app)
+        .put(`/api/frascos/${created.id}`)
+        .set('x-test-role', 'encargado')
+        .send({ unidadesPorCaja: 80, cantidadCajas: 1 })
+
+      expect(res.status).toBe(200)
+      expect(res.body.unidadesPorCaja).toBe(80)
+      expect(res.body.cantidadCajas).toBe(1)
+      expect(res.body.total).toBe(80)
     })
 
     it('devuelve 404 para id inexistente', async () => {

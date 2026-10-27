@@ -32,6 +32,8 @@ export interface Producto {
   createdAt: string
   updatedAt: string
   stockMinimo: number | null
+  frascoId?: string | null
+  unidadesPorCaja?: number | null
 }
 
 export interface ProductoFormData {
@@ -40,6 +42,7 @@ export interface ProductoFormData {
   codigo?: string
   categoria: CategoriaProducto
   presentacion?: number | null
+  volumen?: number | null
   unidad?: string | null
   mercadosHabilitados?: Mercado[]
   stockMinimo?: number | null
@@ -76,10 +79,11 @@ export const productosKeys = {
 
 // ─── Hooks: List ──────────────────────────────────────────────────────────────
 
-export function useProductos(filters?: { categoria?: string; estado?: string; buscar?: string }) {
+export function useProductos(filters?: { categoria?: string; estado?: string; mercado?: Mercado; buscar?: string }) {
   const params = new URLSearchParams()
   if (filters?.categoria) params.set('categoria', filters.categoria)
   if (filters?.estado) params.set('estado', filters.estado)
+  if (filters?.mercado) params.set('mercado', filters.mercado)
   if (filters?.buscar) params.set('buscar', filters.buscar)
   const qs = params.toString()
   return useQuery({

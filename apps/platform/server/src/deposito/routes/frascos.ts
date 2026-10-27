@@ -4,13 +4,20 @@ import { prisma } from '../lib/prisma'
 import { authenticate } from '../middleware/auth'
 import { requirePermission } from '../../middlewares/require-permission'
 import { syncDepositoStockSheetsAfterCommit } from '../services/stock-sheets-projection'
+import { CatalogoError, CatalogoProductoService } from '../services/catalogo-producto-service'
+import { calcularStockFrasco, descomponerTotalFrasco, obtenerUnidadesSueltas } from '../lib/frasco-stock'
 
 const router = Router()
+const catalogoService = new CatalogoProductoService(prisma)
 
 const crearFrascoSchema = z.object({
   articulo: z.string().min(2).max(150),
   unidadesPorCaja: z.number().int().positive(),
   cantidadCajas: z.number().int().min(0),
+  unidadesSueltas: z.number().int().min(0).optional().default(0),
+}).refine((data) => data.unidadesSueltas < data.unidadesPorCaja, {
+  message: 'Las unidades sueltas deben ser menores que una caja',
+  path: ['unidadesSueltas'],
 })
 
 const editarFrascoSchema = z
@@ -18,9 +25,14 @@ const editarFrascoSchema = z
     articulo: z.string().min(2).max(150).optional(),
     unidadesPorCaja: z.number().int().positive().optional(),
     cantidadCajas: z.number().int().min(0).optional(),
+    unidadesSueltas: z.number().int().min(0).optional(),
+  })
+  .refine((data) => data.unidadesPorCaja === undefined || data.unidadesSueltas === undefined || data.unidadesSueltas < data.unidadesPorCaja, {
+    message: 'Las unidades sueltas deben ser menores que una caja',
+    path: ['unidadesSueltas'],
   })
   .refine(
-    (d) => d.articulo !== undefined || d.unidadesPorCaja !== undefined || d.cantidadCajas !== undefined,
+    (d) => d.articulo !== undefined || d.unidadesPorCaja !== undefined || d.cantidadCajas !== undefined || d.unidadesSueltas !== undefined,
     { message: 'Al menos un campo requerido' }
   )
 
@@ -32,10 +44,16 @@ router.get('/', authenticate, requirePermission('deposito', 'frascos.read'), asy
       prisma.inventarioFrasco.findMany({ orderBy: { articulo: 'asc' } }),
     ])
     const byProduct = new Map(inventario.filter((row) => row.productoId).map((row) => [row.productoId!, row]))
-    const frascos = productos.map((producto) => byProduct.get(producto.id) ?? ({
+    const frascosDelCatalogo = productos.map((producto) => byProduct.get(producto.id) ?? ({
       id: producto.id, productoId: producto.id, articulo: producto.nombreCompleto,
-      unidadesPorCaja: producto.presentacion ?? 1, cantidadCajas: 0, total: 0, updatedAt: producto.updatedAt,
+      unidadesPorCaja: 1, cantidadCajas: 0, unidadesSueltas: 0, total: 0, updatedAt: producto.updatedAt,
     }))
+    // No ocultar el inventario histórico creado antes del catálogo centralizado.
+    // Mantenerlo visible evita que un frasco existente desaparezca del buscador
+    // interno mientras se termina de asociar al producto canónico.
+    const frascosHistoricos = inventario.filter((row) => !row.productoId)
+    const frascos = [...frascosDelCatalogo, ...frascosHistoricos]
+      .sort((a, b) => a.articulo.localeCompare(b.articulo))
     res.json(frascos)
   } catch {
     res.status(500).json({ message: 'Error interno del servidor' })
@@ -54,26 +72,36 @@ router.post(
       return
     }
 
-    const { articulo, unidadesPorCaja, cantidadCajas } = result.data
+    const { articulo, unidadesPorCaja, cantidadCajas, unidadesSueltas } = result.data
+    const articuloNormalizado = articulo.trim().replace(/\s+/g, ' ').toUpperCase()
+    const stock = calcularStockFrasco({ unidadesPorCaja, cantidadCajas, unidadesSueltas })
+    if (!Number.isSafeInteger(stock.total) || stock.total > 2147483647) { res.status(400).json({ message: 'El total de unidades excede el máximo permitido' }); return }
 
     try {
-      const existing = await prisma.inventarioFrasco.findFirst({ where: { articulo } })
+      const existing = await prisma.inventarioFrasco.findFirst({ where: { articulo: articuloNormalizado } })
       if (existing) {
         res.status(409).json({ message: 'Ya existe ese artículo' })
         return
       }
 
-      const frasco = await prisma.inventarioFrasco.create({
-        data: {
-          articulo,
-          unidadesPorCaja,
-          cantidadCajas,
-          total: unidadesPorCaja * cantidadCajas,
-        },
-      })
+      // Crear desde esta pantalla debe registrar también el producto canónico:
+      // así queda disponible inmediatamente en los selectores por nombre.
+      const producto = await catalogoService.createManual({
+        nombreBase: articuloNormalizado,
+        nombreCompleto: articuloNormalizado,
+        categoria: 'frasco',
+        presentacion: null,
+        mercadosHabilitados: [],
+        stockInicialFrasco: stock,
+      }, req.depositoUser!.id)
+      const frasco = await prisma.inventarioFrasco.findUniqueOrThrow({ where: { productoId: producto.id } })
       res.status(201).json(frasco)
       void syncDepositoStockSheetsAfterCommit()
-    } catch {
+    } catch (error) {
+      if (error instanceof CatalogoError && error.code === 'CONFLICT') {
+        res.status(409).json({ message: error.message })
+        return
+      }
       res.status(500).json({ message: 'Error interno del servidor' })
     }
   }
@@ -93,7 +121,7 @@ router.put(
       return
     }
 
-    const { articulo, unidadesPorCaja, cantidadCajas } = result.data
+    const { articulo, unidadesPorCaja, cantidadCajas, unidadesSueltas } = result.data
 
     try {
       let existing = await prisma.inventarioFrasco.findUnique({ where: { id } })
@@ -108,8 +136,9 @@ router.put(
           data: {
             productoId: producto.id,
             articulo: producto.nombreCompleto,
-            unidadesPorCaja: producto.presentacion ?? 1,
+            unidadesPorCaja: 1,
             cantidadCajas: 0,
+            unidadesSueltas: 0,
             total: 0,
           },
         })
@@ -126,27 +155,39 @@ router.put(
       }
 
       const newUnidades = unidadesPorCaja ?? existing.unidadesPorCaja
-      const restoAnterior = existing.total % newUnidades
-      const newCajas = cantidadCajas ?? (unidadesPorCaja !== undefined
-        ? Math.floor(existing.total / newUnidades)
-        : existing.cantidadCajas)
-      const newTotal = cantidadCajas !== undefined
-        ? newUnidades * newCajas + restoAnterior
-        : existing.total
+      const unidadesPorCajaCambiaron = unidadesPorCaja !== undefined && unidadesPorCaja !== existing.unidadesPorCaja
+      const hasStockEdit = cantidadCajas !== undefined || unidadesSueltas !== undefined
+      if (unidadesSueltas !== undefined && unidadesSueltas >= newUnidades) {
+        res.status(400).json({ message: 'Las unidades sueltas deben ser menores que una caja' })
+        return
+      }
+      let stock = descomponerTotalFrasco(existing.total, newUnidades)
+      if (hasStockEdit) {
+        const newCajas = cantidadCajas ?? (unidadesPorCajaCambiaron ? stock.cantidadCajas : existing.cantidadCajas)
+        const newSueltas = unidadesSueltas ?? (unidadesPorCajaCambiaron ? 0 : obtenerUnidadesSueltas(existing))
+        stock = calcularStockFrasco({ unidadesPorCaja: newUnidades, cantidadCajas: newCajas, unidadesSueltas: newSueltas })
+      }
 
-      const frasco = await prisma.inventarioFrasco.update({
-        where: { id: existing.id },
+      if (!Number.isSafeInteger(stock.total) || stock.total > 2147483647) { res.status(400).json({ message: 'El total de unidades excede el máximo permitido' }); return }
+
+      const updated = await prisma.inventarioFrasco.updateMany({
+        where: { id: existing.id, articulo: existing.articulo, unidadesPorCaja: existing.unidadesPorCaja, cantidadCajas: existing.cantidadCajas, unidadesSueltas: existing.unidadesSueltas, total: existing.total },
         data: {
           ...(articulo !== undefined ? { articulo } : {}),
-          ...(unidadesPorCaja !== undefined ? { unidadesPorCaja } : {}),
-          ...(cantidadCajas !== undefined || unidadesPorCaja !== undefined ? { cantidadCajas: newCajas } : {}),
-          total: newTotal,
+          ...(unidadesPorCaja !== undefined || hasStockEdit ? {
+            unidadesPorCaja: stock.unidadesPorCaja,
+            cantidadCajas: stock.cantidadCajas,
+            unidadesSueltas: stock.unidadesSueltas,
+            total: stock.total,
+          } : {}),
         },
       })
+      if (updated.count !== 1) { res.status(409).json({ message: 'El stock cambió mientras editabas. Actualizá la pantalla y volvé a intentar.' }); return }
+      const frasco = await prisma.inventarioFrasco.findUniqueOrThrow({ where: { id: existing.id } })
       res.json(frasco)
       void syncDepositoStockSheetsAfterCommit()
     } catch {
-      res.status(404).json({ message: 'Frasco no encontrado' })
+      res.status(500).json({ message: 'No se pudo actualizar el frasco' })
     }
   }
 )

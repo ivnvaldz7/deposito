@@ -42302,12 +42302,14 @@ export namespace Prisma {
   export type InventarioFrascoAvgAggregateOutputType = {
     unidadesPorCaja: number | null
     cantidadCajas: number | null
+    unidadesSueltas: number | null
     total: number | null
   }
 
   export type InventarioFrascoSumAggregateOutputType = {
     unidadesPorCaja: number | null
     cantidadCajas: number | null
+    unidadesSueltas: number | null
     total: number | null
   }
 
@@ -42317,6 +42319,7 @@ export namespace Prisma {
     articulo: string | null
     unidadesPorCaja: number | null
     cantidadCajas: number | null
+    unidadesSueltas: number | null
     total: number | null
     updatedAt: Date | null
   }
@@ -42327,6 +42330,7 @@ export namespace Prisma {
     articulo: string | null
     unidadesPorCaja: number | null
     cantidadCajas: number | null
+    unidadesSueltas: number | null
     total: number | null
     updatedAt: Date | null
   }
@@ -42337,6 +42341,7 @@ export namespace Prisma {
     articulo: number
     unidadesPorCaja: number
     cantidadCajas: number
+    unidadesSueltas: number
     total: number
     updatedAt: number
     _all: number
@@ -42346,12 +42351,14 @@ export namespace Prisma {
   export type InventarioFrascoAvgAggregateInputType = {
     unidadesPorCaja?: true
     cantidadCajas?: true
+    unidadesSueltas?: true
     total?: true
   }
 
   export type InventarioFrascoSumAggregateInputType = {
     unidadesPorCaja?: true
     cantidadCajas?: true
+    unidadesSueltas?: true
     total?: true
   }
 
@@ -42361,6 +42368,7 @@ export namespace Prisma {
     articulo?: true
     unidadesPorCaja?: true
     cantidadCajas?: true
+    unidadesSueltas?: true
     total?: true
     updatedAt?: true
   }
@@ -42371,6 +42379,7 @@ export namespace Prisma {
     articulo?: true
     unidadesPorCaja?: true
     cantidadCajas?: true
+    unidadesSueltas?: true
     total?: true
     updatedAt?: true
   }
@@ -42381,6 +42390,7 @@ export namespace Prisma {
     articulo?: true
     unidadesPorCaja?: true
     cantidadCajas?: true
+    unidadesSueltas?: true
     total?: true
     updatedAt?: true
     _all?: true
@@ -42478,6 +42488,7 @@ export namespace Prisma {
     articulo: string
     unidadesPorCaja: number
     cantidadCajas: number
+    unidadesSueltas: number
     total: number
     updatedAt: Date
     _count: InventarioFrascoCountAggregateOutputType | null
@@ -42507,6 +42518,7 @@ export namespace Prisma {
     articulo?: boolean
     unidadesPorCaja?: boolean
     cantidadCajas?: boolean
+    unidadesSueltas?: boolean
     total?: boolean
     updatedAt?: boolean
     producto?: boolean | InventarioFrasco$productoArgs<ExtArgs>
@@ -42518,6 +42530,7 @@ export namespace Prisma {
     articulo?: boolean
     unidadesPorCaja?: boolean
     cantidadCajas?: boolean
+    unidadesSueltas?: boolean
     total?: boolean
     updatedAt?: boolean
     producto?: boolean | InventarioFrasco$productoArgs<ExtArgs>
@@ -42529,6 +42542,7 @@ export namespace Prisma {
     articulo?: boolean
     unidadesPorCaja?: boolean
     cantidadCajas?: boolean
+    unidadesSueltas?: boolean
     total?: boolean
     updatedAt?: boolean
     producto?: boolean | InventarioFrasco$productoArgs<ExtArgs>
@@ -42540,11 +42554,12 @@ export namespace Prisma {
     articulo?: boolean
     unidadesPorCaja?: boolean
     cantidadCajas?: boolean
+    unidadesSueltas?: boolean
     total?: boolean
     updatedAt?: boolean
   }
 
-  export type InventarioFrascoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "productoId" | "articulo" | "unidadesPorCaja" | "cantidadCajas" | "total" | "updatedAt", ExtArgs["result"]["inventarioFrasco"]>
+  export type InventarioFrascoOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "productoId" | "articulo" | "unidadesPorCaja" | "cantidadCajas" | "unidadesSueltas" | "total" | "updatedAt", ExtArgs["result"]["inventarioFrasco"]>
   export type InventarioFrascoInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     producto?: boolean | InventarioFrasco$productoArgs<ExtArgs>
   }
@@ -42566,6 +42581,7 @@ export namespace Prisma {
       articulo: string
       unidadesPorCaja: number
       cantidadCajas: number
+      unidadesSueltas: number
       total: number
       updatedAt: Date
     }, ExtArgs["result"]["inventarioFrasco"]>
@@ -42997,6 +43013,7 @@ export namespace Prisma {
     readonly articulo: FieldRef<"InventarioFrasco", 'String'>
     readonly unidadesPorCaja: FieldRef<"InventarioFrasco", 'Int'>
     readonly cantidadCajas: FieldRef<"InventarioFrasco", 'Int'>
+    readonly unidadesSueltas: FieldRef<"InventarioFrasco", 'Int'>
     readonly total: FieldRef<"InventarioFrasco", 'Int'>
     readonly updatedAt: FieldRef<"InventarioFrasco", 'DateTime'>
   }
@@ -48275,6 +48292,9 @@ export namespace Prisma {
     urgencia: $Enums.Urgencia | null
     estado: $Enums.EstadoOrden | null
     motivoRechazo: string | null
+    motivoAjuste: string | null
+    ajustadoPor: string | null
+    ajustadoAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -48293,6 +48313,9 @@ export namespace Prisma {
     urgencia: $Enums.Urgencia | null
     estado: $Enums.EstadoOrden | null
     motivoRechazo: string | null
+    motivoAjuste: string | null
+    ajustadoPor: string | null
+    ajustadoAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -48311,6 +48334,9 @@ export namespace Prisma {
     urgencia: number
     estado: number
     motivoRechazo: number
+    motivoAjuste: number
+    ajustadoPor: number
+    ajustadoAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -48341,6 +48367,9 @@ export namespace Prisma {
     urgencia?: true
     estado?: true
     motivoRechazo?: true
+    motivoAjuste?: true
+    ajustadoPor?: true
+    ajustadoAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -48359,6 +48388,9 @@ export namespace Prisma {
     urgencia?: true
     estado?: true
     motivoRechazo?: true
+    motivoAjuste?: true
+    ajustadoPor?: true
+    ajustadoAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -48377,6 +48409,9 @@ export namespace Prisma {
     urgencia?: true
     estado?: true
     motivoRechazo?: true
+    motivoAjuste?: true
+    ajustadoPor?: true
+    ajustadoAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -48482,6 +48517,9 @@ export namespace Prisma {
     urgencia: $Enums.Urgencia
     estado: $Enums.EstadoOrden
     motivoRechazo: string | null
+    motivoAjuste: string | null
+    ajustadoPor: string | null
+    ajustadoAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: OrdenProduccionCountAggregateOutputType | null
@@ -48519,6 +48557,9 @@ export namespace Prisma {
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
+    motivoAjuste?: boolean
+    ajustadoPor?: boolean
+    ajustadoAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     solicitante?: boolean | UserDefaultArgs<ExtArgs>
@@ -48540,6 +48581,9 @@ export namespace Prisma {
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
+    motivoAjuste?: boolean
+    ajustadoPor?: boolean
+    ajustadoAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     solicitante?: boolean | UserDefaultArgs<ExtArgs>
@@ -48561,6 +48605,9 @@ export namespace Prisma {
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
+    motivoAjuste?: boolean
+    ajustadoPor?: boolean
+    ajustadoAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     solicitante?: boolean | UserDefaultArgs<ExtArgs>
@@ -48582,11 +48629,14 @@ export namespace Prisma {
     urgencia?: boolean
     estado?: boolean
     motivoRechazo?: boolean
+    motivoAjuste?: boolean
+    ajustadoPor?: boolean
+    ajustadoAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrdenProduccionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "solicitanteId" | "aprobadoPor" | "productoId" | "grupoId" | "categoria" | "productoNombre" | "mercado" | "cantidad" | "cantidadEntregada" | "urgencia" | "estado" | "motivoRechazo" | "createdAt" | "updatedAt", ExtArgs["result"]["ordenProduccion"]>
+  export type OrdenProduccionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "solicitanteId" | "aprobadoPor" | "productoId" | "grupoId" | "categoria" | "productoNombre" | "mercado" | "cantidad" | "cantidadEntregada" | "urgencia" | "estado" | "motivoRechazo" | "motivoAjuste" | "ajustadoPor" | "ajustadoAt" | "createdAt" | "updatedAt", ExtArgs["result"]["ordenProduccion"]>
   export type OrdenProduccionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     solicitante?: boolean | UserDefaultArgs<ExtArgs>
     aprobador?: boolean | OrdenProduccion$aprobadorArgs<ExtArgs>
@@ -48624,6 +48674,9 @@ export namespace Prisma {
       urgencia: $Enums.Urgencia
       estado: $Enums.EstadoOrden
       motivoRechazo: string | null
+      motivoAjuste: string | null
+      ajustadoPor: string | null
+      ajustadoAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["ordenProduccion"]>
@@ -49065,6 +49118,9 @@ export namespace Prisma {
     readonly urgencia: FieldRef<"OrdenProduccion", 'Urgencia'>
     readonly estado: FieldRef<"OrdenProduccion", 'EstadoOrden'>
     readonly motivoRechazo: FieldRef<"OrdenProduccion", 'String'>
+    readonly motivoAjuste: FieldRef<"OrdenProduccion", 'String'>
+    readonly ajustadoPor: FieldRef<"OrdenProduccion", 'String'>
+    readonly ajustadoAt: FieldRef<"OrdenProduccion", 'DateTime'>
     readonly createdAt: FieldRef<"OrdenProduccion", 'DateTime'>
     readonly updatedAt: FieldRef<"OrdenProduccion", 'DateTime'>
   }
@@ -60259,6 +60315,7 @@ export namespace Prisma {
     articulo: 'articulo',
     unidadesPorCaja: 'unidadesPorCaja',
     cantidadCajas: 'cantidadCajas',
+    unidadesSueltas: 'unidadesSueltas',
     total: 'total',
     updatedAt: 'updatedAt'
   };
@@ -60349,6 +60406,9 @@ export namespace Prisma {
     urgencia: 'urgencia',
     estado: 'estado',
     motivoRechazo: 'motivoRechazo',
+    motivoAjuste: 'motivoAjuste',
+    ajustadoPor: 'ajustadoPor',
+    ajustadoAt: 'ajustadoAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -63514,6 +63574,7 @@ export namespace Prisma {
     articulo?: StringFilter<"InventarioFrasco"> | string
     unidadesPorCaja?: IntFilter<"InventarioFrasco"> | number
     cantidadCajas?: IntFilter<"InventarioFrasco"> | number
+    unidadesSueltas?: IntFilter<"InventarioFrasco"> | number
     total?: IntFilter<"InventarioFrasco"> | number
     updatedAt?: DateTimeFilter<"InventarioFrasco"> | Date | string
     producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
@@ -63525,6 +63586,7 @@ export namespace Prisma {
     articulo?: SortOrder
     unidadesPorCaja?: SortOrder
     cantidadCajas?: SortOrder
+    unidadesSueltas?: SortOrder
     total?: SortOrder
     updatedAt?: SortOrder
     producto?: DepositoProductoOrderByWithRelationInput
@@ -63539,6 +63601,7 @@ export namespace Prisma {
     articulo?: StringFilter<"InventarioFrasco"> | string
     unidadesPorCaja?: IntFilter<"InventarioFrasco"> | number
     cantidadCajas?: IntFilter<"InventarioFrasco"> | number
+    unidadesSueltas?: IntFilter<"InventarioFrasco"> | number
     total?: IntFilter<"InventarioFrasco"> | number
     updatedAt?: DateTimeFilter<"InventarioFrasco"> | Date | string
     producto?: XOR<DepositoProductoNullableScalarRelationFilter, DepositoProductoWhereInput> | null
@@ -63550,6 +63613,7 @@ export namespace Prisma {
     articulo?: SortOrder
     unidadesPorCaja?: SortOrder
     cantidadCajas?: SortOrder
+    unidadesSueltas?: SortOrder
     total?: SortOrder
     updatedAt?: SortOrder
     _count?: InventarioFrascoCountOrderByAggregateInput
@@ -63568,6 +63632,7 @@ export namespace Prisma {
     articulo?: StringWithAggregatesFilter<"InventarioFrasco"> | string
     unidadesPorCaja?: IntWithAggregatesFilter<"InventarioFrasco"> | number
     cantidadCajas?: IntWithAggregatesFilter<"InventarioFrasco"> | number
+    unidadesSueltas?: IntWithAggregatesFilter<"InventarioFrasco"> | number
     total?: IntWithAggregatesFilter<"InventarioFrasco"> | number
     updatedAt?: DateTimeWithAggregatesFilter<"InventarioFrasco"> | Date | string
   }
@@ -63951,6 +64016,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
+    motivoAjuste?: StringNullableFilter<"OrdenProduccion"> | string | null
+    ajustadoPor?: StringNullableFilter<"OrdenProduccion"> | string | null
+    ajustadoAt?: DateTimeNullableFilter<"OrdenProduccion"> | Date | string | null
     createdAt?: DateTimeFilter<"OrdenProduccion"> | Date | string
     updatedAt?: DateTimeFilter<"OrdenProduccion"> | Date | string
     solicitante?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -63972,6 +64040,9 @@ export namespace Prisma {
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrderInput | SortOrder
+    motivoAjuste?: SortOrderInput | SortOrder
+    ajustadoPor?: SortOrderInput | SortOrder
+    ajustadoAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     solicitante?: UserOrderByWithRelationInput
@@ -63996,6 +64067,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
+    motivoAjuste?: StringNullableFilter<"OrdenProduccion"> | string | null
+    ajustadoPor?: StringNullableFilter<"OrdenProduccion"> | string | null
+    ajustadoAt?: DateTimeNullableFilter<"OrdenProduccion"> | Date | string | null
     createdAt?: DateTimeFilter<"OrdenProduccion"> | Date | string
     updatedAt?: DateTimeFilter<"OrdenProduccion"> | Date | string
     solicitante?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -64017,6 +64091,9 @@ export namespace Prisma {
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrderInput | SortOrder
+    motivoAjuste?: SortOrderInput | SortOrder
+    ajustadoPor?: SortOrderInput | SortOrder
+    ajustadoAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: OrdenProduccionCountOrderByAggregateInput
@@ -64043,6 +64120,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaWithAggregatesFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenWithAggregatesFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
+    motivoAjuste?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
+    ajustadoPor?: StringNullableWithAggregatesFilter<"OrdenProduccion"> | string | null
+    ajustadoAt?: DateTimeNullableWithAggregatesFilter<"OrdenProduccion"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"OrdenProduccion"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"OrdenProduccion"> | Date | string
   }
@@ -67459,6 +67539,7 @@ export namespace Prisma {
     articulo: string
     unidadesPorCaja: number
     cantidadCajas?: number
+    unidadesSueltas?: number
     total?: number
     updatedAt?: Date | string
     producto?: DepositoProductoCreateNestedOneWithoutInventarioFrascosInput
@@ -67470,6 +67551,7 @@ export namespace Prisma {
     articulo: string
     unidadesPorCaja: number
     cantidadCajas?: number
+    unidadesSueltas?: number
     total?: number
     updatedAt?: Date | string
   }
@@ -67479,6 +67561,7 @@ export namespace Prisma {
     articulo?: StringFieldUpdateOperationsInput | string
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
+    unidadesSueltas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     producto?: DepositoProductoUpdateOneWithoutInventarioFrascosNestedInput
@@ -67490,6 +67573,7 @@ export namespace Prisma {
     articulo?: StringFieldUpdateOperationsInput | string
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
+    unidadesSueltas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -67500,6 +67584,7 @@ export namespace Prisma {
     articulo: string
     unidadesPorCaja: number
     cantidadCajas?: number
+    unidadesSueltas?: number
     total?: number
     updatedAt?: Date | string
   }
@@ -67509,6 +67594,7 @@ export namespace Prisma {
     articulo?: StringFieldUpdateOperationsInput | string
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
+    unidadesSueltas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -67519,6 +67605,7 @@ export namespace Prisma {
     articulo?: StringFieldUpdateOperationsInput | string
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
+    unidadesSueltas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -67926,6 +68013,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     solicitante: UserCreateNestedOneWithoutOrdenesComoSolicitanteInput
@@ -67947,6 +68037,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -67962,6 +68055,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     solicitante?: UserUpdateOneRequiredWithoutOrdenesComoSolicitanteNestedInput
@@ -67983,6 +68079,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -68001,6 +68100,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -68016,6 +68118,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -68034,6 +68139,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -70985,6 +71093,7 @@ export namespace Prisma {
     articulo?: SortOrder
     unidadesPorCaja?: SortOrder
     cantidadCajas?: SortOrder
+    unidadesSueltas?: SortOrder
     total?: SortOrder
     updatedAt?: SortOrder
   }
@@ -70992,6 +71101,7 @@ export namespace Prisma {
   export type InventarioFrascoAvgOrderByAggregateInput = {
     unidadesPorCaja?: SortOrder
     cantidadCajas?: SortOrder
+    unidadesSueltas?: SortOrder
     total?: SortOrder
   }
 
@@ -71001,6 +71111,7 @@ export namespace Prisma {
     articulo?: SortOrder
     unidadesPorCaja?: SortOrder
     cantidadCajas?: SortOrder
+    unidadesSueltas?: SortOrder
     total?: SortOrder
     updatedAt?: SortOrder
   }
@@ -71011,6 +71122,7 @@ export namespace Prisma {
     articulo?: SortOrder
     unidadesPorCaja?: SortOrder
     cantidadCajas?: SortOrder
+    unidadesSueltas?: SortOrder
     total?: SortOrder
     updatedAt?: SortOrder
   }
@@ -71018,6 +71130,7 @@ export namespace Prisma {
   export type InventarioFrascoSumOrderByAggregateInput = {
     unidadesPorCaja?: SortOrder
     cantidadCajas?: SortOrder
+    unidadesSueltas?: SortOrder
     total?: SortOrder
   }
 
@@ -71312,6 +71425,9 @@ export namespace Prisma {
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrder
+    motivoAjuste?: SortOrder
+    ajustadoPor?: SortOrder
+    ajustadoAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -71335,6 +71451,9 @@ export namespace Prisma {
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrder
+    motivoAjuste?: SortOrder
+    ajustadoPor?: SortOrder
+    ajustadoAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -71353,6 +71472,9 @@ export namespace Prisma {
     urgencia?: SortOrder
     estado?: SortOrder
     motivoRechazo?: SortOrder
+    motivoAjuste?: SortOrder
+    ajustadoPor?: SortOrder
+    ajustadoAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -79805,6 +79927,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aprobador?: UserCreateNestedOneWithoutOrdenesComoAprobadorInput
@@ -79824,6 +79949,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -79849,6 +79977,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     solicitante: UserCreateNestedOneWithoutOrdenesComoSolicitanteInput
@@ -79868,6 +79999,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -80176,6 +80310,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFilter<"OrdenProduccion"> | $Enums.Urgencia
     estado?: EnumEstadoOrdenFilter<"OrdenProduccion"> | $Enums.EstadoOrden
     motivoRechazo?: StringNullableFilter<"OrdenProduccion"> | string | null
+    motivoAjuste?: StringNullableFilter<"OrdenProduccion"> | string | null
+    ajustadoPor?: StringNullableFilter<"OrdenProduccion"> | string | null
+    ajustadoAt?: DateTimeNullableFilter<"OrdenProduccion"> | Date | string | null
     createdAt?: DateTimeFilter<"OrdenProduccion"> | Date | string
     updatedAt?: DateTimeFilter<"OrdenProduccion"> | Date | string
   }
@@ -82699,6 +82836,7 @@ export namespace Prisma {
     articulo: string
     unidadesPorCaja: number
     cantidadCajas?: number
+    unidadesSueltas?: number
     total?: number
     updatedAt?: Date | string
   }
@@ -82708,6 +82846,7 @@ export namespace Prisma {
     articulo: string
     unidadesPorCaja: number
     cantidadCajas?: number
+    unidadesSueltas?: number
     total?: number
     updatedAt?: Date | string
   }
@@ -82801,6 +82940,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     solicitante: UserCreateNestedOneWithoutOrdenesComoSolicitanteInput
@@ -82820,6 +82962,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -83115,6 +83260,7 @@ export namespace Prisma {
     articulo?: StringFilter<"InventarioFrasco"> | string
     unidadesPorCaja?: IntFilter<"InventarioFrasco"> | number
     cantidadCajas?: IntFilter<"InventarioFrasco"> | number
+    unidadesSueltas?: IntFilter<"InventarioFrasco"> | number
     total?: IntFilter<"InventarioFrasco"> | number
     updatedAt?: DateTimeFilter<"InventarioFrasco"> | Date | string
   }
@@ -85624,6 +85770,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -85641,6 +85790,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -85862,6 +86014,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aprobador?: UserUpdateOneWithoutOrdenesComoAprobadorNestedInput
@@ -85881,6 +86036,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -85898,6 +86056,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -85913,6 +86074,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     solicitante?: UserUpdateOneRequiredWithoutOrdenesComoSolicitanteNestedInput
@@ -85932,6 +86096,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -85949,6 +86116,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -86177,6 +86347,7 @@ export namespace Prisma {
     articulo: string
     unidadesPorCaja: number
     cantidadCajas?: number
+    unidadesSueltas?: number
     total?: number
     updatedAt?: Date | string
   }
@@ -86218,6 +86389,9 @@ export namespace Prisma {
     urgencia?: $Enums.Urgencia
     estado?: $Enums.EstadoOrden
     motivoRechazo?: string | null
+    motivoAjuste?: string | null
+    ajustadoPor?: string | null
+    ajustadoAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -86366,6 +86540,7 @@ export namespace Prisma {
     articulo?: StringFieldUpdateOperationsInput | string
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
+    unidadesSueltas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -86375,6 +86550,7 @@ export namespace Prisma {
     articulo?: StringFieldUpdateOperationsInput | string
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
+    unidadesSueltas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -86384,6 +86560,7 @@ export namespace Prisma {
     articulo?: StringFieldUpdateOperationsInput | string
     unidadesPorCaja?: IntFieldUpdateOperationsInput | number
     cantidadCajas?: IntFieldUpdateOperationsInput | number
+    unidadesSueltas?: IntFieldUpdateOperationsInput | number
     total?: IntFieldUpdateOperationsInput | number
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -86471,6 +86648,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     solicitante?: UserUpdateOneRequiredWithoutOrdenesComoSolicitanteNestedInput
@@ -86490,6 +86670,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -86507,6 +86690,9 @@ export namespace Prisma {
     urgencia?: EnumUrgenciaFieldUpdateOperationsInput | $Enums.Urgencia
     estado?: EnumEstadoOrdenFieldUpdateOperationsInput | $Enums.EstadoOrden
     motivoRechazo?: NullableStringFieldUpdateOperationsInput | string | null
+    motivoAjuste?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoPor?: NullableStringFieldUpdateOperationsInput | string | null
+    ajustadoAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

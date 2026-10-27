@@ -507,6 +507,7 @@ exports.Prisma.InventarioFrascoScalarFieldEnum = {
   articulo: 'articulo',
   unidadesPorCaja: 'unidadesPorCaja',
   cantidadCajas: 'cantidadCajas',
+  unidadesSueltas: 'unidadesSueltas',
   total: 'total',
   updatedAt: 'updatedAt'
 };
@@ -582,6 +583,9 @@ exports.Prisma.OrdenProduccionScalarFieldEnum = {
   urgencia: 'urgencia',
   estado: 'estado',
   motivoRechazo: 'motivoRechazo',
+  motivoAjuste: 'motivoAjuste',
+  ajustadoPor: 'ajustadoPor',
+  ajustadoAt: 'ajustadoAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

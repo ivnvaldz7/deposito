@@ -791,6 +791,7 @@ model InventarioFrasco {
   articulo        String
   unidadesPorCaja Int      @map("unidades_por_caja")
   cantidadCajas   Int      @default(0) @map("cantidad_cajas")
+  unidadesSueltas Int      @default(0) @map("unidades_sueltas")
   total           Int      @default(0)
   updatedAt       DateTime @updatedAt @map("updated_at")
 
@@ -938,6 +939,9 @@ model OrdenProduccion {
   urgencia          Urgencia    @default(normal)
   estado            EstadoOrden @default(solicitada)
   motivoRechazo     String?     @map("motivo_rechazo")
+  motivoAjuste      String?     @map("motivo_ajuste")
+  ajustadoPor       String?     @map("ajustado_por")
+  ajustadoAt        DateTime?   @map("ajustado_at")
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
 
