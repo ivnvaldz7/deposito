@@ -307,7 +307,7 @@ export class CatalogoProductoService {
             origen: 'MANUAL',
             presentacion: canonicalInput.presentacion ?? null,
             mercadosHabilitados: canonicalInput.mercadosHabilitados ?? [],
-            mercado: canonicalInput.categoria === 'estuche' ? canonicalInput.mercadosHabilitados?.[0] : null,
+            mercado: isMarketCategory(canonicalInput.categoria) ? canonicalInput.mercadosHabilitados?.[0] ?? null : null,
             volumen: canonicalInput.volumen ?? null,
             unidad: canonicalInput.unidad ?? null,
             variante: canonicalInput.variante ?? null,
@@ -323,7 +323,8 @@ export class CatalogoProductoService {
     } catch (e) {
       const code = typeof e === 'object' && e !== null && 'code' in e ? e.code : undefined
       if (automatic && (code === 'P2034' || code === 'P2002') && attempt < 3) continue
-      if (code === 'P2002' || code === 'P2034') throw new CatalogoError('CONFLICT', 'El código o producto ya existe; intentá nuevamente')
+      if (code === 'P2002') throw new CatalogoError('CONFLICT', 'Existe un conflicto con otro producto o código. Revisá el nombre, la presentación y el mercado.')
+      if (code === 'P2034') throw new CatalogoError('CONFLICT', 'Otra operación modificó el catálogo. Intentá nuevamente.')
       throw e
     }
     }

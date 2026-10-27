@@ -174,6 +174,18 @@ describe('catalogo product rules', () => {
     expect(seed).toHaveBeenCalledWith(expect.objectContaining({ data: [expect.objectContaining({ productoId: 'frasco-nuevo', total: 20, cantidadCajas: 2 })] }))
   })
 
+  it('assigns the single label market to its catalog identity', async () => {
+    const create = vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'label-ar', ...data, estado: 'ACTIVO' }))
+    const tx = {
+      depositoProducto: { create },
+      inventarioEtiqueta: { createMany: async () => ({ count: 1 }), findMany: async () => [{ mercado: 'argentina' }] },
+      auditoriaCatalogoProducto: { create: async () => ({ id: 'audit' }) },
+    }
+    const db = { $transaction: async (callback: (client: typeof tx) => Promise<unknown>) => callback(tx) }
+    await new CatalogoProductoService(db as PrismaClient).createManual({ nombreBase: 'AMINOÁCIDOS EQUINOS', nombreCompleto: 'AMINOÁCIDOS EQUINOS', categoria: 'etiqueta', codigo: 'IGET100', presentacion: 1, unidad: 'L', mercadosHabilitados: ['argentina'] }, 'enc-1')
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ nombreCompleto: 'AMINOÁCIDOS EQUINOS 1 L', mercado: 'argentina' }) }))
+  })
+
   it('adds the presentation to a manually created label name when only the base name is supplied', async () => {
     const created: Array<{ nombreCompleto: string }> = []
     const tx = {
