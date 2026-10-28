@@ -3,16 +3,11 @@ import { readFile } from 'node:fs/promises'
 import type { StockProjectionSnapshot } from './snapshot'
 import type { StockProjectionSheetAdapter, StockProjectionSheetConfig } from './sheet-adapter'
 
-const DEPOSITO_HEADER = 'PRODUCTO TERMINADO'
-const ACONDICIONADO_HEADER = 'SIN ACONDICIONAR'
-const TABLE_HEADERS = ['PRODUCTO', 'LOTE', 'VENCIMIENTO', 'TOTAL', 'ACTUALIZADO AL'] as const
-
 const DEPOSITO_RANGE_PREFIX = 'A'
 const ACONDICIONADO_RANGE_PREFIX = 'H'
-const HEADER_ROW = 1
-const COLUMN_HEADERS_ROW = 2
-const DATA_START_ROW = 3
-const MAX_DATA_ROWS = 1000
+// Las primeras siete filas contienen controles y encabezados de la planilla.
+const DATA_START_ROW = 8
+const MAX_DATA_ROWS = 997
 
 function columnLetter(index: number): string {
   return String.fromCharCode(65 + index)
@@ -62,73 +57,36 @@ async function ensureSheet(sheets: sheets_v4.Sheets, spreadsheetId: string, base
   }
 
   const existing = matches[0]
-  if (existing?.properties?.sheetId != null) {
-    if (existing.properties.title !== sheetName) {
-      await sheets.spreadsheets.batchUpdate({
-        spreadsheetId,
-        requestBody: {
-          requests: [{
-            updateSheetProperties: {
-              properties: { sheetId: existing.properties.sheetId, title: sheetName },
-              fields: 'title',
-            },
-          }],
-        },
-      })
-    }
-    return sheetName
+  if (existing?.properties?.sheetId == null) {
+    throw new Error(`No existe la solapa administrada ${baseName}; no se creará una hoja sin sus controles`)
   }
-  const addResponse = await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [{ addSheet: { properties: { title: sheetName } } }],
-    },
-  })
-  if (addResponse.data.replies?.[0]?.addSheet?.properties?.sheetId == null) {
-    throw new Error(`No se pudo crear la solapa ${sheetName}`)
+  const grid = existing.properties.gridProperties
+  if ((grid?.rowCount ?? 0) < DATA_START_ROW + MAX_DATA_ROWS - 1 || (grid?.columnCount ?? 0) < 12) {
+    throw new Error('La solapa no tiene el espacio necesario para las tablas de stock')
+  }
+  if (existing.properties.title !== sheetName) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{
+          updateSheetProperties: {
+            properties: { sheetId: existing.properties.sheetId, title: sheetName },
+            fields: 'title',
+          },
+        }],
+      },
+    })
   }
   return sheetName
-}
-
-async function clearAdminRanges(sheets: sheets_v4.Sheets, spreadsheetId: string, sheetName: string): Promise<void> {
-  const ranges = [
-    `${sheetName}!${buildClearRange(DEPOSITO_RANGE_PREFIX)}`,
-    `${sheetName}!${buildClearRange(ACONDICIONADO_RANGE_PREFIX)}`,
-    // Previous versions used E:G for this second table. Clear that managed
-    // space once the expanded table moves to H:L, preventing old totals from
-    // looking like live stock beside the new report.
-    `${sheetName}!E1:G${DATA_START_ROW + MAX_DATA_ROWS - 1}`,
-  ]
-  await sheets.spreadsheets.values.batchClear({
-    spreadsheetId,
-    requestBody: { ranges },
-  })
 }
 
 function snapshotToValues(rows: StockProjectionSnapshot['productoTerminado']): (string | number)[][] {
   return rows.map((row) => [row.producto, row.lote, row.vencimiento ?? 'SIN VTO', row.total, row.actualizadoEn ?? ''])
 }
 
-async function writeTable(
-  sheets: sheets_v4.Sheets,
-  spreadsheetId: string,
-  sheetName: string,
-  prefix: string,
-  headerTitle: string,
-  rows: StockProjectionSnapshot['productoTerminado'],
-): Promise<void> {
-  const values: (string | number)[][] = [
-    [headerTitle, '', ''],
-    [...TABLE_HEADERS],
-    ...snapshotToValues(rows),
-  ]
-  const range = `${sheetName}!${prefix}${HEADER_ROW}:${columnLetter(prefix.charCodeAt(0) - 65 + 4)}${HEADER_ROW + values.length - 1}`
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range,
-    valueInputOption: 'RAW',
-    requestBody: { values },
-  })
+function tableValues(rows: StockProjectionSnapshot['productoTerminado']): (string | number)[][] {
+  const values = snapshotToValues(rows)
+  return Array.from({ length: MAX_DATA_ROWS }, (_, index) => values[index] ?? ['', '', '', '', ''])
 }
 
 export function createGoogleSheetsAdapter(config: StockProjectionSheetConfig): StockProjectionSheetAdapter {
@@ -161,11 +119,22 @@ export function createGoogleSheetsAdapter(config: StockProjectionSheetConfig): S
 
   return {
     async writeSnapshot(snapshot: StockProjectionSnapshot): Promise<void> {
+      if (snapshot.productoTerminado.length > MAX_DATA_ROWS || snapshot.sinAcondicionar.length > MAX_DATA_ROWS) {
+        throw new Error('El stock excede el espacio disponible en la planilla')
+      }
       const sheets = await getSheets()
       const currentSheetName = await ensureSheet(sheets, spreadsheetId, sheetName)
-      await clearAdminRanges(sheets, spreadsheetId, currentSheetName)
-      await writeTable(sheets, spreadsheetId, currentSheetName, DEPOSITO_RANGE_PREFIX, DEPOSITO_HEADER, snapshot.productoTerminado)
-      await writeTable(sheets, spreadsheetId, currentSheetName, ACONDICIONADO_RANGE_PREFIX, ACONDICIONADO_HEADER, snapshot.sinAcondicionar)
+      const quotedSheet = `'${currentSheetName.replace(/'/g, "''")}'`
+      await sheets.spreadsheets.values.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          valueInputOption: 'RAW',
+          data: [
+            { range: `${quotedSheet}!${buildClearRange(DEPOSITO_RANGE_PREFIX)}`, values: tableValues(snapshot.productoTerminado) },
+            { range: `${quotedSheet}!${buildClearRange(ACONDICIONADO_RANGE_PREFIX)}`, values: tableValues(snapshot.sinAcondicionar) },
+          ],
+        },
+      })
     },
   }
 }

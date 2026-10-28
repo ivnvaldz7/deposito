@@ -6,6 +6,7 @@ import { validateSheetConfig } from '../sheet-adapter'
 const googleMocks = vi.hoisted(() => ({
   mockUpdate: vi.fn().mockResolvedValue({ data: {} }),
   mockClear: vi.fn().mockResolvedValue({ data: {} }),
+  mockValuesBatchUpdate: vi.fn().mockResolvedValue({ data: {} }),
   mockGet: vi.fn().mockResolvedValue({
     data: { sheets: [{ properties: { title: 'Stock', sheetId: 1 } }] },
   }),
@@ -25,6 +26,7 @@ vi.mock('googleapis', () => ({
         update: googleMocks.mockUpdate,
         values: {
           update: googleMocks.mockUpdate,
+          batchUpdate: googleMocks.mockValuesBatchUpdate,
           batchClear: googleMocks.mockClear,
         },
         batchUpdate: googleMocks.mockBatchUpdate,
@@ -168,142 +170,71 @@ describe('Google Sheets integration (mocked googleapis)', () => {
     vi.setSystemTime(new Date('2026-10-05T15:00:00Z'))
     vi.clearAllMocks()
     googleMocks.mockGet.mockResolvedValue({
-      data: { sheets: [{ properties: { title: 'Stock 5-10', sheetId: 1 } }] },
+      data: { sheets: [{ properties: { title: 'Stock 5-10', sheetId: 1, gridProperties: { rowCount: 1004, columnCount: 26 } } }] },
     })
   })
-
   afterEach(() => vi.useRealTimers())
 
-  it('I: creates sheet if not found, then writes snapshot', async () => {
-    googleMocks.mockGet.mockResolvedValueOnce({ data: { sheets: [] } })
+  async function adapter() {
     const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
-    const adapter = createGoogleSheetsAdapter({
-      enabled: true,
-      spreadsheetId: 'test-ssid',
-      sheetName: 'Stock',
-      serviceAccountFile: '/tmp/sa.json',
-    })
-    const snapshot: StockProjectionSnapshot = {
-      productoTerminado: [{ producto: 'A', lote: 'L1', total: 10 }],
-      sinAcondicionar: [],
-    }
-    await adapter.writeSnapshot(snapshot)
-    expect(googleMocks.mockBatchUpdate).toHaveBeenCalledOnce()
-    expect(googleMocks.mockUpdate).toHaveBeenCalled()
-  })
+    return createGoogleSheetsAdapter({ enabled: true, spreadsheetId: 'test-ssid', sheetName: 'Stock', serviceAccountFile: '/tmp/sa.json' })
+  }
 
-  it('J: does not recreate sheet when found', async () => {
-    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
-    const adapter = createGoogleSheetsAdapter({
-      enabled: true,
-      spreadsheetId: 'test-ssid',
-      sheetName: 'Stock',
-      serviceAccountFile: '/tmp/sa.json',
-    })
-    await adapter.writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })
-    expect(googleMocks.mockBatchUpdate).not.toHaveBeenCalled()
-  })
-
-  it('renames yesterday\'s managed tab while keeping the configured base name stable', async () => {
-    googleMocks.mockGet.mockResolvedValueOnce({
-      data: { sheets: [{ properties: { title: 'Stock 4-10', sheetId: 1 } }] },
-    })
-    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
-    const adapter = createGoogleSheetsAdapter({
-      enabled: true, spreadsheetId: 'test-ssid', sheetName: 'Stock', serviceAccountFile: '/tmp/sa.json',
-    })
-
-    await adapter.writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })
-
-    expect(googleMocks.mockBatchUpdate).toHaveBeenCalledWith(expect.objectContaining({
-      requestBody: {
-        requests: [{
-          updateSheetProperties: {
-            properties: { sheetId: 1, title: 'Stock 5-10' },
-            fields: 'title',
-          },
-        }],
-      },
-    }))
-    expect(googleMocks.mockClear.mock.calls[0]![0].requestBody.ranges).toContain('Stock 5-10!A3:E1002')
-  })
-
-  it('K: no format operations in any call', async () => {
-    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
-    const adapter = createGoogleSheetsAdapter({
-      enabled: true,
-      spreadsheetId: 'test-ssid',
-      sheetName: 'Stock',
-      serviceAccountFile: '/tmp/sa.json',
-    })
-    await adapter.writeSnapshot({
-      productoTerminado: [{ producto: 'X', lote: 'L1', total: 5 }],
-      sinAcondicionar: [],
-    })
-    const allCalls = [
-      ...googleMocks.mockUpdate.mock.calls,
-      ...googleMocks.mockClear.mock.calls,
-      ...googleMocks.mockBatchUpdate.mock.calls,
-      ...googleMocks.mockGet.mock.calls,
-    ]
-    const serialized = JSON.stringify(allCalls)
-    expect(serialized).not.toContain('deleteSheet')
-    expect(serialized).not.toContain('repeatCell')
-    expect(serialized).not.toContain('updateDimensionProperties')
-    expect(serialized).not.toContain('format')
-  })
-
-  it('E: clear is called before write (no stale rows)', async () => {
-    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
-    const adapter = createGoogleSheetsAdapter({
-      enabled: true,
-      spreadsheetId: 'test-ssid',
-      sheetName: 'Stock',
-      serviceAccountFile: '/tmp/sa.json',
-    })
-    await adapter.writeSnapshot({
-      productoTerminado: [{ producto: 'A', lote: 'L1', total: 10 }],
-      sinAcondicionar: [],
-    })
-    const clearIndex = googleMocks.mockClear.mock.invocationCallOrder[0]
-    const writeIndex = googleMocks.mockUpdate.mock.invocationCallOrder[0]
-    expect(clearIndex).toBeLessThan(writeIndex)
-  })
-
-  it('clear range covers exactly rows 3–1002 (1000 managed rows)', async () => {
-    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
-    const adapter = createGoogleSheetsAdapter({
-      enabled: true,
-      spreadsheetId: 'test-ssid',
-      sheetName: 'Stock',
-      serviceAccountFile: '/tmp/sa.json',
-    })
-    await adapter.writeSnapshot({
-      productoTerminado: [{ producto: 'A', lote: 'L1', total: 10 }],
-      sinAcondicionar: [],
-    })
-    const clearCall = googleMocks.mockClear.mock.calls[0]![0]
-    const ranges: string[] = clearCall.requestBody.ranges
-    expect(ranges).toContain('Stock 5-10!A3:E1002')
-    expect(ranges).toContain('Stock 5-10!H3:L1002')
-    expect(ranges).toContain('Stock 5-10!E1:G1002')
-    expect(ranges).not.toContain('Stock 5-10!A3:E1003')
-    expect(ranges).not.toContain('Stock 5-10!A3:E1000')
-    expect(ranges).not.toContain('Stock 5-10!H3:L1003')
-    expect(ranges).not.toContain('Stock 5-10!H3:L1000')
-  })
-
-  it('writes vencimiento and actualizado al for both managed tables', async () => {
-    const { createGoogleSheetsAdapter } = await import('../google-sheets-adapter')
-    const adapter = createGoogleSheetsAdapter({
-      enabled: true, spreadsheetId: 'test-ssid', sheetName: 'Stock', serviceAccountFile: '/tmp/sa.json',
-    })
-    await adapter.writeSnapshot({
+  it('preserves rows 1–7 and replaces both table bodies atomically', async () => {
+    await (await adapter()).writeSnapshot({
       productoTerminado: [{ producto: 'A', lote: 'L1', vencimiento: '17/4/2027', total: 5, actualizadoEn: '5/10/26, 12:00' }],
-      sinAcondicionar: [],
+      sinAcondicionar: [{ producto: 'B', lote: 'L2', total: 3 }],
     })
-    const firstWrite = googleMocks.mockUpdate.mock.calls[0]![0]
-    expect(firstWrite.requestBody.values[1]).toEqual(['PRODUCTO', 'LOTE', 'VENCIMIENTO', 'TOTAL', 'ACTUALIZADO AL'])
-    expect(firstWrite.requestBody.values[2]).toEqual(['A', 'L1', '17/4/2027', 5, '5/10/26, 12:00'])
+    expect(googleMocks.mockClear).not.toHaveBeenCalled()
+    expect(googleMocks.mockUpdate).not.toHaveBeenCalled()
+    expect(googleMocks.mockValuesBatchUpdate).toHaveBeenCalledOnce()
+    const data = googleMocks.mockValuesBatchUpdate.mock.calls[0]![0].requestBody.data
+    expect(data.map((table: { range: string }) => table.range)).toEqual(["'Stock 5-10'!A8:E1004", "'Stock 5-10'!H8:L1004"])
+    expect(data[0].values[0]).toEqual(['A', 'L1', '17/4/2027', 5, '5/10/26, 12:00'])
+    expect(data[1].values[0]).toEqual(['B', 'L2', 'SIN VTO', 3, ''])
+    expect(data[0].values).toHaveLength(997)
+    expect(data[0].values[996]).toEqual(['', '', '', '', ''])
+  })
+
+  it('does not create a blank sheet when the configured tab is missing', async () => {
+    googleMocks.mockGet.mockResolvedValueOnce({ data: { sheets: [] } })
+    await expect((await adapter()).writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })).rejects.toThrow('No existe la solapa')
+    expect(googleMocks.mockBatchUpdate).not.toHaveBeenCalled()
+    expect(googleMocks.mockValuesBatchUpdate).not.toHaveBeenCalled()
+  })
+
+  it('refuses undersized grids without touching their contents', async () => {
+    googleMocks.mockGet.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Stock 5-10', sheetId: 1, gridProperties: { rowCount: 1000, columnCount: 26 } } }] } })
+    await expect((await adapter()).writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })).rejects.toThrow('espacio necesario')
+    expect(googleMocks.mockValuesBatchUpdate).not.toHaveBeenCalled()
+  })
+
+  it('rejects oversized snapshots before contacting Google', async () => {
+    await expect((await adapter()).writeSnapshot({ productoTerminado: Array.from({ length: 998 }, () => ({ producto: 'A', lote: 'L1', total: 1 })), sinAcondicionar: [] })).rejects.toThrow('excede el espacio')
+    expect(googleMocks.mockGet).not.toHaveBeenCalled()
+    expect(googleMocks.mockValuesBatchUpdate).not.toHaveBeenCalled()
+  })
+
+  it('refuses multiple managed tabs without writing', async () => {
+    googleMocks.mockGet.mockResolvedValueOnce({ data: { sheets: [
+      { properties: { title: 'Stock', sheetId: 1, gridProperties: { rowCount: 1004, columnCount: 26 } } },
+      { properties: { title: 'Stock 4-10', sheetId: 2, gridProperties: { rowCount: 1004, columnCount: 26 } } },
+    ] } })
+    await expect((await adapter()).writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })).rejects.toThrow('varias solapas')
+    expect(googleMocks.mockValuesBatchUpdate).not.toHaveBeenCalled()
+  })
+
+  it('empty snapshots erase prior body values without touching header or formatting', async () => {
+    await (await adapter()).writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })
+    const args = googleMocks.mockValuesBatchUpdate.mock.calls[0]![0]
+    expect(args.requestBody.data[0].values[0]).toEqual(['', '', '', '', ''])
+    expect(args.requestBody.data[1].values[996]).toEqual(['', '', '', '', ''])
+    expect(JSON.stringify(args)).not.toContain('format')
+  })
+
+  it('renames an existing managed tab without recreating it', async () => {
+    googleMocks.mockGet.mockResolvedValueOnce({ data: { sheets: [{ properties: { title: 'Stock 4-10', sheetId: 1, gridProperties: { rowCount: 1004, columnCount: 26 } } }] } })
+    await (await adapter()).writeSnapshot({ productoTerminado: [], sinAcondicionar: [] })
+    expect(googleMocks.mockBatchUpdate).toHaveBeenCalledWith(expect.objectContaining({ requestBody: { requests: [{ updateSheetProperties: { properties: { sheetId: 1, title: 'Stock 5-10' }, fields: 'title' } }] } }))
   })
 })
