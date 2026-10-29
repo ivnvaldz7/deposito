@@ -324,6 +324,38 @@ describe('PRODUCTOS stock administration', () => {
     expect(reference).toMatchObject({ origen: { productoId: data.producto.id, loteId: sourceLot.id }, destino: { productoId: target.id, loteId: targetLot.id }, rule: { label: 'Equino' } })
   })
 
+  it('reconciles a linked destination lot when the source expiration was updated after an earlier transfer', async () => {
+    const data = await fixture()
+    const target = await prisma.producto.create({ data: { nombre: 'Producto VACAS', sku: 'SKU-VACAS', unidadesPorCaja: 24 } })
+    const sourceLot = await prisma.lote.create({
+      data: { numero: 'EN0131', productoId: data.producto.id, fechaVencimiento: new Date('2027-09-01T15:00:00.000Z') },
+    })
+    const derivedLot = await prisma.lote.create({
+      data: { numero: 'EN0131', productoId: target.id, derivedFromLoteId: sourceLot.id },
+    })
+    await prisma.saldoStock.create({ data: { productoId: data.producto.id, loteId: sourceLot.id, ubicacionId: data.acondicionado.id, cantidad: 72 } })
+    const rule = await prisma.productoTransferRule.create({
+      data: { sourceProductId: data.producto.id, targetProductId: target.id, label: 'Vacas', tipo: TipoReglaTransferenciaProducto.PRESENTATION },
+    })
+
+    const response = await request(app)
+      .post('/api/ale-bet/stock/transferencias')
+      .set('Authorization', auth('admin'))
+      .set('Idempotency-Key', 'presentation-reconcile-expiration')
+      .send({ productoId: data.producto.id, loteId: sourceLot.id, origen: 'ACONDICIONADO', destino: 'DEPOSITO', cantidad: 72, transferRuleId: rule.id })
+
+    expect(response.status).toBe(201)
+    expect(response.body.targetLoteId).toBe(derivedLot.id)
+    expect(await prisma.lote.findUniqueOrThrow({ where: { id: derivedLot.id } })).toMatchObject({
+      numero: sourceLot.numero,
+      derivedFromLoteId: sourceLot.id,
+      fechaVencimiento: sourceLot.fechaVencimiento,
+    })
+    expect(await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: data.producto.id, loteId: sourceLot.id, ubicacionId: data.acondicionado.id } } })).toMatchObject({ cantidad: 0 })
+    expect(await prisma.saldoStock.findUniqueOrThrow({ where: { productoId_loteId_ubicacionId: { productoId: target.id, loteId: derivedLot.id, ubicacionId: data.deposito.id } } })).toMatchObject({ cantidad: 72 })
+    expect(await prisma.lote.count({ where: { productoId: target.id, numero: sourceLot.numero } })).toBe(1)
+  })
+
   it('transfers every configured AMINOÁCIDOS presentation and preserves derived-lot identity', async () => {
     const data = await fixture()
     const amino50 = await prisma.producto.create({ data: { nombre: 'AMINOÁCIDOS 50 ML', sku: 'AMINO-50-BASE', unidadesPorCaja: 40 } })

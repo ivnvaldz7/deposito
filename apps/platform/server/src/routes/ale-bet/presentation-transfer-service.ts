@@ -75,12 +75,20 @@ export async function transferConfiguredPresentation(
     select: { id: true, numero: true, fechaProduccion: true, fechaVencimiento: true, derivedFromLoteId: true },
   })
   if (targetLot) {
+    if (targetLot.numero !== sourceLot.numero) {
+      throw new InventoryConflictError('El lote derivado existente no coincide con la trazabilidad del lote origen')
+    }
     if (
-      targetLot.numero !== sourceLot.numero ||
       !sameInstant(targetLot.fechaProduccion, sourceLot.fechaProduccion) ||
       !sameInstant(targetLot.fechaVencimiento, sourceLot.fechaVencimiento)
     ) {
-      throw new InventoryConflictError('El lote derivado existente no coincide con la trazabilidad del lote origen')
+      // The source lot may have received corrected dates after the first transfer.
+      // Its explicit lineage is authoritative, so keep the existing destination lot in sync.
+      targetLot = await tx.lote.update({
+        where: { id: targetLot.id },
+        data: { fechaProduccion: sourceLot.fechaProduccion, fechaVencimiento: sourceLot.fechaVencimiento },
+        select: { id: true, numero: true, fechaProduccion: true, fechaVencimiento: true, derivedFromLoteId: true },
+      })
     }
   } else {
     const matchingLots = (await tx.lote.findMany({
