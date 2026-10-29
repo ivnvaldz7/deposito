@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 
 interface DialogProps {
@@ -6,28 +6,59 @@ interface DialogProps {
   onOpenChange: (open: boolean) => void
   children: ReactNode
   ariaLabel?: string
+  initialFocusRef?: RefObject<HTMLElement | null>
   /** Large variant: near-fullscreen desktop modal (e.g. import previews). */
   large?: boolean
 }
 
-export function Dialog({ open, onOpenChange, children, ariaLabel, large = false }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, ariaLabel, initialFocusRef, large = false }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!open) return
 
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onOpenChange(false)
+    function getFocusableElements() {
+      const dialog = dialogRef.current
+      if (!dialog) return []
+
+      return Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => !element.hasAttribute('hidden') && element.tabIndex >= 0)
     }
 
-    document.addEventListener('keydown', handleKeyDown)
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onOpenChange(false)
+        return
+      }
+
+      if (e.key !== 'Tab') return
+
+      const focusable = getFocusableElements()
+
+      if (focusable.length === 0) {
+        e.preventDefault()
+        return
+      }
+
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLElement)
+      const nextIndex = e.shiftKey
+        ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
+        : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1
+
+      e.preventDefault()
+      focusable[nextIndex]?.focus()
+    }
+
+    document.addEventListener('keydown', handleKeyDown, true)
     document.body.style.overflow = 'hidden'
+    ;(initialFocusRef?.current ?? getFocusableElements()[0])?.focus()
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keydown', handleKeyDown, true)
       document.body.style.overflow = ''
     }
-  }, [open, onOpenChange])
+  }, [open, onOpenChange, initialFocusRef])
 
   if (!open) return null
 

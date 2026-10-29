@@ -407,16 +407,10 @@ describe('GestionarStockModal', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
-  it('shows configured presentations but blocks a conversion when Acondicionado is zero', async () => {
-    vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue({
-      lotes: [
-        { id: 'l-amino', numero: 'A00298', fechaProduccion: '2026-01-01T00:00:00.000Z', fechaVencimiento: '2027-10-31T00:00:00.000Z', activo: true, stockTotal: 606, stockDeposito: 606, stockAcondicionado: 0 },
-      ],
-      ubicaciones: [
-        { id: 'u1', codigo: 'DEPOSITO', nombre: 'Depósito' },
-        { id: 'u2', codigo: 'ACONDICIONADO', nombre: 'Acondicionado' },
-      ],
-    } as any)
+  it('does not offer presentation conversion when Acondicionado is zero', async () => {
+    vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue(stockResponse([
+      { id: 'l-amino', numero: 'A00298', fechaProduccion: '2026-01-01T00:00:00.000Z', fechaVencimiento: '2027-10-31T00:00:00.000Z', activo: true, stockTotal: 606, stockDeposito: 606, stockAcondicionado: 0 },
+    ]))
     vi.mocked(aleBetApi.stock.transferRules).mockResolvedValue({
       rules: [
         { id: 'rule-aves', label: 'Aves', tipo: 'PRESENTATION', targetProduct: { id: 'p-aves', nombre: 'AMINOÁCIDOS 1 L AVES' } },
@@ -427,16 +421,22 @@ describe('GestionarStockModal', () => {
 
     renderComponent()
     await selectLot('A00298')
-    fireEvent.click(screen.getByRole('button', { name: 'Preparar presentación' }))
+    expect(screen.queryByRole('button', { name: 'Preparar presentación' })).not.toBeInTheDocument()
+    expect(screen.getByText(/No hay stock en Acondicionado/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Cantidad a transferir')).not.toBeInTheDocument()
+  })
 
-    await waitFor(() => expect(screen.getByLabelText('Preparar como')).toBeInTheDocument())
-    expect(screen.getByRole('option', { name: 'Aves' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Equino' })).toBeInTheDocument()
-    expect(screen.getByRole('option', { name: 'Cerdos' })).toBeInTheDocument()
-    expect(screen.getByText('Disponible: 0 unidades en Acondicionado.')).toBeInTheDocument()
-    expect(screen.getByText('No hay stock en Acondicionado disponible para preparar esta presentación.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Confirmar transferencia' })).toBeDisabled()
-    expect(screen.getByLabelText('Cantidad a transferir')).toBeDisabled()
+  it('shows a converted lot already in Depósito without offering a second transfer', async () => {
+    vi.mocked(aleBetApi.productos.stock.get).mockResolvedValue(stockResponse([
+      { id: 'l-vacas', numero: 'EN0131', fechaProduccion: null, fechaVencimiento: '2026-09-01T15:00:00.000Z', activo: true, stockTotal: 72, stockDeposito: 72, stockAcondicionado: 0 },
+    ]))
+
+    renderComponent(vi.fn(), 'ENERGIZANTE 250 ML VACAS', 24)
+    await selectLot('EN0131')
+
+    expect(screen.getByText('72 unidades ya están en Depósito.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Enviar a depósito' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Cantidad a transferir')).not.toBeInTheDocument()
   })
 
   it.each([

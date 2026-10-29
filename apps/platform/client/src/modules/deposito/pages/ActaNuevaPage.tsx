@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { formatUnit, formatCantidad } from '../lib/format-units'
 import { useNavigate } from 'react-router-dom'
 import { useForm, useWatch, Controller } from 'react-hook-form'
@@ -86,7 +86,7 @@ type EtiquetaCuarentena = {
   fecha: string
 }
 
-function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }: {
+export function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }: {
   etiqueta: EtiquetaCuarentena
   printing: boolean
   error: string | null
@@ -94,9 +94,10 @@ function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }
   onSkip: () => void
 }) {
   const [copies, setCopies] = useState(1)
+  const copiesRef = useRef<HTMLInputElement>(null)
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open && !printing) onSkip() }}>
+    <Dialog open onOpenChange={(open) => { if (!open && !printing) onSkip() }} initialFocusRef={copiesRef}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>¿Imprimir etiqueta de ingreso?</DialogTitle>
@@ -110,6 +111,7 @@ function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }
         <label className="mt-5 block font-body text-sm text-on-surface">
           Copias
           <input
+            ref={copiesRef}
             aria-label="Copias de etiqueta"
             type="number"
             min={1}
@@ -122,7 +124,7 @@ function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }
         </label>
         {error && <p role="alert" className="mt-3 rounded border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">{error}</p>}
         <div className="mt-5 flex gap-3">
-          <button type="button" onClick={onSkip} disabled={printing} className="flex-1 rounded bg-surface-container-high py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-bright disabled:opacity-50">Ahora no</button>
+          <button type="button" onClick={onSkip} disabled={printing} tabIndex={-1} className="flex-1 rounded bg-surface-container-high py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-bright disabled:opacity-50">Ahora no</button>
           <button type="button" onClick={() => onPrint(copies)} disabled={printing} className="btn-primary flex-1 min-h-11 py-3 text-sm disabled:opacity-50">
             <Printer size={16} className="mr-2 inline" />{printing ? 'Enviando...' : 'Imprimir'}
           </button>
@@ -139,12 +141,20 @@ const CATEGORIAS_ME: { label: string; value: CategoriaProducto }[] = [
   { label: 'Material auxiliar', value: 'material_empaque' },
 ]
 
+const MERCADO_SIGLAS: Record<Mercado, string> = {
+  argentina: 'AR', colombia: 'CO', mexico: 'MX', ecuador: 'EC',
+  bolivia: 'BO', paraguay: 'PY', VENEZUELA: 'VE', no_exportable: 'NE',
+}
+
 function materialEmpaqueRequiereLote(nombre: string): boolean {
   return /^(TAPA|PROSPECTO)\b/i.test(nombre.trim())
 }
 
 export default function ActaNuevaPage() {
   const navigate = useNavigate()
+  const formRef = useRef<HTMLFormElement>(null)
+  const firstMercadoRef = useRef<HTMLButtonElement>(null)
+  const shouldFocusMercadoRef = useRef(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const submitInFlight = useRef(false)
@@ -228,6 +238,15 @@ export default function ActaNuevaPage() {
     setValue('unidadesPorCaja', '', { shouldValidate: false })
     setValue('lote', '', { shouldValidate: false })
   }, [resolvedCategoria, setValue])
+
+  useEffect(() => {
+    if (!shouldFocusMercadoRef.current || (categoria !== 'etiqueta' && categoria !== 'estuche')) return
+    const frame = window.requestAnimationFrame(() => {
+      firstMercadoRef.current?.focus()
+      shouldFocusMercadoRef.current = false
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [categoria])
 
   useEffect(() => {
     const suggestedLote = nextLoteQuery.data?.lote
@@ -319,6 +338,19 @@ export default function ActaNuevaPage() {
 
   const isFormValid = isValid && isDirty
 
+  function handleFormTab(event: ReactKeyboardEvent<HTMLFormElement>) {
+    if (event.key !== 'Tab') return
+    const focusables = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter((element) => !element.hasAttribute('hidden') && element.tabIndex >= 0)
+    if (focusables.length === 0) return
+    const currentIndex = focusables.indexOf(document.activeElement as HTMLElement)
+    const shouldWrap = event.shiftKey ? currentIndex <= 0 : currentIndex === -1 || currentIndex === focusables.length - 1
+    if (!shouldWrap) return
+    event.preventDefault()
+    focusables[event.shiftKey ? focusables.length - 1 : 0]?.focus()
+  }
+
   return (
     <div className="min-h-screen bg-surface font-sans text-on-surface pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-24 relative overflow-hidden">
       <div className="max-w-5xl mx-auto px-3 sm:px-4 md:px-6 pt-3 sm:pt-4 relative z-10">
@@ -333,7 +365,7 @@ export default function ActaNuevaPage() {
             <ArrowLeft size={20} className="text-on-surface-variant" />
           </button>
           <div className="p-4 pt-14 sm:p-5 sm:pt-5 lg:p-6">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pl-12 sm:pl-14" noValidate>
+              <form ref={formRef} onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormTab} className="space-y-4 pl-12 sm:pl-14" noValidate>
                 
                 <div className="grid gap-4 md:grid-cols-[minmax(16rem,0.85fr)_minmax(22rem,1.15fr)] md:items-end">
                 <div className="space-y-1">
@@ -346,7 +378,7 @@ export default function ActaNuevaPage() {
                     render={({ field }) => (
                       <DatePickerInput 
                         value={field.value}
-                        onChange={field.onChange} 
+                        onChange={field.onChange}
                       />
                     )}
                   />
@@ -359,6 +391,7 @@ export default function ActaNuevaPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
+                        autoFocus
                         onClick={() => setTipoIngreso('MP')}
                         className={`btn-press py-3 px-4 rounded-lg font-body text-sm transition-all border ${
                           tipoIngreso === 'MP'
@@ -370,7 +403,10 @@ export default function ActaNuevaPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setTipoIngreso('ME')}
+                        onClick={() => {
+                          shouldFocusMercadoRef.current = true
+                          setTipoIngreso('ME')
+                        }}
                         className={`btn-press py-3 px-4 rounded-lg font-body text-sm transition-all border ${
                           tipoIngreso === 'ME'
                             ? 'bg-primary/10 border-primary/30 text-primary font-medium'
@@ -388,7 +424,10 @@ export default function ActaNuevaPage() {
                         <button
                           key={cat.value}
                           type="button"
-                          onClick={() => setMercadoCat(cat.value)}
+                          onClick={() => {
+                            shouldFocusMercadoRef.current = cat.value === 'estuche' || cat.value === 'etiqueta'
+                            setMercadoCat(cat.value)
+                          }}
                           className={`btn-press py-2 px-3 rounded-lg font-body text-sm transition-all border ${
                             mercadoCat === cat.value
                               ? 'bg-secondary/10 border-secondary/30 text-secondary font-medium'
@@ -409,19 +448,36 @@ export default function ActaNuevaPage() {
                 <div className="space-y-4">
                 {(categoria === 'etiqueta' || categoria === 'estuche') && (
                   <div className="space-y-1 animate-reveal">
-                    <label htmlFor="ingreso-mercado" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                    <p id="ingreso-mercado-label" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                       Mercado <span className="text-error">*</span>
-                    </label>
-                    <select
-                      id="ingreso-mercado"
-                      {...register('mercado')}
-                      className="input-field"
+                    </p>
+                    <div
+                      role="group"
+                      aria-labelledby="ingreso-mercado-label"
+                      className="flex flex-nowrap justify-between rounded-lg border border-white/10 bg-surface-container p-2"
                     >
-                      <option value="">Seleccioná un mercado para filtrar productos</option>
                       {MERCADOS.map((m) => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
+                        <button
+                          key={m.value}
+                          ref={m.value === MERCADOS[0]?.value ? firstMercadoRef : undefined}
+                          type="button"
+                          aria-pressed={mercadoSeleccionado === m.value}
+                          aria-label={`Seleccionar mercado ${m.label}`}
+                          title={m.label}
+                          onClick={() => {
+                            setValue('mercado', m.value, { shouldDirty: true, shouldValidate: true })
+                            clearErrors('mercado')
+                          }}
+                          className={`btn-press flex h-9 w-8 shrink-0 items-center justify-center rounded-md border font-body text-xs font-semibold transition-colors ${
+                            mercadoSeleccionado === m.value
+                              ? 'border-primary/60 bg-primary/15 text-primary'
+                              : 'border-white/10 bg-surface-high text-on-surface-variant hover:border-white/25 hover:bg-surface-bright'
+                          }`}
+                        >
+                          <span aria-hidden="true">{MERCADO_SIGLAS[m.value]}</span>
+                        </button>
                       ))}
-                    </select>
+                    </div>
                     {errors.mercado && <p className="font-body text-error text-xs">{errors.mercado.message}</p>}
                   </div>
                 )}

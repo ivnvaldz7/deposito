@@ -229,7 +229,7 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
                             <div className="mb-3 flex items-center justify-between gap-2"><p className="flex items-center gap-1.5 font-body text-[11px] font-semibold uppercase tracking-wide text-sky-200"><Warehouse size={15} aria-hidden="true" />Depósito</p><p className="text-[18px] font-bold tabular-nums text-sky-100">{lote.stockDeposito}</p></div>
                             {depositoUbicacion && <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                               <button type="button" onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: depositoUbicacion.id, ubicacionNombre: 'Depósito', cantidadActual: lote.stockDeposito, activo: lote.activo })} className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-sky-300/35 px-2 py-2 font-body text-[12px] font-semibold text-sky-100 transition hover:bg-sky-300/15"><PencilLine size={15} aria-hidden="true" />Ajustar saldo</button>
-                              <button type="button" onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'DEPOSITO', cantidadActual: lote.stockDeposito })} className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-sky-300/25 px-2 py-2 font-body text-[12px] font-semibold text-sky-100 transition hover:bg-sky-300/15"><ArrowRight size={15} aria-hidden="true" />A acondicionado</button>
+                              {lote.stockDeposito > 0 && <button type="button" onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'DEPOSITO', cantidadActual: lote.stockDeposito })} className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-sky-300/25 px-2 py-2 font-body text-[12px] font-semibold text-sky-100 transition hover:bg-sky-300/15"><ArrowRight size={15} aria-hidden="true" />A acondicionado</button>}
                             </div>}
                           </div>
                           <div className="rounded-xl border border-amber-400/25 bg-amber-400/5 p-3">
@@ -237,7 +237,11 @@ export function GestionarStockModal({ producto, onClose }: GestionarStockModalPr
                             {acondicionadoUbicacion && <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                               <button type="button" onClick={() => setIngresoModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo, isReactivation: false })} className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-amber-300/40 px-2 py-2 font-body text-[12px] font-semibold text-amber-100 transition hover:bg-amber-300/15"><PackagePlus size={15} aria-hidden="true" />Ingresar stock</button>
                               <button type="button" onClick={() => setAjusteModal({ loteId: lote.id, loteNumero: lote.numero, ubicacionId: acondicionadoUbicacion.id, ubicacionNombre: 'Acondicionado', cantidadActual: lote.stockAcondicionado, activo: lote.activo })} className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-amber-300/25 px-2 py-2 font-body text-[12px] font-semibold text-amber-100 transition hover:bg-amber-300/15"><PencilLine size={15} aria-hidden="true" />Ajustar saldo</button>
-                              <button type="button" onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'ACONDICIONADO', cantidadActual: lote.stockAcondicionado })} className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-amber-300/30 px-2 py-2 font-body text-[12px] font-semibold text-amber-100 transition hover:bg-amber-300/15 min-[420px]:col-span-2"><ArrowRight size={15} aria-hidden="true" />{hasPresentationDestinations ? 'Preparar presentación' : 'Enviar a depósito'}</button>
+                              {lote.stockAcondicionado > 0 ? (
+                                <button type="button" onClick={() => setTransferirModal({ loteId: lote.id, loteNumero: lote.numero, origen: 'ACONDICIONADO', cantidadActual: lote.stockAcondicionado })} className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-amber-300/30 px-2 py-2 font-body text-[12px] font-semibold text-amber-100 transition hover:bg-amber-300/15 min-[420px]:col-span-2"><ArrowRight size={15} aria-hidden="true" />{hasPresentationDestinations ? 'Preparar presentación' : 'Enviar a depósito'}</button>
+                              ) : (
+                                <p role="status" className="font-body text-[11px] text-on-surface-variant min-[420px]:col-span-2">No hay stock en Acondicionado.{lote.stockDeposito > 0 && <span className="block text-sky-100">{lote.stockDeposito} unidades ya están en Depósito.</span>}</p>
+                              )}
                             </div>}
                           </div>
                         </div>
@@ -638,7 +642,9 @@ function TransferirModal({ productoId, productoNombre, loteId, loteNumero, orige
         ...(selectedRule ? { transferRuleId: selectedRule.id } : {}),
         idempotencyKey: crypto.randomUUID()
       })
-      toast.success('Stock actualizado correctamente')
+      toast.success(selectedRule?.tipo === 'PRESENTATION'
+        ? `${val} unidades de ${selectedRule.targetProduct.nombre} enviadas a Depósito`
+        : 'Stock actualizado correctamente')
       onCompleted()
     } catch (err) {
       setErrorLocal(err instanceof Error ? err.message : 'Error al transferir')
@@ -681,9 +687,9 @@ function TransferirModal({ productoId, productoNombre, loteId, loteNumero, orige
               ) : null}
             </div>
           )}
-          {hasPresentationRules && cantidadActual === 0 && (
+          {cantidadActual === 0 && (
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
-              <p className="font-body text-[12px] text-amber-200">No hay stock en Acondicionado disponible para preparar esta presentación.</p>
+              <p className="font-body text-[12px] text-amber-200">No hay stock en {origen === 'DEPOSITO' ? 'Depósito' : 'Acondicionado'} disponible para transferir.</p>
             </div>
           )}
           <div>
@@ -705,13 +711,13 @@ function TransferirModal({ productoId, productoNombre, loteId, loteNumero, orige
               id="cantidad-transferir"
               type="number" 
               min={1}
-              max={cantidadActual}
+              max={cantidadActual > 0 ? cantidadActual : undefined}
               required
               value={cantidad}
               onChange={(e) => setCantidad(e.target.value)}
               className="input-field mt-1 min-h-11 w-full text-[16px]"
               autoFocus
-              disabled={hasPresentationRules && cantidadActual === 0}
+              disabled={cantidadActual === 0}
             />
             {hasPresentationRules && <p className="mt-1 font-body text-[11px] text-on-surface-variant">Disponible: {cantidadActual} unidades en Acondicionado.</p>}
           </div>
@@ -747,7 +753,7 @@ function TransferirModal({ productoId, productoNombre, loteId, loteNumero, orige
           </div>
           <div className="flex flex-col-reverse gap-2 pt-3 sm:flex-row sm:justify-end sm:gap-3">
             <button type="button" onClick={onClose} className={operationSheetSecondaryButtonClass}>Cancelar</button>
-            <button type="submit" disabled={transferirMutation.isPending || transferRulesQuery.isLoading || transferRulesQuery.isError || (requiresDestination && !selectedRule) || (hasPresentationRules && cantidadActual === 0)} className={operationSheetPrimaryButtonClass}>
+            <button type="submit" disabled={transferirMutation.isPending || transferRulesQuery.isLoading || transferRulesQuery.isError || (requiresDestination && !selectedRule) || cantidadActual === 0} className={operationSheetPrimaryButtonClass}>
               {transferirMutation.isPending ? 'Transfiriendo...' : 'Confirmar transferencia'}
             </button>
           </div>

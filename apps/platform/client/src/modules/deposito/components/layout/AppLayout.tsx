@@ -1,12 +1,16 @@
 import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { CommandPalette } from '../command-palette/CommandPalette'
 import { useCommandPaletteStore } from '../../stores/command-palette-store'
 import { useSSE } from '../../hooks/use-sse'
+import { useAuthStore } from '@/stores/auth-store'
+import { can } from '@/lib/permissions'
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const user = useAuthStore((state) => state.user)
   const togglePalette = useCommandPaletteStore((s) => s.togglePalette)
 
   useSSE()
@@ -23,10 +27,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         e.preventDefault()
         togglePalette()
       }
+
+      const isModalOpen = Boolean(document.querySelector('[role="dialog"][aria-modal="true"]'))
+      if (e.key.toLowerCase() === 'n' && e.shiftKey && !isInput && !isModalOpen && can(user, 'deposito', 'ingresos.create')) {
+        e.preventDefault()
+        navigate('/deposito/ingresos')
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [togglePalette])
+  }, [navigate, togglePalette, user])
 
   return (
     <div className="flex min-h-screen bg-background">

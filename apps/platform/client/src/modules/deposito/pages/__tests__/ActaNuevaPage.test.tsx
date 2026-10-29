@@ -2,9 +2,10 @@ import { renderWithQueryClient as render } from '@/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { api } from '../../lib/api'
-import ActaNuevaPage from '../ActaNuevaPage'
+import ActaNuevaPage, { EtiquetaCuarentenaDialog } from '../ActaNuevaPage'
 import { createMockUser } from '@/test-utils'
 import { useAuthStore } from '@/stores/auth-store'
+import { Dialog, DialogContent } from '../../components/ui/Dialog'
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,73 @@ describe('ActaNuevaPage', () => {
     })
   })
 
+  it('keeps Tab navigation inside the ingreso form', async () => {
+    render(<ActaNuevaPage />)
+
+    const first = await screen.findByRole('button', { name: 'Materia Prima' })
+    const firstFocusable = screen.getByPlaceholderText('Seleccioná una fecha')
+    const last = screen.getByRole('button', { name: 'Cancelar' })
+    await waitFor(() => expect(first).toHaveFocus())
+
+    last.focus()
+    fireEvent.keyDown(last, { key: 'Tab' })
+    expect(firstFocusable).toHaveFocus()
+
+    firstFocusable.focus()
+    fireEvent.keyDown(firstFocusable, { key: 'Tab', shiftKey: true })
+    expect(last).toHaveFocus()
+  })
+
+  it('keeps keyboard focus between copies and print in the incoming-label dialog', async () => {
+    const onPrint = vi.fn()
+    const onSkip = vi.fn()
+
+    render(
+      <EtiquetaCuarentenaDialog
+        etiqueta={{ itemId: 'item-1', producto: 'AMINOÁCIDOS 1 L AVES', lote: '3532', fecha: '2026-10-29' }}
+        printing={false}
+        error={null}
+        onPrint={onPrint}
+        onSkip={onSkip}
+      />,
+    )
+
+    const copies = await screen.findByRole('spinbutton', { name: 'Copias de etiqueta' })
+    const print = screen.getByRole('button', { name: 'Imprimir' })
+
+    await waitFor(() => expect(copies).toHaveFocus())
+    expect(screen.getByRole('button', { name: 'Ahora no' })).toHaveAttribute('tabindex', '-1')
+
+    fireEvent.keyDown(copies, { key: 'Tab' })
+    expect(print).toHaveFocus()
+
+    fireEvent.keyDown(print, { key: 'Tab' })
+    expect(copies).toHaveFocus()
+
+    fireEvent.keyDown(copies, { key: 'Tab', shiftKey: true })
+    expect(print).toHaveFocus()
+  })
+
+  it('starts focus inside every dialog and cycles through its controls', async () => {
+    render(
+      <Dialog open onOpenChange={vi.fn()}>
+        <DialogContent>
+          <button type="button">Primero</button>
+          <button type="button">Segundo</button>
+        </DialogContent>
+      </Dialog>,
+    )
+
+    const first = await screen.findByRole('button', { name: 'Primero' })
+    const second = screen.getByRole('button', { name: 'Segundo' })
+
+    await waitFor(() => expect(first).toHaveFocus())
+    fireEvent.keyDown(first, { key: 'Tab' })
+    expect(second).toHaveFocus()
+    fireEvent.keyDown(second, { key: 'Tab' })
+    expect(first).toHaveFocus()
+  })
+
   it('switches to ME mode showing subcategories', async () => {
     render(<ActaNuevaPage />)
     await waitFor(() => {
@@ -125,6 +193,18 @@ describe('ActaNuevaPage', () => {
 
     // Placeholder should change for the active subcategory
     expect(screen.getByPlaceholderText('Buscá un estuche del catálogo...')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Seleccionar mercado Argentina' })).toHaveFocus())
+  })
+
+  it('selects the packaging market from compact buttons', async () => {
+    render(<ActaNuevaPage />)
+    fireEvent.click(screen.getByText('Material de Empaque'))
+
+    const colombia = await screen.findByRole('button', { name: 'Seleccionar mercado Colombia' })
+    fireEvent.click(colombia)
+
+    expect(screen.getByRole('group', { name: /Mercado/ })).toBeInTheDocument()
+    expect(colombia).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('lets material auxiliar enter by quantity without market or lote fields', async () => {
@@ -200,7 +280,7 @@ describe('ActaNuevaPage', () => {
 
     await waitFor(() => {
       expect(screen.queryByLabelText(/^Lote \*$/)).not.toBeInTheDocument()
-      expect(screen.getByLabelText(/Mercado/)).toBeInTheDocument()
+      expect(screen.getByRole('group', { name: /Mercado/ })).toBeInTheDocument()
     })
   })
 
