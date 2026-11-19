@@ -18,8 +18,8 @@ export const api = {
   get: <T>(path: string, token?: string | null): Promise<T> =>
     apiClient.get<T>(dep(path), token),
 
-  post: <T>(path: string, body?: unknown, token?: string | null): Promise<T> =>
-    apiClient.post<T>(dep(path), body, token),
+  post: <T>(path: string, body?: unknown, token?: string | null, options?: ApiRequestOptions): Promise<T> =>
+    apiClient.post<T>(dep(path), body, token, options),
 
   postForm: <T>(path: string, formData: FormData, token?: string | null): Promise<T> =>
     apiClient.postForm<T>(dep(path), formData, token),

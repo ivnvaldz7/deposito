@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import type { ActaListItem } from '../lib/actas-types'
+import { useState, useEffect, useMemo, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { formatUnit, formatCantidad } from '../lib/format-units'
 import { useNavigate } from 'react-router-dom'
 import { useForm, useWatch, Controller } from 'react-hook-form'
@@ -13,8 +14,9 @@ import type { CategoriaProducto, Producto as ProductoCatalogo } from '../compone
 import { type Mercado, MERCADOS } from '../components/inventory-shared/mercados'
 import { DatePickerInput } from '../components/ui/DatePickerInput'
 import { validateExpirySelection } from '../lib/expiry-month'
+import { maskExpiryMonth } from '@/lib/expiry-month'
 import { useFrascos } from '../queries/use-frascos'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../components/ui/Dialog'
 
 const ingresoSchema = z.object({
@@ -73,6 +75,12 @@ function parseKg(value: string | undefined): number {
   return Number(normalizeKgInput(value))
 }
 
+function newIngressKey(): string {
+  const bytes = new Uint8Array(16)
+  globalThis.crypto.getRandomValues(bytes)
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
 function todayISO(): string {
   return new Date().toISOString().slice(0, 10)
 }
@@ -86,7 +94,21 @@ type EtiquetaCuarentena = {
   fecha: string
 }
 
-function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }: {
+type LoteDrogaExistente = {
+  id: string
+  lote: string
+  vencimientoMes: string | null
+}
+
+type DrugIngressLine = {
+  productoId: string
+  productoNombre: string
+  lote: string
+  vencimientoMes: string
+  cantidad: number
+}
+
+export function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }: {
   etiqueta: EtiquetaCuarentena
   printing: boolean
   error: string | null
@@ -94,9 +116,10 @@ function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }
   onSkip: () => void
 }) {
   const [copies, setCopies] = useState(1)
+  const copiesRef = useRef<HTMLInputElement>(null)
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open && !printing) onSkip() }}>
+    <Dialog open onOpenChange={(open) => { if (!open && !printing) onSkip() }} initialFocusRef={copiesRef}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>¿Imprimir etiqueta de ingreso?</DialogTitle>
@@ -110,11 +133,13 @@ function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }
         <label className="mt-5 block font-body text-sm text-on-surface">
           Copias
           <input
+            ref={copiesRef}
             aria-label="Copias de etiqueta"
             type="number"
             min={1}
             max={100}
             value={copies}
+            onFocus={(event) => event.currentTarget.select()}
             onChange={(event) => setCopies(Math.min(100, Math.max(1, Number(event.target.value) || 1)))}
             className="input-field mt-2"
             disabled={printing}
@@ -122,7 +147,7 @@ function EtiquetaCuarentenaDialog({ etiqueta, printing, error, onPrint, onSkip }
         </label>
         {error && <p role="alert" className="mt-3 rounded border border-error/20 bg-error/10 px-3 py-2 text-sm text-error">{error}</p>}
         <div className="mt-5 flex gap-3">
-          <button type="button" onClick={onSkip} disabled={printing} className="flex-1 rounded bg-surface-container-high py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-bright disabled:opacity-50">Ahora no</button>
+          <button type="button" onClick={onSkip} disabled={printing} tabIndex={-1} className="flex-1 rounded bg-surface-container-high py-3 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-bright disabled:opacity-50">Ahora no</button>
           <button type="button" onClick={() => onPrint(copies)} disabled={printing} className="btn-primary flex-1 min-h-11 py-3 text-sm disabled:opacity-50">
             <Printer size={16} className="mr-2 inline" />{printing ? 'Enviando...' : 'Imprimir'}
           </button>
@@ -139,15 +164,41 @@ const CATEGORIAS_ME: { label: string; value: CategoriaProducto }[] = [
   { label: 'Material auxiliar', value: 'material_empaque' },
 ]
 
+const MERCADO_SIGLAS: Record<Mercado, string> = {
+  argentina: 'AR',
+  colombia: 'CO',
+  mexico: 'MX',
+  ecuador: 'EC',
+  bolivia: 'BO',
+  paraguay: 'PY',
+  VENEZUELA: 'VE',
+  no_exportable: 'NE',
+}
+
 function materialEmpaqueRequiereLote(nombre: string): boolean {
   return /^(TAPA|PROSPECTO)\b/i.test(nombre.trim())
 }
 
 export default function ActaNuevaPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const recent = useQuery({
+    queryKey: ['deposito', 'actas', 'list', undefined],
+    queryFn: () => api.get<ActaListItem[]>('/actas'),
+    refetchOnMount: 'always',
+    select: actas => actas.find(acta => acta.items?.length),
+  })
+  const lastActa = recent.data
+  const lastItem = lastActa?.items?.[0]
+  const automaticLoteRef = useRef('')
+  const manualLoteRef = useRef(false)
+  const formRef = useRef<HTMLFormElement>(null)
+  const firstMercadoRef = useRef<HTMLButtonElement>(null)
+  const shouldFocusMercadoRef = useRef(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const submitInFlight = useRef(false)
+  const lastDrugSubmissionRef = useRef<{ fingerprint: string; key: string } | null>(null)
   const [tipoIngreso, setTipoIngreso] = useState<TipoIngreso>('MP')
   const [mercadoCat, setMercadoCat] = useState<CategoriaProducto>('estuche')
   const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoCatalogo | null>(null)
@@ -155,6 +206,9 @@ export default function ActaNuevaPage() {
   const [etiquetaCuarentena, setEtiquetaCuarentena] = useState<EtiquetaCuarentena | null>(null)
   const [printingLabel, setPrintingLabel] = useState(false)
   const [labelError, setLabelError] = useState<string | null>(null)
+  const [pendingLabels, setPendingLabels] = useState<EtiquetaCuarentena[]>([])
+  const [drugLines, setDrugLines] = useState<DrugIngressLine[]>([])
+  const [productSelectorVersion, setProductSelectorVersion] = useState(0)
 
   const resolvedCategoria: CategoriaProducto = tipoIngreso === 'MP' ? 'droga' : mercadoCat
   const esME = tipoIngreso === 'ME'
@@ -192,6 +246,8 @@ export default function ActaNuevaPage() {
   const categoria = useWatch({ control, name: 'categoria' })
   const productoId = useWatch({ control, name: 'productoId' })
   const productoNombre = useWatch({ control, name: 'productoNombre' })
+  const loteIngresado = useWatch({ control, name: 'lote' })
+  const loteNormalizado = loteIngresado?.trim().replace(/\s+/g, ' ').toUpperCase() ?? ''
   const mercadoSeleccionado = useWatch({ control, name: 'mercado' }) as Mercado | undefined
   const cantidadCajas = Number(useWatch({ control, name: 'cantidadCajas' })) || 0
   const unidadesPorCaja = Number(useWatch({ control, name: 'unidadesPorCaja' })) || 0
@@ -203,14 +259,35 @@ export default function ActaNuevaPage() {
     queryKey: ['deposito', 'lotes', 'siguiente'],
     queryFn: () => api.get<{ lote: string }>('/lotes/siguiente'),
     enabled: usaLoteDeReferencia,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
+  const existingLotQuery = useQuery({
+    queryKey: ['deposito', 'ingresos', 'lote-existente', productoId, loteNormalizado],
+    queryFn: () => api.get<LoteDrogaExistente | null>(
+      `/ingresos/lote-existente?productoId=${encodeURIComponent(productoId)}&lote=${encodeURIComponent(loteNormalizado)}`,
+    ),
+    enabled: categoria === 'droga' && Boolean(productoId && loteNormalizado),
+    staleTime: 30_000,
+  })
+  const existingLot = existingLotQuery.data?.id && existingLotQuery.data.lote === loteNormalizado
+    ? existingLotQuery.data
+    : null
   
-  const currentYear = new Date().getUTCFullYear()
   const currentMonth = new Date().getUTCMonth() + 1
   const vencMes = useWatch({ control, name: 'vencimientoMes' })
   const vencAnio = Number(useWatch({ control, name: 'vencimientoAnio' }))
 
   const showExpiryError = isSubmitted || isExpiryBlockTouched || (Boolean(vencMes) && Boolean(vencAnio))
+
+  useEffect(() => {
+    if (!existingLot?.vencimientoMes) return
+    const [year, month] = existingLot.vencimientoMes.split('-')
+    if (!year || !month) return
+    setValue('vencimientoAnio', year, { shouldDirty: true, shouldValidate: true })
+    setValue('vencimientoMes', month, { shouldDirty: true, shouldValidate: true })
+    clearErrors('vencimientoMes')
+  }, [existingLot?.id, existingLot?.vencimientoMes, setValue, clearErrors])
 
   // Keep hidden categoria in sync
   useEffect(() => {
@@ -220,6 +297,7 @@ export default function ActaNuevaPage() {
 
   useEffect(() => {
     setProductoSeleccionado(null)
+    setDrugLines([])
     setValue('productoId', '', { shouldValidate: false })
     setValue('productoNombre', '', { shouldValidate: false })
     setValue('mercado', undefined, { shouldValidate: false })
@@ -227,14 +305,52 @@ export default function ActaNuevaPage() {
     setValue('cantidadCajas', '', { shouldValidate: false })
     setValue('unidadesPorCaja', '', { shouldValidate: false })
     setValue('lote', '', { shouldValidate: false })
+    automaticLoteRef.current = ''
+    manualLoteRef.current = false
   }, [resolvedCategoria, setValue])
+
+  async function addDrugLine() {
+    const valid = await trigger(['productoId', 'productoNombre', 'lote', 'vencimientoMes', 'vencimientoAnio', 'cantidad'])
+    if (!valid) return
+    const current = getValues()
+    const line: DrugIngressLine = {
+      productoId: current.productoId,
+      productoNombre: current.productoNombre,
+      lote: current.lote!.trim().replace(/\s+/g, ' ').toUpperCase(),
+      vencimientoMes: `${current.vencimientoAnio}-${current.vencimientoMes}`,
+      cantidad: parseKg(current.cantidad),
+    }
+    setDrugLines((lines) => [...lines, line])
+    setProductoSeleccionado(null)
+    setValue('productoId', '', { shouldDirty: true, shouldValidate: false })
+    setValue('productoNombre', '', { shouldDirty: true, shouldValidate: false })
+    setValue('lote', '', { shouldDirty: true, shouldValidate: false })
+    setValue('vencimientoMes', '', { shouldDirty: true, shouldValidate: false })
+    setValue('vencimientoAnio', '', { shouldDirty: true, shouldValidate: false })
+    setValue('cantidad', '', { shouldDirty: true, shouldValidate: false })
+    clearErrors()
+    setIsExpiryBlockTouched(false)
+    setProductSelectorVersion((version) => version + 1)
+  }
+
+  useEffect(() => {
+    if (!shouldFocusMercadoRef.current || (categoria !== 'etiqueta' && categoria !== 'estuche')) return
+
+    const frame = window.requestAnimationFrame(() => {
+      firstMercadoRef.current?.focus()
+      shouldFocusMercadoRef.current = false
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [categoria])
 
   useEffect(() => {
     const suggestedLote = nextLoteQuery.data?.lote
-    if (usaLoteDeReferencia && suggestedLote && !getValues('lote')) {
+    const current = getValues('lote') ?? ''
+    if (usaLoteDeReferencia && !nextLoteQuery.isFetching && !nextLoteQuery.isError && !manualLoteRef.current && suggestedLote && (!current || current === automaticLoteRef.current)) {
       setValue('lote', suggestedLote, { shouldDirty: false, shouldValidate: true })
+      automaticLoteRef.current = suggestedLote
     }
-  }, [getValues, nextLoteQuery.data?.lote, resolvedCategoria, setValue, usaLoteDeReferencia])
+  }, [getValues, nextLoteQuery.data?.lote, nextLoteQuery.isFetching, nextLoteQuery.isError, resolvedCategoria, setValue, usaLoteDeReferencia])
 
   useEffect(() => {
     if (categoria === 'frasco' && productoId) {
@@ -259,27 +375,57 @@ export default function ActaNuevaPage() {
   }, [etiquetaCuarentena, navigate, submitting])
 
   async function onSubmit(data: IngresoFormData) {
+    if (data.categoria === 'droga' && existingLot?.vencimientoMes &&
+        `${data.vencimientoAnio}-${data.vencimientoMes}` !== existingLot.vencimientoMes) {
+      const [year, month] = existingLot.vencimientoMes.split('-')
+      setError('vencimientoMes', { type: 'validate', message: `El lote existente vence en ${month}/${year}` })
+      return
+    }
     if (submitInFlight.current) return
     submitInFlight.current = true
     setServerError(null)
     setSubmitting(true)
     try {
-      const acta = await api.post<{ id: string; etiquetaCuarentena?: EtiquetaCuarentena | null }>('/ingresos', {
+      const drugPayload = data.categoria === 'droga' ? {
+        fecha: data.fecha,
+        observaciones: data.observaciones?.trim() || undefined,
+        items: [...drugLines, {
+          productoId: data.productoId,
+          lote: data.lote!.trim().replace(/\s+/g, ' ').toUpperCase(),
+          vencimientoMes: `${data.vencimientoAnio}-${data.vencimientoMes}`,
+          cantidad: parseKg(data.cantidad),
+        }].map(({ productoId: id, lote, vencimientoMes, cantidad }) => ({ productoId: id, lote, vencimientoMes, cantidad })),
+      } : null
+      const fingerprint = drugPayload ? JSON.stringify(drugPayload) : ''
+      if (drugPayload && lastDrugSubmissionRef.current?.fingerprint !== fingerprint) {
+        lastDrugSubmissionRef.current = { fingerprint, key: newIngressKey() }
+      }
+      const acta = data.categoria === 'droga'
+        ? await api.post<{ id: string; etiquetasCuarentena?: EtiquetaCuarentena[] }>(
+          '/ingresos/drogas', drugPayload, undefined,
+          { headers: { 'Idempotency-Key': lastDrugSubmissionRef.current!.key } },
+        )
+        : await api.post<{ id: string; etiquetaCuarentena?: EtiquetaCuarentena | null }>('/ingresos', {
         fecha: data.fecha,
         productoId: data.productoId,
         lote: data.lote?.trim() || undefined,
-        vencimientoMes: data.categoria === 'droga' ? `${data.vencimientoAnio}-${data.vencimientoMes}` : undefined,
         mercado: data.categoria === 'etiqueta' || data.categoria === 'estuche' ? data.mercado : undefined,
-        cantidad: data.categoria === 'frasco' ? undefined : data.categoria === 'droga' ? parseKg(data.cantidad) : Number(data.cantidad),
+        cantidad: data.categoria === 'frasco' ? undefined : Number(data.cantidad),
         cantidadCajas: data.categoria === 'frasco' ? Number(data.cantidadCajas) : undefined,
         unidadesPorCaja: data.categoria === 'frasco' ? Number(data.unidadesPorCaja) : undefined,
         observaciones: data.observaciones?.trim() || undefined,
       })
+      void queryClient.invalidateQueries({ queryKey: ['deposito', 'actas'] })
+      void queryClient.invalidateQueries({ queryKey: ['deposito', 'lotes', 'siguiente'] })
       toast.success('Ingreso registrado correctamente')
       submitInFlight.current = false
       setSubmitting(false)
-      if (acta.etiquetaCuarentena) {
-        setEtiquetaCuarentena(acta.etiquetaCuarentena)
+      const labels = 'etiquetasCuarentena' in acta
+        ? acta.etiquetasCuarentena ?? []
+        : 'etiquetaCuarentena' in acta && acta.etiquetaCuarentena ? [acta.etiquetaCuarentena] : []
+      if (labels.length > 0) {
+        setEtiquetaCuarentena(labels[0]!)
+        setPendingLabels(labels.slice(1))
         return
       }
       navigate('/deposito/dashboard')
@@ -309,7 +455,7 @@ export default function ActaNuevaPage() {
     try {
       const result = await api.post<{ message: string }>('/labels/cuarentena', { itemId: etiquetaCuarentena.itemId, copias })
       toast.success(result.message)
-      navigate('/deposito/dashboard')
+      advanceLabel()
     } catch (error) {
       setLabelError(error instanceof ApiError ? error.message : 'No se pudo comunicar con la impresora.')
     } finally {
@@ -317,7 +463,60 @@ export default function ActaNuevaPage() {
     }
   }
 
-  const isFormValid = isValid && isDirty
+  function advanceLabel() {
+    const [next, ...rest] = pendingLabels
+    if (next) {
+      setEtiquetaCuarentena(next)
+      setPendingLabels(rest)
+      setLabelError(null)
+    } else {
+      navigate('/deposito/dashboard')
+    }
+  }
+
+  const currentDrugLineComplete = Boolean(productoId && productoNombre && loteNormalizado && cantidadManual > 0) &&
+    !validateExpirySelection(vencMes, vencAnio ? String(vencAnio) : '')
+  const isFormValid = isValid && isDirty && (categoria !== 'droga' || currentDrugLineComplete)
+
+  function handleFormTab(event: ReactKeyboardEvent<HTMLFormElement>) {
+    if (event.defaultPrevented || event.nativeEvent.isComposing) return
+    const target = event.target
+    if (event.key === 'Escape' && target instanceof HTMLInputElement && target.getAttribute('aria-expanded') === 'true') {
+      event.preventDefault()
+      return
+    }
+    if (target instanceof HTMLButtonElement && ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(event.key)) {
+      const group = target.closest('[data-choice]')
+      if (group) {
+        const buttons = Array.from(group.querySelectorAll('button'))
+        const step = ['ArrowRight', 'ArrowDown'].includes(event.key) ? 1 : -1
+        buttons[(buttons.indexOf(target) + step + buttons.length) % buttons.length]?.focus()
+        event.preventDefault()
+      }
+      return
+    }
+    if (event.key === 'Enter' && target instanceof HTMLInputElement) {
+      event.preventDefault()
+      if (target.getAttribute('role') === 'combobox') return
+      const controls = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('input:not(:disabled), summary, button:not(:disabled), textarea'))
+        .filter(el => el.tabIndex >= 0 && (!el.closest('details:not([open])') || el.tagName === 'SUMMARY'))
+      controls[controls.indexOf(target) + 1]?.focus()
+      return
+    }
+    if (event.key !== 'Tab') return
+
+    const focusables = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )).filter((element) => !element.hasAttribute('hidden') && element.tabIndex >= 0)
+    if (focusables.length === 0) return
+
+    const currentIndex = focusables.indexOf(document.activeElement as HTMLElement)
+    const next = event.shiftKey ? currentIndex <= 0 : currentIndex === -1 || currentIndex === focusables.length - 1
+    if (!next) return
+
+    event.preventDefault()
+    focusables[event.shiftKey ? focusables.length - 1 : 0]?.focus()
+  }
 
   return (
     <div className="min-h-screen bg-surface font-sans text-on-surface pb-[calc(env(safe-area-inset-bottom)+5.5rem)] md:pb-24 relative overflow-hidden">
@@ -333,33 +532,36 @@ export default function ActaNuevaPage() {
             <ArrowLeft size={20} className="text-on-surface-variant" />
           </button>
           <div className="p-4 pt-14 sm:p-5 sm:pt-5 lg:p-6">
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pl-12 sm:pl-14" noValidate>
+              <form ref={formRef} onSubmit={handleSubmit(onSubmit)} onKeyDown={handleFormTab} className="space-y-4 sm:pl-10" noValidate>
                 
-                <div className="grid gap-4 md:grid-cols-[minmax(16rem,0.85fr)_minmax(22rem,1.15fr)] md:items-end">
-                <div className="space-y-1">
-                  <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                <div className="space-y-4">
+                <div className="space-y-4">
+                <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3"><h1 className="text-lg font-semibold">Registrar ingreso</h1><div className="w-full space-y-1 sm:w-auto">
+                  <label htmlFor="fecha-ingreso" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Fecha del acta
                   </label>
                   <Controller
                     name="fecha"
                     control={control}
                     render={({ field }) => (
-                      <DatePickerInput 
+                      <DatePickerInput id="fecha-ingreso"
                         value={field.value}
-                        onChange={field.onChange} 
+                        onChange={field.onChange}
                       />
                     )}
                   />
                   {errors.fecha && <p className="font-body text-error text-xs">{errors.fecha.message}</p>}
-                </div>
+                </div></header>
 
-                <div className="space-y-4">
-                  <div className="space-y-1">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-1 sm:col-span-2">
                     <label className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">Clasificación</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div role="group" aria-label="Clasificación" data-choice="" className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
+                        autoFocus
                         onClick={() => setTipoIngreso('MP')}
+                        aria-pressed={tipoIngreso === 'MP'} tabIndex={tipoIngreso === 'MP' ? 0 : -1}
                         className={`btn-press py-3 px-4 rounded-lg font-body text-sm transition-all border ${
                           tipoIngreso === 'MP'
                             ? 'bg-primary/10 border-primary/30 text-primary font-medium'
@@ -370,7 +572,11 @@ export default function ActaNuevaPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setTipoIngreso('ME')}
+                        onClick={(event) => {
+                          shouldFocusMercadoRef.current = event.detail !== 0
+                          setTipoIngreso('ME')
+                        }}
+                        aria-pressed={tipoIngreso === 'ME'} tabIndex={tipoIngreso === 'ME' ? 0 : -1}
                         className={`btn-press py-3 px-4 rounded-lg font-body text-sm transition-all border ${
                           tipoIngreso === 'ME'
                             ? 'bg-primary/10 border-primary/30 text-primary font-medium'
@@ -383,12 +589,15 @@ export default function ActaNuevaPage() {
                   </div>
 
                   {esME && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 animate-reveal">
+                    <div role="group" aria-label="Tipo de empaque" data-choice="" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:items-end">
                       {CATEGORIAS_ME.map((cat) => (
                         <button
-                          key={cat.value}
+                          key={cat.value} aria-pressed={mercadoCat === cat.value} tabIndex={mercadoCat === cat.value ? 0 : -1}
                           type="button"
-                          onClick={() => setMercadoCat(cat.value)}
+                          onClick={() => {
+                            shouldFocusMercadoRef.current = cat.value === 'estuche' || cat.value === 'etiqueta'
+                            setMercadoCat(cat.value)
+                          }}
                           className={`btn-press py-2 px-3 rounded-lg font-body text-sm transition-all border ${
                             mercadoCat === cat.value
                               ? 'bg-secondary/10 border-secondary/30 text-secondary font-medium'
@@ -400,42 +609,58 @@ export default function ActaNuevaPage() {
                       ))}
                     </div>
                   )}
-                </div>
-                </div>
-
-                <div className="h-px bg-white/5 w-full" />
-
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">
-                <div className="space-y-4">
                 {(categoria === 'etiqueta' || categoria === 'estuche') && (
                   <div className="space-y-1 animate-reveal">
-                    <label htmlFor="ingreso-mercado" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
+                    <p id="ingreso-mercado-label" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                       Mercado <span className="text-error">*</span>
-                    </label>
-                    <select
-                      id="ingreso-mercado"
-                      {...register('mercado')}
-                      className="input-field"
+                    </p>
+                    <div
+                      role="group"
+                      aria-labelledby="ingreso-mercado-label" data-choice=""
+                      className="flex flex-wrap gap-1 rounded-lg border border-white/10 bg-surface-container p-2"
                     >
-                      <option value="">Seleccioná un mercado para filtrar productos</option>
                       {MERCADOS.map((m) => (
-                        <option key={m.value} value={m.value}>{m.label}</option>
+                        <button
+                          key={m.value} tabIndex={(mercadoSeleccionado ?? MERCADOS[0]?.value) === m.value ? 0 : -1}
+                          ref={m.value === MERCADOS[0]?.value ? firstMercadoRef : undefined}
+                          type="button"
+                          aria-pressed={mercadoSeleccionado === m.value}
+                          aria-label={`Seleccionar mercado ${m.label}`}
+                          title={m.label}
+                          onClick={() => {
+                            setValue('mercado', m.value, { shouldDirty: true, shouldValidate: true })
+                            clearErrors('mercado')
+                          }}
+                          className={`btn-press flex min-h-11 min-w-9 shrink-0 items-center justify-center rounded-md border font-body text-xs font-semibold transition-colors ${
+                            mercadoSeleccionado === m.value
+                              ? 'border-primary/60 bg-primary/15 text-primary'
+                              : 'border-white/10 bg-surface-high text-on-surface-variant hover:border-white/25 hover:bg-surface-bright'
+                          }`}
+                        >
+                          <span aria-hidden="true">{MERCADO_SIGLAS[m.value]}</span>
+                        </button>
                       ))}
-                    </select>
+                    </div>
                     {errors.mercado && <p className="font-body text-error text-xs">{errors.mercado.message}</p>}
                   </div>
                 )}
 
-                <div className="space-y-1">
+                <div className="space-y-1 sm:col-span-2">
                   <label htmlFor="ingreso-producto" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Producto <span className="text-error">*</span>
                   </label>
                   <ProductoSelector
+                    key={productSelectorVersion}
                     id="ingreso-producto"
                     categoria={categoria}
                     mercadoFiltro={mercadoSeleccionado}
                     displayValue={productoNombre}
                     onChange={(id, nombre, producto, mercadoCtx) => {
+                      if (categoria === 'droga' && id !== productoId) {
+                        setValue('lote', '', { shouldDirty: true, shouldValidate: false })
+                        setValue('vencimientoMes', '', { shouldDirty: true, shouldValidate: false })
+                        setValue('vencimientoAnio', '', { shouldDirty: true, shouldValidate: false })
+                      }
                       setValue('productoId', id || '', { shouldValidate: true })
                       setValue('productoNombre', nombre, { shouldValidate: true })
                       setProductoSeleccionado(producto ?? null)
@@ -444,6 +669,7 @@ export default function ActaNuevaPage() {
                       } else if (producto && producto.mercadosHabilitados?.length === 1 && (categoria === 'estuche' || categoria === 'etiqueta')) {
                         setValue('mercado', producto.mercadosHabilitados[0], { shouldValidate: true })
                       }
+                      if (id) requestAnimationFrame(() => formRef.current?.querySelector<HTMLInputElement>('#ingreso-lote, #ingreso-lote-sugerido, #ingreso-cantidad-cajas')?.focus())
                       clearErrors('productoId')
                     }}
                   />
@@ -458,8 +684,10 @@ export default function ActaNuevaPage() {
                 </div>
                 </div>
 
-                <div key={`detalles-${categoria}`} className="space-y-5 bg-surface-container/30 p-4 sm:p-5 rounded-lg border border-white/5 animate-reveal">
-                  <h3 className="font-display text-sm font-medium text-on-surface mb-2">Detalles del Ingreso</h3>
+                </div>
+
+                <div key={`detalles-${categoria}`} className="grid gap-3 sm:grid-flow-col sm:auto-cols-fr sm:items-start">
+
                   
                   {categoria === 'droga' && (
                     <>
@@ -471,66 +699,52 @@ export default function ActaNuevaPage() {
                           <Hash size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant" />
                           <input
                             id="ingreso-lote"
-                            {...register('lote')}
+                            {...register('lote', { onChange: (event) => {
+                              const nextLot = String(event.target.value).trim().replace(/\s+/g, ' ').toUpperCase()
+                              if (nextLot === loteNormalizado) return
+                              setValue('vencimientoMes', '', { shouldDirty: true, shouldValidate: false })
+                              setValue('vencimientoAnio', '', { shouldDirty: true, shouldValidate: false })
+                            } })}
                             type="text"
                             placeholder="Ej: L240901"
                             className="input-field pl-10"
                           />
                         </div>
                         {errors.lote && <p className="font-body text-error text-xs">{errors.lote.message}</p>}
+                        {existingLot?.vencimientoMes && (
+                          <p className="font-body text-xs text-on-surface-variant" role="status">
+                            Lote existente · vence {existingLot.vencimientoMes.slice(5)}/{existingLot.vencimientoMes.slice(0, 4)}. Este ingreso se sumará al lote existente.
+                          </p>
+                        )}
                       </div>
 
                       <div className="space-y-1">
                         <span className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">Vencimiento</span>
-                        <div 
-                          className="grid grid-cols-[1fr_7rem] gap-2"
-                          onBlur={(e) => {
-                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                              setIsExpiryBlockTouched(true)
-                            }
-                          }}
-                        >
-                          <Controller
-                            control={control}
-                            name="vencimientoMes"
-                            render={({ field }) => (
-                              <select 
-                                aria-label="Mes de vencimiento" 
-                                value={field.value || ''}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value)
-                                  if (vencAnio) trigger('vencimientoMes')
-                                }}
-                                className="input-field"
-                              >
-                                <option value="">Mes</option>
-                                {['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'].map((label, index) => (
-                                  <option key={label} value={String(index + 1).padStart(2, '0')}>{label}</option>
-                                ))}
-                              </select>
-                            )}
-                          />
-                          <Controller
-                            control={control}
-                            name="vencimientoAnio"
-                            render={({ field }) => (
-                              <select 
-                                aria-label="Año de vencimiento" 
-                                value={field.value || ''}
-                                onChange={(e) => {
-                                  field.onChange(e.target.value)
-                                  if (vencMes) trigger('vencimientoMes')
-                                }}
-                                className="input-field"
-                              >
-                                <option value="">Año</option>
-                                {Array.from({ length: 11 }, (_, i) => currentYear + i).map(year => (
-                                  <option key={year} value={String(year)}>{year}</option>
-                                ))}
-                              </select>
-                            )}
-                          />
-                        </div>
+                        <Controller
+                          control={control}
+                          name="vencimientoMes"
+                          render={({ field }) => (
+                            <input
+                              ref={field.ref}
+                              name={field.name}
+                              aria-label="Vencimiento (MM/AA)"
+                              placeholder="MM/AA"
+                              type="text"
+                              inputMode="numeric"
+                              autoComplete="off"
+                              maxLength={7}
+                              value={vencMes ? vencMes + (vencAnio ? '/' + String(vencAnio).slice(2) : '') : ''}
+                              disabled={Boolean(existingLot?.vencimientoMes)}
+                              onChange={(event) => {
+                                const [month = '', year = ''] = maskExpiryMonth(event.target.value).split('/')
+                                setValue('vencimientoAnio', year ? '20' + year : '', { shouldDirty: true })
+                                field.onChange(month)
+                              }}
+                              onBlur={() => { field.onBlur(); setIsExpiryBlockTouched(true); void trigger('vencimientoMes') }}
+                              className="input-field w-full text-[16px]"
+                            />
+                          )}
+                        />
                         {(errors.vencimientoMes && showExpiryError) && <p className="font-body text-error text-xs">{errors.vencimientoMes.message}</p>}
                       </div>
                     </>
@@ -548,10 +762,11 @@ export default function ActaNuevaPage() {
                           type="text"
                           placeholder={nextLoteQuery.isLoading ? 'Generando...' : 'Ej: 1'}
                           className="input-field pl-10"
-                          {...register('lote')}
+                          {...register('lote', { onChange: () => { manualLoteRef.current = true } })}
                         />
                       </div>
                       <p className="font-body text-xs text-on-surface-variant/60">{requiereLoteMaterial ? 'El lote es obligatorio para Tapas y Prospectos.' : 'Podés editarlo para indicar desde qué número comienza la referencia. Si lo dejás vacío, se asignará el correlativo disponible.'}</p>
+                      {nextLoteQuery.isError && <p role="alert" className="font-body text-error text-xs">No se pudo consultar el lote sugerido. Revisá la conexión o ingresá el número manualmente.</p>}
                       {errors.lote && <p className="font-body text-error text-xs">{errors.lote.message}</p>}
                     </div>
                   )}
@@ -622,7 +837,27 @@ export default function ActaNuevaPage() {
                 </div>
                 </div>
 
-                <div className="space-y-1">
+                {categoria === 'droga' && (
+                  <div className="space-y-3">
+                    {drugLines.length > 0 && (
+                      <div className="rounded-lg border border-white/10 bg-surface-container/30 p-3 space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant">Renglones de esta acta</p>
+                        {drugLines.map((line, index) => (
+                          <div key={`${line.productoId}-${line.lote}-${index}`} className="flex items-center justify-between gap-3 text-sm text-on-surface">
+                            <span>{line.productoNombre} · {line.lote} · {line.vencimientoMes.slice(5)}/{line.vencimientoMes.slice(0, 4)}</span>
+                            <span className="shrink-0 tabular-nums">{formatCantidad(line.cantidad, 'droga')}</span>
+                            <button type="button" aria-label={`Quitar lote ${line.lote}`} onClick={() => setDrugLines((lines) => lines.filter((_, position) => position !== index))} className="text-xs text-on-surface-variant hover:text-error">Quitar</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button type="button" onClick={() => void addDrugLine()} className="rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium text-on-surface hover:bg-surface-bright">
+                      Agregar otro lote
+                    </button>
+                  </div>
+                )}
+
+                <details className="space-y-2"><summary className="cursor-pointer py-2 text-sm">Agregar observación (opcional)</summary>
                   <label htmlFor="ingreso-obs" className="font-body text-xs font-medium text-on-surface-variant uppercase tracking-wider">
                     Observaciones <span className="font-normal opacity-60">(opcional)</span>
                   </label>
@@ -637,7 +872,7 @@ export default function ActaNuevaPage() {
                     />
                   </div>
                   {errors.observaciones && <p className="font-body text-error text-xs">{errors.observaciones.message}</p>}
-                </div>
+                </details>
 
                 {serverError && (
                   <div className="bg-error/10 text-error font-body text-sm px-4 py-3 rounded border border-error/20 animate-reveal">
@@ -651,21 +886,35 @@ export default function ActaNuevaPage() {
                       <div>
                         <p className="font-body text-xs text-on-surface-variant uppercase tracking-widest mb-1">Resumen a Registrar</p>
                         <p className="font-display font-medium text-on-surface text-lg leading-tight">
-                          {productoNombre || 'Producto'}
-                          {mercadoSeleccionado && ` — ${MERCADOS.find(m => m.value === mercadoSeleccionado)?.label || mercadoSeleccionado}`}
+                          {categoria === 'droga' && drugLines.length > 0
+                            ? `${drugLines.length + 1} renglones de drogas`
+                            : <>{productoNombre || 'Producto'}{mercadoSeleccionado && ` — ${MERCADOS.find(m => m.value === mercadoSeleccionado)?.label || mercadoSeleccionado}`}</>}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="font-display font-bold text-2xl text-primary leading-none">
                           {categoria === 'frasco' 
                             ? formatCantidad(cantidadCajas * unidadesPorCaja, categoria)
-                            : formatCantidad(cantidadManual, categoria)
+                            : formatCantidad(categoria === 'droga'
+                              ? drugLines.reduce((total, line) => total + line.cantidad, cantidadManual)
+                              : cantidadManual, categoria)
                           }
                         </p>
                       </div>
                     </div>
                   )}
 
+                  <aside aria-label="Último ingreso registrado" className="rounded-lg border-l-4 border-primary bg-primary/10 px-4 py-3 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-primary">Último ingreso registrado</p>
+                    {lastActa && lastItem ? <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <strong className="break-words">{lastItem.productoNombre}</strong>
+                      {lastItem.mercado && <span>{MERCADO_SIGLAS[lastItem.mercado]}</span>}
+                      <span>Lote {lastItem.lote || '—'}</span>
+                      <span>{formatCantidad(lastItem.cantidadIngresada, lastItem.categoria)}</span>
+                      {(lastActa.items?.length ?? 0) > 1 && <span>+{(lastActa.items?.length ?? 1) - 1} renglones</span>}
+                      <time className="text-xs text-on-surface-variant" dateTime={lastActa.createdAt}>{new Date(lastActa.createdAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</time>
+                    </div> : <p>{recent.isError ? 'No se pudo consultar el último ingreso.' : recent.isLoading ? 'Consultando…' : 'Todavía no hay ingresos registrados.'}</p>}
+                  </aside>
                   <div className="flex gap-3">
                     <button
                       type="submit"
@@ -692,11 +941,12 @@ export default function ActaNuevaPage() {
       <div className="fixed bottom-0 right-0 w-96 h-96 bg-primary-container/5 rounded-full blur-[100px] pointer-events-none -z-10" />
       {etiquetaCuarentena && (
         <EtiquetaCuarentenaDialog
+          key={etiquetaCuarentena.itemId}
           etiqueta={etiquetaCuarentena}
           printing={printingLabel}
           error={labelError}
           onPrint={handlePrintCuarentena}
-          onSkip={() => navigate('/deposito/dashboard')}
+          onSkip={advanceLabel}
         />
       )}
     </div>

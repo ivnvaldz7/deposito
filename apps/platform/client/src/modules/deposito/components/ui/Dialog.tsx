@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, type ReactNode, type RefObject } from 'react'
 import { createPortal } from 'react-dom'
 
 interface DialogProps {
@@ -6,28 +6,66 @@ interface DialogProps {
   onOpenChange: (open: boolean) => void
   children: ReactNode
   ariaLabel?: string
+  initialFocusRef?: RefObject<HTMLElement | null>
   /** Large variant: near-fullscreen desktop modal (e.g. import previews). */
   large?: boolean
+  /** Fixed-height variant with a dedicated internal scroll area and visible actions. */
+  viewport?: boolean
 }
 
-export function Dialog({ open, onOpenChange, children, ariaLabel, large = false }: DialogProps) {
+export function Dialog({ open, onOpenChange, children, ariaLabel, initialFocusRef, large = false, viewport = false }: DialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const onOpenChangeRef = useRef(onOpenChange)
+
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange
+  }, [onOpenChange])
 
   useEffect(() => {
     if (!open) return
 
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') onOpenChange(false)
+    function getFocusableElements() {
+      const dialog = dialogRef.current
+      if (!dialog) return []
+
+      return Array.from(dialog.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      )).filter((element) => !element.hasAttribute('hidden') && element.tabIndex >= 0)
     }
 
-    document.addEventListener('keydown', handleKeyDown)
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        onOpenChangeRef.current(false)
+        return
+      }
+
+      if (e.key !== 'Tab') return
+
+      const focusable = getFocusableElements()
+
+      if (focusable.length === 0) {
+        e.preventDefault()
+        return
+      }
+
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLElement)
+      const nextIndex = e.shiftKey
+        ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
+        : currentIndex === focusable.length - 1 ? 0 : currentIndex + 1
+
+      e.preventDefault()
+      focusable[nextIndex]?.focus()
+    }
+
+    document.addEventListener('keydown', handleKeyDown, true)
     document.body.style.overflow = 'hidden'
+    ;(initialFocusRef?.current ?? getFocusableElements()[0])?.focus()
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keydown', handleKeyDown, true)
       document.body.style.overflow = ''
     }
-  }, [open, onOpenChange])
+  }, [open, initialFocusRef])
 
   if (!open) return null
 
@@ -43,6 +81,8 @@ export function Dialog({ open, onOpenChange, children, ariaLabel, large = false 
         data-size={large ? 'large' : 'default'}
         className={large
           ? 'relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-xl shadow-xl animate-dialog-in md:h-[85vh] md:max-w-[min(90vw,1400px)] md:rounded-xl'
+          : viewport
+            ? 'relative flex h-[calc(100dvh-1rem)] max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-xl shadow-xl animate-dialog-in md:mx-4 md:rounded-xl'
           : 'relative w-full max-w-lg max-h-[92dvh] overflow-y-auto rounded-t-xl shadow-xl animate-dialog-in md:mx-4 md:rounded-xl'}
         style={{ backgroundColor: 'var(--color-surface)' }}
         role="dialog"

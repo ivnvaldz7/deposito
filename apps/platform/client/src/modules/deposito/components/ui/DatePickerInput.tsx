@@ -10,7 +10,7 @@ const MONTHS = [
 ] as const
 
 function todayISO(): string {
-  return new Date().toISOString().slice(0, 10)
+  return formatISO(new Date())
 }
 
 function parseISO(iso: string): Date {
@@ -92,6 +92,15 @@ export function DatePickerInput({
   const month = viewDate.getMonth()
   const days = getMonthDays(year, month)
 
+  useEffect(() => {
+    if (open) panelRef.current?.querySelector<HTMLButtonElement>('[data-cursor="true"]')?.focus()
+  }, [open, viewDate])
+
+  function closeAndFocus() {
+    setOpen(false)
+    inputRef.current?.focus()
+  }
+
   const prevMonth = useCallback(() => {
     setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))
   }, [])
@@ -104,25 +113,26 @@ export function DatePickerInput({
     const selected = new Date(year, month, day)
     const iso = formatISO(selected)
     onChange(iso)
-    setOpen(false)
+    closeAndFocus()
   }
 
   function selectToday() {
     const iso = todayISO()
     onChange(iso)
     setViewDate(new Date())
-    setOpen(false)
+    closeAndFocus()
   }
 
   function handleInputClick() {
-    setOpen((prev) => !prev)
+    setViewDate(value ? parseISO(value) : new Date())
+    setOpen(!open)
   }
 
   const displayValue = value ? formatDisplay(value) : ''
   const isToday = value === todayISO()
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative" onBlur={e => { if (e.relatedTarget && !e.currentTarget.contains(e.relatedTarget)) setOpen(false) }}>
       <div
         className="relative cursor-pointer"
         onClick={handleInputClick}
@@ -138,13 +148,13 @@ export function DatePickerInput({
           autoFocus={autoFocus}
           autoComplete="off"
           className="input-field pl-10 cursor-pointer"
-          onFocus={() => setOpen(true)}
+          aria-expanded={open}
+          aria-haspopup="dialog"
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
+            if (['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
               e.preventDefault()
-              setOpen((prev) => !prev)
+              handleInputClick()
             }
-            if (e.key === 'Escape') setOpen(false)
           }}
         />
       </div>
@@ -156,7 +166,18 @@ export function DatePickerInput({
       {open && (
         <div
           ref={panelRef}
-          className="absolute z-30 mt-1 w-72 bg-surface-container-high border border-white/10 rounded-xl shadow-float animate-fade-up overflow-hidden"
+          role="dialog" aria-label="Elegir fecha del acta"
+          onKeyDown={e => {
+            if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeAndFocus(); return }
+            if (!(e.target instanceof HTMLElement) || !e.target.hasAttribute('data-cursor')) return
+            const steps: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }
+            const step = steps[e.key]
+            if (step !== undefined) {
+              e.preventDefault()
+              setViewDate(prev => new Date(prev.getFullYear(), prev.getMonth(), prev.getDate() + step))
+            }
+          }}
+          className="absolute right-0 z-30 mt-1 w-72 max-w-[calc(100vw-3rem)] bg-surface-container-high border border-white/10 rounded-xl shadow-float animate-fade-up overflow-hidden"
         >
           {/* Header: month / year navigation */}
           <div className="flex items-center justify-between px-3 py-2.5 border-b border-white/5">
@@ -211,9 +232,13 @@ export function DatePickerInput({
                 <button
                   key={dayISO}
                   type="button"
+                  data-cursor={day === viewDate.getDate()}
+                  tabIndex={day === viewDate.getDate() ? 0 : -1}
+                  aria-label={formatDisplay(dayISO)}
+                  aria-pressed={isSelected}
                   onClick={() => selectDay(day)}
                   className={`
-                    h-9 w-full rounded-lg font-body text-sm transition-colors
+                    h-10 w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary rounded-lg font-body text-sm transition-colors
                     ${isSelected
                       ? 'bg-primary text-on-primary font-semibold'
                       : isToday_

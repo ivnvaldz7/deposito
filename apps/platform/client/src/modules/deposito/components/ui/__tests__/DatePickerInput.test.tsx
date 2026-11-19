@@ -9,7 +9,7 @@ describe('DatePickerInput', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Pin date to avoid flaky tests
-    vi.setSystemTime(new Date('2026-07-23'))
+    vi.setSystemTime(new Date(2026, 6, 23, 12))
   })
 
   it('renders the input with a formatted display value', () => {
@@ -91,7 +91,9 @@ describe('DatePickerInput', () => {
     fireEvent.click(screen.getByDisplayValue('15 de Julio 2026'))
     expect(screen.getByText('Julio 2026')).toBeInTheDocument()
 
-    fireEvent.keyDown(screen.getByDisplayValue('15 de Julio 2026'), { key: 'Escape' })
+    const activeDay = screen.getByRole('button', { name: '15 de Julio 2026' })
+    expect(activeDay).toHaveFocus()
+    fireEvent.keyDown(activeDay, { key: 'Escape' })
     expect(screen.queryByText('Julio 2026')).not.toBeInTheDocument()
   })
 
